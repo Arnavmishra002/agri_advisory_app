@@ -3,8 +3,8 @@ import axios from 'axios';
 
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
   }
 }
 
@@ -83,8 +83,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
       recognition.lang = language === 'hi' ? 'hi-IN' : 'en-US';
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = Array.from(event.results)
-          .map((result: SpeechRecognitionResult) => result[0])
+        const transcript = Array.from(event.results as SpeechRecognitionResult[])
+          .map((result) => result[0])
           .map((result) => result.transcript)
           .join('');
         setInputText(transcript);
