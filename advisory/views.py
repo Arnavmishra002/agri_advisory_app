@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from .ai_models import predict_yield, detect_pest_disease, get_chatbot_response
 from .weather_api import WeatherAPI
 from .text_to_speech import convert_text_to_speech
+from .market_api import get_mock_market_prices
 
 # Create your views here.
 
@@ -89,3 +90,19 @@ class TextToSpeechViewSet(viewsets.ViewSet):
         if audio_url:
             return Response({"audio_url": request.build_absolute_uri(audio_url)})
         return Response({"error": "Could not convert text to speech"}, status=500)
+
+
+class MarketPricesViewSet(viewsets.ViewSet):
+    """
+    A simple ViewSet for retrieving real-time market prices.
+    """
+    @action(detail=False, methods=['get'])
+    def prices(self, request):
+        product_type = request.query_params.get('product', None)
+        location = request.query_params.get('location', None)
+        
+        market_data = get_mock_market_prices(product_type, location)
+        
+        if market_data:
+            return Response(market_data)
+        return Response({"error": "Could not retrieve market data"}, status=500)
