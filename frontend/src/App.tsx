@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import WeatherDisplay from './components/WeatherDisplay';
 import TextToSpeech from './components/TextToSpeech';
 import MarketPricesDisplay from './components/MarketPricesDisplay';
+import Chatbot from './components/Chatbot';
 
 function App() {
+  const [language, setLanguage] = useState<string>('en');
+
+  const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setLanguage(event.target.value);
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -21,11 +28,19 @@ function App() {
         >
           Learn React
         </a>
+        <div className="language-selector">
+          <label htmlFor="language-select">Language: </label>
+          <select id="language-select" onChange={handleLanguageChange} value={language}>
+            <option value="en">English</option>
+            <option value="hi">हिंदी</option>
+          </select>
+        </div>
       </header>
       <main>
         <WeatherDisplay />
-        <TextToSpeech />
+        <TextToSpeech language={language} />
         <MarketPricesDisplay />
+        <Chatbot language={language} />
       </main>
     </div>
   );
