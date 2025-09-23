@@ -82,10 +82,11 @@ class TextToSpeechViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'])
     def speak(self, request):
         text = request.data.get('text', None)
+        language = request.data.get('language', 'en') # Get language from request, default to English
         if not text:
             return Response({"error": "Text parameter is required"}, status=400)
         
-        audio_url = convert_text_to_speech(text)
+        audio_url = convert_text_to_speech(text, lang=language)
 
         if audio_url:
             return Response({"audio_url": request.build_absolute_uri(audio_url)})
