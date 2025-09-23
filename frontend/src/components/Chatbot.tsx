@@ -19,7 +19,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api/advisories/chatbot/';
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+  const recognition = React.useMemo(() => SpeechRecognition ? new SpeechRecognition() : null, [SpeechRecognition]);
 
   useEffect(() => {
     // Reset greeting message when language changes
@@ -37,7 +37,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = Array.from(event.results)
-          .map((result) => result[0])
+          .map((result: SpeechRecognitionResult) => result[0])
           .map((result) => result.transcript)
           .join('');
         setInputText(transcript);
