@@ -91,21 +91,33 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ language }) => {
 
   return (
     <div className="image-upload-widget">
-      <h2>{language === 'hi' ? "छवि अपलोड करें" : "Upload Image"}</h2>
-      <input type="file" accept="image/*" onChange={handleFileChange} />
+      <h2>{language === 'hi' ? "छवि अपलोड करें" : "Upload Image for Pest/Disease Detection"}</h2>
+      <div className="file-input-container">
+        <input type="file" id="image-upload" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+        <label htmlFor="image-upload" className="custom-file-upload">
+          {selectedFile ? selectedFile.name : (language === 'hi' ? "छवि चुनें" : "Choose Image")}
+        </label>
+        {selectedFile && (
+          <button onClick={() => { setSelectedFile(null); setPreviewUrl(null); }} className="clear-image-button">
+            {language === 'hi' ? "छवि साफ़ करें" : "Clear Image"}
+          </button>
+        )}
+      </div>
+
       <button onClick={handleGetLocation} disabled={loading}>
         {language === 'hi' ? "स्थान प्राप्त करें" : "Get Current Location"}
       </button>
       {geolocation && (
-        <p className="geolocation-info">
-          {language === 'hi' ? "स्थान:" : "Location:"} {geolocation.latitude.toFixed(4)}, {geolocation.longitude.toFixed(4)}
+        <p className="geolocation-info success">
+          <i className="fas fa-map-marker-alt"></i>
+          {language === 'hi' ? "स्थान:" : "Location:"} {geolocation.latitude.toFixed(4)}, {geolocation.longitude.toFixed(4)} (Accuracy: {geolocation.accuracy.toFixed(2)}m)
         </p>
       )}
+      {error && <p className="error-message">{error}</p>}
       {previewUrl && <img src={previewUrl} alt="Preview" className="image-preview" />}
       <button onClick={handleSubmit} disabled={loading || !selectedFile}>
         {loading ? (language === 'hi' ? "अपलोड हो रहा है..." : "Uploading...") : (language === 'hi' ? "अपलोड और पता लगाएं" : "Upload & Detect")}
       </button>
-      {error && <p className="error-message">{error}</p>}
     </div>
   );
 };

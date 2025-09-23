@@ -43,20 +43,32 @@ interface WeatherData {
   };
 }
 
-const WeatherDisplay: React.FC = () => {
+interface WeatherDisplayProps {
+  latitude: number | null;
+  longitude: number | null;
+  language: string;
+}
+
+const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ latitude, longitude, language }) => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [location, setLocation] = useState<string>('London'); // Default location
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchWeather = async () => {
+      if (latitude === null || longitude === null) {
+        setError(language === 'hi' ? "स्थान उपलब्ध नहीं है।" : "Location not available.");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:8000/api/weather/current/?location=${location}`);
+        setError(null);
+        const response = await axios.get(`http://localhost:8000/api/weather/current/?lat=${latitude}&lon=${longitude}&lang=${language}`);
         setWeather(response.data);
       } catch (err) {
-        setError('Failed to fetch weather data.');
+        setError(language === 'hi' ? "मौसम डेटा प्राप्त करने में विफल रहा।" : "Failed to fetch weather data.");
         console.error(err);
       } finally {
         setLoading(false);
@@ -64,30 +76,28 @@ const WeatherDisplay: React.FC = () => {
     };
 
     fetchWeather();
-  }, [location]);
+  }, [latitude, longitude, language]);
 
-  const handleLocationChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setLocation(event.target.value);
-  };
-
-  if (loading) return <div className="weather-widget">Loading weather...</div>;
-  if (error) return <div className="weather-widget error">Error: {error}</div>;
-  if (!weather) return <div className="weather-widget">No weather data available.</div>;
+  if (loading) return <div className="weather-widget">{language === 'hi' ? "मौसम लोड हो रहा है..." : "Loading weather..."}</div>;
+  if (error) return <div className="weather-widget error">{language === 'hi' ? `त्रुटि: ${error}` : `Error: ${error}`}</div>;
+  if (!weather) return <div className="weather-widget">{language === 'hi' ? "कोई मौसम डेटा उपलब्ध नहीं है।" : "No weather data available."}</div>;
 
   return (
     <div className="weather-widget">
-      <h2>Weather in {weather.location.name}</h2>
-      <input
-        type="text"
-        value={location}
-        onChange={handleLocationChange}
-        placeholder="Enter city or ZIP code"
-      />
-      <p>Temperature: {weather.current.temp_c}°C ({weather.current.temp_f}°F)</p>
-      <p>Condition: {weather.current.condition.text}</p>
-      <img src={weather.current.condition.icon} alt={weather.current.condition.text} />
-      <p>Humidity: {weather.current.humidity}%</p>
-      <p>Wind: {weather.current.wind_kph} km/h {weather.current.wind_dir}</p>
+      <h2>{language === 'hi' ? `मौसम ${weather.location.name} में` : `Weather in ${weather.location.name}`}</h2>
+      <div className="weather-details">
+        <div className="weather-main">
+          <img src={weather.current.condition.icon} alt={weather.current.condition.text} className="weather-icon" />
+          <p className="temperature">{weather.current.temp_c}°C</p>
+        </div>
+        <p className="condition">{weather.current.condition.text}</p>
+        <div className="weather-info-grid">
+          <p><strong>{language === 'hi' ? "महसूस होता है" : "Feels like"}:</strong> {weather.current.feelslike_c}°C</p>
+          <p><strong>{language === 'hi' ? "आर्द्रता" : "Humidity"}:</strong> {weather.current.humidity}%</p>
+          <p><strong>{language === 'hi' ? "हवा" : "Wind"}:</strong> {weather.current.wind_kph} km/h {weather.current.wind_dir}</p>
+          <p><strong>{language === 'hi' ? "दबाव" : "Pressure"}:</strong> {weather.current.pressure_mb} mb</p>
+        </div>
+      </div>
     </div>
   );
 };

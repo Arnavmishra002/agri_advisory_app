@@ -1,53 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
-}
-
-interface SpeechRecognitionEvent extends Event {
-  readonly results: SpeechRecognitionResultList;
-  readonly resultIndex: number;
-  readonly interpretation: any;
-  readonly emma: Document | null;
-}
-
-interface SpeechRecognitionResultList {
-  [index: number]: SpeechRecognitionResult;
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  [index: number]: SpeechRecognitionAlternative;
-  readonly length: number;
-  isFinal: boolean;
-  item(index: number): SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string;
-  confidence: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  readonly error: SpeechRecognitionErrorCode;
-  readonly message: string;
-}
-
-type SpeechRecognitionErrorCode =
-  | "no-speech"
-  | "aborted"
-  | "audio-capture"
-  | "network"
-  | "not-allowed"
-  | "service-not-allowed"
-  | "bad-grammar"
-  | "language-not-supported";
-
 interface Message {
   text: string;
   sender: 'user' | 'bot';
@@ -63,10 +16,13 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
   );
   const [inputText, setInputText] = useState<string>('');
   const [isListening, setIsListening] = useState<boolean>(false);
+  const [isLoadingBotResponse, setIsLoadingBotResponse] = useState<boolean>(false); // New state for loading
   const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api/advisories/chatbot/';
 
+  // @ts-ignore
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = React.useMemo(() => SpeechRecognition ? new SpeechRecognition() : null, [SpeechRecognition]);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null); // Ref for scrolling
 
   useEffect(() => {
     // Reset greeting message when language changes
@@ -82,8 +38,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
       recognition.interimResults = false;
       recognition.lang = language === 'hi' ? 'hi-IN' : 'en-US';
 
+      // @ts-ignore
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = Array.from(event.results as SpeechRecognitionResult[])
+        const transcript = Array.from(event.results as unknown as SpeechRecognitionResult[])
           .map((result) => result[0])
           .map((result) => result.transcript)
           .join('');
@@ -91,6 +48,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
         setIsListening(false);
       };
 
+      // @ts-ignore
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error("Speech recognition error", event.error);
         setIsListening(false);
@@ -102,12 +60,17 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
     }
   }, [language, recognition]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoadingBotResponse]); // Scroll when messages or loading state changes
+
   const handleSendMessage = async () => {
     if (inputText.trim() === '') return;
 
     const newUserMessage: Message = { text: inputText, sender: 'user' };
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
     setInputText('');
+    setIsLoadingBotResponse(true); // Set loading to true
 
     try {
       const response = await axios.post(API_URL, {
@@ -123,6 +86,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
         : "Sorry, I'm having trouble connecting to the advisory service. Please try again later.";
       const errorMessage: Message = { text: errorMessageText, sender: 'bot' };
       setMessages((prevMessages) => [...prevMessages, errorMessage]);
+    } finally {
+      setIsLoadingBotResponse(false); // Set loading to false
     }
   };
 
@@ -148,6 +113,12 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
             {msg.text}
           </div>
         ))}
+        {isLoadingBotResponse && (
+          <div className="message bot loading-message">
+            <span>.</span><span>.</span><span>.</span>
+          </div>
+        )}
+        <div ref={messagesEndRef} /> {/* Element to scroll to */}
       </div>
       <div className="input-area">
         <input
