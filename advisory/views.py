@@ -25,8 +25,11 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def detect_pest_disease(self, request):
-        image_upload = request.data.get('image') # Assuming image is sent as a base64 string or URL
-        result = detect_pest_disease(image_upload)
+        image_upload = request.data.get('image')
+        latitude = request.data.get('latitude', None)
+        longitude = request.data.get('longitude', None)
+        
+        result = detect_pest_disease(image_upload, latitude, longitude)
         return Response(result)
 
     @action(detail=False, methods=['post'])

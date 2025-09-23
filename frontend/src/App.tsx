@@ -5,6 +5,7 @@ import WeatherDisplay from './components/WeatherDisplay';
 import TextToSpeech from './components/TextToSpeech';
 import MarketPricesDisplay from './components/MarketPricesDisplay';
 import Chatbot from './components/Chatbot';
+import ImageUpload from './components/ImageUpload';
 
 function App() {
   const [language, setLanguage] = useState<string>('en');
@@ -41,6 +42,7 @@ function App() {
         <TextToSpeech language={language} />
         <MarketPricesDisplay />
         <Chatbot language={language} />
+        <ImageUpload language={language} />
       </main>
     </div>
   );

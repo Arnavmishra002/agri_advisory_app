@@ -32,7 +32,7 @@ def predict_yield(crop_type, soil_type, weather_data):
     
     return {"predicted_yield": "unknown", "confidence": "low", "recommendation": "No specific recommendation available for these inputs. Consider providing more data."}
 
-def detect_pest_disease(image_upload):
+def detect_pest_disease(image_upload, latitude=None, longitude=None):
     """Simulates pest/disease detection using a placeholder AI model.
 
     In a real application:
@@ -47,15 +47,17 @@ def detect_pest_disease(image_upload):
 
     3. **Recommendation Generation:**
        - Based on the detection, specific recommendations for pest control or disease management are provided.
+       - Geotagged information (`latitude`, `longitude`) could be used to provide location-specific advisories (e.g., local pest outbreaks).
     """
+    print(f"Image received for detection. Latitude: {latitude}, Longitude: {longitude}")
     # Placeholder logic for demonstration
     if image_upload == "leaf_with_spots.jpg":
-        return {"detection": "Early Blight (Potato/Tomato)", "confidence": "high", "recommendation": "Apply a broad-spectrum fungicide containing Mancozeb or Chlorothalonil. Improve air circulation."}
+        return {"detection": "Early Blight (Potato/Tomato)", "confidence": "high", "recommendation": "Apply a broad-spectrum fungicide containing Mancozeb or Chlorothalonil. Improve air circulation.", "location_info": {"latitude": latitude, "longitude": longitude}}
     elif image_upload == "yellow_leaves.png":
-        return {"detection": "Nitrogen Deficiency", "confidence": "medium", "recommendation": "Apply nitrogen-rich fertilizer (e.g., Urea). Ensure proper soil pH."}
+        return {"detection": "Nitrogen Deficiency", "confidence": "medium", "recommendation": "Apply nitrogen-rich fertilizer (e.g., Urea). Ensure proper soil pH.", "location_info": {"latitude": latitude, "longitude": longitude}}
     elif image_upload == "holes_in_leaf.jpg":
-        return {"detection": "Insect Infestation (e.g., Caterpillars)", "confidence": "high", "recommendation": "Use neem oil spray or appropriate organic pesticide. Hand-pick larger insects."}
-    return {"detection": "No significant pest/disease detected", "confidence": "low", "recommendation": "Continue regular monitoring and good agricultural practices."}
+        return {"detection": "Insect Infestation (e.g., Caterpillars)", "confidence": "high", "recommendation": "Use neem oil spray or appropriate organic pesticide. Hand-pick larger insects.", "location_info": {"latitude": latitude, "longitude": longitude}}
+    return {"detection": "No significant pest/disease detected", "confidence": "low", "recommendation": "Continue regular monitoring and good agricultural practices.", "location_info": {"latitude": latitude, "longitude": longitude}}
 
 TRANSLATIONS = {
     "en": {

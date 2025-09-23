@@ -181,3 +181,175 @@ main {
 .market-prices-widget tr:nth-child(even) {
   background-color: #f9f9f9;
 }
+
+.language-selector {
+  margin-top: 10px;
+  padding: 5px 0;
+  color: white;
+}
+
+.language-selector label {
+  margin-right: 10px;
+  font-size: 1rem;
+}
+
+.language-selector select {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid #a2b96e;
+  background-color: #f9fdf5;
+  color: #333;
+  font-size: 1rem;
+}
+
+.language-selector select:focus {
+  outline: none;
+  border-color: #556b2f;
+  box-shadow: 0 0 0 0.2rem rgba(85, 107, 47, 0.25);
+}
+
+.chat-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  max-width: 800px;
+  margin: 20px auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.message-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 10px;
+}
+
+.message {
+  padding: 10px 15px;
+  margin-bottom: 8px;
+  border-radius: 18px;
+  max-width: 70%;
+  text-align: left;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.message.user {
+  background-color: #e0f7fa; /* Light blue for user */
+  color: #004d40;
+  margin-left: auto;
+  border-bottom-right-radius: 2px;
+}
+
+.message.bot {
+  background-color: #dcedc8; /* Lighter green for bot */
+  color: #1b5e20;
+  margin-right: auto;
+  border-bottom-left-radius: 2px;
+}
+
+.input-area {
+  display: flex;
+  padding-top: 10px;
+}
+
+.input-area input {
+  flex-grow: 1;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  margin-right: 10px;
+  font-size: 1rem;
+}
+
+.input-area input:focus {
+  outline: none;
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.input-area button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.input-area button:hover {
+  background-color: #218838;
+}
+
+.input-area button:active {
+  background-color: #1e7e34;
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+}
+
+.image-upload-widget {
+  background-color: #ffffff;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 0 auto;
+  max-width: 500px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.image-upload-widget h2 {
+  color: #2e8b57;
+  margin-bottom: 15px;
+}
+
+.image-upload-widget input[type="file"] {
+  display: block;
+  margin: 0 auto 15px auto;
+  padding: 10px;
+  border: 1px solid #a2b96e;
+  border-radius: 5px;
+  background-color: #f9fdf5;
+  width: calc(100% - 22px);
+}
+
+.image-upload-widget button {
+  background-color: #2e8b57;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s ease-in-out;
+  margin: 5px;
+}
+
+.image-upload-widget button:hover {
+  background-color: #246b43;
+}
+
+.image-upload-widget button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.geolocation-info {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 10px;
+}
+
+.image-preview {
+  max-width: 100%;
+  height: auto;
+  margin-top: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
