@@ -1,4 +1,4 @@
-# Agri-Advisory App Prototype
+# Krishimitra: Agri-Advisory App Prototype
 
 ## Problem Description
 A majority of small and marginal farmers in India rely on traditional knowledge, local shopkeepers, or guesswork for crop selection, pest control, and fertilizer use. They lack access to personalized, real-time advisory services that account for soil type, weather conditions, and crop history. This often leads to poor yield, excessive input costs, and environmental degradation due to overuse of chemicals. Language barriers, low digital literacy, and absence of localized tools further limit their access to modern agri-tech resources.
@@ -36,7 +36,7 @@ Helping small farmers make informed decisions can significantly increase product
 
 ## Prototype Structure
 
-This prototype will focus on a basic backend structure using Django, a simple API endpoint for crop advisory, and a placeholder for AI/ML models. It will demonstrate the core idea of providing personalized agricultural advice. 
+This prototype will focus on a basic backend structure using Django, a simple API endpoint for crop advisory, and a placeholder for AI/ML models. It will demonstrate the core idea of providing personalized agricultural advice. The frontend UI has been enhanced to provide a more intuitive and visually appealing experience, aligning with a farming software aesthetic. 
 
 ## Setup and Run Instructions (Django Backend)
 
