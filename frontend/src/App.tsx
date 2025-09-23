@@ -2,6 +2,7 @@ import React from 'react';
 import logo from './logo.svg';
 import './App.css';
 import WeatherDisplay from './components/WeatherDisplay';
+import TextToSpeech from './components/TextToSpeech';
 
 function App() {
   return (
@@ -19,8 +20,11 @@ function App() {
         >
           Learn React
         </a>
-        <WeatherDisplay />
       </header>
+      <main>
+        <WeatherDisplay />
+        <TextToSpeech />
+      </main>
     </div>
   );
 }

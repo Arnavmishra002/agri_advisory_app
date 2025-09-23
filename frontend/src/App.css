@@ -8,6 +8,15 @@
   color: #333;
 }
 
+main {
+  flex-grow: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
 .App-header {
   background-color: #556b2f; /* Darker olive green, representing fertile soil or crops */
   padding: 20px;
@@ -140,4 +149,66 @@
 
 .weather-widget img {
   margin: 10px 0;
+}
+
+.text-to-speech-widget {
+  background-color: #ffffff;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 0 auto;
+  max-width: 400px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.text-to-speech-widget h2 {
+  color: #2e8b57; /* Sea green for headings */
+  margin-bottom: 15px;
+}
+
+.text-to-speech-widget textarea {
+  width: calc(100% - 22px);
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #a2b96e; /* Lighter green border */
+  border-radius: 5px;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+.text-to-speech-widget textarea:focus {
+  outline: none;
+  border-color: #556b2f;
+  box-shadow: 0 0 0 0.2rem rgba(85, 107, 47, 0.25);
+}
+
+.text-to-speech-widget button {
+  background-color: #2e8b57; /* Sea green button */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.text-to-speech-widget button:hover {
+  background-color: #246b43;
+}
+
+.text-to-speech-widget button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #dc3545;
+  margin-top: 10px;
+}
+
+.text-to-speech-widget audio {
+  width: 100%;
+  margin-top: 15px;
 }
