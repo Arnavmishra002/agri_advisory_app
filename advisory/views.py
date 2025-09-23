@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .ai_models import predict_yield, detect_pest_disease, get_chatbot_response
 from .weather_api import WeatherAPI
+from .text_to_speech import convert_text_to_speech
 
 # Create your views here.
 
@@ -71,3 +72,20 @@ class WeatherViewSet(viewsets.ViewSet):
         if forecast_data:
             return Response(forecast_data)
         return Response({"error": "Could not retrieve forecast data"}, status=500)
+
+
+class TextToSpeechViewSet(viewsets.ViewSet):
+    """
+    A simple ViewSet for converting text to speech.
+    """
+    @action(detail=False, methods=['post'])
+    def speak(self, request):
+        text = request.data.get('text', None)
+        if not text:
+            return Response({"error": "Text parameter is required"}, status=400)
+        
+        audio_url = convert_text_to_speech(text)
+
+        if audio_url:
+            return Response({"audio_url": request.build_absolute_uri(audio_url)})
+        return Response({"error": "Could not convert text to speech"}, status=500)
