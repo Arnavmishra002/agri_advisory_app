@@ -212,3 +212,57 @@ main {
   width: 100%;
   margin-top: 15px;
 }
+
+.market-prices-widget {
+  background-color: #ffffff;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 0 auto;
+  max-width: 600px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.market-prices-widget h2 {
+  color: #2e8b57;
+  margin-bottom: 15px;
+}
+
+.market-prices-widget select {
+  padding: 8px 12px;
+  border: 1px solid #a2b96e;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  background-color: #f9fdf5;
+  font-size: 1rem;
+}
+
+.market-prices-widget select:focus {
+  outline: none;
+  border-color: #556b2f;
+  box-shadow: 0 0 0 0.2rem rgba(85, 107, 47, 0.25);
+}
+
+.market-prices-widget table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.market-prices-widget th,
+.market-prices-widget td {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  text-align: left;
+}
+
+.market-prices-widget th {
+  background-color: #e6ffe6;
+  color: #2e8b57;
+  font-weight: bold;
+}
+
+.market-prices-widget tr:nth-child(even) {
+  background-color: #f9f9f9;
+}

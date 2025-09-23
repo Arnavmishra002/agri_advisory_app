@@ -3,6 +3,7 @@ import logo from './logo.svg';
 import './App.css';
 import WeatherDisplay from './components/WeatherDisplay';
 import TextToSpeech from './components/TextToSpeech';
+import MarketPricesDisplay from './components/MarketPricesDisplay';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
       <main>
         <WeatherDisplay />
         <TextToSpeech />
+        <MarketPricesDisplay />
       </main>
     </div>
   );
