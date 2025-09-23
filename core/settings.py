@@ -134,3 +134,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000", # Allow React frontend
     "http://127.0.0.1:3000",
 ]
+
+# Weather API Configuration
+WEATHER_API_KEY = "YOUR_WEATHER_API_KEY"
+WEATHER_API_BASE_URL = "https://api.weatherapi.com/v1"
