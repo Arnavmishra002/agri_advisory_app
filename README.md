@@ -8,10 +8,18 @@ Helping small farmers make informed decisions can significantly increase product
 
 ## Expected Outcomes
 *   A multilingual, AI-based mobile app or chatbot that provides real-time, location-specific crop advisory.
-*   Soil health recommendations and fertilizer guidance.
-*   Weather-based alerts and predictive insights.
-*   Pest/disease detection via image uploads.
-*   Market price tracking.
+*   Comprehensive fertilizer recommendations based on crop type, soil type, and season using government data.
+*   Weather-based alerts and predictive insights from IMD (India Meteorological Department).
+*   Crop recommendation and substitution based on soil type, weather conditions, and market prices.
+*   Real-time market price tracking from Agmarknet and e-NAM APIs.
+*   ICAR-based crop recommendations and agricultural insights.
+*   NABARD statistics integration for small and marginal farmer support.
+*   **Advanced AI/ML Features:**
+    *   Continuous learning from user feedback
+    *   Personalized recommendations based on user history
+    *   Real-time model retraining and improvement
+    *   ML-enhanced predictions with confidence scores
+    *   User feedback collection and analysis system
 *   Voice support for low-literate users.
 *   Feedback and usage data collection for continuous improvement.
 
@@ -19,12 +27,18 @@ Helping small farmers make informed decisions can significantly increase product
 *   **Frontend:** Flutter (Mobile), React (Web)
 *   **Backend:** Django / Node.js
 *   **Database:** PostgreSQL / MongoDB
-*   **AI/ML Models:** Yield prediction (scikit-learn/XGBoost), Pest detection (CNN, TensorFlow), NLP chatbot (BERT, multilingual)
+*   **AI/ML Models:** 
+    *   Advanced ML models with continuous learning from user feedback
+    *   Random Forest for crop recommendations and yield prediction
+    *   Neural Networks for fertilizer recommendations
+    *   Personalized recommendations based on user history
+    *   Real-time model retraining and performance monitoring
+    *   NLP chatbot with ML enhancement (BERT, multilingual)
 *   **APIs/Data Sources:**
     *   Weather → IMD APIs
-    *   Soil → Govt. Soil Health Card data
-    *   Market → Agmarknet & e-NAM
-    *   Pest dataset → ICAR & open datasets
+*   Soil → Govt. Soil Health Card data
+*   Market → Agmarknet & e-NAM
+*   Crop data → ICAR & agricultural research datasets
 
 ## Research and References
 *   NABARD Report 2022 → 86% of Indian farmers are small/marginal.
@@ -77,5 +91,15 @@ This prototype will focus on a basic backend structure using Django, a simple AP
 *   `PUT /api/advisories/{id}/`: Update a specific crop advisory.
 *   `DELETE /api/advisories/{id}/`: Delete a specific crop advisory.
 *   `POST /api/advisories/predict_yield/`: Predict crop yield (takes `crop_type`, `soil_type`, `weather_data`).
-*   `POST /api/advisories/detect_pest_disease/`: Detect pest/disease (takes `image`).
 *   `POST /api/advisories/chatbot/`: Interact with the chatbot (takes `query`, `language`).
+*   `POST /api/advisories/fertilizer_recommendation/`: Get fertilizer recommendations (takes `crop_type`, `soil_type`, `season`, `area_hectares`, `language`).
+*   `POST /api/advisories/ml_crop_recommendation/`: Get ML-enhanced crop recommendations (takes `soil_type`, `season`, `temperature`, `rainfall`, `humidity`, `ph`, `organic_matter`, `user_id`).
+*   `POST /api/advisories/ml_fertilizer_recommendation/`: Get ML-enhanced fertilizer recommendations (takes `crop_type`, `soil_type`, `season`, `temperature`, `rainfall`, `humidity`, `ph`, `organic_matter`).
+*   `POST /api/advisories/collect_feedback/`: Collect user feedback for ML model improvement (takes `user_id`, `session_id`, `prediction_type`, `input_data`, `system_prediction`, `actual_result`, `feedback_rating`, `feedback_text`).
+*   `GET /api/advisories/feedback_analytics/`: Get feedback analytics (takes `days` parameter).
+*   `GET /api/advisories/model_performance/`: Get ML model performance metrics.
+*   `GET /api/advisories/user_feedback_history/`: Get user feedback history (takes `user_id`, `limit`).
+*   `GET /api/weather/current/`: Get current weather data from IMD (takes `lat`, `lon`, `lang`).
+*   `GET /api/weather/forecast/`: Get weather forecast from IMD (takes `lat`, `lon`, `lang`, `days`).
+*   `GET /api/market-prices/prices/`: Get market prices from Agmarknet (takes `lat`, `lon`, `lang`, `product`).
+*   `GET /api/trending-crops/`: Get trending crops data from e-NAM (takes `lat`, `lon`, `lang`).

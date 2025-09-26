@@ -1,8 +1,24 @@
+from .government_apis import AgmarknetAPI, ENAMAPIClient
+
 def get_mock_market_prices(latitude, longitude, language, product_type=None):
     """
-    Returns mock real-time market prices based on location and language.
-    In a real application, this would fetch data from an external API.
+    Returns real-time market prices from Agmarknet API with fallback to mock data.
+    Integrates with government agricultural market data sources.
     """
+    
+    # Try to get data from Agmarknet API first
+    try:
+        agmarknet_api = AgmarknetAPI()
+        agmarknet_data = agmarknet_api.get_market_prices(product_type, language=language)
+        if "error" not in agmarknet_data:
+            return agmarknet_data
+    except Exception as e:
+        print(f"Agmarknet API unavailable, using mock data: {e}")
+    
+    # Fallback to mock data
+    return _get_mock_market_prices_fallback(latitude, longitude, language, product_type)
+
+def _get_mock_market_prices_fallback(latitude, longitude, language, product_type=None):
 
     # Simulate location-based data. For a demo, we'll use a simple approximation.
     # In a real scenario, you'd map lat/lon to a specific market location.
@@ -73,6 +89,24 @@ def get_mock_market_prices(latitude, longitude, language, product_type=None):
     return {}
 
 def get_mock_trending_crops(latitude, longitude, language):
+    """
+    Returns trending crops data from e-NAM API with fallback to mock data.
+    Integrates with government agricultural market data sources.
+    """
+    
+    # Try to get data from e-NAM API first
+    try:
+        enam_api = ENAMAPIClient()
+        enam_data = enam_api.get_trending_crops(language=language)
+        if "error" not in enam_data:
+            return enam_data
+    except Exception as e:
+        print(f"e-NAM API unavailable, using mock data: {e}")
+    
+    # Fallback to mock data
+    return _get_mock_trending_crops_fallback(latitude, longitude, language)
+
+def _get_mock_trending_crops_fallback(latitude, longitude, language):
     # Mock trending crops data based on general location for demo
     # In a real app, this would involve more sophisticated geo-mapping
     # and actual agricultural trend analysis.

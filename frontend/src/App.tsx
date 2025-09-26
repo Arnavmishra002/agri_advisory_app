@@ -3,7 +3,6 @@ import './App.css';
 import WeatherDisplay from './components/WeatherDisplay';
 import MarketPricesDisplay from './components/MarketPricesDisplay';
 import Chatbot from './components/Chatbot';
-import ImageUpload from './components/ImageUpload';
 import TrendingCropsDisplay from './components/TrendingCropsDisplay';
 
 function App() {
@@ -49,7 +48,6 @@ function App() {
         <div className="dashboard-grid">
           <WeatherDisplay latitude={latitude} longitude={longitude} language={language} />
           <MarketPricesDisplay latitude={latitude} longitude={longitude} language={language} />
-          <ImageUpload language={language} />
           <Chatbot language={language} />
           <TrendingCropsDisplay latitude={latitude} longitude={longitude} language={language} />
         </div>

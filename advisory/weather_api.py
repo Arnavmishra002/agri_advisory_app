@@ -1,5 +1,6 @@
 import requests
 from django.conf import settings
+from .government_apis import IMDWeatherAPI
 
 class ExternalWeatherAPI:
     def __init__(self):
@@ -36,7 +37,22 @@ class ExternalWeatherAPI:
             return None
 
 class MockWeatherAPI:
+    def __init__(self):
+        self.imd_api = IMDWeatherAPI()  # Government API integration
+    
     def get_current_weather(self, latitude, longitude, language):
+        # Try to get data from IMD API first
+        try:
+            imd_data = self.imd_api.get_current_weather(latitude, longitude, language)
+            if "error" not in imd_data:
+                return imd_data
+        except Exception as e:
+            print(f"IMD API unavailable, using mock data: {e}")
+        
+        # Fallback to mock data
+        return self._get_mock_weather_data(latitude, longitude, language)
+    
+    def _get_mock_weather_data(self, latitude, longitude, language):
         # Dummy weather data based on general location for demo
         if language == 'hi':
             city_name = "दिल्ली"
