@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from datetime import timedelta
+import sentry_sdk # Import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration # Import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,10 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-3^7he##1_fnu8)9z1nm)^)mzwl%74q8go9x6h4l0=$#am8si%6'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-3^7he##1_fnu8)9z1nm)^)mzwl%74q8go9x6h4l0=$#am8si%6')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = []
 
@@ -41,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework', # Register Django REST Framework
     'drf_spectacular', # Register drf-spectacular
     'corsheaders', # Add corsheaders
+    'rest_framework_simplejwt', # Add simple JWT
 ]
 
 MIDDLEWARE = [
@@ -132,6 +137,92 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',)
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'UPDATE_LAST_LOGIN': False,
+
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JWK_URL': None,
+    'LEEWAY': 0,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+
+    'JTI_CLAIM': 'jti',
+
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+}
+
+AUTH_USER_MODEL = 'advisory.User'
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0' # Using Redis as the message broker
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0' # Storing results in Redis
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Kolkata' # Or your appropriate timezone
+CELERY_BEAT_SCHEDULE = {
+    'update-weather-every-hour': {
+        'task': 'advisory.tasks.update_weather_data',
+        'schedule': timedelta(hours=1),
+    },
+    'update-market-data-daily': {
+        'task': 'advisory.tasks.update_market_data',
+        'schedule': timedelta(days=1),
+    },
+}
+
+# Caching settings (using local-memory cache for development, consider Redis for production)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300, # Cache timeout in seconds (5 minutes)
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000
+        }
+    },
+    'weather_cache': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'weather-cache',
+        'TIMEOUT': 60 * 60, # 1 hour
+        'OPTIONS': {
+            'MAX_ENTRIES': 500
+        }
+    },
+    'market_cache': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'market-cache',
+        'TIMEOUT': 60 * 60 * 24, # 24 hours
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000
+        }
+    }
 }
 
 CORS_ALLOWED_ORIGINS = [
@@ -142,3 +233,24 @@ CORS_ALLOWED_ORIGINS = [
 # Weather API Configuration
 WEATHER_API_KEY = "YOUR_WEATHER_API_KEY"
 WEATHER_API_BASE_URL = "https://api.weatherapi.com/v1"
+
+# Sentry Configuration
+SENTRY_DSN = os.environ.get('SENTRY_DSN')
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+        ],
+        # Set traces_sample_rate to 1.0 to capture 100% of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=1.0,
+        # If you are using more than one Django project in a single Python process,
+        # or if you are running your Django project as a sub-application of a larger Python application,
+        # you may need to configure the following to avoid issues:
+        # `request_bodies='always'` to capture full request bodies for errors.
+        # `send_default_pii=True` to send personally identifiable information (e.g., usernames).
+        # `environment=os.environ.get('SENTRY_ENVIRONMENT', 'development')`
+        # `server_name=os.environ.get('SENTRY_SERVER_NAME', 'django-app')`
+    )

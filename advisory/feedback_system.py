@@ -8,51 +8,11 @@ import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from django.db import models
-from django.contrib.auth.models import User
+from advisory.models import User, UserFeedback
 import logging
 
 logger = logging.getLogger(__name__)
 
-class UserFeedback(models.Model):
-    """Model to store user feedback for ML model improvement"""
-    
-    user_id = models.CharField(max_length=100, help_text="Unique user identifier")
-    session_id = models.CharField(max_length=100, help_text="Session identifier")
-    prediction_type = models.CharField(max_length=50, help_text="Type of prediction (crop_recommendation, yield_prediction, etc.)")
-    
-    # Input data that was used for prediction
-    input_data = models.JSONField(help_text="Input parameters used for prediction")
-    
-    # Prediction made by the system
-    system_prediction = models.JSONField(help_text="System's prediction")
-    
-    # User's actual results/feedback
-    actual_result = models.JSONField(help_text="Actual result or user's feedback")
-    
-    # Feedback rating (1-5 scale)
-    feedback_rating = models.IntegerField(help_text="User rating from 1-5")
-    
-    # Additional feedback text
-    feedback_text = models.TextField(blank=True, null=True, help_text="Additional user comments")
-    
-    # Location data
-    latitude = models.FloatField(null=True, blank=True, help_text="User's latitude")
-    longitude = models.FloatField(null=True, blank=True, help_text="User's longitude")
-    
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'user_feedback'
-        indexes = [
-            models.Index(fields=['user_id', 'created_at']),
-            models.Index(fields=['prediction_type', 'created_at']),
-            models.Index(fields=['feedback_rating', 'created_at']),
-        ]
-    
-    def __str__(self):
-        return f"Feedback from {self.user_id} for {self.prediction_type} - Rating: {self.feedback_rating}"
 
 class FeedbackAnalytics:
     """Analytics system for user feedback"""

@@ -1,0 +1,19 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import CropAdvisoryViewSet, WeatherViewSet, MarketPricesViewSet, TrendingCropsViewSet, CropViewSet, SMSIVRViewSet, PestDetectionViewSet, UserViewSet, TextToSpeechViewSet, ForumPostViewSet
+
+router = DefaultRouter()
+router.register(r'users', UserViewSet)
+router.register(r'advisories', CropAdvisoryViewSet)
+router.register(r'crops', CropViewSet)
+router.register(r'weather', WeatherViewSet, basename='weather')
+router.register(r'market-prices', MarketPricesViewSet, basename='market-prices')
+router.register(r'trending-crops', TrendingCropsViewSet, basename='trending-crops')
+router.register(r'sms-ivr', SMSIVRViewSet, basename='sms-ivr')
+router.register(r'pest-detection', PestDetectionViewSet, basename='pest-detection')
+router.register(r'tts', TextToSpeechViewSet, basename='tts')
+router.register(r'forum', ForumPostViewSet, basename='forum')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]

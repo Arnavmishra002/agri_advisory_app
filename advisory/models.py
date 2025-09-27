@@ -1,17 +1,39 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
 
+class User(AbstractUser):
+    ROLES = (
+        ('farmer', 'Farmer'),
+        ('admin', 'Admin'),
+        ('officer', 'Officer'),
+    )
+    role = models.CharField(max_length=10, choices=ROLES, default='farmer')
+
+class Crop(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    ideal_soil_type = models.CharField(max_length=100)
+    min_temperature_c = models.FloatField()
+    max_temperature_c = models.FloatField()
+    min_rainfall_mm_per_month = models.FloatField()
+    max_rainfall_mm_per_month = models.FloatField()
+    duration_days = models.IntegerField(help_text="Approximate duration of crop cycle in days")
+    # Add more fields as needed, e.g., water requirements, sunlight, etc.
+
+    def __str__(self):
+        return self.name
+
 class CropAdvisory(models.Model):
-    crop_type = models.CharField(max_length=100)
+    crop = models.ForeignKey(Crop, on_delete=models.CASCADE, related_name='advisories')
     soil_type = models.CharField(max_length=100)
     weather_condition = models.CharField(max_length=100)
     recommendation = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.crop_type} - {self.soil_type}"
+        return f"{self.crop.name} - {self.soil_type}"
 
 class UserFeedback(models.Model):
     """Model to store user feedback for ML model improvement"""
@@ -118,3 +140,19 @@ class UserSession(models.Model):
     
     def __str__(self):
         return f"Session {self.session_id} for user {self.user_id}"
+
+class ForumPost(models.Model):
+    """
+    Model for community forum posts.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='forum_posts')
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} by {self.user.username}"

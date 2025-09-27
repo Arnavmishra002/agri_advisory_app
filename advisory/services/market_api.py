@@ -1,22 +1,33 @@
-from .government_apis import AgmarknetAPI, ENAMAPIClient
+from .government_apis import AgmarknetAPI, ENAMAPIService
+from django.core.cache import caches
 
-def get_mock_market_prices(latitude, longitude, language, product_type=None):
+market_cache = caches['market_cache']
+
+def get_market_prices(latitude, longitude, language, product_type=None):
     """
     Returns real-time market prices from Agmarknet API with fallback to mock data.
     Integrates with government agricultural market data sources.
     """
+    cache_key = f"market_prices_{latitude}_{longitude}_{language}_{product_type or 'all'}"
+    cached_data = market_cache.get(cache_key)
+    if cached_data:
+        print(f"MarketPrices: Returning cached data for key {cache_key}")
+        return cached_data
     
     # Try to get data from Agmarknet API first
     try:
         agmarknet_api = AgmarknetAPI()
         agmarknet_data = agmarknet_api.get_market_prices(product_type, language=language)
-        if "error" not in agmarknet_data:
+        if agmarknet_data and "error" not in agmarknet_data:
+            market_cache.set(cache_key, agmarknet_data)
             return agmarknet_data
     except Exception as e:
         print(f"Agmarknet API unavailable, using mock data: {e}")
     
     # Fallback to mock data
-    return _get_mock_market_prices_fallback(latitude, longitude, language, product_type)
+    fallback_data = _get_mock_market_prices_fallback(latitude, longitude, language, product_type)
+    market_cache.set(cache_key, fallback_data)
+    return fallback_data
 
 def _get_mock_market_prices_fallback(latitude, longitude, language, product_type=None):
 
@@ -88,23 +99,31 @@ def _get_mock_market_prices_fallback(latitude, longitude, language, product_type
     
     return {}
 
-def get_mock_trending_crops(latitude, longitude, language):
+def get_trending_crops(latitude, longitude, language):
     """
     Returns trending crops data from e-NAM API with fallback to mock data.
     Integrates with government agricultural market data sources.
     """
+    cache_key = f"trending_crops_{latitude}_{longitude}_{language}"
+    cached_data = market_cache.get(cache_key)
+    if cached_data:
+        print(f"TrendingCrops: Returning cached data for key {cache_key}")
+        return cached_data
     
     # Try to get data from e-NAM API first
     try:
-        enam_api = ENAMAPIClient()
+        enam_api = ENAMAPIService()
         enam_data = enam_api.get_trending_crops(language=language)
-        if "error" not in enam_data:
+        if enam_data and "error" not in enam_data:
+            market_cache.set(cache_key, enam_data)
             return enam_data
     except Exception as e:
         print(f"e-NAM API unavailable, using mock data: {e}")
     
     # Fallback to mock data
-    return _get_mock_trending_crops_fallback(latitude, longitude, language)
+    fallback_data = _get_mock_trending_crops_fallback(latitude, longitude, language)
+    market_cache.set(cache_key, fallback_data)
+    return fallback_data
 
 def _get_mock_trending_crops_fallback(latitude, longitude, language):
     # Mock trending crops data based on general location for demo

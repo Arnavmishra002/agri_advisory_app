@@ -1,6 +1,9 @@
 import requests
 from django.conf import settings
+from django.core.cache import caches
 from .government_apis import IMDWeatherAPI
+
+weather_cache = caches['weather_cache']
 
 class ExternalWeatherAPI:
     def __init__(self):
@@ -8,6 +11,11 @@ class ExternalWeatherAPI:
         self.base_url = settings.WEATHER_API_BASE_URL
 
     def get_current_weather(self, location):
+        cache_key = f"current_weather_{location.replace(' ', '_').lower()}"
+        cached_data = weather_cache.get(cache_key)
+        if cached_data:
+            return cached_data
+
         endpoint = f"{self.base_url}/current.json"
         params = {
             "key": self.api_key,
@@ -16,12 +24,19 @@ class ExternalWeatherAPI:
         try:
             response = requests.get(endpoint, params=params)
             response.raise_for_status() # Raise an exception for HTTP errors
-            return response.json()
+            data = response.json()
+            weather_cache.set(cache_key, data)
+            return data
         except requests.exceptions.RequestException as e:
             print(f"Error fetching weather data: {e}")
             return None
 
     def get_forecast_weather(self, location, days=3):
+        cache_key = f"forecast_weather_{location.replace(' ', '_').lower()}_{days}_days"
+        cached_data = weather_cache.get(cache_key)
+        if cached_data:
+            return cached_data
+
         endpoint = f"{self.base_url}/forecast.json"
         params = {
             "key": self.api_key,
@@ -31,7 +46,9 @@ class ExternalWeatherAPI:
         try:
             response = requests.get(endpoint, params=params)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            weather_cache.set(cache_key, data)
+            return data
         except requests.exceptions.RequestException as e:
             print(f"Error fetching weather data: {e}")
             return None
