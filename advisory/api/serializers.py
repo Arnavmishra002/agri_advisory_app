@@ -60,3 +60,48 @@ class ForumPostSerializer(serializers.ModelSerializer):
         model = ForumPost
         fields = ('id', 'user', 'user_username', 'title', 'content', 'created_at', 'updated_at')
         read_only_fields = ('user', 'created_at', 'updated_at')
+
+# API Endpoint Serializers for Swagger Documentation
+class YieldPredictionSerializer(serializers.Serializer):
+    crop_type = serializers.CharField(max_length=100, help_text="Type of crop (e.g., 'rice', 'wheat', 'corn')")
+    soil_type = serializers.CharField(max_length=100, help_text="Type of soil (e.g., 'sandy', 'clayey', 'loamy')")
+    weather_data = serializers.DictField(required=False, help_text="Weather data dictionary")
+    temperature = serializers.FloatField(default=25.0, help_text="Temperature in Celsius")
+    rainfall = serializers.FloatField(default=800.0, help_text="Rainfall in mm")
+    humidity = serializers.FloatField(default=60.0, help_text="Humidity percentage")
+    ph = serializers.FloatField(default=6.5, help_text="Soil pH level")
+    organic_matter = serializers.FloatField(default=2.0, help_text="Organic matter percentage")
+    season = serializers.CharField(default='kharif', help_text="Growing season (kharif/rabi)")
+
+class ChatbotSerializer(serializers.Serializer):
+    query = serializers.CharField(max_length=500, help_text="User's question or query")
+    language = serializers.CharField(default='en', max_length=10, help_text="Language code (en, hi, etc.)")
+    user_id = serializers.CharField(default='anonymous', max_length=100, help_text="User identifier")
+    session_id = serializers.CharField(required=False, max_length=100, help_text="Session identifier")
+
+class FertilizerRecommendationSerializer(serializers.Serializer):
+    crop_type = serializers.CharField(max_length=100, help_text="Type of crop")
+    soil_type = serializers.CharField(max_length=100, help_text="Type of soil")
+    season = serializers.CharField(default='kharif', max_length=50, help_text="Growing season")
+    area_hectares = serializers.FloatField(default=1.0, help_text="Area in hectares")
+    language = serializers.CharField(default='en', max_length=10, help_text="Language code")
+
+class CropRecommendationSerializer(serializers.Serializer):
+    soil_type = serializers.CharField(max_length=100, help_text="Type of soil")
+    latitude = serializers.FloatField(help_text="Latitude coordinate")
+    longitude = serializers.FloatField(help_text="Longitude coordinate")
+    season = serializers.CharField(default='kharif', max_length=50, help_text="Growing season")
+    user_id = serializers.CharField(default='anonymous', max_length=100, help_text="User identifier")
+    forecast_days = serializers.IntegerField(default=7, min_value=1, max_value=14, help_text="Weather forecast days")
+
+class FeedbackSerializer(serializers.Serializer):
+    user_id = serializers.CharField(max_length=100, help_text="User identifier")
+    session_id = serializers.CharField(max_length=100, help_text="Session identifier")
+    prediction_type = serializers.CharField(max_length=100, help_text="Type of prediction")
+    input_data = serializers.DictField(help_text="Input data used for prediction")
+    system_prediction = serializers.DictField(help_text="System's prediction")
+    actual_result = serializers.DictField(help_text="Actual result")
+    feedback_rating = serializers.IntegerField(min_value=1, max_value=5, help_text="Rating from 1-5")
+    feedback_text = serializers.CharField(required=False, max_length=500, help_text="Additional feedback text")
+    latitude = serializers.FloatField(required=False, help_text="Latitude coordinate")
+    longitude = serializers.FloatField(required=False, help_text="Longitude coordinate")

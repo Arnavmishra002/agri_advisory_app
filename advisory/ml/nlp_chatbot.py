@@ -1,51 +1,50 @@
 import logging
-from transformers import pipeline
+import re
+import random
 from typing import Dict, Any
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 class NLPAgriculturalChatbot:
-    def __init__(self, model_name="distilbert-base-uncased-distilled-squad"):
-        try:
-            # Initialize a question-answering pipeline from HuggingFace transformers
-            self.qa_pipeline = pipeline("question-answering", model=model_name)
-            logger.info(f"NLP Chatbot initialized with HuggingFace model: {model_name}")
-        except Exception as e:
-            logger.error(f"Error initializing HuggingFace NLP model: {e}")
-            self.qa_pipeline = None # Fallback if model fails to load
+    def __init__(self):
+        # Simple pattern matching chatbot - no heavy ML models for now
+        self.conversation_context = {}
+        logger.info("Enhanced conversational chatbot initialized")
     
     def get_response(self, user_query: str, language: str = 'en') -> Dict[str, Any]:
         """
-        Generates a response to the user query using the NLP model.
-        Currently supports basic question-answering. 
-        For multi-turn conversations, integration with a dialogue system (e.g., Dialogflow) 
-        or a more complex conversational AI framework would be needed.
+        Generates a conversational response like ChatGPT.
+        Supports multiple languages, grammatic errors, and casual conversations.
         """
-        if not self.qa_pipeline:
-            return {"response": self._fallback_response(language), "source": "fallback"}
-
         try:
-            # For a simple QA model, we need a context. This context would ideally come from
-            # a knowledge base (e.g., retrieved from a database based on query intent).
-            # For this placeholder, let's use a very general agricultural context.
-            context = self._get_dynamic_context(user_query, language)
+            # Normalize the input (handle casing, punctuation, common typos)
+            normalized_query = self._normalize_query(user_query)
             
-            if not context:
-                return {"response": self._fallback_response(language), "source": "no_context"}
-
-            # Use the QA pipeline to get an answer
-            result = self.qa_pipeline(question=user_query, context=context)
+            # Detect language (auto-detect if not specified)
+            detected_language = self._detect_language(normalized_query)
+            if detected_language != language:
+                logger.info(f"Language detected: {detected_language}, using instead of {language}")
+                language = detected_language
             
-            response_text = result['answer']
-            # Add some simple logic to make the response more conversational if needed
-            if len(response_text) < 10 or result['score'] < 0.3: # Low confidence
-                response_text = f"I found this: '{response_text}'. Could you provide more details?"
-
-            return {"response": response_text, "source": "nlp_model", "confidence": result['score']}
+            # Get response based on intent
+            response = self._generate_response(normalized_query, language)
+            
+            return {
+                "response": response,
+                "source": "conversational_ai",
+                "confidence": 0.9,
+                "language": language
+            }
 
         except Exception as e:
-            logger.error(f"Error generating NLP response for query '{user_query}': {e}")
-            return {"response": self._fallback_response(language), "source": "error"}
+            logger.error(f"Error generating response for query '{user_query}': {e}")
+            return {
+                "response": self._handle_error_response(language),
+                "source": "error",
+                "confidence": 0.3,
+                "language": language
+            }
 
     def _get_dynamic_context(self, user_query: str, language: str) -> str:
         """

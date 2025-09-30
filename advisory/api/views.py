@@ -7,7 +7,7 @@ from ..ml.ai_models import predict_yield
 from ..ml.fertilizer_recommendations import FertilizerRecommendationEngine
 from ..ml.ml_models import AgriculturalMLSystem
 from ..feedback_system import FeedbackAnalytics
-from ..ml.nlp_chatbot import NLPAgriculturalChatbot
+from ..ml.conversational_chatbot import ConversationalAgriculturalChatbot
 import uuid
 from ..services.weather_api import MockWeatherAPI
 from ..services.market_api import get_market_prices, get_trending_crops
@@ -17,7 +17,10 @@ from rest_framework import filters
 from django.core.files.uploadedfile import File
 from ..permissions import IsAdmin, IsOfficer, IsFarmer, IsOwnerOrReadOnly
 from ..utils import convert_text_to_speech
-from .serializers import CropAdvisorySerializer, CropSerializer, UserSerializer, SMSSerializer, IVRInputSerializer, PestDetectionSerializer, TextToSpeechSerializer, ForumPostSerializer
+from .serializers import (CropAdvisorySerializer, CropSerializer, UserSerializer, SMSSerializer, 
+                         IVRInputSerializer, PestDetectionSerializer, TextToSpeechSerializer, 
+                         ForumPostSerializer, YieldPredictionSerializer, ChatbotSerializer, 
+                         FertilizerRecommendationSerializer, CropRecommendationSerializer, FeedbackSerializer)
 
 # Create your views here.
 
@@ -61,10 +64,10 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         self.ml_system = AgriculturalMLSystem()
         self.feedback_analytics = FeedbackAnalytics()
         self.weather_api = MockWeatherAPI() # Use the actual weather API
-        self.nlp_chatbot = NLPAgriculturalChatbot() # Initialize the NLP chatbot
+        self.nlp_chatbot = ConversationalAgriculturalChatbot() # Initialize the conversational chatbot
         self.pest_detection_system = PestDetectionSystem() # Initialize the pest detection system
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], serializer_class=YieldPredictionSerializer)
     def predict_yield(self, request):
         crop_type = request.data.get('crop_type')
         soil_type = request.data.get('soil_type')
@@ -101,7 +104,7 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         return Response(result)
 
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], serializer_class=ChatbotSerializer)
     def chatbot(self, request):
         user_query = request.data.get('query')
         language = request.data.get('language', 'en')
@@ -109,10 +112,10 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         session_id = request.data.get('session_id', str(uuid.uuid4()))
         
         # Get chatbot response from NLP model
-        nlp_response = self.nlp_chatbot.get_response(user_query, language)
-        response = nlp_response['response']
-        source = nlp_response['source']
-        confidence = nlp_response.get('confidence')
+        chatbot_response = self.nlp_chatbot.get_response(user_query, language)
+        response = chatbot_response['response']
+        source = chatbot_response['source']
+        confidence = chatbot_response.get('confidence', 0.8)
 
         # Check if this is a prediction request that can be enhanced with ML
         # This logic is now largely handled within NLPAgriculturalChatbot's dynamic context
@@ -129,7 +132,7 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
             'ml_enhanced': (source == 'nlp_model' and confidence and confidence > 0.5) # Example logic
         })
     
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], serializer_class=FertilizerRecommendationSerializer)
     def fertilizer_recommendation(self, request):
         crop_type = request.data.get('crop_type')
         soil_type = request.data.get('soil_type')
@@ -147,18 +150,10 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         
         return Response(recommendation)
     
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], serializer_class=CropRecommendationSerializer)
     def ml_crop_recommendation(self, request):
         """Get ML-enhanced crop recommendations"""
-        class CropRecommendationInputSerializer(serializers.Serializer):
-            soil_type = serializers.CharField(required=True, max_length=100)
-            latitude = serializers.FloatField(required=True)
-            longitude = serializers.FloatField(required=True)
-            season = serializers.CharField(required=False, default='kharif', max_length=50)
-            user_id = serializers.CharField(required=False, default='anonymous', max_length=100)
-            forecast_days = serializers.IntegerField(required=False, default=7, min_value=1, max_value=14) # Max 14 days for typical weather APIs
-
-        serializer = CropRecommendationInputSerializer(data=request.data)
+        serializer = CropRecommendationSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -266,7 +261,7 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         
         return Response(result)
     
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], serializer_class=FeedbackSerializer)
     def collect_feedback(self, request):
         """Collect user feedback for ML model improvement"""
         user_id = request.data.get('user_id')

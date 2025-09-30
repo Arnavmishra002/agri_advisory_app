@@ -64,7 +64,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'core' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -145,6 +145,83 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',)
 }
 
+# DRF Spectacular settings for faster Swagger UI loading
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Krishimitra Agri-Advisory API',
+    'DESCRIPTION': 'AI-powered agricultural advisory system for Indian farmers',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,  # Don't include schema in response
+    'COMPONENT_SPLIT_REQUEST': True,  # Split request/response components
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,  # Reduce required fields
+    'ENUM_NAME_OVERRIDES': {
+        'ValidationErrorEnum': 'drf_spectacular.openapi.AutoSchema',
+    },
+    'POSTPROCESSING_HOOKS': [
+        'drf_spectacular.hooks.postprocess_schema_enums'
+    ],
+    'PREPROCESSING_HOOKS': [
+        'drf_spectacular.hooks.preprocess_exclude_path_format',
+    ],
+    'SCHEMA_PATH_PREFIX': '/api/',
+    'SCHEMA_PATH_PREFIX_TRIM': True,
+    'SORT_OPERATIONS': False,  # Don't sort operations for faster generation
+    'COMPONENT_SPLIT_PATCH': True,
+    'COMPONENT_SPLIT_POST': True,
+    'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
+    'ENUM_GENERATE_CHOICE_DESCRIPTION': False,
+    'GENERIC_ADDITIONAL_PROPERTIES': 'bool',
+    'SERVE_URLCONF': None,
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+    'SERVE_AUTHENTICATION': None,
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SERVE_FAVICON': None,
+    'SERVE_CDN': 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0',
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': False,
+        'displayRequestDuration': True,
+        'docExpansion': 'none',  # Start with collapsed sections
+        'filter': True,
+        'showExtensions': False,
+        'showCommonExtensions': False,
+        'tryItOutEnabled': True,
+        'requestSnippetsEnabled': True,
+        'requestSnippets': {
+            'generators': {
+                'curl_bash': {
+                    'title': 'cURL (bash)',
+                    'syntax': 'bash'
+                },
+                'curl_powershell': {
+                    'title': 'cURL (PowerShell)',
+                    'syntax': 'powershell'
+                },
+                'curl_cmd': {
+                    'title': 'cURL (CMD)',
+                    'syntax': 'bash'
+                }
+            }
+        }
+    },
+    'REDOC_UI_SETTINGS': {
+        'hideDownloadButton': True,
+        'hideHostname': False,
+        'hideLoading': True,
+        'nativeScrollbars': True,
+        'pathInMiddlePanel': True,
+        'requiredPropsFirst': True,
+        'sortPropsAlphabetically': False,
+        'theme': {
+            'colors': {
+                'primary': {
+                    'main': '#32329f'
+                }
+            }
+        }
+    }
+}
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
@@ -221,6 +298,14 @@ CACHES = {
         'TIMEOUT': 60 * 60 * 24, # 24 hours
         'OPTIONS': {
             'MAX_ENTRIES': 1000
+        }
+    },
+    'schema_cache': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'schema-cache',
+        'TIMEOUT': 60 * 60 * 24, # 24 hours - cache schema for a day
+        'OPTIONS': {
+            'MAX_ENTRIES': 10
         }
     }
 }

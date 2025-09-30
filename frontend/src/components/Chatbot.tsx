@@ -140,44 +140,100 @@ const Chatbot: React.FC<ChatbotProps> = ({ language }) => {
 
   return (
     <div className="chat-container">
+      <div className="chat-header">
+        <h2>{language === 'hi' ? 'कृषि सलाहकार' : 'Agricultural Advisor'}</h2>
+        <div className="chat-status">
+          <span className="status-indicator"></span>
+          <span>{language === 'hi' ? 'ऑनलाइन' : 'Online'}</span>
+        </div>
+      </div>
+      
       <div className="message-list">
         {messages.map((msg, index) => (
           <div key={index} className={`message ${msg.sender}`}>
+            <div className="message-avatar">
+              {msg.sender === 'bot' ? '🤖' : '👤'}
+            </div>
             <div className="message-content">
-              {msg.text}
+              <div className="message-text">
+                {msg.text}
+              </div>
               {msg.ml_enhanced && (
                 <div className="ml-badge">
                   {language === 'hi' ? 'ML संवर्धित' : 'ML Enhanced'}
                 </div>
               )}
+              <div className="message-time">
+                {new Date().toLocaleTimeString()}
+              </div>
             </div>
           </div>
         ))}
         {isLoadingBotResponse && (
           <div className="message bot loading-message">
-            <span>.</span><span>.</span><span>.</span>
+            <div className="message-avatar">🤖</div>
+            <div className="message-content">
+              <div className="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
           </div>
         )}
-        <div ref={messagesEndRef} /> {/* Element to scroll to */}
+        <div ref={messagesEndRef} />
       </div>
+      
       <div className="input-area">
-        <input
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') {
-              handleSendMessage();
-            }
-          }}
-          placeholder={language === 'hi' ? "फसल सिफारिश, मिट्टी या मौसम के बारे में पूछें..." : "Ask about crop recommendations, soil, or weather..."}
-        />
-        <button onClick={toggleListening} className={isListening ? 'listening' : ''} disabled={!recognition}>
-          {isListening ? (language === 'hi' ? "सुन रहा है..." : "Listening...") : (language === 'hi' ? "वॉयस इनपुट" : "Voice Input")}
-        </button>
-        <button onClick={handleSendMessage}>
-          {language === 'hi' ? "भेजें" : "Send"}
-        </button>
+        <div className="input-container">
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSendMessage();
+              }
+            }}
+            placeholder={language === 'hi' ? "फसल सिफारिश, मिट्टी या मौसम के बारे में पूछें..." : "Ask about crop recommendations, soil, or weather..."}
+            disabled={isLoadingBotResponse}
+          />
+          <button 
+            onClick={toggleListening} 
+            className={`voice-btn ${isListening ? 'listening' : ''}`} 
+            disabled={!recognition || isLoadingBotResponse}
+            title={language === 'hi' ? "वॉयस इनपुट" : "Voice Input"}
+          >
+            🎤
+          </button>
+          <button 
+            onClick={handleSendMessage}
+            disabled={!inputText.trim() || isLoadingBotResponse}
+            className="send-btn"
+          >
+            {isLoadingBotResponse ? '⏳' : '📤'}
+          </button>
+        </div>
+        <div className="quick-actions">
+          <button 
+            className="quick-btn"
+            onClick={() => setInputText(language === 'hi' ? 'मेरे लिए फसल सिफारिश करें' : 'Recommend crops for me')}
+          >
+            {language === 'hi' ? '🌾 फसल सिफारिश' : '🌾 Crop Recommendation'}
+          </button>
+          <button 
+            className="quick-btn"
+            onClick={() => setInputText(language === 'hi' ? 'मौसम की जानकारी' : 'Weather information')}
+          >
+            {language === 'hi' ? '🌤️ मौसम' : '🌤️ Weather'}
+          </button>
+          <button 
+            className="quick-btn"
+            onClick={() => setInputText(language === 'hi' ? 'खाद की सिफारिश' : 'Fertilizer recommendation')}
+          >
+            {language === 'hi' ? '🌱 खाद' : '🌱 Fertilizer'}
+          </button>
+        </div>
       </div>
       
       {showFeedback && lastPrediction && (

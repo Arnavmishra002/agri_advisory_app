@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krishimitra API - Fast Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+        .endpoint {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .get { background: #d4edda; color: #155724; }
+        .post { background: #cce5ff; color: #004085; }
+        .put { background: #fff3cd; color: #856404; }
+        .delete { background: #f8d7da; color: #721c24; }
+        .description {
+            color: #6c757d;
+            font-style: italic;
+            margin-left: 20px;
+        }
+        .section {
+            margin: 25px 0;
+        }
+        .quick-links {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .quick-links a {
+            color: #1976d2;
+            text-decoration: none;
+            margin-right: 15px;
+        }
+        .quick-links a:hover {
+            text-decoration: underline;
+        }
+        .auth-info {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #ff9800;
+        }
+        .rate-limits {
+            background: #f3e5f5;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #9c27b0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌾 Krishimitra Agri-Advisory API</h1>
+        <p><strong>Version:</strong> 1.0.0</p>
+        <p><strong>Description:</strong> AI-powered agricultural advisory system for Indian farmers</p>
+        
+        <div class="quick-links">
+            <h3>Quick Links:</h3>
+            <a href="/api/schema/swagger-ui/" target="_blank">📚 Full Swagger UI</a>
+            <a href="/api/schema/" target="_blank">📋 OpenAPI Schema</a>
+            <a href="/api/docs/" target="_blank">⚡ Fast JSON Docs</a>
+        </div>
+
+        <div class="auth-info">
+            <h3>🔐 Authentication</h3>
+            <p><strong>Type:</strong> Bearer Token (JWT)</p>
+            <p><strong>Header:</strong> <code>Authorization: Bearer &lt;token&gt;</code></p>
+            <p><strong>Get Token:</strong> <code>POST /api/token/</code> with username/password</p>
+        </div>
+
+        <div class="rate-limits">
+            <h3>⏱️ Rate Limits</h3>
+            <ul>
+                <li><strong>General endpoints:</strong> 100 requests/minute</li>
+                <li><strong>ML prediction endpoints:</strong> 10 requests/minute</li>
+                <li><strong>File upload endpoints:</strong> 5 requests/minute</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🔐 Authentication</h2>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/token/ - Get JWT token
+                <div class="description">Send username and password to get access token</div>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/token/refresh/ - Refresh JWT token
+                <div class="description">Refresh expired access token using refresh token</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🌱 Core Advisory</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/advisories/ - List crop advisories
+                <div class="description">Get all crop advisories with filtering and pagination</div>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/advisories/ - Create advisory
+                <div class="description">Create a new crop advisory</div>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/advisories/{id}/ - Get specific advisory
+                <div class="description">Retrieve a specific crop advisory by ID</div>
+            </div>
+            <div class="endpoint">
+                <span class="method put">PUT</span>/api/advisories/{id}/ - Update advisory
+                <div class="description">Update an existing crop advisory</div>
+            </div>
+            <div class="endpoint">
+                <span class="method delete">DELETE</span>/api/advisories/{id}/ - Delete advisory
+                <div class="description">Delete a crop advisory</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🤖 AI/ML Predictions</h2>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/advisories/predict_yield/ - Predict crop yield
+                <div class="description">Get ML-powered crop yield predictions</div>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/advisories/chatbot/ - NLP chatbot
+                <div class="description">Interact with multilingual agricultural chatbot</div>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/advisories/fertilizer_recommendation/ - Fertilizer recommendations
+                <div class="description">Get smart fertilizer recommendations</div>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/advisories/ml_crop_recommendation/ - ML crop recommendations
+                <div class="description">Get ML-enhanced crop recommendations</div>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/advisories/ml_fertilizer_recommendation/ - ML fertilizer recommendations
+                <div class="description">Get ML-enhanced fertilizer recommendations</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🌤️ External Data</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/weather/current/ - Current weather
+                <div class="description">Get current weather data from IMD</div>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/weather/forecast/ - Weather forecast
+                <div class="description">Get weather forecast from IMD</div>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/market-prices/prices/ - Market prices
+                <div class="description">Get real-time market prices from Agmarknet</div>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/trending-crops/ - Trending crops
+                <div class="description">Get trending crops data from e-NAM</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Advanced Features</h2>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/sms-ivr/receive-sms/ - SMS integration
+                <div class="description">Handle incoming SMS messages</div>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/sms-ivr/ivr-input/ - IVR integration
+                <div class="description">Handle IVR voice input</div>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/pest-detection/detect/ - Pest detection
+                <div class="description">Detect pests from uploaded images</div>
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/tts/speak/ - Text-to-speech
+                <div class="description">Convert text to speech in multiple languages</div>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/forum/ - Community forum
+                <div class="description">Access community discussion platform</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Analytics</h2>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/advisories/collect_feedback/ - Collect feedback
+                <div class="description">Collect user feedback for ML model improvement</div>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/advisories/feedback_analytics/ - Feedback analytics
+                <div class="description">Get feedback analytics and insights</div>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/advisories/model_performance/ - Model performance
+                <div class="description">Get ML model performance metrics</div>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/advisories/user_feedback_history/ - User feedback history
+                <div class="description">Get user feedback history</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🚀 Quick Start</h2>
+            <ol>
+                <li><strong>Get Token:</strong> <code>POST /api/token/</code> with username/password</li>
+                <li><strong>Use Token:</strong> Add <code>Authorization: Bearer &lt;token&gt;</code> to headers</li>
+                <li><strong>Make Calls:</strong> Use any endpoint with proper authentication</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>
