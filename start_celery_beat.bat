@@ -3,7 +3,7 @@ echo Starting Celery Beat Scheduler...
 echo.
 
 REM Navigate to project directory
-cd /d C:\AI\agri_advisory_app
+cd /d C:\Users\RITESH RANA\agri_advisory_app
 
 REM Activate virtual environment
 echo Activating virtual environment...

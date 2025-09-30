@@ -3,25 +3,15 @@ echo Starting Agri Advisory App...
 echo.
 
 REM Navigate to project directory
-cd /d C:\AI\agri_advisory_app
+cd /d C:\Users\RITESH RANA\agri_advisory_app
 
 REM Activate virtual environment
 echo Activating virtual environment...
 call venv\Scripts\activate.bat
 
-REM Install dependencies
-echo Installing dependencies...
-pip install -r requirements.txt
-
-REM Run migrations
+REM Ensure basic migrations are applied
 echo Running database migrations...
-python manage.py makemigrations advisory
 python manage.py migrate
-
-REM Create superuser if it doesn't exist
-echo Creating superuser (if needed)...
-echo You can skip this by pressing Ctrl+C
-python manage.py createsuperuser
 
 REM Start the Django server
 echo Starting Django server...
@@ -38,4 +28,4 @@ echo Press Ctrl+C to stop the server
 echo ========================================
 echo.
 
-python manage.py runserver
+python manage.py runserver 127.0.0.1:8000

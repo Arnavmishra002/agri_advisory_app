@@ -1,10 +1,10 @@
 from celery import shared_task
 import logging
 
-from ..services.weather_api import ExternalWeatherAPI, MockWeatherAPI
-from ..services.market_api import get_market_prices, get_trending_crops
-from ..models import Crop, User
-from ..services.notifications import send_push_notification
+from .services.weather_api import ExternalWeatherAPI, MockWeatherAPI
+from .services.market_api import get_market_prices, get_trending_crops
+from .models import Crop, User
+from .services.notifications import send_push_notification
 
 logger = logging.getLogger(__name__)
 

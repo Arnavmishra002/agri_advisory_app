@@ -3,7 +3,7 @@ echo Starting Celery Worker...
 echo.
 
 REM Navigate to project directory
-cd /d C:\AI\agri_advisory_app
+cd /d C:\Users\RITESH RANA\agri_advisory_app
 
 REM Activate virtual environment
 echo Activating virtual environment...
@@ -23,4 +23,4 @@ echo Press Ctrl+C to stop the worker
 echo ========================================
 echo.
 
-celery -A core worker --loglevel=info
+celery -A core worker --loglevel=info -P solo
