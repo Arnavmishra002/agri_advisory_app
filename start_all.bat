@@ -16,11 +16,11 @@ echo ⏳ Waiting 10 seconds for Django server to start...
 timeout /t 10 /nobreak > NUL
 
 echo 🧪 Testing API endpoints...
-python test_api.py
+python quick_test.py
 
 echo.
 echo 🌐 Starting Streamlit app...
-start "Streamlit App" cmd /k "cd /d "%~dp0" && call venv\Scripts\activate && streamlit run streamlit_app.py --server.port 8501 --server.address 127.0.0.1"
+start "Streamlit App" cmd /k "cd /d "%~dp0" && call venv\Scripts\activate && streamlit run streamlit_final.py --server.port 8501 --server.address 127.0.0.1"
 
 echo.
 echo ✅ Both servers are starting!

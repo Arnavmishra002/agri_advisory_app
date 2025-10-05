@@ -120,7 +120,9 @@ class AdvancedAgriculturalChatbot:
                 message_type='user',
                 message_content=user_query,
                 detected_language=language,
-                response_language=language
+                response_language=language,
+                response_source='user_input',
+                response_type='user_message'
             )
             
             # Load conversation history from database
@@ -157,6 +159,19 @@ class AdvancedAgriculturalChatbot:
                 "language": language,
                 "response_type": response_type
             })
+            
+            # Store assistant response in database
+            self._save_message_to_db(
+                user_id=user_id or 'anonymous',
+                session_id=session_id,
+                message_type='assistant',
+                message_content=final_response,
+                detected_language=detected_lang,
+                response_language=language,
+                confidence_score=self._calculate_confidence(response_type, working_query),
+                response_source='advanced_chatbot',
+                response_type=response_type
+            )
             
             return {
                 "response": final_response,
