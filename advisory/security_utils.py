@@ -6,6 +6,7 @@ import re
 import html
 import json
 import logging
+import functools
 from typing import Any, Dict, List, Optional, Union
 from django.utils.html import escape
 from django.core.exceptions import ValidationError
@@ -379,6 +380,7 @@ rate_limiter = RateLimiter()
 def secure_api_endpoint(max_requests: int = 100, window_seconds: int = 3600):
     """Decorator for secure API endpoints"""
     def decorator(view_func):
+        @functools.wraps(view_func)
         def wrapper(request, *args, **kwargs):
             # Get client identifier
             client_ip = request.META.get('REMOTE_ADDR', 'unknown')

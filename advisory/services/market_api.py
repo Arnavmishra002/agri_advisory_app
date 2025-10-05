@@ -30,7 +30,10 @@ def get_market_prices(latitude, longitude, language, product_type=None):
     return fallback_data
 
 def _get_mock_market_prices_fallback(latitude, longitude, language, product_type=None):
-
+    """
+    Generate realistic mock market prices based on government data patterns.
+    Uses actual price ranges from Agmarknet and government sources.
+    """
     # Simulate location-based data. For a demo, we'll use a simple approximation.
     # In a real scenario, you'd map lat/lon to a specific market location.
     mock_city = "Delhi"
@@ -87,17 +90,43 @@ def _get_mock_market_prices_fallback(latitude, longitude, language, product_type
 
     selected_mock_prices = mock_prices_hi if language == 'hi' else mock_prices_en
 
+    # Convert to list format expected by Streamlit app
+    result = []
+    
     if product_type and mock_city in selected_mock_prices.get(product_type, {}):
-        return {product_type: selected_mock_prices[product_type][mock_city]}
+        data = selected_mock_prices[product_type][mock_city]
+        result.append({
+            "commodity": product_type,
+            "mandi": mock_city,
+            "price": f"₹{data['price']}",
+            "change": "+2.1%",
+            "change_percent": "+2.1%",
+            "unit": data['unit'],
+            "date": data['date']
+        })
     elif mock_city:
-        result = {}
         for prod, loc_data in selected_mock_prices.items():
             if mock_city in loc_data:
-                result[prod] = loc_data[mock_city]
-        if result: # Only return if there's data for the mock_city
-            return result
+                data = loc_data[mock_city]
+                result.append({
+                    "commodity": prod,
+                    "mandi": mock_city,
+                    "price": f"₹{data['price']}",
+                    "change": "+2.1%",
+                    "change_percent": "+2.1%",
+                    "unit": data['unit'],
+                    "date": data['date']
+                })
     
-    return {}
+    # Return default data if no specific data found
+    if not result:
+        result = [
+            {"commodity": "Wheat", "mandi": "Delhi", "price": "₹2,450", "change": "+2.1%", "change_percent": "+2.1%"},
+            {"commodity": "Rice", "mandi": "Kolkata", "price": "₹3,200", "change": "+2.4%", "change_percent": "+2.4%"},
+            {"commodity": "Maize", "mandi": "Mumbai", "price": "₹1,800", "change": "-1.4%", "change_percent": "-1.4%"}
+        ]
+    
+    return result
 
 def get_trending_crops(latitude, longitude, language):
     """

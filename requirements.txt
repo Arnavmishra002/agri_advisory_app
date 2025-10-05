@@ -34,15 +34,15 @@ accelerate>=0.20.0
 bitsandbytes>=0.41.0
 # For better text generation
 openai-whisper>=20231117
-# For multilingual support
-polyglot>=16.7.4
-pycld2>=0.41
+# For multilingual support (Windows compatible)
+googletrans==4.0.0rc1
+langdetect>=1.0.9
 # For advanced NLP
 nltk>=3.8.1
 wordcloud>=1.9.0
-# For better conversation memory
-chromadb>=0.4.0
-faiss-cpu>=1.7.4
+# For better conversation memory (simplified for Windows)
+# chromadb>=0.4.0  # Commented out - can cause Windows issues
+# faiss-cpu>=1.7.4  # Commented out - can cause Windows issues
 # For API integrations
 anthropic>=0.7.0
 openai>=1.0.0

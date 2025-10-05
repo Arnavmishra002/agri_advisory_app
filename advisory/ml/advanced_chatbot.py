@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, timedelta
 from ..services.weather_api import MockWeatherAPI
 from ..services.market_api import get_market_prices, get_trending_crops
+from ..services.government_data_service import GovernmentDataService
 from ..ml.ml_models import AgriculturalMLSystem
 from ..models import Crop, ChatHistory, ChatSession
 import requests
@@ -49,6 +50,7 @@ class AdvancedAgriculturalChatbot:
         # Initialize services
         self.weather_api = MockWeatherAPI()
         self.ml_system = AgriculturalMLSystem()
+        self.gov_data_service = GovernmentDataService()
         self.translator = Translator() if Translator else None
         
         # Initialize language detection

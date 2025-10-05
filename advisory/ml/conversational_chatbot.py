@@ -42,6 +42,38 @@ class ConversationalAgriculturalChatbot:
         
         logger.info("Enhanced conversational chatbot initialized")
     
+    def _format_government_recommendations(self, gov_rec: Dict, language: str) -> str:
+        """Format government recommendations for user display"""
+        try:
+            recommendations = gov_rec.get('recommendations', [])
+            if not recommendations:
+                return "No specific crop recommendations available from government sources."
+            
+            if language == 'hi':
+                response = "भारतीय कृषि अनुसंधान परिषद (ICAR) के आधार पर सुझाई गई फसलें:\n\n"
+                for i, rec in enumerate(recommendations[:3], 1):
+                    crop = rec.get('crop', 'Unknown')
+                    score = rec.get('suitability_score', 0)
+                    reason = rec.get('reason', '')
+                    response += f"{i}. {crop} (उपयुक्तता: {score}%)\n   {reason}\n\n"
+                
+                response += "ये सिफारिशें आधिकारिक सरकारी डेटा पर आधारित हैं।"
+            else:
+                response = "Based on Indian Council of Agricultural Research (ICAR) guidelines:\n\n"
+                for i, rec in enumerate(recommendations[:3], 1):
+                    crop = rec.get('crop', 'Unknown')
+                    score = rec.get('suitability_score', 0)
+                    reason = rec.get('reason', '')
+                    response += f"{i}. {crop} (Suitability: {score}%)\n   {reason}\n\n"
+                
+                response += "These recommendations are based on official government agricultural data."
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error formatting government recommendations: {e}")
+            return "Government crop recommendations are temporarily unavailable. Please try again later."
+    
     def get_response(self, user_query: str, language: str = 'en') -> Dict[str, Any]:
         """
         Generates a conversational response like ChatGPT.
@@ -273,6 +305,19 @@ class ConversationalAgriculturalChatbot:
                         avg_max = sum([d['day'].get('maxtemp_c', 28.0) for d in forecast['forecast']['forecastday']]) / days
                         total_rain = sum([d['day'].get('totalprecip_mm', 20.0) for d in forecast['forecast']['forecastday']])
 
+                    # Use government data service for accurate recommendations
+                    if hasattr(self, 'advanced_chatbot') and self.advanced_chatbot:
+                        gov_rec = self.advanced_chatbot.gov_data_service.get_icar_crop_recommendations(
+                            soil_type=soil_type,
+                            season=season,
+                            temperature=avg_max,
+                            rainfall=total_rain,
+                            ph=6.5
+                        )
+                        if gov_rec and 'recommendations' in gov_rec:
+                            return self._format_government_recommendations(gov_rec, language)
+                    
+                    # Fallback to ML system
                     ml_rec = self.ml_system.predict_crop_recommendation(
                         soil_type=soil_type,
                         season=season,
