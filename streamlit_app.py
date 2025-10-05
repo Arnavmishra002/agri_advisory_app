@@ -387,8 +387,10 @@ with tab3:
     
     for i, crop in enumerate(crops_data):
         with cols[i]:
-            trend_icon = "📈" if crop["trend"] == "up" else "📉" if crop["trend"] == "down" else "➡️"
-            trend_color = "#4CAF50" if crop["trend"] == "up" else "#f44336" if crop["trend"] == "down" else "#666"
+            # Handle missing trend field gracefully
+            trend = crop.get("trend", "stable")
+            trend_icon = "📈" if trend == "up" else "📉" if trend == "down" else "➡️"
+            trend_color = "#4CAF50" if trend == "up" else "#f44336" if trend == "down" else "#666"
             
             st.markdown(f"""
             <div class="feature-card">
