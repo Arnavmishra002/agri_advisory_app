@@ -164,12 +164,12 @@ def get_market_prices():
     except:
         pass
     
-    # Return mock data
+    # Return mock data with all required fields
     return [
-        {"commodity": "Wheat", "mandi": "Delhi", "price": "₹2,450", "change": "+50", "change_percent": "+2.1%"},
-        {"commodity": "Rice", "mandi": "Kolkata", "price": "₹3,200", "change": "+75", "change_percent": "+2.4%"},
-        {"commodity": "Maize", "mandi": "Mumbai", "price": "₹1,800", "change": "-25", "change_percent": "-1.4%"},
-        {"commodity": "Cotton", "mandi": "Ahmedabad", "price": "₹6,500", "change": "+200", "change_percent": "+3.2%"}
+        {"commodity": "Wheat", "mandi": "Delhi", "price": "₹2,450", "change": "+2.1%", "change_percent": "+2.1%"},
+        {"commodity": "Rice", "mandi": "Kolkata", "price": "₹3,200", "change": "+2.4%", "change_percent": "+2.4%"},
+        {"commodity": "Maize", "mandi": "Mumbai", "price": "₹1,800", "change": "-1.4%", "change_percent": "-1.4%"},
+        {"commodity": "Cotton", "mandi": "Ahmedabad", "price": "₹6,500", "change": "+3.2%", "change_percent": "+3.2%"}
     ]
 
 def send_chat_message(message, language="auto"):
@@ -301,7 +301,7 @@ with tab1:
         )
     
     with col2:
-        send_button = st.button("Send ➤", type="primary", width='stretch')
+        send_button = st.button("Send ➤", type="primary")
     
     # Process message only when button is clicked or Enter is pressed
     if send_button and user_input and user_input.strip():
@@ -451,7 +451,7 @@ with tab3:
         hovermode='x unified'
     )
     
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, use_container_width=True)
 
 # Tab 4: Market Prices
 with tab4:
@@ -460,13 +460,22 @@ with tab4:
     # Get market prices data
     prices_data = get_market_prices()
     
-    # Create DataFrame with fallback data if empty
+    # Create DataFrame with fallback data if empty or missing fields
     if not prices_data:
         prices_data = [
-            {"commodity": "Rice", "price": "₹2500", "market": "Delhi", "change": "+2.5%"},
-            {"commodity": "Wheat", "price": "₹2200", "market": "Delhi", "change": "-1.2%"},
-            {"commodity": "Maize", "price": "₹1800", "market": "Delhi", "change": "+0.8%"}
+            {"commodity": "Rice", "price": "₹2500", "mandi": "Delhi", "change": "+2.5%", "change_percent": "+2.5%"},
+            {"commodity": "Wheat", "price": "₹2200", "mandi": "Delhi", "change": "-1.2%", "change_percent": "-1.2%"},
+            {"commodity": "Maize", "price": "₹1800", "mandi": "Delhi", "change": "+0.8%", "change_percent": "+0.8%"}
         ]
+    else:
+        # Ensure all required fields exist in the data
+        for price in prices_data:
+            if 'change' not in price:
+                price['change'] = "+0.0%"
+            if 'change_percent' not in price:
+                price['change_percent'] = price['change']
+            if 'mandi' not in price:
+                price['mandi'] = price.get('market', 'Unknown')
     
     prices_df = pd.DataFrame(prices_data)
     
@@ -486,11 +495,11 @@ with tab4:
     if not prices_df.empty and any(col in prices_df.columns for col in ['change', 'change_percent']):
         # Find which columns exist for styling
         style_columns = [col for col in ['change', 'change_percent'] if col in prices_df.columns]
-        styled_df = prices_df.style.applymap(style_price_change, subset=style_columns)
-        st.dataframe(styled_df, width='stretch')
+        styled_df = prices_df.style.map(style_price_change, subset=style_columns)
+        st.dataframe(styled_df, use_container_width=True)
     else:
         # Display without styling if columns don't exist
-        st.dataframe(prices_df, width='stretch')
+        st.dataframe(prices_df, use_container_width=True)
     
     # Market analysis
     col1, col2 = st.columns(2)
@@ -498,9 +507,9 @@ with tab4:
     with col1:
         st.subheader("📈 Market Analysis")
         
-        # Calculate market sentiment
-        up_count = len([p for p in prices_data if p['change'].startswith('+')])
-        down_count = len([p for p in prices_data if p['change'].startswith('-')])
+        # Calculate market sentiment with safe field access
+        up_count = len([p for p in prices_data if p.get('change', '').startswith('+')])
+        down_count = len([p for p in prices_data if p.get('change', '').startswith('-')])
         total_count = len(prices_data)
         
         sentiment = "📈 Bullish" if up_count > down_count else "📉 Bearish" if down_count > up_count else "➡️ Neutral"
@@ -514,7 +523,7 @@ with tab4:
         
         mandi_counts = {}
         for price in prices_data:
-            mandi = price['mandi']
+            mandi = price.get('mandi', 'Unknown')
             mandi_counts[mandi] = mandi_counts.get(mandi, 0) + 1
         
         for mandi, count in mandi_counts.items():
