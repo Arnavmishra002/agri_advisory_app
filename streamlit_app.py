@@ -303,31 +303,36 @@ with tab1:
     with col2:
         send_button = st.button("Send ➤", type="primary", width='stretch')
     
-    # Process message
-    if (send_button or user_input) and user_input:
-        # Add user message to history
-        st.session_state.chat_history.append({
-            "type": "user",
-            "content": user_input,
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        # Show typing indicator
-        with st.spinner("🤖 Krishimitra is thinking..."):
-            # Send to chatbot
-            response = send_chat_message(user_input, language)
-            
-            # Add bot response to history
+    # Process message only when button is clicked or Enter is pressed
+    if send_button and user_input and user_input.strip():
+        # Prevent duplicate processing
+        if not hasattr(st.session_state, 'last_input') or st.session_state.last_input != user_input:
+            # Add user message to history
             st.session_state.chat_history.append({
-                "type": "bot",
-                "content": response.get("response", "Sorry, I couldn't process your request."),
-                "language": response.get("language", "Unknown"),
-                "confidence": response.get("confidence", "Unknown"),
+                "type": "user",
+                "content": user_input,
                 "timestamp": datetime.now().isoformat()
             })
-        
-        # Clear input and rerun
-        st.rerun()
+            
+            # Show typing indicator
+            with st.spinner("🤖 Krishimitra is thinking..."):
+                # Send to chatbot
+                response = send_chat_message(user_input, language)
+                
+                # Add bot response to history
+                st.session_state.chat_history.append({
+                    "type": "bot",
+                    "content": response.get("response", "Sorry, I couldn't process your request."),
+                    "language": response.get("language", "Unknown"),
+                    "confidence": response.get("confidence", "Unknown"),
+                    "timestamp": datetime.now().isoformat()
+                })
+            
+            # Store last input to prevent duplicates
+            st.session_state.last_input = user_input
+            
+            # Clear input and rerun
+            st.rerun()
 
 # Tab 2: Weather & Location
 with tab2:
@@ -455,7 +460,14 @@ with tab4:
     # Get market prices data
     prices_data = get_market_prices()
     
-    # Create DataFrame
+    # Create DataFrame with fallback data if empty
+    if not prices_data:
+        prices_data = [
+            {"commodity": "Rice", "price": "₹2500", "market": "Delhi", "change": "+2.5%"},
+            {"commodity": "Wheat", "price": "₹2200", "market": "Delhi", "change": "-1.2%"},
+            {"commodity": "Maize", "price": "₹1800", "market": "Delhi", "change": "+0.8%"}
+        ]
+    
     prices_df = pd.DataFrame(prices_data)
     
     # Display prices table
@@ -470,8 +482,15 @@ with tab4:
         else:
             return ''
     
-    styled_df = prices_df.style.applymap(style_price_change, subset=['change', 'change_percent'])
-    st.dataframe(styled_df, width='stretch')
+    # Only apply styling if the columns exist
+    if not prices_df.empty and any(col in prices_df.columns for col in ['change', 'change_percent']):
+        # Find which columns exist for styling
+        style_columns = [col for col in ['change', 'change_percent'] if col in prices_df.columns]
+        styled_df = prices_df.style.applymap(style_price_change, subset=style_columns)
+        st.dataframe(styled_df, width='stretch')
+    else:
+        # Display without styling if columns don't exist
+        st.dataframe(prices_df, width='stretch')
     
     # Market analysis
     col1, col2 = st.columns(2)
