@@ -588,3 +588,57 @@ class PestDetectionViewSet(viewsets.ViewSet):
             return Response({"message": "No pests detected or an error occurred.", "detections": []}, status=status.HTTP_200_OK)
 
         return Response({"message": "Pest detection complete", "detections": detection_results}, status=status.HTTP_200_OK)
+
+
+class GovernmentSchemesViewSet(viewsets.ViewSet):
+    """ViewSet for Government Schemes data"""
+    
+    def list(self, request):
+        """Get list of government schemes"""
+        language = request.query_params.get('lang', 'en')
+        
+        # Government schemes data
+        schemes_data = [
+            {
+                "name": "PM किसान सम्मान निधि" if language == "hi" else "PM Kisan Samman Nidhi",
+                "description": "किसानों के लिए ₹6,000 वार्षिक आय सहायता" if language == "hi" else "₹6,000 annual income support for farmers",
+                "eligibility": "वैध भूमि रिकॉर्ड वाले सभी किसान" if language == "hi" else "All farmers with valid land records",
+                "status": "सक्रिय" if language == "hi" else "Active",
+                "amount": "प्रति वर्ष ₹6,000" if language == "hi" else "₹6,000 per year",
+                "beneficiaries": "12 करोड़ किसान" if language == "hi" else "12 crore farmers"
+            },
+            {
+                "name": "प्रधानमंत्री फसल बीमा योजना" if language == "hi" else "Pradhan Mantri Fasal Bima Yojana",
+                "description": "किसानों के लिए फसल बीमा योजना" if language == "hi" else "Crop insurance scheme for farmers",
+                "eligibility": "अधिसूचित फसलें उगाने वाले किसान" if language == "hi" else "Farmers growing notified crops",
+                "status": "सक्रिय" if language == "hi" else "Active",
+                "amount": "सब्सिडी प्रीमियम" if language == "hi" else "Subsidized premium",
+                "beneficiaries": "6 करोड़ किसान" if language == "hi" else "6 crore farmers"
+            },
+            {
+                "name": "किसान क्रेडिट कार्ड" if language == "hi" else "Kisan Credit Card",
+                "description": "किसानों के लिए ऋण सुविधा" if language == "hi" else "Credit facility for farmers",
+                "eligibility": "किसान और कृषि कर्मी" if language == "hi" else "Farmers and agricultural workers",
+                "status": "सक्रिय" if language == "hi" else "Active",
+                "amount": "₹3 लाख तक" if language == "hi" else "Up to ₹3 lakh",
+                "beneficiaries": "4 करोड़ किसान" if language == "hi" else "4 crore farmers"
+            },
+            {
+                "name": "सौर पंप सब्सिडी" if language == "hi" else "Solar Pump Subsidy",
+                "description": "सौर जल पंपों के लिए सब्सिडी" if language == "hi" else "Subsidy for solar water pumps",
+                "eligibility": "छोटे और सीमांत किसान" if language == "hi" else "Small and marginal farmers",
+                "status": "सक्रिय" if language == "hi" else "Active",
+                "amount": "90% तक सब्सिडी" if language == "hi" else "Up to 90% subsidy",
+                "beneficiaries": "2 लाख किसान" if language == "hi" else "2 lakh farmers"
+            },
+            {
+                "name": "मृदा स्वास्थ्य कार्ड योजना" if language == "hi" else "Soil Health Card Scheme",
+                "description": "मुफ्त मिट्टी परीक्षण और सिफारिशें" if language == "hi" else "Free soil testing and recommendations",
+                "eligibility": "सभी किसान" if language == "hi" else "All farmers",
+                "status": "सक्रिय" if language == "hi" else "Active",
+                "amount": "मुफ्त" if language == "hi" else "Free",
+                "beneficiaries": "14 करोड़ मिट्टी के नमूने" if language == "hi" else "14 crore soil samples"
+            }
+        ]
+        
+        return Response(schemes_data, status=status.HTTP_200_OK)

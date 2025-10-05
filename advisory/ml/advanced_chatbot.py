@@ -525,6 +525,10 @@ class AdvancedAgriculturalChatbot:
             except Exception:
                 pass
         
+        # Check for specific crop recommendation queries
+        if any(word in query.lower() for word in ['crop', 'recommend', 'plant', 'फसल', 'बोना', 'उपयुक्त', 'suggest']):
+            return self._handle_crop_recommendation_enhanced(query, language, lat, lon)
+        
         # Generate contextual response
         if language in ['hi', 'hinglish']:
             responses = [
@@ -540,6 +544,59 @@ class AdvancedAgriculturalChatbot:
             ]
         
         return random.choice(responses)
+    
+    def _handle_crop_recommendation_enhanced(self, query: str, language: str, lat: float = None, lon: float = None) -> str:
+        """Handle crop recommendation queries with government data"""
+        try:
+            # Use government data service for accurate recommendations
+            gov_rec = self.gov_data_service.get_icar_crop_recommendations(
+                soil_type='Loamy',
+                season='kharif',
+                temperature=28.0,
+                rainfall=100.0,
+                ph=6.5
+            )
+            
+            if gov_rec and 'recommendations' in gov_rec and gov_rec['recommendations']:
+                recommendations = gov_rec['recommendations']
+                
+                if language == 'hi':
+                    response = "भारतीय कृषि अनुसंधान परिषद (ICAR) के आधार पर सुझाई गई फसलें:\n\n"
+                    for i, rec in enumerate(recommendations[:3], 1):
+                        crop = rec.get('crop', 'Unknown')
+                        score = rec.get('suitability_score', 0)
+                        reason = rec.get('reason', '')
+                        response += f"{i}. **{crop}** (उपयुक्तता: {score}%)\n   {reason}\n\n"
+                    
+                    response += "ये सिफारिशें आधिकारिक सरकारी डेटा पर आधारित हैं। अधिक सटीक सुझाव के लिए अपना स्थान और मिट्टी का प्रकार बताएं।"
+                else:
+                    response = "Based on Indian Council of Agricultural Research (ICAR) guidelines:\n\n"
+                    for i, rec in enumerate(recommendations[:3], 1):
+                        crop = rec.get('crop', 'Unknown')
+                        score = rec.get('suitability_score', 0)
+                        reason = rec.get('reason', '')
+                        response += f"{i}. **{crop}** (Suitability: {score}%)\n   {reason}\n\n"
+                    
+                    response += "These recommendations are based on official government agricultural data. For more specific advice, please share your location and soil type."
+                
+                return response
+            
+        except Exception as e:
+            logger.error(f"Error in crop recommendation: {e}")
+        
+        # Fallback to general recommendations
+        if language == 'hi':
+            return ("भारतीय कृषि अनुसंधान परिषद (ICAR) के अनुसार, सामान्य फसल सुझाव:\n\n"
+                   "1. **चावल** - खरीफ सीजन के लिए उपयुक्त, अच्छी बाजार कीमत\n"
+                   "2. **गेहूं** - रबी सीजन के लिए उत्तम, सरकारी सहायता उपलब्ध\n"
+                   "3. **मक्का** - बहुत सारे क्षेत्रों में उगाया जा सकता है\n\n"
+                   "अधिक सटीक सुझाव के लिए अपना स्थान, मिट्टी का प्रकार और सीजन बताएं।")
+        else:
+            return ("Based on Indian Council of Agricultural Research (ICAR) guidelines:\n\n"
+                   "1. **Rice** - Ideal for Kharif season, good market demand\n"
+                   "2. **Wheat** - Perfect for Rabi season, government support available\n"
+                   "3. **Maize** - Versatile crop suitable for many regions\n\n"
+                   "For more specific recommendations, please share your location, soil type, and preferred season.")
     
     def _handle_general_question_enhanced(self, query: str, language: str) -> str:
         """Handle general questions with ChatGPT-like intelligence"""

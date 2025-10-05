@@ -74,6 +74,60 @@ class ConversationalAgriculturalChatbot:
             logger.error(f"Error formatting government recommendations: {e}")
             return "Government crop recommendations are temporarily unavailable. Please try again later."
     
+    def _get_crop_recommendation_response(self, language: str) -> str:
+        """Get crop recommendation response when location is not available"""
+        try:
+            # Use government data service for general recommendations
+            if hasattr(self, 'advanced_chatbot') and self.advanced_chatbot:
+                gov_rec = self.advanced_chatbot.gov_data_service.get_icar_crop_recommendations(
+                    soil_type='Loamy',
+                    season='kharif',
+                    temperature=28.0,
+                    rainfall=100.0,
+                    ph=6.5
+                )
+                if gov_rec and 'recommendations' in gov_rec:
+                    return self._format_government_recommendations(gov_rec, language)
+            
+            # Fallback to general recommendations
+            if language == 'hi':
+                return ("भारतीय कृषि अनुसंधान परिषद (ICAR) के अनुसार, सामान्य फसल सुझाव:\n\n"
+                       "1. **चावल** - खरीफ सीजन के लिए उपयुक्त, अच्छी बाजार कीमत\n"
+                       "2. **गेहूं** - रबी सीजन के लिए उत्तम, सरकारी सहायता उपलब्ध\n"
+                       "3. **मक्का** - बहुत सारे क्षेत्रों में उगाया जा सकता है\n\n"
+                       "अधिक सटीक सुझाव के लिए अपना स्थान, मिट्टी का प्रकार और सीजन बताएं।")
+            else:
+                return ("Based on Indian Council of Agricultural Research (ICAR) guidelines:\n\n"
+                       "1. **Rice** - Ideal for Kharif season, good market demand\n"
+                       "2. **Wheat** - Perfect for Rabi season, government support available\n"
+                       "3. **Maize** - Versatile crop suitable for many regions\n\n"
+                       "For more specific recommendations, please share your location, soil type, and preferred season.")
+                       
+        except Exception as e:
+            logger.error(f"Error in crop recommendation fallback: {e}")
+            if language == 'hi':
+                return "फसल सुझाव अस्थायी रूप से उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।"
+            else:
+                return "Crop recommendations are temporarily unavailable. Please try again later."
+    
+    def _get_weather_response(self, language: str) -> str:
+        """Get weather response when location is not available"""
+        if language == 'hi':
+            return ("मौसम की जानकारी के लिए कृपया अपना स्थान बताएं (जैसे: दिल्ली, मुंबई, कोलकाता)। "
+                   "मैं आपको वर्तमान मौसम और 5-दिन का पूर्वानुमान प्रदान कर सकूंगा।")
+        else:
+            return ("Please share your location (e.g., Delhi, Mumbai, Kolkata) for weather information. "
+                   "I can provide current weather and 5-day forecast for your area.")
+    
+    def _get_market_price_response(self, language: str) -> str:
+        """Get market price response when location is not available"""
+        if language == 'hi':
+            return ("बाजार की कीमतों के लिए कृपया अपना स्थान या मंडी का नाम बताएं। "
+                   "मैं आपको Agmarknet से वास्तविक समय की कीमतें दिखा सकूंगा।")
+        else:
+            return ("Please share your location or mandi name for market prices. "
+                   "I can show you real-time prices from Agmarknet.")
+    
     def get_response(self, user_query: str, language: str = 'en') -> Dict[str, Any]:
         """
         Generates a conversational response like ChatGPT.
@@ -290,7 +344,8 @@ class ConversationalAgriculturalChatbot:
         product = self.conversation_context.get("last_product")
 
         # Crop recommendations
-        if any(word in query.lower() for word in ['crop', 'recommend', 'plant', 'फसल', 'बोना', 'उपयुक्त']):
+        if any(word in query.lower() for word in ['crop', 'recommend', 'plant', 'फसल', 'बोना', 'उपयुक्त', 'suggest']):
+            # Provide crop recommendations even without specific location
             if lat is not None and lon is not None:
                 # Use a lightweight heuristic + ML system if available
                 try:

@@ -49,3 +49,10 @@ openai>=1.0.0
 
 # Security dependencies
 bleach>=6.0.0
+
+# Streamlit and Voice Input Dependencies
+streamlit>=1.28.0
+plotly>=5.15.0
+speechrecognition>=3.10.0
+pyttsx3>=2.90
+pyaudio>=0.2.11

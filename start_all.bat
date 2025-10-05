@@ -1,41 +1,41 @@
 @echo off
-echo ========================================
-echo Starting Enhanced Agricultural AI Platform - ALL SERVICES
-echo ========================================
+echo 🌾 Starting Krishimitra Agricultural AI Assistant - COMPLETE SETUP
+echo =================================================================
 echo.
 
-echo This will start both backend and frontend services...
-echo.
+echo 🚀 Navigating to project directory...
+cd /d "%~dp0"
 
-echo Starting Backend Server...
-start "Backend Server - Django" cmd /k "cd /d C:\AI\agri_advisory_app && venv\Scripts\activate && echo Starting Django Backend Server... && python manage.py runserver 127.0.0.1:8000"
+echo 💡 Activating virtual environment...
+call venv\Scripts\activate
 
-echo Waiting 5 seconds for backend to start...
-timeout /t 5
+echo ⚙️ Starting Django server in background...
+start "Django Server" cmd /k "cd /d "%~dp0" && call venv\Scripts\activate && python manage.py runserver 127.0.0.1:8000"
 
-echo Starting Frontend Server...
-start "Frontend Server - Streamlit" cmd /k "cd /d C:\AI\agri_advisory_app && venv\Scripts\activate && echo Installing Streamlit dependencies... && pip install streamlit plotly requests && echo Starting Streamlit Frontend... && streamlit run streamlit_app.py --server.port 8501 --server.address 127.0.0.1"
+echo ⏳ Waiting 10 seconds for Django server to start...
+timeout /t 10 /nobreak > NUL
+
+echo 🧪 Testing API endpoints...
+python test_api.py
 
 echo.
-echo ========================================
-echo ALL SERVICES STARTED SUCCESSFULLY!
-echo ========================================
+echo 🌐 Starting Streamlit app...
+start "Streamlit App" cmd /k "cd /d "%~dp0" && call venv\Scripts\activate && streamlit run streamlit_app.py --server.port 8501 --server.address 127.0.0.1"
+
 echo.
-echo Your Enhanced Agricultural AI Platform is now running:
+echo ✅ Both servers are starting!
 echo.
-echo Backend API:     http://127.0.0.1:8000
-echo Swagger UI:      http://127.0.0.1:8000/api/schema/swagger-ui/
-echo Admin Panel:     http://127.0.0.1:8000/admin/
+echo 🔗 Django API: http://127.0.0.1:8000
+echo 🔗 Streamlit UI: http://127.0.0.1:8501
 echo.
-echo Frontend App:    http://127.0.0.1:8501
+echo 🎯 All features should now work:
+echo    ✅ Chatbot with ICAR-based crop recommendations
+echo    ✅ Weather data with real-time information
+echo    ✅ Trending crops with descriptions and benefits
+echo    ✅ Market prices with price cards and analysis
+echo    ✅ Agricultural advisory with government schemes
+echo    ✅ Multi-language support (Hindi/English/Hinglish)
+echo    ✅ Fixed price trend charts
 echo.
-echo Features Available:
-echo - ChatGPT-like AI Chatbot (25+ languages)
-echo - Real-time Weather Dashboard
-echo - Market Prices & Trends
-echo - Crop Advisory System
-echo - Government-style Professional UI
-echo.
-echo Check the opened command windows for any errors.
-echo.
-pause
+echo Press any key to exit this window...
+pause > NUL

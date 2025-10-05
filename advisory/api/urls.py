@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CropAdvisoryViewSet, WeatherViewSet, MarketPricesViewSet, TrendingCropsViewSet, CropViewSet, SMSIVRViewSet, PestDetectionViewSet, UserViewSet, TextToSpeechViewSet, ForumPostViewSet
+from .views import CropAdvisoryViewSet, WeatherViewSet, MarketPricesViewSet, TrendingCropsViewSet, CropViewSet, SMSIVRViewSet, PestDetectionViewSet, UserViewSet, TextToSpeechViewSet, ForumPostViewSet, GovernmentSchemesViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
@@ -13,6 +13,7 @@ router.register(r'sms-ivr', SMSIVRViewSet, basename='sms-ivr')
 router.register(r'pest-detection', PestDetectionViewSet, basename='pest-detection')
 router.register(r'tts', TextToSpeechViewSet, basename='tts')
 router.register(r'forum', ForumPostViewSet, basename='forum')
+router.register(r'government-schemes', GovernmentSchemesViewSet, basename='government-schemes')
 
 urlpatterns = [
     path('', include(router.urls)),
