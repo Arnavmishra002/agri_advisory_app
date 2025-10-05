@@ -301,7 +301,7 @@ with tab1:
         )
     
     with col2:
-        send_button = st.button("Send ➤", type="primary", use_container_width=True)
+        send_button = st.button("Send ➤", type="primary", width='stretch')
     
     # Process message
     if (send_button or user_input) and user_input:
@@ -392,11 +392,16 @@ with tab3:
             trend_icon = "📈" if trend == "up" else "📉" if trend == "down" else "➡️"
             trend_color = "#4CAF50" if trend == "up" else "#f44336" if trend == "down" else "#666"
             
+            # Handle missing fields gracefully
+            crop_name = crop.get("name", "Unknown Crop")
+            crop_price = crop.get("price", "N/A")
+            crop_change = crop.get("change", "No change")
+            
             st.markdown(f"""
             <div class="feature-card">
-                <h4>{trend_icon} {crop['name']}</h4>
-                <p><strong>{crop['price']}</strong></p>
-                <p style="color: {trend_color};">{crop['change']}</p>
+                <h4>{trend_icon} {crop_name}</h4>
+                <p><strong>{crop_price}</strong></p>
+                <p style="color: {trend_color};">{crop_change}</p>
             </div>
             """, unsafe_allow_html=True)
     
@@ -422,7 +427,7 @@ with tab3:
         hovermode='x unified'
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 # Tab 4: Market Prices
 with tab4:
@@ -447,7 +452,7 @@ with tab4:
             return ''
     
     styled_df = prices_df.style.applymap(style_price_change, subset=['change', 'change_percent'])
-    st.dataframe(styled_df, use_container_width=True)
+    st.dataframe(styled_df, width='stretch')
     
     # Market analysis
     col1, col2 = st.columns(2)
