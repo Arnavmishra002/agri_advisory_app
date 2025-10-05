@@ -22,4 +22,27 @@ celery==5.4.0
 redis==5.0.1
 sentry-sdk==1.40.6
 gunicorn==21.2.0
+# Enhanced AI/ML Dependencies for ChatGPT-like capabilities
 transformers==4.36.0
+sentence-transformers>=2.2.0
+langdetect>=1.0.9
+googletrans==4.0.0rc1
+textblob>=0.17.1
+spacy>=3.4.0
+# Advanced language models
+accelerate>=0.20.0
+bitsandbytes>=0.41.0
+# For better text generation
+openai-whisper>=20231117
+# For multilingual support
+polyglot>=16.7.4
+pycld2>=0.41
+# For advanced NLP
+nltk>=3.8.1
+wordcloud>=1.9.0
+# For better conversation memory
+chromadb>=0.4.0
+faiss-cpu>=1.7.4
+# For API integrations
+anthropic>=0.7.0
+openai>=1.0.0

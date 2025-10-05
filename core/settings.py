@@ -152,21 +152,21 @@ REST_FRAMEWORK = {
 # DRF Spectacular settings for faster Swagger UI loading
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Krishimitra Agri-Advisory API',
-    'DESCRIPTION': 'AI-powered agricultural advisory system for Indian farmers',
+    'DESCRIPTION': 'Enhanced Agricultural Chatbot with ChatGPT-like capabilities and 25+ language support',
     'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,  # Don't include schema in response
-    'COMPONENT_SPLIT_REQUEST': True,  # Split request/response components
-    'COMPONENT_NO_READ_ONLY_REQUIRED': True,  # Reduce required fields
-    'ENUM_NAME_OVERRIDES': {
-        'ValidationErrorEnum': 'drf_spectacular.openapi.AutoSchema',
-    },
-    'POSTPROCESSING_HOOKS': [
-        'drf_spectacular.hooks.postprocess_schema_enums'
-    ],
-    'PREPROCESSING_HOOKS': [
-        'drf_spectacular.hooks.preprocess_exclude_path_format',
-    ],
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': False,  # Simplified for faster generation
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
     'SCHEMA_PATH_PREFIX': '/api/',
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'displayRequestDuration': True,
+        'docExpansion': 'none',
+        'filter': True,
+        'showExtensions': False,
+        'showCommonExtensions': False,
+        'tryItOutEnabled': True,
+    },
     'SCHEMA_PATH_PREFIX_TRIM': True,
     'SORT_OPERATIONS': False,  # Don't sort operations for faster generation
     'COMPONENT_SPLIT_PATCH': True,

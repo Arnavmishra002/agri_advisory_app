@@ -22,6 +22,17 @@ from .serializers import (CropAdvisorySerializer, CropSerializer, UserSerializer
                          ForumPostSerializer, YieldPredictionSerializer, ChatbotSerializer, 
                          FertilizerRecommendationSerializer, CropRecommendationSerializer, FeedbackSerializer)
 
+# Enhanced imports for security and caching
+try:
+    from ..cache_utils import cache_result, cache_api_response, cache_manager
+    from ..security_utils import secure_api_endpoint, security_validator
+    ENHANCED_FEATURES = True
+except ImportError:
+    ENHANCED_FEATURES = False
+    cache_result = lambda *args, **kwargs: lambda func: func
+    cache_api_response = lambda *args, **kwargs: lambda func: func
+    secure_api_endpoint = lambda *args, **kwargs: lambda func: func
+
 # Create your views here.
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -105,32 +116,90 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
 
 
     @action(detail=False, methods=['post'], serializer_class=ChatbotSerializer)
+    @secure_api_endpoint(max_requests=100, window_seconds=3600)
+    @cache_api_response(timeout=300)
     def chatbot(self, request):
-        user_query = request.data.get('query')
-        language = request.data.get('language', 'en')
-        user_id = request.data.get('user_id', 'anonymous')
-        session_id = request.data.get('session_id', str(uuid.uuid4()))
+        # Enhanced security validation
+        if ENHANCED_FEATURES:
+            request_data = {
+                'query': request.data.get('query'),
+                'language': request.data.get('language', 'auto'),
+                'user_id': request.data.get('user_id', 'anonymous'),
+                'session_id': request.data.get('session_id', str(uuid.uuid4()))
+            }
+            
+            validation = security_validator.validate_api_request(request_data)
+            if not validation['valid']:
+                return Response({
+                    'error': 'Validation failed',
+                    'errors': validation['errors']
+                }, status=400)
+            
+            # Use sanitized data
+            user_query = validation['sanitized_data']['query']
+            language = validation['sanitized_data']['language']
+            user_id = validation['sanitized_data'].get('user_id', 'anonymous')
+            session_id = validation['sanitized_data'].get('session_id', str(uuid.uuid4()))
+        else:
+            # Fallback for basic validation
+            user_query = request.data.get('query')
+            language = request.data.get('language', 'auto')
+            user_id = request.data.get('user_id', 'anonymous')
+            session_id = request.data.get('session_id', str(uuid.uuid4()))
+            
+            if not user_query or not user_query.strip():
+                return Response({
+                    'error': 'Query is required and cannot be empty'
+                }, status=400)
         
-        # Get chatbot response from NLP model
-        chatbot_response = self.nlp_chatbot.get_response(user_query, language)
-        response = chatbot_response['response']
-        source = chatbot_response['source']
-        confidence = chatbot_response.get('confidence', 0.8)
-
-        # Check if this is a prediction request that can be enhanced with ML
-        # This logic is now largely handled within NLPAgriculturalChatbot's dynamic context
-        # and the dedicated ml_crop_recommendation endpoint.
-        # If the NLP model explicitly identifies an intent for ML recommendation,
-        # we could redirect or further process here.
-        # For now, we'll just return the NLP model's response directly.
-        
-        return Response({
-            'response': response,
-            'session_id': session_id,
-            'source': source,
-            'confidence': confidence,
-            'ml_enhanced': (source == 'nlp_model' and confidence and confidence > 0.5) # Example logic
-        })
+        try:
+            # Get enhanced chatbot response with ChatGPT-like capabilities
+            chatbot_response = self.nlp_chatbot.get_response(user_query, language)
+            
+            # Extract response data
+            response = chatbot_response.get('response', 'Sorry, I could not process your request.')
+            source = chatbot_response.get('source', 'conversational_ai')
+            confidence = chatbot_response.get('confidence', 0.8)
+            detected_language = chatbot_response.get('detected_language', language)
+            response_type = chatbot_response.get('response_type', 'general')
+            
+            # Enhanced metadata
+            metadata = chatbot_response.get('metadata', {})
+            
+            # Determine if ML enhancement was used
+            ml_enhanced = (
+                source in ['advanced_chatbot', 'nlp_model'] and 
+                confidence > 0.5 and
+                response_type in ['agricultural', 'weather', 'market']
+            )
+            
+            return Response({
+                'response': response,
+                'session_id': session_id,
+                'source': source,
+                'confidence': confidence,
+                'language': detected_language,
+                'response_type': response_type,
+                'ml_enhanced': ml_enhanced,
+                'timestamp': chatbot_response.get('timestamp'),
+                'metadata': {
+                    'has_location': metadata.get('has_location', False),
+                    'has_product': metadata.get('has_product', False),
+                    'conversation_length': metadata.get('conversation_length', 0),
+                    'user_id': user_id
+                }
+            })
+            
+        except Exception as e:
+            # Handle errors gracefully
+            return Response({
+                'response': f"I apologize, but I encountered an error processing your request. Please try again or rephrase your question.",
+                'session_id': session_id,
+                'source': 'error',
+                'confidence': 0.1,
+                'error': str(e),
+                'ml_enhanced': False
+            }, status=500)
     
     @action(detail=False, methods=['post'], serializer_class=FertilizerRecommendationSerializer)
     def fertilizer_recommendation(self, request):

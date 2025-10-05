@@ -7,6 +7,7 @@ from ..services.weather_api import MockWeatherAPI
 from ..services.market_api import get_market_prices, get_trending_crops
 from ..ml.ml_models import AgriculturalMLSystem
 from ..models import Crop
+from .advanced_chatbot import AdvancedAgriculturalChatbot
 import requests
 
 try:
@@ -28,6 +29,17 @@ class ConversationalAgriculturalChatbot:
         self.weather_api = MockWeatherAPI()
         self.ml_system = AgriculturalMLSystem()
         self._gen_pipeline = None  # lazy init
+        
+        # Initialize advanced chatbot for enhanced capabilities
+        try:
+            self.advanced_chatbot = AdvancedAgriculturalChatbot()
+            self.use_advanced = True
+            logger.info("Advanced chatbot initialized successfully")
+        except Exception as e:
+            self.advanced_chatbot = None
+            self.use_advanced = False
+            logger.warning(f"Advanced chatbot initialization failed, using fallback: {e}")
+        
         logger.info("Enhanced conversational chatbot initialized")
     
     def get_response(self, user_query: str, language: str = 'en') -> Dict[str, Any]:
@@ -36,6 +48,11 @@ class ConversationalAgriculturalChatbot:
         Supports multiple languages, grammatic errors, and casual conversations.
         """
         try:
+            # Use advanced chatbot if available for better ChatGPT-like responses
+            if self.use_advanced and self.advanced_chatbot:
+                return self.advanced_chatbot.get_response(user_query, language)
+            
+            # Fallback to original implementation
             # Normalize input and try to learn context (location/product)
             normalized_query = self._normalize_query(user_query)
             self._maybe_update_context_from_query(normalized_query)

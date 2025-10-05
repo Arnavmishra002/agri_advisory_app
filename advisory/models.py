@@ -141,6 +141,98 @@ class UserSession(models.Model):
     def __str__(self):
         return f"Session {self.session_id} for user {self.user_id}"
 
+class ChatHistory(models.Model):
+    """Model to persist chat conversation history"""
+    
+    user_id = models.CharField(max_length=100, help_text="Unique user identifier")
+    session_id = models.CharField(max_length=100, help_text="Session identifier")
+    
+    # Message details
+    message_type = models.CharField(
+        max_length=20, 
+        choices=[
+            ('user', 'User Message'),
+            ('assistant', 'Assistant Response'),
+            ('system', 'System Message')
+        ],
+        help_text="Type of message"
+    )
+    message_content = models.TextField(help_text="The actual message content")
+    
+    # Language and processing info
+    detected_language = models.CharField(max_length=10, help_text="Detected language")
+    response_language = models.CharField(max_length=10, help_text="Response language")
+    
+    # Response metadata
+    confidence_score = models.FloatField(null=True, blank=True, help_text="Confidence score of response")
+    response_source = models.CharField(max_length=50, help_text="Source of response (advanced_chatbot, fallback, etc.)")
+    response_type = models.CharField(max_length=50, help_text="Type of response (greeting, agricultural, etc.)")
+    
+    # Context information
+    has_location = models.BooleanField(default=False, help_text="Whether location was detected")
+    has_product = models.BooleanField(default=False, help_text="Whether product was mentioned")
+    latitude = models.FloatField(null=True, blank=True, help_text="User's latitude")
+    longitude = models.FloatField(null=True, blank=True, help_text="User's longitude")
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'chat_history'
+        ordering = ['session_id', 'created_at']
+        indexes = [
+            models.Index(fields=['user_id', 'session_id']),
+            models.Index(fields=['session_id', 'created_at']),
+            models.Index(fields=['user_id', 'created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.message_type} from {self.user_id} in session {self.session_id}"
+
+class ChatSession(models.Model):
+    """Model to track chat sessions with enhanced metadata"""
+    
+    user_id = models.CharField(max_length=100, help_text="Unique user identifier")
+    session_id = models.CharField(max_length=100, unique=True, help_text="Unique session identifier")
+    
+    # Session metadata
+    start_time = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    
+    # Conversation context
+    conversation_context = models.JSONField(
+        default=dict,
+        help_text="Persistent conversation context including location, preferences, etc."
+    )
+    
+    # Session preferences
+    preferred_language = models.CharField(max_length=10, default='auto')
+    location_name = models.CharField(max_length=200, blank=True, null=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    
+    # Session statistics
+    total_messages = models.IntegerField(default=0)
+    user_messages = models.IntegerField(default=0)
+    assistant_messages = models.IntegerField(default=0)
+    
+    # Device and browser info
+    device_type = models.CharField(max_length=50, blank=True, null=True)
+    user_agent = models.TextField(blank=True, null=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    
+    class Meta:
+        db_table = 'chat_sessions'
+        indexes = [
+            models.Index(fields=['user_id', 'start_time']),
+            models.Index(fields=['session_id']),
+            models.Index(fields=['is_active', 'last_activity']),
+        ]
+    
+    def __str__(self):
+        return f"Chat session {self.session_id} for user {self.user_id}"
+
 class ForumPost(models.Model):
     """
     Model for community forum posts.

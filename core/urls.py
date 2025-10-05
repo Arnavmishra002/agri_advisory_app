@@ -20,19 +20,14 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (TokenObtainPairView,TokenRefreshView,)
-from .schema_views import CachedSpectacularAPIView, OptimizedSpectacularSwaggerView
-from .fast_docs import FastAPIDocsView, FastAPIDocsHTMLView
+# from .schema_views import CachedSpectacularAPIView, OptimizedSpectacularSwaggerView
+# from .fast_docs import FastAPIDocsView, FastAPIDocsHTMLView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('advisory.api.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/schema/', CachedSpectacularAPIView.as_view(), name='schema'),
-    path('api/schema/swagger-ui/', OptimizedSpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    # Fast API documentation
-    path('api/docs/', FastAPIDocsView.as_view(), name='fast-docs'),
-    path('api/docs/html/', FastAPIDocsHTMLView.as_view(), name='fast-docs-html'),
-    # Alternative fast schema endpoint
-    path('api/schema/fast/', CachedSpectacularAPIView.as_view(), name='schema-fast'),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

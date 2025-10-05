@@ -56,8 +56,8 @@ class AgriculturalMLSystem:
         
         # Fertilizer Recommendation Model (Regression for nutrient amounts)
         self.models['fertilizer_recommendation'] = MLPRegressor(
-            hidden_layer_sizes=(100, 50),
-            max_iter=1000,
+            hidden_layer_sizes=(50, 25),
+            max_iter=200,
             random_state=42
         )
         
@@ -100,7 +100,7 @@ class AgriculturalMLSystem:
             self._load_trained_models()
             
             # Load initial training data
-            self._load_initial_training_data()
+            self._create_initial_training_data()
             
         except Exception as e:
             logger.error(f"Error loading existing data: {e}")

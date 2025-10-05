@@ -1,0 +1,428 @@
+"""
+Security utilities for input validation, sanitization, and protection
+"""
+
+import re
+import html
+import json
+import logging
+from typing import Any, Dict, List, Optional, Union
+from django.utils.html import escape
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
+import bleach
+from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
+
+class SecurityValidator:
+    """Comprehensive security validation class"""
+    
+    # Maximum lengths for different input types
+    MAX_CHAT_MESSAGE_LENGTH = 2000
+    MAX_USERNAME_LENGTH = 100
+    MAX_LOCATION_LENGTH = 200
+    MAX_SESSION_ID_LENGTH = 100
+    
+    # Allowed characters patterns
+    ALLOWED_LANGUAGES = ['en', 'hi', 'bn', 'te', 'ta', 'gu', 'mr', 'kn', 'ml', 'pa', 'or', 'as', 'ne', 'ur', 'ar', 'es', 'fr', 'de', 'zh', 'ja', 'ko', 'pt', 'ru', 'it', 'auto']
+    
+    # Dangerous patterns to detect
+    DANGEROUS_PATTERNS = [
+        r'<script.*?>.*?</script>',  # Script tags
+        r'javascript:',              # JavaScript URLs
+        r'vbscript:',               # VBScript URLs
+        r'data:text/html',          # Data URLs
+        r'<iframe.*?>',             # Iframe tags
+        r'<object.*?>',             # Object tags
+        r'<embed.*?>',              # Embed tags
+        r'<link.*?>',               # Link tags
+        r'<meta.*?>',               # Meta tags
+        r'on\w+\s*=',               # Event handlers
+        r'expression\s*\(',         # CSS expressions
+    ]
+    
+    def __init__(self):
+        self.compiled_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in self.DANGEROUS_PATTERNS]
+    
+    def validate_chat_message(self, message: str) -> Dict[str, Any]:
+        """Validate and sanitize chat message input"""
+        result = {
+            'valid': True,
+            'sanitized': '',
+            'errors': [],
+            'warnings': []
+        }
+        
+        try:
+            # Check if message exists and is string
+            if not isinstance(message, str):
+                result['valid'] = False
+                result['errors'].append("Message must be a string")
+                return result
+            
+            # Check length
+            if len(message) > self.MAX_CHAT_MESSAGE_LENGTH:
+                result['valid'] = False
+                result['errors'].append(f"Message too long. Maximum {self.MAX_CHAT_MESSAGE_LENGTH} characters allowed")
+                return result
+            
+            # Check for empty or whitespace-only messages
+            if not message.strip():
+                result['valid'] = False
+                result['errors'].append("Message cannot be empty")
+                return result
+            
+            # Check for dangerous patterns
+            for pattern in self.compiled_patterns:
+                if pattern.search(message):
+                    result['warnings'].append(f"Potentially dangerous content detected: {pattern.pattern}")
+            
+            # Sanitize HTML content
+            sanitized = self.sanitize_html(message)
+            
+            # Additional XSS protection
+            sanitized = html.escape(sanitized, quote=True)
+            
+            # Remove excessive whitespace
+            sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+            
+            result['sanitized'] = sanitized
+            
+            # Check for suspicious content
+            if self.detect_suspicious_content(message):
+                result['warnings'].append("Suspicious content detected")
+            
+        except Exception as e:
+            logger.error(f"Error validating chat message: {e}")
+            result['valid'] = False
+            result['errors'].append("Validation error occurred")
+        
+        return result
+    
+    def validate_language_code(self, language: str) -> bool:
+        """Validate language code"""
+        return language in self.ALLOWED_LANGUAGES
+    
+    def validate_user_id(self, user_id: str) -> Dict[str, Any]:
+        """Validate user ID"""
+        result = {
+            'valid': True,
+            'sanitized': '',
+            'errors': []
+        }
+        
+        if not isinstance(user_id, str):
+            result['valid'] = False
+            result['errors'].append("User ID must be a string")
+            return result
+        
+        if len(user_id) > self.MAX_USERNAME_LENGTH:
+            result['valid'] = False
+            result['errors'].append(f"User ID too long. Maximum {self.MAX_USERNAME_LENGTH} characters allowed")
+            return result
+        
+        # Allow alphanumeric, underscore, and hyphen
+        if not re.match(r'^[a-zA-Z0-9_-]+$', user_id):
+            result['valid'] = False
+            result['errors'].append("User ID contains invalid characters")
+            return result
+        
+        result['sanitized'] = user_id.lower().strip()
+        return result
+    
+    def validate_session_id(self, session_id: str) -> Dict[str, Any]:
+        """Validate session ID"""
+        result = {
+            'valid': True,
+            'sanitized': '',
+            'errors': []
+        }
+        
+        if not isinstance(session_id, str):
+            result['valid'] = False
+            result['errors'].append("Session ID must be a string")
+            return result
+        
+        if len(session_id) > self.MAX_SESSION_ID_LENGTH:
+            result['valid'] = False
+            result['errors'].append(f"Session ID too long. Maximum {self.MAX_SESSION_ID_LENGTH} characters allowed")
+            return result
+        
+        # Allow alphanumeric, underscore, and hyphen
+        if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+            result['valid'] = False
+            result['errors'].append("Session ID contains invalid characters")
+            return result
+        
+        result['sanitized'] = session_id.strip()
+        return result
+    
+    def validate_location(self, location: str) -> Dict[str, Any]:
+        """Validate location input"""
+        result = {
+            'valid': True,
+            'sanitized': '',
+            'errors': []
+        }
+        
+        if not isinstance(location, str):
+            result['valid'] = False
+            result['errors'].append("Location must be a string")
+            return result
+        
+        if len(location) > self.MAX_LOCATION_LENGTH:
+            result['valid'] = False
+            result['errors'].append(f"Location too long. Maximum {self.MAX_LOCATION_LENGTH} characters allowed")
+            return result
+        
+        # Sanitize location
+        sanitized = self.sanitize_text(location)
+        
+        # Check for valid location characters (letters, numbers, spaces, commas, hyphens)
+        if not re.match(r'^[a-zA-Z0-9\s,.-]+$', sanitized):
+            result['valid'] = False
+            result['errors'].append("Location contains invalid characters")
+            return result
+        
+        result['sanitized'] = sanitized.strip()
+        return result
+    
+    def validate_coordinates(self, lat: Union[float, str], lon: Union[float, str]) -> Dict[str, Any]:
+        """Validate latitude and longitude coordinates"""
+        result = {
+            'valid': True,
+            'sanitized_lat': None,
+            'sanitized_lon': None,
+            'errors': []
+        }
+        
+        try:
+            # Convert to float
+            lat_float = float(lat)
+            lon_float = float(lon)
+            
+            # Validate latitude range
+            if not -90 <= lat_float <= 90:
+                result['valid'] = False
+                result['errors'].append("Latitude must be between -90 and 90 degrees")
+                return result
+            
+            # Validate longitude range
+            if not -180 <= lon_float <= 180:
+                result['valid'] = False
+                result['errors'].append("Longitude must be between -180 and 180 degrees")
+                return result
+            
+            result['sanitized_lat'] = round(lat_float, 6)
+            result['sanitized_lon'] = round(lon_float, 6)
+            
+        except (ValueError, TypeError):
+            result['valid'] = False
+            result['errors'].append("Invalid coordinate format")
+        
+        return result
+    
+    def sanitize_html(self, text: str) -> str:
+        """Sanitize HTML content using bleach"""
+        try:
+            # Allowed tags and attributes
+            allowed_tags = ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li']
+            allowed_attributes = {}
+            
+            # Clean the text
+            cleaned = bleach.clean(text, tags=allowed_tags, attributes=allowed_attributes, strip=True)
+            return cleaned
+        except Exception as e:
+            logger.warning(f"HTML sanitization failed: {e}")
+            # Fallback to basic HTML escaping
+            return html.escape(text, quote=True)
+    
+    def sanitize_text(self, text: str) -> str:
+        """Basic text sanitization"""
+        # Remove null bytes
+        text = text.replace('\x00', '')
+        
+        # Normalize whitespace
+        text = re.sub(r'\s+', ' ', text)
+        
+        # Remove control characters except newlines and tabs
+        text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
+        
+        return text.strip()
+    
+    def detect_suspicious_content(self, text: str) -> bool:
+        """Detect potentially suspicious content"""
+        suspicious_patterns = [
+            r'(password|pwd|pass)\s*[:=]',  # Password mentions
+            r'(token|key|secret)\s*[:=]',   # Secret mentions
+            r'admin\s*[:=]',                # Admin mentions
+            r'root\s*[:=]',                 # Root mentions
+            r'SELECT\s+.*FROM',             # SQL injection patterns
+            r'UNION\s+SELECT',              # SQL injection patterns
+            r'<script',                     # Script tags
+            r'javascript:',                 # JavaScript URLs
+        ]
+        
+        text_lower = text.lower()
+        for pattern in suspicious_patterns:
+            if re.search(pattern, text_lower, re.IGNORECASE):
+                return True
+        
+        return False
+    
+    def validate_api_request(self, request_data: Dict) -> Dict[str, Any]:
+        """Validate complete API request"""
+        result = {
+            'valid': True,
+            'sanitized_data': {},
+            'errors': [],
+            'warnings': []
+        }
+        
+        try:
+            # Validate required fields
+            if 'query' not in request_data:
+                result['valid'] = False
+                result['errors'].append("Query field is required")
+                return result
+            
+            # Validate chat message
+            message_validation = self.validate_chat_message(request_data['query'])
+            if not message_validation['valid']:
+                result['valid'] = False
+                result['errors'].extend(message_validation['errors'])
+                return result
+            
+            result['sanitized_data']['query'] = message_validation['sanitized']
+            result['warnings'].extend(message_validation['warnings'])
+            
+            # Validate language
+            language = request_data.get('language', 'auto')
+            if not self.validate_language_code(language):
+                result['valid'] = False
+                result['errors'].append("Invalid language code")
+                return result
+            result['sanitized_data']['language'] = language
+            
+            # Validate user_id if provided
+            if 'user_id' in request_data:
+                user_validation = self.validate_user_id(request_data['user_id'])
+                if not user_validation['valid']:
+                    result['valid'] = False
+                    result['errors'].extend(user_validation['errors'])
+                    return result
+                result['sanitized_data']['user_id'] = user_validation['sanitized']
+            
+            # Validate session_id if provided
+            if 'session_id' in request_data:
+                session_validation = self.validate_session_id(request_data['session_id'])
+                if not session_validation['valid']:
+                    result['valid'] = False
+                    result['errors'].extend(session_validation['errors'])
+                    return result
+                result['sanitized_data']['session_id'] = session_validation['sanitized']
+            
+        except Exception as e:
+            logger.error(f"API request validation error: {e}")
+            result['valid'] = False
+            result['errors'].append("Request validation error occurred")
+        
+        return result
+
+# Rate limiting
+class RateLimiter:
+    """Simple rate limiter for API endpoints"""
+    
+    def __init__(self):
+        self.requests = {}  # In production, use Redis or database
+    
+    def is_allowed(self, identifier: str, max_requests: int = 100, window_seconds: int = 3600) -> bool:
+        """Check if request is allowed based on rate limit"""
+        import time
+        
+        current_time = time.time()
+        window_start = current_time - window_seconds
+        
+        # Clean old requests
+        if identifier in self.requests:
+            self.requests[identifier] = [
+                req_time for req_time in self.requests[identifier] 
+                if req_time > window_start
+            ]
+        else:
+            self.requests[identifier] = []
+        
+        # Check rate limit
+        if len(self.requests[identifier]) >= max_requests:
+            return False
+        
+        # Add current request
+        self.requests[identifier].append(current_time)
+        return True
+
+# Security headers
+def add_security_headers(response):
+    """Add security headers to response"""
+    response['X-Content-Type-Options'] = 'nosniff'
+    response['X-Frame-Options'] = 'DENY'
+    response['X-XSS-Protection'] = '1; mode=block'
+    response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    return response
+
+# Global instances
+security_validator = SecurityValidator()
+rate_limiter = RateLimiter()
+
+# Security decorators
+def secure_api_endpoint(max_requests: int = 100, window_seconds: int = 3600):
+    """Decorator for secure API endpoints"""
+    def decorator(view_func):
+        def wrapper(request, *args, **kwargs):
+            # Get client identifier
+            client_ip = request.META.get('REMOTE_ADDR', 'unknown')
+            user_agent = request.META.get('HTTP_USER_AGENT', 'unknown')
+            identifier = f"{client_ip}:{hash(user_agent)}"
+            
+            # Check rate limit
+            if not rate_limiter.is_allowed(identifier, max_requests, window_seconds):
+                from django.http import JsonResponse
+                return JsonResponse({
+                    'error': 'Rate limit exceeded',
+                    'message': 'Too many requests. Please try again later.'
+                }, status=429)
+            
+            # Validate request data
+            if request.method == 'POST':
+                try:
+                    request_data = json.loads(request.body) if request.body else {}
+                except json.JSONDecodeError:
+                    from django.http import JsonResponse
+                    return JsonResponse({
+                        'error': 'Invalid JSON',
+                        'message': 'Request body must be valid JSON'
+                    }, status=400)
+                
+                validation = security_validator.validate_api_request(request_data)
+                if not validation['valid']:
+                    from django.http import JsonResponse
+                    return JsonResponse({
+                        'error': 'Validation failed',
+                        'errors': validation['errors']
+                    }, status=400)
+                
+                # Add sanitized data to request
+                request.sanitized_data = validation['sanitized_data']
+                request.validation_warnings = validation['warnings']
+            
+            # Process request
+            response = view_func(request, *args, **kwargs)
+            
+            # Add security headers
+            response = add_security_headers(response)
+            
+            return response
+        
+        return wrapper
+    return decorator
