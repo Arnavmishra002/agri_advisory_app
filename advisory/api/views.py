@@ -116,8 +116,6 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
 
 
     @action(detail=False, methods=['post'], serializer_class=ChatbotSerializer)
-    @secure_api_endpoint(max_requests=100, window_seconds=3600)
-    @cache_api_response(timeout=300)
     def chatbot(self, request):
         # Enhanced security validation
         if ENHANCED_FEATURES:
@@ -154,12 +152,12 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         
         try:
             # Get enhanced chatbot response with ChatGPT-like capabilities
-            chatbot_response = self.nlp_chatbot.get_response(user_query, language)
+        chatbot_response = self.nlp_chatbot.get_response(user_query, language)
             
             # Extract response data
             response = chatbot_response.get('response', 'Sorry, I could not process your request.')
             source = chatbot_response.get('source', 'conversational_ai')
-            confidence = chatbot_response.get('confidence', 0.8)
+        confidence = chatbot_response.get('confidence', 0.8)
             detected_language = chatbot_response.get('detected_language', language)
             response_type = chatbot_response.get('response_type', 'general')
             
@@ -172,12 +170,12 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
                 confidence > 0.5 and
                 response_type in ['agricultural', 'weather', 'market']
             )
-            
-            return Response({
-                'response': response,
-                'session_id': session_id,
-                'source': source,
-                'confidence': confidence,
+        
+        return Response({
+            'response': response,
+            'session_id': session_id,
+            'source': source,
+            'confidence': confidence,
                 'language': detected_language,
                 'response_type': response_type,
                 'ml_enhanced': ml_enhanced,
