@@ -412,12 +412,31 @@ with tab3:
     dates = pd.date_range(start=datetime.now() - timedelta(days=30), end=datetime.now(), freq='D')
     chart_data = []
     
+    # If no crops data, create sample data
+    if not crops_data:
+        crops_data = [
+            {"name": "Rice", "price": "₹2500/quintal", "trend": "up"},
+            {"name": "Wheat", "price": "₹2200/quintal", "trend": "stable"},
+            {"name": "Maize", "price": "₹1800/quintal", "trend": "down"}
+        ]
+    
     for crop in crops_data:
-        base_price = float(crop['price'].replace('₹', '').replace(',', '').replace('/quintal', ''))
+        # Handle missing fields gracefully
+        crop_price = crop.get('price', '₹2000/quintal')
+        crop_trend = crop.get('trend', 'stable')
+        crop_name = crop.get('name', 'Unknown Crop')
+        
+        # Extract price value safely
+        try:
+            price_str = str(crop_price).replace('₹', '').replace(',', '').replace('/quintal', '')
+            base_price = float(price_str)
+        except (ValueError, AttributeError):
+            base_price = 2000.0  # Default price
+        
         # Generate some sample trend data
-        trend_data = [base_price + (i * (1 if crop['trend'] == 'up' else -1 if crop['trend'] == 'down' else 0)) 
-                     for i in range(len(dates))]
-        chart_data.append(go.Scatter(x=dates, y=trend_data, mode='lines', name=crop['name']))
+        trend_multiplier = 1 if crop_trend == 'up' else -1 if crop_trend == 'down' else 0
+        trend_data = [base_price + (i * trend_multiplier) for i in range(len(dates))]
+        chart_data.append(go.Scatter(x=dates, y=trend_data, mode='lines', name=crop_name))
     
     fig = go.Figure(data=chart_data)
     fig.update_layout(
