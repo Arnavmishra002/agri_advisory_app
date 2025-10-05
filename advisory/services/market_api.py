@@ -1,4 +1,4 @@
-from .government_apis import AgmarknetAPI, ENAMAPIService
+# Government APIs are now integrated directly in the service classes
 from django.core.cache import caches
 
 market_cache = caches['market_cache']

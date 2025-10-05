@@ -1,7 +1,7 @@
 import requests
 from django.conf import settings
 from django.core.cache import caches
-from .government_apis import IMDWeatherAPI
+# Government APIs are now integrated directly in the service classes
 
 weather_cache = caches['weather_cache']
 

@@ -1,5 +1,4 @@
 
-from .government_apis import ICARDataIntegration, NABARDInsights
 from .fertilizer_recommendations import FertilizerRecommendationEngine
 
 def predict_yield(crop_type, soil_type, weather_data):
