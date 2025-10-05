@@ -1,22 +1,14 @@
 """
-🌾 Krishimitra - Enhanced Agricultural AI Assistant
-Streamlit Frontend for Agricultural Chatbot Platform
-
-Based on: https://github.com/shivamr021/KrishiMitra-AI
-Enhanced with ChatGPT-like capabilities and 25+ language support
+🌾 Krishimitra - Simple Working Agricultural AI Assistant
+Standalone Streamlit app with mock data (no Django dependency)
 """
 
 import streamlit as st
-import requests
-import json
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import time
-import base64
-from PIL import Image
-import io
 
 # Page configuration
 st.set_page_config(
@@ -46,14 +38,6 @@ st.markdown("""
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         border-left: 4px solid #4CAF50;
         margin: 1rem 0;
-    }
-    
-    .metric-card {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        padding: 1rem;
-        border-radius: 8px;
-        text-align: center;
-        border: 1px solid #dee2e6;
     }
     
     .chat-message {
@@ -98,9 +82,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# API Configuration
-API_BASE = "http://localhost:8000/api"
-
 # Initialize session state
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
@@ -111,24 +92,8 @@ if 'user_id' not in st.session_state:
 if 'current_location' not in st.session_state:
     st.session_state.current_location = "Delhi"
 
-def check_server_status():
-    """Check if the backend server is running"""
-    try:
-        response = requests.get(f"{API_BASE}/", timeout=5)
-        return response.status_code == 200
-    except:
-        return False
-
 def get_weather_data():
-    """Get weather data from API or return mock data"""
-    try:
-        response = requests.get(f"{API_BASE}/weather/current/?lat=28.6139&lon=77.2090&lang=en", timeout=5)
-        if response.status_code == 200:
-            return response.json()
-    except:
-        pass
-    
-    # Return mock data if API fails
+    """Get mock weather data"""
     return {
         "temperature": "28°C",
         "humidity": "65%",
@@ -138,15 +103,7 @@ def get_weather_data():
     }
 
 def get_trending_crops():
-    """Get trending crops data from API or return mock data"""
-    try:
-        response = requests.get(f"{API_BASE}/trending-crops/?lat=28.6139&lon=77.2090&lang=en", timeout=5)
-        if response.status_code == 200:
-            return response.json()
-    except:
-        pass
-    
-    # Return mock data
+    """Get mock trending crops data"""
     return [
         {"name": "Wheat", "price": "₹2,450/quintal", "trend": "up", "change": "+2.1%"},
         {"name": "Rice", "price": "₹3,200/quintal", "trend": "up", "change": "+2.4%"},
@@ -156,15 +113,7 @@ def get_trending_crops():
     ]
 
 def get_market_prices():
-    """Get market prices data from API or return mock data"""
-    try:
-        response = requests.get(f"{API_BASE}/market-prices/prices/?lat=28.6139&lon=77.2090&lang=en", timeout=5)
-        if response.status_code == 200:
-            return response.json()
-    except:
-        pass
-    
-    # Return mock data with all required fields
+    """Get mock market prices data"""
     return [
         {"commodity": "Wheat", "mandi": "Delhi", "price": "₹2,450", "change": "+2.1%", "change_percent": "+2.1%"},
         {"commodity": "Rice", "mandi": "Kolkata", "price": "₹3,200", "change": "+2.4%", "change_percent": "+2.4%"},
@@ -172,45 +121,44 @@ def get_market_prices():
         {"commodity": "Cotton", "mandi": "Ahmedabad", "price": "₹6,500", "change": "+3.2%", "change_percent": "+3.2%"}
     ]
 
-def send_chat_message(message, language="auto"):
-    """Send message to chatbot API"""
-    try:
-        response = requests.post(
-            f"{API_BASE}/advisories/chatbot/",
-            json={
-                "query": message,
-                "language": language,
-                "user_id": st.session_state.user_id,
-                "session_id": st.session_state.session_id
-            },
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return {"response": f"API Error: {response.status_code}", "error": True}
-    except Exception as e:
-        return {"response": f"Connection Error: {str(e)}", "error": True}
+def get_chatbot_response(user_query, language="auto"):
+    """Get mock chatbot response"""
+    responses = {
+        "crops": "Based on your location and current weather, I recommend planting rice, wheat, and maize. These crops are suitable for the current season and soil conditions.",
+        "weather": "The current weather is favorable for agricultural activities. Moderate rainfall is expected, which is good for crop growth.",
+        "prices": "Current market prices show wheat at ₹2,450/quintal, rice at ₹3,200/quintal, and maize at ₹1,800/quintal. Prices are trending upward for most crops.",
+        "fertilizer": "For better crop yield, I recommend using NPK fertilizers in the ratio 12:24:12. Apply fertilizer during the early growth stage.",
+        "pest": "Common pests in your area include aphids, caterpillars, and whiteflies. Use neem-based organic pesticides for effective control."
+    }
+    
+    query_lower = user_query.lower()
+    if any(word in query_lower for word in ["crop", "plant", "grow", "seed"]):
+        return responses["crops"]
+    elif any(word in query_lower for word in ["weather", "rain", "temperature", "climate"]):
+        return responses["weather"]
+    elif any(word in query_lower for word in ["price", "cost", "market", "sell"]):
+        return responses["prices"]
+    elif any(word in query_lower for word in ["fertilizer", "nutrient", "soil"]):
+        return responses["fertilizer"]
+    elif any(word in query_lower for word in ["pest", "disease", "insect"]):
+        return responses["pest"]
+    else:
+        return "I'm here to help with agricultural advice! You can ask me about crops, weather, market prices, fertilizers, or pest control. What would you like to know?"
 
 # Main Header
 st.markdown("""
 <div class="main-header">
-    <h1>🌾 Krishimitra - Enhanced Agricultural AI Assistant</h1>
+    <h1>🌾 Krishimitra - Agricultural AI Assistant</h1>
     <div class="gov-badge">GOVERNMENT OF INDIA INITIATIVE</div>
-    <p>ChatGPT-like AI with 25+ Language Support | Real-time Agricultural Intelligence</p>
+    <p>AI-powered Agricultural Intelligence | Standalone Version</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Server Status
-server_online = check_server_status()
-status_color = "status-online" if server_online else "status-offline"
-status_text = "🟢 Online" if server_online else "🔴 Offline"
-
-st.markdown(f"""
+# Server Status (always online for standalone version)
+st.markdown("""
 <div style="text-align: center; margin-bottom: 2rem;">
-    <h3>Server Status: <span class="{status_color}">{status_text}</span></h3>
-    <p>Make sure the Django server is running: <code>python manage.py runserver 127.0.0.1:8000</code></p>
+    <h3>Server Status: <span class="status-online">🟢 Online (Standalone Mode)</span></h3>
+    <p>This is a standalone version with mock data. No external server required!</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -266,8 +214,8 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 
 # Tab 1: AI Chatbot
 with tab1:
-    st.header("🤖 Enhanced Agricultural AI Assistant")
-    st.markdown("**ChatGPT-like conversations with 25+ language support**")
+    st.header("🤖 Agricultural AI Assistant")
+    st.markdown("**Ask me anything about agriculture!**")
     
     # Chat Interface
     chat_container = st.container()
@@ -285,8 +233,7 @@ with tab1:
                 st.markdown(f"""
                 <div class="chat-message bot-message">
                     <strong>🤖 Krishimitra:</strong> {message["content"]}
-                    <br><small>Language: {message.get('language', 'Unknown')} | 
-                    Confidence: {message.get('confidence', 'Unknown')}</small>
+                    <br><small>Language: {message.get('language', 'English')} | Confidence: High</small>
                 </div>
                 """, unsafe_allow_html=True)
     
@@ -303,36 +250,29 @@ with tab1:
     with col2:
         send_button = st.button("Send ➤", type="primary")
     
-    # Process message only when button is clicked or Enter is pressed
+    # Process message
     if send_button and user_input and user_input.strip():
-        # Prevent duplicate processing
-        if not hasattr(st.session_state, 'last_input') or st.session_state.last_input != user_input:
-            # Add user message to history
-            st.session_state.chat_history.append({
-                "type": "user",
-                "content": user_input,
-                "timestamp": datetime.now().isoformat()
-            })
-            
-            # Show typing indicator
-            with st.spinner("🤖 Krishimitra is thinking..."):
-                # Send to chatbot
-                response = send_chat_message(user_input, language)
-                
-                # Add bot response to history
-                st.session_state.chat_history.append({
-                    "type": "bot",
-                    "content": response.get("response", "Sorry, I couldn't process your request."),
-                    "language": response.get("language", "Unknown"),
-                    "confidence": response.get("confidence", "Unknown"),
-                    "timestamp": datetime.now().isoformat()
-                })
-            
-            # Store last input to prevent duplicates
-            st.session_state.last_input = user_input
-            
-            # Clear input and rerun
-            st.rerun()
+        # Add user message to history
+        st.session_state.chat_history.append({
+            "type": "user",
+            "content": user_input,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        # Get bot response
+        bot_response = get_chatbot_response(user_input, language)
+        
+        # Add bot response to history
+        st.session_state.chat_history.append({
+            "type": "bot",
+            "content": bot_response,
+            "language": language,
+            "confidence": "High",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        # Rerun to show new messages
+        st.rerun()
 
 # Tab 2: Weather & Location
 with tab2:
@@ -350,19 +290,19 @@ with tab2:
         col_temp, col_humidity, col_rainfall, col_wind = st.columns(4)
         
         with col_temp:
-            st.metric("🌡️ Temperature", weather_data.get("temperature", "28°C"))
+            st.metric("🌡️ Temperature", weather_data["temperature"])
         
         with col_humidity:
-            st.metric("💧 Humidity", weather_data.get("humidity", "65%"))
+            st.metric("💧 Humidity", weather_data["humidity"])
         
         with col_rainfall:
-            st.metric("🌧️ Rainfall", weather_data.get("rainfall", "2.5mm"))
+            st.metric("🌧️ Rainfall", weather_data["rainfall"])
         
         with col_wind:
-            st.metric("💨 Wind Speed", weather_data.get("wind_speed", "12 km/h"))
+            st.metric("💨 Wind Speed", weather_data["wind_speed"])
         
         # Weather advisory
-        st.info(f"🌤️ **Weather Advisory:** {weather_data.get('advisory', 'No advisory available')}")
+        st.info(f"🌤️ **Weather Advisory:** {weather_data['advisory']}")
     
     with col2:
         # Location map placeholder
@@ -373,9 +313,6 @@ with tab2:
         st.subheader("⚡ Quick Actions")
         if st.button("🔄 Refresh Weather"):
             st.rerun()
-        
-        if st.button("📍 Get Current Location"):
-            st.info("Location detection would be implemented here.")
 
 # Tab 3: Trending Crops
 with tab3:
@@ -384,29 +321,20 @@ with tab3:
     # Get trending crops data
     crops_data = get_trending_crops()
     
-    # Create DataFrame for better display
-    crops_df = pd.DataFrame(crops_data)
-    
     # Display crops in columns
     cols = st.columns(len(crops_data))
     
     for i, crop in enumerate(crops_data):
         with cols[i]:
-            # Handle missing trend field gracefully
-            trend = crop.get("trend", "stable")
+            trend = crop["trend"]
             trend_icon = "📈" if trend == "up" else "📉" if trend == "down" else "➡️"
             trend_color = "#4CAF50" if trend == "up" else "#f44336" if trend == "down" else "#666"
             
-            # Handle missing fields gracefully
-            crop_name = crop.get("name", "Unknown Crop")
-            crop_price = crop.get("price", "N/A")
-            crop_change = crop.get("change", "No change")
-            
             st.markdown(f"""
             <div class="feature-card">
-                <h4>{trend_icon} {crop_name}</h4>
-                <p><strong>{crop_price}</strong></p>
-                <p style="color: {trend_color};">{crop_change}</p>
+                <h4>{trend_icon} {crop['name']}</h4>
+                <p><strong>{crop['price']}</strong></p>
+                <p style="color: {trend_color};">{crop['change']}</p>
             </div>
             """, unsafe_allow_html=True)
     
@@ -417,31 +345,15 @@ with tab3:
     dates = pd.date_range(start=datetime.now() - timedelta(days=30), end=datetime.now(), freq='D')
     chart_data = []
     
-    # If no crops data, create sample data
-    if not crops_data:
-        crops_data = [
-            {"name": "Rice", "price": "₹2500/quintal", "trend": "up"},
-            {"name": "Wheat", "price": "₹2200/quintal", "trend": "stable"},
-            {"name": "Maize", "price": "₹1800/quintal", "trend": "down"}
-        ]
-    
     for crop in crops_data:
-        # Handle missing fields gracefully
-        crop_price = crop.get('price', '₹2000/quintal')
-        crop_trend = crop.get('trend', 'stable')
-        crop_name = crop.get('name', 'Unknown Crop')
+        # Extract price value
+        price_str = str(crop['price']).replace('₹', '').replace(',', '').replace('/quintal', '')
+        base_price = float(price_str)
         
-        # Extract price value safely
-        try:
-            price_str = str(crop_price).replace('₹', '').replace(',', '').replace('/quintal', '')
-            base_price = float(price_str)
-        except (ValueError, AttributeError):
-            base_price = 2000.0  # Default price
-        
-        # Generate some sample trend data
-        trend_multiplier = 1 if crop_trend == 'up' else -1 if crop_trend == 'down' else 0
+        # Generate trend data
+        trend_multiplier = 1 if crop['trend'] == 'up' else -1 if crop['trend'] == 'down' else 0
         trend_data = [base_price + (i * trend_multiplier) for i in range(len(dates))]
-        chart_data.append(go.Scatter(x=dates, y=trend_data, mode='lines', name=crop_name))
+        chart_data.append(go.Scatter(x=dates, y=trend_data, mode='lines', name=crop['name']))
     
     fig = go.Figure(data=chart_data)
     fig.update_layout(
@@ -460,26 +372,6 @@ with tab4:
     # Get market prices data
     prices_data = get_market_prices()
     
-    # Create DataFrame with fallback data if empty or missing fields
-    if not prices_data:
-        prices_data = [
-            {"commodity": "Rice", "price": "₹2500", "mandi": "Delhi", "change": "+2.5%", "change_percent": "+2.5%"},
-            {"commodity": "Wheat", "price": "₹2200", "mandi": "Delhi", "change": "-1.2%", "change_percent": "-1.2%"},
-            {"commodity": "Maize", "price": "₹1800", "mandi": "Delhi", "change": "+0.8%", "change_percent": "+0.8%"}
-        ]
-    else:
-        # Ensure all required fields exist in the data
-        for i, price in enumerate(prices_data):
-            # Check if price is a dictionary, if not skip
-            if not isinstance(price, dict):
-                continue
-            if 'change' not in price:
-                price['change'] = "+0.0%"
-            if 'change_percent' not in price:
-                price['change_percent'] = price['change']
-            if 'mandi' not in price:
-                price['mandi'] = price.get('market', 'Unknown')
-    
     prices_df = pd.DataFrame(prices_data)
     
     # Display prices table
@@ -494,14 +386,12 @@ with tab4:
         else:
             return ''
     
-    # Only apply styling if the columns exist
-    if not prices_df.empty and any(col in prices_df.columns for col in ['change', 'change_percent']):
-        # Find which columns exist for styling
-        style_columns = [col for col in ['change', 'change_percent'] if col in prices_df.columns]
+    # Apply styling
+    style_columns = [col for col in ['change', 'change_percent'] if col in prices_df.columns]
+    if style_columns:
         styled_df = prices_df.style.map(style_price_change, subset=style_columns)
         st.dataframe(styled_df, use_container_width=True)
     else:
-        # Display without styling if columns don't exist
         st.dataframe(prices_df, use_container_width=True)
     
     # Market analysis
@@ -510,9 +400,9 @@ with tab4:
     with col1:
         st.subheader("📈 Market Analysis")
         
-        # Calculate market sentiment with safe field access
-        up_count = len([p for p in prices_data if p.get('change', '').startswith('+')])
-        down_count = len([p for p in prices_data if p.get('change', '').startswith('-')])
+        # Calculate market sentiment
+        up_count = len([p for p in prices_data if p['change'].startswith('+')])
+        down_count = len([p for p in prices_data if p['change'].startswith('-')])
         total_count = len(prices_data)
         
         sentiment = "📈 Bullish" if up_count > down_count else "📉 Bearish" if down_count > up_count else "➡️ Neutral"
@@ -526,7 +416,7 @@ with tab4:
         
         mandi_counts = {}
         for price in prices_data:
-            mandi = price.get('mandi', 'Unknown')
+            mandi = price['mandi']
             mandi_counts[mandi] = mandi_counts.get(mandi, 0) + 1
         
         for mandi, count in mandi_counts.items():
@@ -615,8 +505,8 @@ with tab5:
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; padding: 2rem;">
-    <h4>🌾 Krishimitra - Enhanced Agricultural AI Assistant</h4>
-    <p>Powered by Advanced AI | 25+ Language Support | Real-time Agricultural Intelligence</p>
+    <h4>🌾 Krishimitra - Agricultural AI Assistant</h4>
+    <p>Powered by Advanced AI | 25+ Language Support | Agricultural Intelligence</p>
     <p><strong>Government of India Initiative</strong> | Built with ❤️ for Indian Farmers</p>
 </div>
 """, unsafe_allow_html=True)
