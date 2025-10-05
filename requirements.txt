@@ -46,3 +46,6 @@ faiss-cpu>=1.7.4
 # For API integrations
 anthropic>=0.7.0
 openai>=1.0.0
+
+# Security dependencies
+bleach>=6.0.0
