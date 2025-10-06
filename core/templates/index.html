@@ -1005,20 +1005,28 @@
             addMessageToChat(message, 'user');
             input.value = '';
 
-            // Send to API
+            // Send to API with CSRF token
             fetch('/api/advisories/chatbot/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: JSON.stringify({
                     query: message,
                     language: 'hi',
                     latitude: 28.6139,
-                    longitude: 77.2090
+                    longitude: 77.2090,
+                    user_id: 'web_user',
+                    session_id: 'web_session_' + Date.now()
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.response) {
                     addMessageToChat(data.response, 'bot');
@@ -1027,7 +1035,8 @@
                 }
             })
             .catch(error => {
-                addMessageToChat('क्षमा करें, सर्वर से कनेक्ट नहीं हो सका।', 'bot');
+                console.error('Chatbot API error:', error);
+                addMessageToChat('क्षमा करें, सर्वर से कनेक्ट नहीं हो सका। कृपया पेज रिफ्रेश करें।', 'bot');
             });
         }
 

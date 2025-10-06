@@ -170,7 +170,7 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
             response = chatbot_response.get('response', 'Sorry, I could not process your request.')
             source = chatbot_response.get('source', 'conversational_ai')
             confidence = chatbot_response.get('confidence', 0.8)
-            detected_language = chatbot_response.get('detected_language', language)
+            detected_language = chatbot_response.get('language', language)
             response_type = chatbot_response.get('response_type', 'general')
             
             # Enhanced metadata
