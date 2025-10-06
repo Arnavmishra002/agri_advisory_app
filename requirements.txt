@@ -39,3 +39,8 @@ drf-spectacular>=0.26.0
 
 # Security
 django-ratelimit>=4.0.0
+
+# Streamlit Frontend
+streamlit>=1.28.0
+plotly>=5.17.0
+Pillow>=10.0.0
