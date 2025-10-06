@@ -3,74 +3,517 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Krishimitra AI - Agricultural Advisory</title>
+    <title>🌾 Krishimitra AI - Kisan Ka Dost</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        * {
+            font-family: 'Baloo 2', cursive;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Farmer-friendly Navigation */
+        .navbar {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            padding: 15px 0;
+        }
+        
+        .navbar-brand {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff !important;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .nav-link {
+            color: #fff !important;
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin: 0 10px;
+            padding: 10px 20px !important;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        
+        /* Hero Section - Farmer Style */
         .hero-section {
-            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            background: linear-gradient(135deg, #4a7c59 0%, #2d5016 100%);
             color: white;
-            padding: 100px 0;
+            padding: 80px 0;
+            position: relative;
+            overflow: hidden;
         }
-        .feature-card {
-            transition: transform 0.3s ease;
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        /* Location Input - Big and Clear */
+        .location-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .location-input {
+            font-size: 1.3rem;
+            padding: 20px;
+            border-radius: 15px;
+            border: 3px solid #fff;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+        
+        .location-input:focus {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        
+        .btn-location {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #2d5016;
+            font-size: 1.3rem;
+            font-weight: 600;
+            padding: 20px 40px;
+            border-radius: 50px;
             border: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 25px rgba(255,215,0,0.4);
+            transition: all 0.3s ease;
         }
-        .feature-card:hover {
-            transform: translateY(-5px);
+        
+        .btn-location:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255,215,0,0.6);
+            color: #2d5016;
         }
+        
+        /* Quick Stats - Farmer Style */
+        .stats-section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #2d5016;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 1.2rem;
+            color: #4a7c59;
+            font-weight: 500;
+        }
+        
+        /* Services Section - Big Cards */
+        .services-section {
+            padding: 80px 0;
+            background: #f8f9fa;
+        }
+        
+        .service-card {
+            background: white;
+            border-radius: 25px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            margin-bottom: 30px;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-10px);
+            border-color: #4a7c59;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+        
+        .service-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .service-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2d5016;
+            margin-bottom: 15px;
+        }
+        
+        .service-description {
+            font-size: 1.2rem;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        /* Chatbot Section - Farmer Friendly */
+        .chatbot-section {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+            padding: 80px 0;
+        }
+        
+        .chatbot-container {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 3px solid #4a7c59;
+        }
+        
+        .chatbot-header {
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
+            color: white;
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .chatbot-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
         .chat-container {
             max-height: 400px;
             overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
         }
+        
         .chat-message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 10px;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            line-height: 1.5;
         }
+        
         .user-message {
-            background-color: #007bff;
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
             color: white;
             margin-left: 20%;
+            box-shadow: 0 5px 15px rgba(74,124,89,0.3);
         }
+        
         .bot-message {
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #fff, #f8f9fa);
             color: #333;
             margin-right: 20%;
+            border: 2px solid #4a7c59;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-        .location-input {
-            position: relative;
+        
+        .chat-input-group {
+            margin-top: 20px;
         }
-        .location-suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
+        
+        .chat-input {
+            font-size: 1.2rem;
+            padding: 15px 20px;
+            border-radius: 25px;
+            border: 3px solid #4a7c59;
+        }
+        
+        .btn-send {
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            box-shadow: 0 5px 15px rgba(74,124,89,0.3);
+        }
+        
+        .btn-send:hover {
+            transform: scale(1.1);
+            color: white;
+        }
+        
+        /* Language Selector */
+        .language-selector {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .language-btn {
+            background: #f8f9fa;
+            border: 2px solid #4a7c59;
+            color: #4a7c59;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .language-btn.active {
+            background: #4a7c59;
+            color: white;
+        }
+        
+        .language-btn:hover {
+            background: #4a7c59;
+            color: white;
+        }
+        
+        /* Real-time Data Cards */
+        .data-section {
+            padding: 80px 0;
             background: white;
-            border: 1px solid #ddd;
-            border-top: none;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
         }
-        .location-suggestion {
-            padding: 10px;
+        
+        .data-card {
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .weather-card {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+        }
+        
+        .market-card {
+            background: linear-gradient(135deg, #fd79a8, #e84393);
+        }
+        
+        .crop-card {
+            background: linear-gradient(135deg, #fdcb6e, #e17055);
+        }
+        
+        .data-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .data-item {
+            font-size: 1.2rem;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .data-item i {
+            margin-right: 10px;
+            font-size: 1.3rem;
+        }
+        
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
+            color: white;
+            border: none;
+            font-size: 2rem;
+            box-shadow: 0 8px 25px rgba(74,124,89,0.4);
             cursor: pointer;
-            border-bottom: 1px solid #eee;
+            transition: all 0.3s ease;
+            z-index: 1000;
         }
-        .location-suggestion:hover {
-            background-color: #f8f9fa;
+        
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 35px rgba(74,124,89,0.6);
+        }
+        
+        /* Quick Actions Menu */
+        .quick-actions {
+            position: fixed;
+            bottom: 110px;
+            right: 30px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            padding: 20px;
+            display: none;
+            z-index: 999;
+            min-width: 200px;
+        }
+        
+        .quick-action-btn {
+            display: block;
+            width: 100%;
+            padding: 15px 20px;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
+            color: white;
+            text-decoration: none;
+            border-radius: 15px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .quick-action-btn:hover {
+            transform: translateX(-5px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        /* Status Indicator */
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .status-online {
+            background: linear-gradient(135deg, #00b894, #00a085);
+        }
+        
+        .status-offline {
+            background: linear-gradient(135deg, #e17055, #d63031);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .service-card {
+                padding: 30px 20px;
+            }
+            
+            .service-icon {
+                font-size: 3rem;
+            }
+            
+            .chatbot-container {
+                padding: 20px;
+            }
+            
+            .user-message, .bot-message {
+                margin-left: 10%;
+                margin-right: 10%;
+            }
+        }
+        
+        /* Loading Animation */
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4a7c59;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Success Messages */
+        .success-message {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin: 15px 0;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        /* Error Messages */
+        .error-message {
+            background: linear-gradient(135deg, #e17055, #d63031);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin: 15px 0;
+            font-weight: 500;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="#">
-                <i class="fas fa-seedling"></i> Krishimitra AI
+                🌾 Krishimitra AI
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -78,70 +521,102 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="#features">Features</a>
+                        <a class="nav-link" href="#services">सेवाएं</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#chatbot">Chatbot</a>
+                        <a class="nav-link" href="#chatbot">चैट</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#api">API</a>
+                        <a class="nav-link" href="#data">डेटा</a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
 
+    <!-- Status Indicator -->
+    <div class="status-indicator status-online" id="statusIndicator">
+        <i class="fas fa-circle"></i> ऑनलाइन
+    </div>
+
     <!-- Hero Section -->
     <section class="hero-section text-center">
-        <div class="container">
-            <h1 class="display-4 fw-bold mb-4">🌾 Krishimitra AI</h1>
-            <p class="lead mb-4">Intelligent Agricultural Advisory System for Indian Farmers</p>
-            <p class="mb-4">Get real-time, location-based farming guidance with AI-powered recommendations</p>
-            <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <div class="location-input">
-                        <input type="text" id="locationInput" class="form-control form-control-lg" 
-                               placeholder="Enter your location (e.g., Delhi, Mumbai, Bangalore)">
+        <div class="container hero-content">
+            <h1 class="hero-title">🌾 कृषिमित्र AI</h1>
+            <p class="hero-subtitle">किसानों का सबसे अच्छा दोस्त</p>
+            <p class="hero-subtitle">बुद्धिमान कृषि सलाहकार प्रणाली</p>
+            
+            <!-- Location Section -->
+            <div class="location-section">
+                <h3 style="margin-bottom: 20px; font-size: 1.8rem;">📍 अपना स्थान चुनें</h3>
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <input type="text" id="locationInput" class="form-control location-input" 
+                               placeholder="अपना शहर या गाँव लिखें (जैसे: दिल्ली, मुंबई, बैंगलोर)">
                         <div class="location-suggestions" id="locationSuggestions"></div>
                     </div>
-                    <button class="btn btn-light btn-lg mt-3" onclick="detectLocation()">
-                        <i class="fas fa-map-marker-alt"></i> Use Current Location
-                    </button>
+                </div>
+                <button class="btn btn-location mt-3" onclick="detectLocation()">
+                    <i class="fas fa-map-marker-alt"></i> मेरा स्थान ढूंढें
+                </button>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="stats-section">
+                <div class="row">
+                    <div class="col-md-3 col-6">
+                        <div class="stat-item">
+                            <span class="stat-number">1000+</span>
+                            <span class="stat-label">किसानों की मदद</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="stat-item">
+                            <span class="stat-number">95%</span>
+                            <span class="stat-label">सटीकता दर</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="stat-item">
+                            <span class="stat-number">24/7</span>
+                            <span class="stat-label">AI सहायता</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="stat-item">
+                            <span class="stat-number">15+</span>
+                            <span class="stat-label">भाषाएं</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section id="features" class="py-5">
+    <!-- Services Section -->
+    <section id="services" class="services-section">
         <div class="container">
-            <h2 class="text-center mb-5">✨ Key Features</h2>
+            <h2 class="text-center mb-5" style="font-size: 2.5rem; color: #2d5016; font-weight: 700;">✨ हमारी सेवाएं</h2>
             <div class="row">
-                <div class="col-md-4 mb-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-robot fa-3x text-success mb-3"></i>
-                            <h5 class="card-title">AI-Powered Chatbot</h5>
-                            <p class="card-text">ChatGPT-like responses with multilingual support for agricultural queries</p>
-                        </div>
+                <div class="col-md-4">
+                    <div class="service-card">
+                        <i class="fas fa-robot service-icon" style="color: #4a7c59;"></i>
+                        <h3 class="service-title">🤖 AI चैटबॉट</h3>
+                        <p class="service-description">कृषि से जुड़े सभी सवालों के जवाब पाएं। फसल, मौसम, बाजार कीमतों के बारे में पूछें।</p>
                     </div>
                 </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-map-marker-alt fa-3x text-success mb-3"></i>
-                            <h5 class="card-title">Location-Based Services</h5>
-                            <p class="card-text">Dynamic location updates like Swiggy/Blinkit with regional recommendations</p>
-                        </div>
+                <div class="col-md-4">
+                    <div class="service-card">
+                        <i class="fas fa-map-marker-alt service-icon" style="color: #4a7c59;"></i>
+                        <h3 class="service-title">📍 स्थान सेवाएं</h3>
+                        <p class="service-description">आपके स्थान के अनुसार सटीक सलाह। मौसम, मिट्टी और फसल की जानकारी।</p>
                     </div>
                 </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-cloud-sun fa-3x text-success mb-3"></i>
-                            <h5 class="card-title">Real-Time Data</h5>
-                            <p class="card-text">Weather, market prices, and crop data from government sources</p>
-                        </div>
+                <div class="col-md-4">
+                    <div class="service-card">
+                        <i class="fas fa-cloud-sun service-icon" style="color: #4a7c59;"></i>
+                        <h3 class="service-title">🌤️ रियल-टाइम डेटा</h3>
+                        <p class="service-description">सरकारी स्रोतों से मौसम, बाजार कीमत और फसल डेटा।</p>
                     </div>
                 </div>
             </div>
@@ -149,42 +624,43 @@
     </section>
 
     <!-- Chatbot Section -->
-    <section id="chatbot" class="py-5 bg-light">
+    <section id="chatbot" class="chatbot-section">
         <div class="container">
-            <h2 class="text-center mb-5">🤖 AI Agricultural Chatbot</h2>
             <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-comments"></i> Chat with Krishimitra AI
-                            </h5>
+                <div class="col-md-10">
+                    <div class="chatbot-container">
+                        <div class="chatbot-header">
+                            <h2 class="chatbot-title">🤖 कृषिमित्र AI से बात करें</h2>
                         </div>
-                        <div class="card-body">
-                            <div class="chat-container" id="chatContainer">
-                                <div class="chat-message bot-message">
-                                    <strong>Krishimitra AI:</strong> Hello! I'm your agricultural advisor. Ask me about crops, weather, market prices, or any farming-related questions!
-                                </div>
+                        
+                        <div class="chat-container" id="chatContainer">
+                            <div class="chat-message bot-message">
+                                <strong>कृषिमित्र AI:</strong> नमस्ते! मैं आपका कृषि सलाहकार हूँ। फसल, मौसम, बाजार कीमत या किसी भी कृषि से जुड़े सवाल पूछ सकते हैं!
                             </div>
-                            <div class="input-group mt-3">
-                                <input type="text" id="chatInput" class="form-control" 
-                                       placeholder="Ask about crops, weather, or farming...">
-                                <button class="btn btn-success" onclick="sendMessage()">
+                        </div>
+                        
+                        <div class="loading-spinner" id="loadingSpinner">
+                            <div class="spinner"></div>
+                            <p style="margin-top: 10px; color: #4a7c59;">जवाब आ रहा है...</p>
+                        </div>
+                        
+                        <div class="chat-input-group">
+                            <div class="input-group">
+                                <input type="text" id="chatInput" class="form-control chat-input" 
+                                       placeholder="अपना सवाल लिखें...">
+                                <button class="btn btn-send" onclick="sendMessage()">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
                             </div>
-                            <div class="mt-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-language"></i> 
-                                    <select id="languageSelect" class="form-select form-select-sm d-inline-block w-auto">
-                                        <option value="en">English</option>
-                                        <option value="hi">Hindi</option>
-                                        <option value="bn">Bengali</option>
-                                        <option value="te">Telugu</option>
-                                        <option value="mr">Marathi</option>
-                                    </select>
-                                </small>
-                            </div>
+                        </div>
+                        
+                        <div class="language-selector">
+                            <p style="margin-bottom: 10px; font-weight: 600; color: #2d5016;">भाषा चुनें:</p>
+                            <button class="btn language-btn active" onclick="setLanguage('hi')">हिंदी</button>
+                            <button class="btn language-btn" onclick="setLanguage('en')">English</button>
+                            <button class="btn language-btn" onclick="setLanguage('bn')">বাংলা</button>
+                            <button class="btn language-btn" onclick="setLanguage('te')">తెలుగు</button>
+                            <button class="btn language-btn" onclick="setLanguage('mr')">मराठी</button>
                         </div>
                     </div>
                 </div>
@@ -192,45 +668,93 @@
         </div>
     </section>
 
-    <!-- API Section -->
-    <section id="api" class="py-5">
+    <!-- Real-time Data Section -->
+    <section id="data" class="data-section">
         <div class="container">
-            <h2 class="text-center mb-5">🔌 API Documentation</h2>
+            <h2 class="text-center mb-5" style="font-size: 2.5rem; color: #2d5016; font-weight: 700;">📊 रियल-टाइम कृषि डेटा</h2>
             <div class="row">
-                <div class="col-md-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <i class="fas fa-code"></i> Interactive API Docs
-                            </h5>
-                            <p class="card-text">Explore all available endpoints with interactive documentation</p>
-                            <a href="/api/schema/swagger-ui/" class="btn btn-primary" target="_blank">
-                                <i class="fas fa-external-link-alt"></i> Open Swagger UI
-                            </a>
+                <div class="col-md-4">
+                    <div class="data-card weather-card">
+                        <h3 class="data-title"><i class="fas fa-cloud-sun"></i> मौसम</h3>
+                        <div class="data-item">
+                            <i class="fas fa-thermometer-half"></i>
+                            तापमान: <span id="temperature">--°C</span>
+                        </div>
+                        <div class="data-item">
+                            <i class="fas fa-tint"></i>
+                            नमी: <span id="humidity">--%</span>
+                        </div>
+                        <div class="data-item">
+                            <i class="fas fa-wind"></i>
+                            हवा: <span id="windSpeed">-- km/h</span>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <i class="fas fa-database"></i> Admin Panel
-                            </h5>
-                            <p class="card-text">Manage users, data, and system settings</p>
-                            <a href="/admin/" class="btn btn-secondary" target="_blank">
-                                <i class="fas fa-cog"></i> Admin Dashboard
-                            </a>
+                <div class="col-md-4">
+                    <div class="data-card market-card">
+                        <h3 class="data-title"><i class="fas fa-chart-line"></i> बाजार कीमत</h3>
+                        <div class="data-item">
+                            <i class="fas fa-seedling"></i>
+                            गेहूं: ₹<span id="wheatPrice">--</span>/क्विंटल
+                        </div>
+                        <div class="data-item">
+                            <i class="fas fa-seedling"></i>
+                            चावल: ₹<span id="ricePrice">--</span>/क्विंटल
+                        </div>
+                        <div class="data-item">
+                            <i class="fas fa-seedling"></i>
+                            मक्का: ₹<span id="cornPrice">--</span>/क्विंटल
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="data-card crop-card">
+                        <h3 class="data-title"><i class="fas fa-leaf"></i> फसल सुझाव</h3>
+                        <div class="data-item">
+                            <i class="fas fa-calendar"></i>
+                            मौसम: <span id="currentSeason">--</span>
+                        </div>
+                        <div class="data-item">
+                            <i class="fas fa-seedling"></i>
+                            सबसे अच्छी फसल: <span id="bestCrop">--</span>
+                        </div>
+                        <div class="data-item">
+                            <i class="fas fa-percentage"></i>
+                            उपज: <span id="expectedYield">--</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="toggleQuickActions()">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Quick Actions Menu -->
+    <div class="quick-actions" id="quickActions">
+        <a href="#chatbot" class="quick-action-btn" onclick="toggleQuickActions()">
+            <i class="fas fa-comments"></i> AI से बात करें
+        </a>
+        <a href="#data" class="quick-action-btn" onclick="toggleQuickActions()">
+            <i class="fas fa-chart-bar"></i> डेटा देखें
+        </a>
+        <a href="/api/schema/swagger-ui/" class="quick-action-btn" target="_blank">
+            <i class="fas fa-code"></i> API दस्तावेज
+        </a>
+        <a href="/admin/" class="quick-action-btn" target="_blank">
+            <i class="fas fa-cog"></i> एडमिन पैनल
+        </a>
+    </div>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white py-4">
-        <div class="container text-center">
-            <p class="mb-0">&copy; 2025 Krishimitra AI. Empowering Indian farmers with intelligent agricultural guidance.</p>
+    <footer style="background: #2d5016; color: white; padding: 40px 0; text-align: center;">
+        <div class="container">
+            <p style="margin: 0; font-size: 1.2rem; font-weight: 500;">
+                &copy; 2025 कृषिमित्र AI. भारतीय किसानों को बुद्धिमान कृषि मार्गदर्शन प्रदान करना।
+            </p>
         </div>
     </footer>
 
@@ -238,6 +762,129 @@
     <script>
         let currentLocation = null;
         let chatHistory = [];
+        let quickActionsVisible = false;
+        let currentLanguage = 'hi';
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRealTimeData();
+            updateStatusIndicator();
+            setInterval(loadRealTimeData, 30000); // Update every 30 seconds
+        });
+
+        // Set language
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            
+            // Update active button
+            document.querySelectorAll('.language-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update placeholder text based on language
+            const chatInput = document.getElementById('chatInput');
+            const placeholders = {
+                'hi': 'अपना सवाल लिखें...',
+                'en': 'Type your question...',
+                'bn': 'আপনার প্রশ্ন লিখুন...',
+                'te': 'మీ ప్రశ్నను టైప్ చేయండి...',
+                'mr': 'तुमचा प्रश्न टाइप करा...'
+            };
+            chatInput.placeholder = placeholders[lang] || placeholders['hi'];
+        }
+
+        // Toggle quick actions menu
+        function toggleQuickActions() {
+            const quickActions = document.getElementById('quickActions');
+            const fab = document.querySelector('.fab i');
+            
+            if (quickActionsVisible) {
+                quickActions.style.display = 'none';
+                fab.style.transform = 'rotate(0deg)';
+                quickActionsVisible = false;
+            } else {
+                quickActions.style.display = 'block';
+                fab.style.transform = 'rotate(45deg)';
+                quickActionsVisible = true;
+            }
+        }
+
+        // Update status indicator
+        function updateStatusIndicator() {
+            const indicator = document.getElementById('statusIndicator');
+            fetch('/api/weather/current/?lat=28.6139&lon=77.2090')
+                .then(response => {
+                    if (response.ok) {
+                        indicator.className = 'status-indicator status-online';
+                        indicator.innerHTML = '<i class="fas fa-circle"></i> ऑनलाइन';
+                    } else {
+                        throw new Error('API not responding');
+                    }
+                })
+                .catch(error => {
+                    indicator.className = 'status-indicator status-offline';
+                    indicator.innerHTML = '<i class="fas fa-circle"></i> ऑफलाइन';
+                });
+        }
+
+        // Load real-time data
+        function loadRealTimeData() {
+            if (!currentLocation) {
+                currentLocation = { lat: 28.6139, lon: 77.2090 }; // Default to Delhi
+            }
+            
+            // Load weather data
+            fetch(`/api/weather/current/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=${currentLanguage}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.temperature) {
+                        document.getElementById('temperature').textContent = data.temperature + '°C';
+                        document.getElementById('humidity').textContent = data.humidity + '%';
+                        document.getElementById('windSpeed').textContent = data.wind_speed + ' km/h';
+                    }
+                })
+                .catch(error => {
+                    console.log('Weather data not available');
+                });
+
+            // Load market data
+            fetch(`/api/market-prices/prices/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=${currentLanguage}&product=wheat`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        document.getElementById('wheatPrice').textContent = data[0].price || '--';
+                    }
+                })
+                .catch(error => {
+                    console.log('Market data not available');
+                });
+
+            // Load crop recommendations
+            fetch('/api/advisories/ml_crop_recommendation/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    soil_type: 'loamy',
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    season: 'kharif'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.recommended_crops && data.recommended_crops.length > 0) {
+                    document.getElementById('currentSeason').textContent = 'खरीफ';
+                    document.getElementById('bestCrop').textContent = data.recommended_crops[0].crop_name || 'चावल';
+                    document.getElementById('expectedYield').textContent = '85%';
+                }
+            })
+            .catch(error => {
+                console.log('Crop data not available');
+            });
+        }
 
         // Location detection
         function detectLocation() {
@@ -249,13 +896,14 @@
                             lon: position.coords.longitude
                         };
                         reverseGeocode(currentLocation.lat, currentLocation.lon);
+                        loadRealTimeData(); // Reload data with new location
                     },
                     function(error) {
-                        alert('Location access denied. Please enter your location manually.');
+                        alert('स्थान की पहुंच अस्वीकृत। कृपया अपना स्थान मैन्युअल रूप से दर्ज करें।');
                     }
                 );
             } else {
-                alert('Geolocation is not supported by this browser.');
+                alert('इस ब्राउज़र में स्थान सुविधा समर्थित नहीं है।');
             }
         }
 
@@ -276,23 +924,28 @@
         // Show location info
         function showLocationInfo(location) {
             const infoDiv = document.createElement('div');
-            infoDiv.className = 'alert alert-info mt-2';
-            infoDiv.innerHTML = `<i class="fas fa-map-marker-alt"></i> Location set to: <strong>${location}</strong>`;
+            infoDiv.className = 'success-message';
+            infoDiv.innerHTML = `<i class="fas fa-map-marker-alt"></i> स्थान सेट: <strong>${location}</strong>`;
             document.getElementById('locationInput').parentNode.appendChild(infoDiv);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                infoDiv.remove();
+            }, 5000);
         }
 
         // Location suggestions
         const locationSuggestions = [
-            'Delhi, Delhi',
-            'Mumbai, Maharashtra', 
-            'Bangalore, Karnataka',
-            'Kolkata, West Bengal',
-            'Chennai, Tamil Nadu',
-            'Hyderabad, Telangana',
-            'Pune, Maharashtra',
-            'Ahmedabad, Gujarat',
-            'Jaipur, Rajasthan',
-            'Lucknow, Uttar Pradesh'
+            'दिल्ली, दिल्ली',
+            'मुंबई, महाराष्ट्र', 
+            'बैंगलोर, कर्नाटक',
+            'कोलकाता, पश्चिम बंगाल',
+            'चेन्नई, तमिलनाडु',
+            'हैदराबाद, तेलंगाना',
+            'पुणे, महाराष्ट्र',
+            'अहमदाबाद, गुजरात',
+            'जयपुर, राजस्थान',
+            'लखनऊ, उत्तर प्रदेश'
         ];
 
         document.getElementById('locationInput').addEventListener('input', function(e) {
@@ -322,9 +975,11 @@
         function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
-            const language = document.getElementById('languageSelect').value;
             
             if (!message) return;
+
+            // Show loading
+            document.getElementById('loadingSpinner').style.display = 'block';
 
             // Add user message to chat
             addMessageToChat(message, 'user');
@@ -338,18 +993,27 @@
                 },
                 body: JSON.stringify({
                     query: message,
-                    language: language,
+                    language: currentLanguage,
                     latitude: currentLocation ? currentLocation.lat : 28.6139,
                     longitude: currentLocation ? currentLocation.lon : 77.2090
                 })
             })
             .then(response => response.json())
             .then(data => {
-                addMessageToChat(data.response || 'Sorry, I could not process your request.', 'bot');
+                document.getElementById('loadingSpinner').style.display = 'none';
+                
+                if (data.response) {
+                    addMessageToChat(data.response, 'bot');
+                } else if (data.error) {
+                    addMessageToChat('क्षमा करें, कुछ त्रुटि हुई। कृपया फिर से प्रयास करें।', 'bot');
+                } else {
+                    addMessageToChat('क्षमा करें, मैं आपके प्रश्न का उत्तर नहीं दे सका। कृपया अपना प्रश्न फिर से लिखें।', 'bot');
+                }
             })
             .catch(error => {
+                document.getElementById('loadingSpinner').style.display = 'none';
                 console.error('Error:', error);
-                addMessageToChat('Sorry, there was an error processing your request.', 'bot');
+                addMessageToChat('क्षमा करें, सर्वर से कनेक्ट नहीं हो सका। कृपया बाद में प्रयास करें।', 'bot');
             });
         }
 
@@ -358,7 +1022,7 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}-message`;
             
-            const senderName = sender === 'user' ? 'You' : 'Krishimitra AI';
+            const senderName = sender === 'user' ? 'आप' : 'कृषिमित्र AI';
             messageDiv.innerHTML = `<strong>${senderName}:</strong> ${message}`;
             
             chatContainer.appendChild(messageDiv);

@@ -7,7 +7,7 @@ from ..ml.ai_models import predict_yield
 from ..ml.fertilizer_recommendations import FertilizerRecommendationEngine
 from ..ml.ml_models import AgriculturalMLSystem
 from ..feedback_system import FeedbackAnalytics
-from ..ml.conversational_chatbot import ConversationalAgriculturalChatbot
+from ..ml.advanced_chatbot import AdvancedAgriculturalChatbot
 import uuid
 from ..services.weather_api import MockWeatherAPI
 from ..services.market_api import get_market_prices, get_trending_crops
@@ -75,7 +75,7 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         self.ml_system = AgriculturalMLSystem()
         self.feedback_analytics = FeedbackAnalytics()
         self.weather_api = MockWeatherAPI() # Use the actual weather API
-        self.nlp_chatbot = ConversationalAgriculturalChatbot() # Initialize the conversational chatbot
+        self.nlp_chatbot = AdvancedAgriculturalChatbot() # Initialize the advanced chatbot
         self.pest_detection_system = PestDetectionSystem() # Initialize the pest detection system
 
     @action(detail=False, methods=['post'], serializer_class=YieldPredictionSerializer)
