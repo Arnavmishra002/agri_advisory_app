@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krishimitra AI - Agricultural Advisory</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 100px 0;
+        }
+        .feature-card {
+            transition: transform 0.3s ease;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .chat-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: 20%;
+        }
+        .bot-message {
+            background-color: #f8f9fa;
+            color: #333;
+            margin-right: 20%;
+        }
+        .location-input {
+            position: relative;
+        }
+        .location-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        .location-suggestion {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .location-suggestion:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-seedling"></i> Krishimitra AI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#chatbot">Chatbot</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#api">API</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold mb-4">🌾 Krishimitra AI</h1>
+            <p class="lead mb-4">Intelligent Agricultural Advisory System for Indian Farmers</p>
+            <p class="mb-4">Get real-time, location-based farming guidance with AI-powered recommendations</p>
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="location-input">
+                        <input type="text" id="locationInput" class="form-control form-control-lg" 
+                               placeholder="Enter your location (e.g., Delhi, Mumbai, Bangalore)">
+                        <div class="location-suggestions" id="locationSuggestions"></div>
+                    </div>
+                    <button class="btn btn-light btn-lg mt-3" onclick="detectLocation()">
+                        <i class="fas fa-map-marker-alt"></i> Use Current Location
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-5">✨ Key Features</h2>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card feature-card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-robot fa-3x text-success mb-3"></i>
+                            <h5 class="card-title">AI-Powered Chatbot</h5>
+                            <p class="card-text">ChatGPT-like responses with multilingual support for agricultural queries</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card feature-card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-map-marker-alt fa-3x text-success mb-3"></i>
+                            <h5 class="card-title">Location-Based Services</h5>
+                            <p class="card-text">Dynamic location updates like Swiggy/Blinkit with regional recommendations</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card feature-card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-cloud-sun fa-3x text-success mb-3"></i>
+                            <h5 class="card-title">Real-Time Data</h5>
+                            <p class="card-text">Weather, market prices, and crop data from government sources</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chatbot Section -->
+    <section id="chatbot" class="py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-5">🤖 AI Agricultural Chatbot</h2>
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-comments"></i> Chat with Krishimitra AI
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chat-container" id="chatContainer">
+                                <div class="chat-message bot-message">
+                                    <strong>Krishimitra AI:</strong> Hello! I'm your agricultural advisor. Ask me about crops, weather, market prices, or any farming-related questions!
+                                </div>
+                            </div>
+                            <div class="input-group mt-3">
+                                <input type="text" id="chatInput" class="form-control" 
+                                       placeholder="Ask about crops, weather, or farming...">
+                                <button class="btn btn-success" onclick="sendMessage()">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-language"></i> 
+                                    <select id="languageSelect" class="form-select form-select-sm d-inline-block w-auto">
+                                        <option value="en">English</option>
+                                        <option value="hi">Hindi</option>
+                                        <option value="bn">Bengali</option>
+                                        <option value="te">Telugu</option>
+                                        <option value="mr">Marathi</option>
+                                    </select>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Section -->
+    <section id="api" class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-5">🔌 API Documentation</h2>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-code"></i> Interactive API Docs
+                            </h5>
+                            <p class="card-text">Explore all available endpoints with interactive documentation</p>
+                            <a href="/api/schema/swagger-ui/" class="btn btn-primary" target="_blank">
+                                <i class="fas fa-external-link-alt"></i> Open Swagger UI
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-database"></i> Admin Panel
+                            </h5>
+                            <p class="card-text">Manage users, data, and system settings</p>
+                            <a href="/admin/" class="btn btn-secondary" target="_blank">
+                                <i class="fas fa-cog"></i> Admin Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2025 Krishimitra AI. Empowering Indian farmers with intelligent agricultural guidance.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentLocation = null;
+        let chatHistory = [];
+
+        // Location detection
+        function detectLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        };
+                        reverseGeocode(currentLocation.lat, currentLocation.lon);
+                    },
+                    function(error) {
+                        alert('Location access denied. Please enter your location manually.');
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+
+        // Reverse geocoding
+        function reverseGeocode(lat, lon) {
+            fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+                .then(response => response.json())
+                .then(data => {
+                    const locationName = `${data.city || data.locality}, ${data.principalSubdivision}`;
+                    document.getElementById('locationInput').value = locationName;
+                    showLocationInfo(locationName);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // Show location info
+        function showLocationInfo(location) {
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'alert alert-info mt-2';
+            infoDiv.innerHTML = `<i class="fas fa-map-marker-alt"></i> Location set to: <strong>${location}</strong>`;
+            document.getElementById('locationInput').parentNode.appendChild(infoDiv);
+        }
+
+        // Location suggestions
+        const locationSuggestions = [
+            'Delhi, Delhi',
+            'Mumbai, Maharashtra', 
+            'Bangalore, Karnataka',
+            'Kolkata, West Bengal',
+            'Chennai, Tamil Nadu',
+            'Hyderabad, Telangana',
+            'Pune, Maharashtra',
+            'Ahmedabad, Gujarat',
+            'Jaipur, Rajasthan',
+            'Lucknow, Uttar Pradesh'
+        ];
+
+        document.getElementById('locationInput').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase();
+            const suggestions = locationSuggestions.filter(loc => 
+                loc.toLowerCase().includes(query)
+            );
+            
+            const suggestionsDiv = document.getElementById('locationSuggestions');
+            if (query.length > 0 && suggestions.length > 0) {
+                suggestionsDiv.innerHTML = suggestions.map(loc => 
+                    `<div class="location-suggestion" onclick="selectLocation('${loc}')">${loc}</div>`
+                ).join('');
+                suggestionsDiv.style.display = 'block';
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+        function selectLocation(location) {
+            document.getElementById('locationInput').value = location;
+            document.getElementById('locationSuggestions').style.display = 'none';
+            showLocationInfo(location);
+        }
+
+        // Chatbot functionality
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            const language = document.getElementById('languageSelect').value;
+            
+            if (!message) return;
+
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            input.value = '';
+
+            // Send to API
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: message,
+                    language: language,
+                    latitude: currentLocation ? currentLocation.lat : 28.6139,
+                    longitude: currentLocation ? currentLocation.lon : 77.2090
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                addMessageToChat(data.response || 'Sorry, I could not process your request.', 'bot');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                addMessageToChat('Sorry, there was an error processing your request.', 'bot');
+            });
+        }
+
+        function addMessageToChat(message, sender) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}-message`;
+            
+            const senderName = sender === 'user' ? 'You' : 'Krishimitra AI';
+            messageDiv.innerHTML = `<strong>${senderName}:</strong> ${message}`;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Enter key support for chat
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Hide location suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.location-input')) {
+                document.getElementById('locationSuggestions').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

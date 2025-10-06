@@ -20,10 +20,12 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (TokenObtainPairView,TokenRefreshView,)
+from . import views
 # from .schema_views import CachedSpectacularAPIView, OptimizedSpectacularSwaggerView
 # from .fast_docs import FastAPIDocsView, FastAPIDocsHTMLView
 
 urlpatterns = [
+    path('', views.home, name='home'),
     path('admin/', admin.site.urls),
     path('api/', include('advisory.api.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
