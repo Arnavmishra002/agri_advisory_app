@@ -90,91 +90,9 @@
             min-height: 70vh;
         }
         
-        /* Dashboard Cards */
-        .dashboard-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 8px 25px rgba(45, 80, 22, 0.15);
-            border-left: 6px solid;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .dashboard-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
-            border-radius: 0 15px 0 100px;
-        }
-        
-        .dashboard-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 35px rgba(45, 80, 22, 0.25);
-        }
-        
-        .weather-card {
-            border-left-color: #74b9ff;
-            background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
-        }
-        
-        .market-card {
-            border-left-color: #fd79a8;
-            background: linear-gradient(135deg, #ffffff 0%, #fce4ec 100%);
-        }
-        
-        .crop-card {
-            border-left-color: #fdcb6e;
-            background: linear-gradient(135deg, #ffffff 0%, #fff8e1 100%);
-        }
-        
-        .dashboard-title {
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #2d5016;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .dashboard-title i {
-            margin-right: 12px;
-            font-size: 1.5rem;
-        }
-        
-        .metric-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-            font-size: 1rem;
-        }
-        
-        .metric-item:last-child {
-            border-bottom: none;
-        }
-        
-        .metric-label {
-            font-weight: 500;
-            color: #555;
-        }
-        
-        .metric-value {
-            font-weight: 600;
-            color: #2d5016;
-            font-size: 1.1rem;
-        }
-        
-        /* Essential Services */
+        /* Services Section */
         .services-section {
-            margin-top: 50px;
+            margin-top: 30px;
         }
         
         .section-title {
@@ -199,6 +117,7 @@
             border-radius: 2px;
         }
         
+        /* Horizontal Service Cards */
         .service-card {
             background: white;
             border-radius: 20px;
@@ -210,6 +129,7 @@
             position: relative;
             overflow: hidden;
             text-align: center;
+            height: 100%;
         }
         
         .service-card::before {
@@ -253,6 +173,11 @@
             background: linear-gradient(135deg, #ffffff 0%, #ffeaa7 100%);
         }
         
+        .chat-card {
+            border-left-color: #a29bfe;
+            background: linear-gradient(135deg, #ffffff 0%, #f3f0ff 100%);
+        }
+        
         .service-icon {
             font-size: 3rem;
             margin-bottom: 20px;
@@ -264,6 +189,7 @@
         .weather-card-service .service-icon { color: #74b9ff; }
         .market-card-service .service-icon { color: #fd79a8; }
         .pest-card .service-icon { color: #e17055; }
+        .chat-card .service-icon { color: #a29bfe; }
         
         .service-title {
             font-size: 1.4rem;
@@ -462,10 +388,6 @@
                 font-size: 0.9rem;
             }
             
-            .dashboard-card {
-                padding: 20px;
-            }
-            
             .service-card {
                 padding: 25px;
             }
@@ -511,7 +433,6 @@
     <nav class="navbar navbar-expand-lg nav-bar">
         <div class="container">
             <div class="navbar-nav">
-                <a class="nav-link" href="#dashboard">डैशबोर्ड</a>
                 <a class="nav-link" href="#advisories">कृषि सलाह</a>
                 <a class="nav-link" href="#crops">फसल जानकारी</a>
                 <a class="nav-link" href="#weather">मौसम</a>
@@ -525,77 +446,7 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="container">
-            <!-- Dashboard Section -->
-            <section id="dashboard">
-                <h2 class="text-center mb-4" style="color: #2d5016;">कृषि डैशबोर्ड</h2>
-                
-                <div class="row">
-                    <!-- Weather Card -->
-                    <div class="col-md-4">
-                        <div class="dashboard-card weather-card">
-                            <div class="dashboard-title">
-                                <i class="fas fa-cloud-sun"></i>मौसम की जानकारी
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">तापमान:</span>
-                                <span class="metric-value" id="temperature">--°C</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">नमी:</span>
-                                <span class="metric-value" id="humidity">--%</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">हवा की गति:</span>
-                                <span class="metric-value" id="windSpeed">-- km/h</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Market Prices Card -->
-                    <div class="col-md-4">
-                        <div class="dashboard-card market-card">
-                            <div class="dashboard-title">
-                                <i class="fas fa-chart-line"></i>बाजार कीमतें
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">गेहूं:</span>
-                                <span class="metric-value">₹<span id="wheatPrice">--</span>/क्विंटल</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">चावल:</span>
-                                <span class="metric-value">₹<span id="ricePrice">--</span>/क्विंटल</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">मक्का:</span>
-                                <span class="metric-value">₹<span id="cornPrice">--</span>/क्विंटल</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Crop Recommendations Card -->
-                    <div class="col-md-4">
-                        <div class="dashboard-card crop-card">
-                            <div class="dashboard-title">
-                                <i class="fas fa-seedling"></i>फसल सुझाव
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">मौसम:</span>
-                                <span class="metric-value" id="currentSeason">--</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">सबसे अच्छी फसल:</span>
-                                <span class="metric-value" id="bestCrop">--</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">उपज:</span>
-                                <span class="metric-value" id="expectedYield">--</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Essential Services Section -->
+            <!-- Services Section -->
             <section id="services" class="services-section">
                 <h2 class="section-title">किसानों के लिए आवश्यक सेवाएं</h2>
                 
@@ -649,6 +500,16 @@
                             <a href="#pest" class="service-btn">जांच करें</a>
                         </div>
                     </div>
+                    
+                    <!-- AI Assistant -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="service-card chat-card">
+                            <i class="fas fa-robot service-icon"></i>
+                            <h3 class="service-title">AI सहायक</h3>
+                            <p class="service-description">कृषि से जुड़े किसी भी सवाल का जवाब पाएं। 24/7 उपलब्ध AI सहायक से बात करें और तुरंत सलाह लें।</p>
+                            <a href="#chat" class="service-btn">बात करें</a>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -688,12 +549,12 @@
                 <p class="footer-subtitle">किसानों का सबसे अच्छा दोस्त</p>
                 
                 <div class="footer-links">
-                    <a href="#dashboard">डैशबोर्ड</a>
                     <a href="#advisories">कृषि सलाह</a>
                     <a href="#crops">फसल जानकारी</a>
                     <a href="#weather">मौसम</a>
                     <a href="#market">बाजार कीमतें</a>
                     <a href="#pest">कीट नियंत्रण</a>
+                    <a href="#chat">AI सहायक</a>
                 </div>
                 
                 <div class="footer-copyright">
@@ -706,113 +567,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Load real-time data
-        function loadRealTimeData() {
-            // Weather data
-            fetch('/api/weather/current/?lat=28.6139&lon=77.2090&lang=hi')
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.temperature) {
-                        let temp = data.temperature;
-                        if (typeof temp === 'string') {
-                            temp = parseFloat(temp.replace(/[^\d.-]/g, ''));
-                        }
-                        document.getElementById('temperature').textContent = Math.round(temp || 25) + '°C';
-                        
-                        let humidity = data.humidity;
-                        if (typeof humidity === 'string') {
-                            humidity = parseFloat(humidity.replace(/[^\d.-]/g, ''));
-                        }
-                        document.getElementById('humidity').textContent = Math.round(humidity || 70) + '%';
-                        
-                        let windSpeed = data.wind_speed;
-                        if (typeof windSpeed === 'string') {
-                            windSpeed = parseFloat(windSpeed.replace(/[^\d.-]/g, ''));
-                        }
-                        document.getElementById('windSpeed').textContent = Math.round(windSpeed || 5) + ' km/h';
-                    }
-                })
-                .catch(error => {
-                    console.log('Weather data not available');
-                    document.getElementById('temperature').textContent = '25°C';
-                    document.getElementById('humidity').textContent = '70%';
-                    document.getElementById('windSpeed').textContent = '5 km/h';
-                });
-
-            // Market prices
-            fetch('/api/market-prices/prices/?lat=28.6139&lon=77.2090&lang=hi&product=wheat')
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.length > 0 && data[0].price) {
-                        document.getElementById('wheatPrice').textContent = data[0].price;
-                    } else {
-                        document.getElementById('wheatPrice').textContent = '2,450';
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('wheatPrice').textContent = '2,450';
-                });
-
-            // Rice prices
-            fetch('/api/market-prices/prices/?lat=28.6139&lon=77.2090&lang=hi&product=rice')
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.length > 0 && data[0].price) {
-                        document.getElementById('ricePrice').textContent = data[0].price;
-                    } else {
-                        document.getElementById('ricePrice').textContent = '3,200';
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('ricePrice').textContent = '3,200';
-                });
-
-            // Corn prices
-            fetch('/api/market-prices/prices/?lat=28.6139&lon=77.2090&lang=hi&product=corn')
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.length > 0 && data[0].price) {
-                        document.getElementById('cornPrice').textContent = data[0].price;
-                    } else {
-                        document.getElementById('cornPrice').textContent = '1,800';
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('cornPrice').textContent = '1,800';
-                });
-
-            // Crop recommendations
-            fetch('/api/advisories/ml_crop_recommendation/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    soil_type: 'loamy',
-                    latitude: 28.6139,
-                    longitude: 77.2090,
-                    season: 'kharif'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data && data.recommended_crops && data.recommended_crops.length > 0) {
-                    document.getElementById('currentSeason').textContent = 'खरीफ';
-                    document.getElementById('bestCrop').textContent = data.recommended_crops[0].crop_name || 'चावल';
-                    document.getElementById('expectedYield').textContent = '85%';
-                } else {
-                    document.getElementById('currentSeason').textContent = 'खरीफ';
-                    document.getElementById('bestCrop').textContent = 'चावल';
-                    document.getElementById('expectedYield').textContent = '85%';
-                }
-            })
-            .catch(error => {
-                document.getElementById('currentSeason').textContent = 'खरीफ';
-                document.getElementById('bestCrop').textContent = 'चावल';
-                document.getElementById('expectedYield').textContent = '85%';
-            });
-        }
-
         // Chat functionality
         function sendMessage() {
             const input = document.getElementById('chatInput');
@@ -869,10 +623,18 @@
             }
         });
 
-        // Load data on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadRealTimeData();
-            setInterval(loadRealTimeData, 30000); // Update every 30 seconds
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
         });
     </script>
 </body>
