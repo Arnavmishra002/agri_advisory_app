@@ -114,7 +114,6 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         
         return Response(result)
 
-
     @action(detail=False, methods=['post'], serializer_class=ChatbotSerializer)
     def chatbot(self, request):
         # Enhanced security validation
@@ -151,6 +150,10 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
                 }, status=400)
         
         try:
+            # Get location data from request
+            latitude = request.data.get('latitude', 28.6139)  # Default to Delhi
+            longitude = request.data.get('longitude', 77.2090)
+            
             # Always include location data for comprehensive responses
             if latitude and longitude:
                 # Update chatbot context with location
