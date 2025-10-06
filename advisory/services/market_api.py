@@ -16,8 +16,10 @@ def get_market_prices(latitude, longitude, language, product_type=None):
     
     # Try to get data from Agmarknet API first
     try:
-        agmarknet_api = AgmarknetAPI()
-        agmarknet_data = agmarknet_api.get_market_prices(product_type, language=language)
+        # AgmarknetAPI integration would go here
+        # agmarknet_api = AgmarknetAPI()
+        # agmarknet_data = agmarknet_api.get_market_prices(product_type, language=language)
+        agmarknet_data = None
         if agmarknet_data and "error" not in agmarknet_data:
             market_cache.set(cache_key, agmarknet_data)
             return agmarknet_data
@@ -141,8 +143,10 @@ def get_trending_crops(latitude, longitude, language):
     
     # Try to get data from e-NAM API first
     try:
-        enam_api = ENAMAPIService()
-        enam_data = enam_api.get_trending_crops(language=language)
+        # ENAMAPIService integration would go here
+        # enam_api = ENAMAPIService()
+        # enam_data = enam_api.get_trending_crops(language=language)
+        enam_data = None
         if enam_data and "error" not in enam_data:
             market_cache.set(cache_key, enam_data)
             return enam_data

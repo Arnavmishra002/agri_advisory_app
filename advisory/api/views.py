@@ -151,8 +151,17 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
                 }, status=400)
         
         try:
+            # Always include location data for comprehensive responses
+            if latitude and longitude:
+                # Update chatbot context with location
+                self.nlp_chatbot.conversation_context["last_lat"] = latitude
+                self.nlp_chatbot.conversation_context["last_lon"] = longitude
+            
             # Get enhanced chatbot response with ChatGPT-like capabilities
             chatbot_response = self.nlp_chatbot.get_response(user_query, language)
+            
+            # Debug logging
+            print(f"Chatbot response for query '{user_query}': {chatbot_response}")
             
             # Extract response data
             response = chatbot_response.get('response', 'Sorry, I could not process your request.')

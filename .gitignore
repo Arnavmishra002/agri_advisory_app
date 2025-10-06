@@ -1,9 +1,88 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
 venv/
-**/__pycache__/
-**/*.pyc
-**/.pytest_cache/
-frontend/node_modules/
-frontend/build/
-.cache/
-.huggingface/
-**/.DS_Store
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test files and reports
+*_test.py
+*_verification.py
+*_report*.txt
+*_report*.json
+test_*.py
+comprehensive_*.py
+final_*.py
+standalone_*.py
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Deployment files
+docker-compose*.yml
+Dockerfile*
+Procfile
+requirements_deploy.txt
+runtime.txt
+deploy_*.py
+deploy_*.md
+
+# Batch files
+*.bat
+
+# Streamlit files
+streamlit_*.py
+
+# Large files
+*.sqlite3
+*.db
