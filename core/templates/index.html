@@ -3,61 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>कृषिमित्र AI - भारत सरकार की कृषि सलाहकार सेवा</title>
+    <title>🌾 कृषिमित्र AI - किसानों का सबसे अच्छा दोस्त</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
-            font-family: 'Noto Sans Devanagari', sans-serif;
+            font-family: 'Baloo 2', cursive;
         }
         
         body {
-            background: #f8f9fa;
+            background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e8 50%, #d4edda 100%);
             margin: 0;
             padding: 0;
         }
         
-        /* Government Header */
-        .gov-header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        /* Farming Header */
+        .farming-header {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c59 50%, #6c8c47 100%);
             color: white;
-            padding: 15px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px 0;
+            box-shadow: 0 4px 20px rgba(45, 80, 22, 0.3);
+            position: relative;
+            overflow: hidden;
         }
         
-        .gov-header .container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .farming-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M0,50 Q25,30 50,50 T100,50 L100,100 L0,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+            background-size: 200px 50px;
+            animation: wave 10s linear infinite;
         }
         
-        .gov-logo {
-            display: flex;
-            align-items: center;
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(200px); }
         }
         
-        .gov-logo img {
-            height: 50px;
-            margin-right: 15px;
+        .header-content {
+            position: relative;
+            z-index: 2;
         }
         
-        .gov-title {
-            font-size: 1.5rem;
+        .farming-title {
+            font-size: 2.5rem;
             font-weight: 700;
             margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
-        .gov-subtitle {
-            font-size: 0.9rem;
-            opacity: 0.9;
-            margin: 0;
+        .farming-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            margin: 8px 0 0 0;
+            font-weight: 500;
         }
         
         /* Navigation */
         .nav-bar {
-            background: #1e40af;
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
             padding: 0;
+            box-shadow: 0 2px 10px rgba(45, 80, 22, 0.2);
         }
         
         .nav-bar .nav-link {
@@ -65,92 +76,85 @@
             padding: 15px 20px;
             font-weight: 500;
             border-right: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
         }
         
         .nav-bar .nav-link:hover {
             background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
         }
         
         /* Main Content */
         .main-content {
-            padding: 30px 0;
+            padding: 40px 0;
             min-height: 70vh;
-        }
-        
-        /* Service Cards */
-        .service-card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-left: 5px solid #3b82f6;
-            transition: transform 0.3s ease;
-        }
-        
-        .service-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .service-icon {
-            font-size: 2.5rem;
-            color: #3b82f6;
-            margin-bottom: 15px;
-        }
-        
-        .service-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #1e40af;
-            margin-bottom: 10px;
-        }
-        
-        .service-description {
-            color: #666;
-            margin-bottom: 15px;
-        }
-        
-        .service-btn {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .service-btn:hover {
-            background: #1e40af;
-            color: white;
-            text-decoration: none;
         }
         
         /* Dashboard Cards */
         .dashboard-card {
             background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(45, 80, 22, 0.15);
+            border-left: 6px solid;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+            border-radius: 0 15px 0 100px;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(45, 80, 22, 0.25);
+        }
+        
+        .weather-card {
+            border-left-color: #74b9ff;
+            background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+        }
+        
+        .market-card {
+            border-left-color: #fd79a8;
+            background: linear-gradient(135deg, #ffffff 0%, #fce4ec 100%);
+        }
+        
+        .crop-card {
+            border-left-color: #fdcb6e;
+            background: linear-gradient(135deg, #ffffff 0%, #fff8e1 100%);
         }
         
         .dashboard-title {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: 600;
-            color: #1e40af;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 10px;
+            color: #2d5016;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .dashboard-title i {
+            margin-right: 12px;
+            font-size: 1.5rem;
         }
         
         .metric-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f3f4f6;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            font-size: 1rem;
         }
         
         .metric-item:last-child {
@@ -159,101 +163,298 @@
         
         .metric-label {
             font-weight: 500;
-            color: #374151;
+            color: #555;
         }
         
         .metric-value {
             font-weight: 600;
-            color: #1e40af;
+            color: #2d5016;
+            font-size: 1.1rem;
         }
         
-        /* Chat Interface */
-        .chat-container {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            height: 400px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        
-        .chat-message {
-            margin-bottom: 10px;
-            padding: 10px 15px;
-            border-radius: 10px;
-            max-width: 80%;
-        }
-        
-        .user-message {
-            background: #3b82f6;
-            color: white;
-            margin-left: auto;
-        }
-        
-        .bot-message {
-            background: white;
-            color: #374151;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .chat-input-group {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .chat-input {
-            flex: 1;
-            padding: 10px 15px;
-            border: 1px solid #d1d5db;
-            border-radius: 5px;
-        }
-        
-        .chat-send {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-weight: 500;
-        }
-        
-        /* Footer */
-        .gov-footer {
-            background: #1e3a8a;
-            color: white;
-            padding: 30px 0;
+        /* Essential Services */
+        .services-section {
             margin-top: 50px;
         }
         
-        .footer-section h5 {
-            color: #93c5fd;
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d5016;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
+            border-radius: 2px;
+        }
+        
+        .service-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(45, 80, 22, 0.15);
+            border-left: 6px solid;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+            border-radius: 0 20px 0 100px;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(45, 80, 22, 0.25);
+        }
+        
+        .advisory-card {
+            border-left-color: #4a7c59;
+            background: linear-gradient(135deg, #ffffff 0%, #e8f5e8 100%);
+        }
+        
+        .crops-card {
+            border-left-color: #6c8c47;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f8f0 100%);
+        }
+        
+        .weather-card-service {
+            border-left-color: #74b9ff;
+            background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+        }
+        
+        .market-card-service {
+            border-left-color: #fd79a8;
+            background: linear-gradient(135deg, #ffffff 0%, #fce4ec 100%);
+        }
+        
+        .pest-card {
+            border-left-color: #e17055;
+            background: linear-gradient(135deg, #ffffff 0%, #ffeaa7 100%);
+        }
+        
+        .service-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .advisory-card .service-icon { color: #4a7c59; }
+        .crops-card .service-icon { color: #6c8c47; }
+        .weather-card-service .service-icon { color: #74b9ff; }
+        .market-card-service .service-icon { color: #fd79a8; }
+        .pest-card .service-icon { color: #e17055; }
+        
+        .service-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2d5016;
             margin-bottom: 15px;
         }
         
-        .footer-section a {
+        .service-description {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        
+        .service-btn {
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(45, 80, 22, 0.3);
+        }
+        
+        .service-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(45, 80, 22, 0.4);
             color: white;
             text-decoration: none;
         }
         
-        .footer-section a:hover {
+        /* Chat Interface */
+        .chat-section {
+            margin-top: 50px;
+        }
+        
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(45, 80, 22, 0.15);
+            border: 2px solid #4a7c59;
+            position: relative;
+        }
+        
+        .chat-container::before {
+            content: '🤖';
+            position: absolute;
+            top: -15px;
+            left: 30px;
+            font-size: 2rem;
+            background: white;
+            padding: 0 15px;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(45, 80, 22, 0.3);
+        }
+        
+        .chat-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .chat-messages {
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+        
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 15px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            line-height: 1.5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .user-message {
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
+            color: white;
+            margin-left: 25%;
+        }
+        
+        .bot-message {
+            background: white;
+            color: #333;
+            margin-right: 25%;
+            border: 2px solid #4a7c59;
+        }
+        
+        .chat-input-group {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border-radius: 25px;
+            border: 2px solid #4a7c59;
+            background: #f8f9fa;
+            font-size: 1rem;
+        }
+        
+        .chat-send {
+            background: linear-gradient(135deg, #4a7c59, #2d5016);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(45, 80, 22, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .chat-send:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Footer */
+        .farming-footer {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%);
+            color: white;
+            padding: 40px 0;
+            margin-top: 50px;
+        }
+        
+        .footer-content {
+            text-align: center;
+        }
+        
+        .footer-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .footer-subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .footer-links {
+            margin: 20px 0;
+        }
+        
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: 500;
+        }
+        
+        .footer-links a:hover {
             color: #93c5fd;
+        }
+        
+        .footer-copyright {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            opacity: 0.8;
         }
         
         /* Responsive */
         @media (max-width: 768px) {
-            .gov-header .container {
-                flex-direction: column;
-                text-align: center;
+            .farming-title {
+                font-size: 2rem;
+            }
+            
+            .farming-subtitle {
+                font-size: 1rem;
             }
             
             .nav-bar .nav-link {
@@ -261,25 +462,47 @@
                 font-size: 0.9rem;
             }
             
-            .service-card {
+            .dashboard-card {
                 padding: 20px;
             }
+            
+            .service-card {
+                padding: 25px;
+            }
+            
+            .user-message, .bot-message {
+                margin-left: 15%;
+                margin-right: 15%;
+            }
+        }
+        
+        /* Custom Scrollbar */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #4a7c59;
+            border-radius: 4px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #2d5016;
         }
     </style>
 </head>
 <body>
-    <!-- Government Header -->
-    <div class="gov-header">
+    <!-- Farming Header -->
+    <div class="farming-header">
         <div class="container">
-            <div class="gov-logo">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMjUiIGZpbGw9IiNmZmZmZmYiLz4KPHBhdGggZD0iTTI1IDVMMzUgMjBIMTVMMjUgNVoiIGZpbGw9IiMxZTNhOGEiLz4KPHBhdGggZD0iTTE1IDIwSDM1TDI1IDM1TDE1IDIwWiIgZmlsbD0iIzNiODJmNiIvPgo8L3N2Zz4K" alt="Government Logo">
-                <div>
-                    <h1 class="gov-title">कृषिमित्र AI</h1>
-                    <p class="gov-subtitle">भारत सरकार की कृषि सलाहकार सेवा</p>
-                </div>
-            </div>
-            <div class="text-end">
-                <small>Last Updated: <span id="lastUpdated"></span></small>
+            <div class="text-center header-content">
+                <h1 class="farming-title">🌾 कृषिमित्र AI</h1>
+                <p class="farming-subtitle">किसानों का सबसे अच्छा दोस्त</p>
             </div>
         </div>
     </div>
@@ -289,15 +512,12 @@
         <div class="container">
             <div class="navbar-nav">
                 <a class="nav-link" href="#dashboard">डैशबोर्ड</a>
-                <a class="nav-link" href="#users">उपयोगकर्ता</a>
-                <a class="nav-link" href="#advisories">सलाह</a>
-                <a class="nav-link" href="#crops">फसलें</a>
+                <a class="nav-link" href="#advisories">कृषि सलाह</a>
+                <a class="nav-link" href="#crops">फसल जानकारी</a>
                 <a class="nav-link" href="#weather">मौसम</a>
-                <a class="nav-link" href="#market">बाजार</a>
+                <a class="nav-link" href="#market">बाजार कीमतें</a>
                 <a class="nav-link" href="#pest">कीट नियंत्रण</a>
-                <a class="nav-link" href="#schemes">योजनाएं</a>
-                <a class="nav-link" href="#forum">फोरम</a>
-                <a class="nav-link" href="#chat">चैट</a>
+                <a class="nav-link" href="#chat">AI सहायक</a>
             </div>
         </div>
     </nav>
@@ -307,14 +527,14 @@
         <div class="container">
             <!-- Dashboard Section -->
             <section id="dashboard">
-                <h2 class="text-center mb-4" style="color: #1e40af;">कृषि डैशबोर्ड</h2>
+                <h2 class="text-center mb-4" style="color: #2d5016;">कृषि डैशबोर्ड</h2>
                 
                 <div class="row">
                     <!-- Weather Card -->
                     <div class="col-md-4">
-                        <div class="dashboard-card">
+                        <div class="dashboard-card weather-card">
                             <div class="dashboard-title">
-                                <i class="fas fa-cloud-sun me-2"></i>मौसम की जानकारी
+                                <i class="fas fa-cloud-sun"></i>मौसम की जानकारी
                             </div>
                             <div class="metric-item">
                                 <span class="metric-label">तापमान:</span>
@@ -333,9 +553,9 @@
                     
                     <!-- Market Prices Card -->
                     <div class="col-md-4">
-                        <div class="dashboard-card">
+                        <div class="dashboard-card market-card">
                             <div class="dashboard-title">
-                                <i class="fas fa-chart-line me-2"></i>बाजार कीमतें
+                                <i class="fas fa-chart-line"></i>बाजार कीमतें
                             </div>
                             <div class="metric-item">
                                 <span class="metric-label">गेहूं:</span>
@@ -354,9 +574,9 @@
                     
                     <!-- Crop Recommendations Card -->
                     <div class="col-md-4">
-                        <div class="dashboard-card">
+                        <div class="dashboard-card crop-card">
                             <div class="dashboard-title">
-                                <i class="fas fa-seedling me-2"></i>फसल सुझाव
+                                <i class="fas fa-seedling"></i>फसल सुझाव
                             </div>
                             <div class="metric-item">
                                 <span class="metric-label">मौसम:</span>
@@ -375,172 +595,83 @@
                 </div>
             </section>
 
-            <!-- Services Section -->
-            <section id="services" class="mt-5">
-                <h2 class="text-center mb-4" style="color: #1e40af;">सेवाएं</h2>
+            <!-- Essential Services Section -->
+            <section id="services" class="services-section">
+                <h2 class="section-title">किसानों के लिए आवश्यक सेवाएं</h2>
                 
                 <div class="row">
-                    <!-- Users Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <h3 class="service-title">उपयोगकर्ता प्रबंधन</h3>
-                            <p class="service-description">किसानों का रजिस्ट्रेशन और प्रोफाइल प्रबंधन</p>
-                            <a href="#users" class="service-btn">विवरण देखें</a>
-                        </div>
-                    </div>
-                    
-                    <!-- Advisories Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-lightbulb"></i>
-                            </div>
+                    <!-- Agricultural Advisory -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="service-card advisory-card">
+                            <i class="fas fa-lightbulb service-icon"></i>
                             <h3 class="service-title">कृषि सलाह</h3>
-                            <p class="service-description">विशेषज्ञों द्वारा कृषि सलाह और सुझाव</p>
+                            <p class="service-description">विशेषज्ञों द्वारा कृषि सलाह और सुझाव। फसल उगाने से लेकर बाजार में बेचने तक की पूरी जानकारी।</p>
                             <a href="#advisories" class="service-btn">सलाह लें</a>
                         </div>
                     </div>
                     
-                    <!-- Crops Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-leaf"></i>
-                            </div>
+                    <!-- Crop Information -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="service-card crops-card">
+                            <i class="fas fa-leaf service-icon"></i>
                             <h3 class="service-title">फसल जानकारी</h3>
-                            <p class="service-description">विभिन्न फसलों की विस्तृत जानकारी</p>
+                            <p class="service-description">विभिन्न फसलों की विस्तृत जानकारी। कब बोना है, कैसे उगाना है, कितना पानी देना है सब कुछ।</p>
                             <a href="#crops" class="service-btn">फसलें देखें</a>
                         </div>
                     </div>
                     
-                    <!-- Weather Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-cloud-rain"></i>
-                            </div>
+                    <!-- Weather Forecast -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="service-card weather-card-service">
+                            <i class="fas fa-cloud-rain service-icon"></i>
                             <h3 class="service-title">मौसम पूर्वानुमान</h3>
-                            <p class="service-description">सटीक मौसम की जानकारी और पूर्वानुमान</p>
+                            <p class="service-description">सटीक मौसम की जानकारी और पूर्वानुमान। बारिश, तापमान, हवा की गति सब कुछ पता करें।</p>
                             <a href="#weather" class="service-btn">मौसम देखें</a>
                         </div>
                     </div>
                     
-                    <!-- Market Prices Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-chart-bar"></i>
-                            </div>
+                    <!-- Market Prices -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="service-card market-card-service">
+                            <i class="fas fa-chart-bar service-icon"></i>
                             <h3 class="service-title">बाजार कीमतें</h3>
-                            <p class="service-description">रियल-टाइम बाजार कीमतें और रुझान</p>
+                            <p class="service-description">रियल-टाइम बाजार कीमतें और रुझान। अपनी फसल की सही कीमत जानें और बेचने का सही समय पता करें।</p>
                             <a href="#market" class="service-btn">कीमतें देखें</a>
                         </div>
                     </div>
                     
-                    <!-- Trending Crops Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-trending-up"></i>
-                            </div>
-                            <h3 class="service-title">ट्रेंडिंग फसलें</h3>
-                            <p class="service-description">वर्तमान में लोकप्रिय फसलें</p>
-                            <a href="#trending" class="service-btn">ट्रेंड देखें</a>
-                        </div>
-                    </div>
-                    
-                    <!-- SMS/IVR Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-sms"></i>
-                            </div>
-                            <h3 class="service-title">SMS/IVR सेवा</h3>
-                            <p class="service-description">फोन के माध्यम से सूचनाएं प्राप्त करें</p>
-                            <a href="#sms" class="service-btn">सेवा देखें</a>
-                        </div>
-                    </div>
-                    
-                    <!-- Pest Detection Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-bug"></i>
-                            </div>
+                    <!-- Pest Control -->
+                    <div class="col-md-6 col-lg-4">
+                        <div class="service-card pest-card">
+                            <i class="fas fa-bug service-icon"></i>
                             <h3 class="service-title">कीट नियंत्रण</h3>
-                            <p class="service-description">AI द्वारा कीट और रोग की पहचान</p>
+                            <p class="service-description">AI द्वारा कीट और रोग की पहचान। फसल की तस्वीर डालें और तुरंत जानें कि क्या समस्या है और कैसे ठीक करें।</p>
                             <a href="#pest" class="service-btn">जांच करें</a>
-                        </div>
-                    </div>
-                    
-                    <!-- TTS Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-volume-up"></i>
-                            </div>
-                            <h3 class="service-title">टेक्स्ट-टू-स्पीच</h3>
-                            <p class="service-description">लिखित सामग्री को आवाज में सुनें</p>
-                            <a href="#tts" class="service-btn">सुनें</a>
-                        </div>
-                    </div>
-                    
-                    <!-- Forum Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-comments"></i>
-                            </div>
-                            <h3 class="service-title">किसान फोरम</h3>
-                            <p class="service-description">किसानों के साथ चर्चा और सलाह</p>
-                            <a href="#forum" class="service-btn">फोरम देखें</a>
-                        </div>
-                    </div>
-                    
-                    <!-- Government Schemes Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-landmark"></i>
-                            </div>
-                            <h3 class="service-title">सरकारी योजनाएं</h3>
-                            <p class="service-description">कृषि से जुड़ी सरकारी योजनाओं की जानकारी</p>
-                            <a href="#schemes" class="service-btn">योजनाएं देखें</a>
-                        </div>
-                    </div>
-                    
-                    <!-- Token Service -->
-                    <div class="col-md-4 col-lg-3">
-                        <div class="service-card">
-                            <div class="service-icon">
-                                <i class="fas fa-key"></i>
-                            </div>
-                            <h3 class="service-title">प्रमाणीकरण</h3>
-                            <p class="service-description">सुरक्षित लॉगिन और API एक्सेस</p>
-                            <a href="#token" class="service-btn">लॉगिन करें</a>
                         </div>
                     </div>
                 </div>
             </section>
 
             <!-- Chat Section -->
-            <section id="chat" class="mt-5">
-                <h2 class="text-center mb-4" style="color: #1e40af;">AI सहायक से बात करें</h2>
-                
+            <section id="chat" class="chat-section">
                 <div class="row justify-content-center">
-                    <div class="col-md-8">
+                    <div class="col-md-10">
                         <div class="chat-container">
+                            <div class="chat-header">
+                                <h3 class="chat-title">🤖 कृषिमित्र AI से बात करें</h3>
+                            </div>
+                            
                             <div class="chat-messages" id="chatMessages">
                                 <div class="chat-message bot-message">
-                                    <strong>कृषिमित्र AI:</strong> नमस्ते! मैं आपका कृषि सलाहकार हूँ। कैसे मदद कर सकता हूँ?
+                                    <strong>कृषिमित्र AI:</strong> नमस्ते! मैं आपका कृषि सलाहकार हूँ। फसल, मौसम, बाजार कीमत या किसी भी कृषि से जुड़े सवाल पूछ सकते हैं!
                                 </div>
                             </div>
+                            
                             <div class="chat-input-group">
                                 <input type="text" class="chat-input" id="chatInput" placeholder="अपना सवाल लिखें...">
-                                <button class="chat-send" onclick="sendMessage()">भेजें</button>
+                                <button class="chat-send" onclick="sendMessage()">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -549,53 +680,32 @@
         </div>
     </div>
 
-    <!-- Government Footer -->
-    <footer class="gov-footer">
+    <!-- Farming Footer -->
+    <footer class="farming-footer">
         <div class="container">
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="footer-section">
-                        <h5>कृषि मंत्रालय</h5>
-                        <p>भारत सरकार</p>
-                        <p>नई दिल्ली - 110001</p>
-                    </div>
+            <div class="footer-content">
+                <h3 class="footer-title">🌾 कृषिमित्र AI</h3>
+                <p class="footer-subtitle">किसानों का सबसे अच्छा दोस्त</p>
+                
+                <div class="footer-links">
+                    <a href="#dashboard">डैशबोर्ड</a>
+                    <a href="#advisories">कृषि सलाह</a>
+                    <a href="#crops">फसल जानकारी</a>
+                    <a href="#weather">मौसम</a>
+                    <a href="#market">बाजार कीमतें</a>
+                    <a href="#pest">कीट नियंत्रण</a>
                 </div>
-                <div class="col-md-3">
-                    <div class="footer-section">
-                        <h5>महत्वपूर्ण लिंक</h5>
-                        <p><a href="#">PM किसान योजना</a></p>
-                        <p><a href="#">कृषि बीमा</a></p>
-                        <p><a href="#">मृदा स्वास्थ्य कार्ड</a></p>
-                    </div>
+                
+                <div class="footer-copyright">
+                    <p>&copy; 2024 कृषिमित्र AI. सभी अधिकार सुरक्षित।</p>
+                    <p>किसानों के लिए बनाया गया ❤️</p>
                 </div>
-                <div class="col-md-3">
-                    <div class="footer-section">
-                        <h5>संपर्क</h5>
-                        <p>हेल्पलाइन: 1800-XXX-XXXX</p>
-                        <p>ईमेल: support@krishimitra.gov.in</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="footer-section">
-                        <h5>सोशल मीडिया</h5>
-                        <p><a href="#">ट्विटर</a></p>
-                        <p><a href="#">फेसबुक</a></p>
-                        <p><a href="#">यूट्यूब</a></p>
-                    </div>
-                </div>
-            </div>
-            <hr style="border-color: #3b82f6;">
-            <div class="text-center">
-                <p>&copy; 2024 भारत सरकार. सभी अधिकार सुरक्षित.</p>
             </div>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Update last updated time
-        document.getElementById('lastUpdated').textContent = new Date().toLocaleString('hi-IN');
-
         // Load real-time data
         function loadRealTimeData() {
             // Weather data
