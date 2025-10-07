@@ -7,10 +7,8 @@ services:
     plan: free
     envVars:
       - key: DEBUG
-        value: False
+        value: "False"
       - key: ALLOWED_HOSTS
         value: "krisimitra.onrender.com"
       - key: SECRET_KEY
         value: "drz3@pxlvn*5y0zsu7&q&u+2v_%pm+sc8b_f6c3(*3+^7u-1l$"
-      - key: DATABASE_URL
-        value: "sqlite:///db.sqlite3"
