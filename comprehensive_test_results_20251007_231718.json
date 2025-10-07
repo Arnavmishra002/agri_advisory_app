@@ -1,0 +1,38 @@
+{
+  "total_tests": 5,
+  "passed": 0,
+  "failed": 3,
+  "errors": 2,
+  "test_details": [
+    {
+      "test_name": "Basic API Connectivity",
+      "status": "FAIL",
+      "details": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /api/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001FA96608D70>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+      "timestamp": "2025-10-07T23:17:00.320418"
+    },
+    {
+      "test_name": "Weather API Structure",
+      "status": "FAIL",
+      "details": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /api/weather/current/?lat=18.5204&lon=73.8567&lang=en (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001FA9661CE10>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+      "timestamp": "2025-10-07T23:17:02.757888"
+    },
+    {
+      "test_name": "Market Prices API Structure",
+      "status": "FAIL",
+      "details": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /api/market-prices/prices/?lat=23.0225&lon=72.5714&lang=en&product=soybean (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001FA9661D6D0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+      "timestamp": "2025-10-07T23:17:04.932068"
+    },
+    {
+      "test_name": "Weather Location Dependency",
+      "status": "ERROR",
+      "details": "Could not fetch weather data for multiple locations",
+      "timestamp": "2025-10-07T23:17:11.840722"
+    },
+    {
+      "test_name": "Market Prices Location Dependency",
+      "status": "ERROR",
+      "details": "Could not fetch market data for multiple locations for mung bean",
+      "timestamp": "2025-10-07T23:17:18.736305"
+    }
+  ]
+}

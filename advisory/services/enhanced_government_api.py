@@ -355,20 +355,20 @@ class EnhancedGovernmentAPI:
                 location_name = mandi or district or state
                 mandis = self._generate_dynamic_mandis(location_name)
             else:
-            # Major mandis across India
-            mandis = {
-                'delhi': ['Azadpur', 'Najafgarh', 'Ghazipur', 'Keshopur'],
-                'mumbai': ['APMC Vashi', 'APMC Kalyan', 'APMC Navi Mumbai', 'APMC Mumbai'],
-                'bangalore': ['APMC Yeshwanthpur', 'APMC K R Market', 'APMC Ramanagara'],
-                'kolkata': ['Burdwan', 'Howrah', 'Kolkata', 'Durgapur'],
-                'ahmedabad': ['APMC Ahmedabad', 'APMC Gandhinagar', 'APMC Vadodara'],
-                'chennai': ['APMC Chennai', 'APMC Madurai', 'APMC Coimbatore'],
-                'hyderabad': ['APMC Hyderabad', 'APMC Secunderabad', 'APMC Warangal'],
-                'pune': ['APMC Pune', 'APMC Pimpri', 'APMC Chinchwad'],
-                'lucknow': ['APMC Lucknow', 'APMC Kanpur', 'APMC Agra'],
-                'raebareli': ['APMC Raebareli', 'APMC Rae Bareli', 'Raebareli Mandi'],
-                'noida': ['APMC Noida', 'APMC Greater Noida', 'APMC Ghaziabad']
-            }
+                # Major mandis across India
+                mandis = {
+                    'delhi': ['Azadpur', 'Najafgarh', 'Ghazipur', 'Keshopur'],
+                    'mumbai': ['APMC Vashi', 'APMC Kalyan', 'APMC Navi Mumbai', 'APMC Mumbai'],
+                    'bangalore': ['APMC Yeshwanthpur', 'APMC K R Market', 'APMC Ramanagara'],
+                    'kolkata': ['Burdwan', 'Howrah', 'Kolkata', 'Durgapur'],
+                    'ahmedabad': ['APMC Ahmedabad', 'APMC Gandhinagar', 'APMC Vadodara'],
+                    'chennai': ['APMC Chennai', 'APMC Madurai', 'APMC Coimbatore'],
+                    'hyderabad': ['APMC Hyderabad', 'APMC Secunderabad', 'APMC Warangal'],
+                    'pune': ['APMC Pune', 'APMC Pimpri', 'APMC Chinchwad'],
+                    'lucknow': ['APMC Lucknow', 'APMC Kanpur', 'APMC Agra'],
+                    'raebareli': ['APMC Raebareli', 'APMC Rae Bareli', 'Raebareli Mandi'],
+                    'noida': ['APMC Noida', 'APMC Greater Noida', 'APMC Ghaziabad']
+                }
             
             prices = []
             current_date = datetime.now()

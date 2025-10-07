@@ -1,7 +1,14 @@
 import logging
-from gtts import gTTS
 from django.conf import settings
 import os
+
+# Optional gTTS import to prevent crashes if module is not available
+try:
+    from gtts import gTTS
+    GTTS_AVAILABLE = True
+except ImportError:
+    GTTS_AVAILABLE = False
+    print("Warning: gTTS module not available. Text-to-speech functionality disabled.")
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +17,10 @@ def convert_text_to_speech(text: str, lang: str = 'en') -> str | None:
     Converts text to speech using Google Text-to-Speech (gTTS).
     Saves the audio file and returns its URL.
     """
+    if not GTTS_AVAILABLE:
+        logger.warning("gTTS module not available. Text-to-speech functionality disabled.")
+        return None
+        
     try:
         tts = gTTS(text=text, lang=lang, slow=False)
         # Ensure media directory exists
