@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Market Prices Test</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>Market Prices Dynamic Test</h1>
+    
+    <div>
+        <h2>Current Location:</h2>
+        <p id="currentLocation">Loading...</p>
+    </div>
+    
+    <div>
+        <h2>Market Prices:</h2>
+        <div id="marketPrices">Loading...</div>
+    </div>
+    
+    <button onclick="testLocationChange()">Test Location Change to Raebareli</button>
+    <button onclick="loadMarketData()">Reload Market Data</button>
+    
+    <script>
+        let currentLocation = { lat: 28.6139, lon: 77.209, name: 'Delhi' };
+        let currentLanguage = 'hi';
+        
+        function updateLocationDisplay() {
+            document.getElementById('currentLocation').textContent = 
+                `Current Location: ${currentLocation.name} (${currentLocation.lat}, ${currentLocation.lon})`;
+        }
+        
+        function loadMarketData() {
+            console.log('=== LOADING MARKET DATA ===');
+            console.log('Current location:', currentLocation);
+            console.log('Current language:', currentLanguage);
+            
+            const crops = ['wheat', 'rice', 'corn'];
+            let html = '<h3>Market Prices:</h3>';
+            
+            crops.forEach(crop => {
+                const url = `/api/market-prices/prices/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=${currentLanguage}&product=${crop}`;
+                console.log(`Fetching ${crop} from:`, url);
+                
+                fetch(url)
+                    .then(response => {
+                        console.log(`Response for ${crop}:`, response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(`Market data for ${crop}:`, data);
+                        
+                        if (data.market_data && data.market_data.length > 0 && data.market_data[0].price) {
+                            let price = data.market_data[0].price;
+                            console.log(`Raw price for ${crop}:`, price);
+                            
+                            if (typeof price === 'string') {
+                                price = price.replace(/[₹,]/g, '');
+                                price = parseFloat(price);
+                            }
+                            
+                            const formattedPrice = price ? price.toLocaleString('en-IN') : 'N/A';
+                            html += `<p>${crop}: ₹${formattedPrice}/quintal (${data.market_data[0].mandi})</p>`;
+                            console.log(`✅ Updated ${crop} price to:`, formattedPrice);
+                        } else {
+                            html += `<p>${crop}: No data available</p>`;
+                            console.log(`❌ No market data available for ${crop}`);
+                        }
+                        
+                        document.getElementById('marketPrices').innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.log(`❌ Error fetching market data for ${crop}:`, error);
+                        html += `<p>${crop}: Error loading data</p>`;
+                        document.getElementById('marketPrices').innerHTML = html;
+                    });
+            });
+        }
+        
+        function testLocationChange() {
+            currentLocation = { lat: 26.2087, lon: 81.2186, name: 'Raebareli' };
+            updateLocationDisplay();
+            loadMarketData();
+        }
+        
+        // Initialize
+        updateLocationDisplay();
+        loadMarketData();
+    </script>
+</body>
+</html>

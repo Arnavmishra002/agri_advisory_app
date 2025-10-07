@@ -2153,10 +2153,14 @@
             console.log('Current location:', currentLocation);
             console.log('Current language:', currentLanguage);
             
+            // Show alert for testing
+            alert(`Loading market data for ${currentLocation.name} (${currentLocation.lat}, ${currentLocation.lon})`);
+            
             const crops = ['wheat', 'rice', 'corn', 'peanut', 'onion', 'tomato', 'potato', 'cotton', 'sugarcane', 'turmeric', 'chilli', 'mustard'];
             
             crops.forEach(crop => {
-                const url = `/api/market-prices/prices/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=${currentLanguage}&product=${crop}`;
+                const timestamp = Date.now();
+                const url = `/api/market-prices/prices/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=${currentLanguage}&product=${crop}&t=${timestamp}`;
                 console.log(`Fetching ${crop} from:`, url);
                 
                 fetch(url)
