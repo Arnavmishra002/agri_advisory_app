@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from datetime import timedelta
-import sentry_sdk # Import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration # Import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
