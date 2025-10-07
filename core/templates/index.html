@@ -1825,12 +1825,26 @@
 
         // Update location display
         function updateLocationDisplay() {
+            console.log('Updating location display to:', currentLocation.name, currentLocation.lat, currentLocation.lon);
             document.getElementById('currentLocationDisplay').textContent = `वर्तमान स्थान: ${currentLocation.name}`;
             
             // Automatically load data when location changes
-            if (window.updateCropHistoryData) updateCropHistoryData();
-            if (window.updateSoilAnalysisData) updateSoilAnalysisData();
-            if (window.updateTrendAnalysisData) updateTrendAnalysisData();
+            console.log('Loading all data for new location...');
+            loadAllData(); // This will load weather, market, and other data
+            
+            // Also update dynamic data sections
+            if (window.updateCropHistoryData) {
+                console.log('Updating crop history data...');
+                updateCropHistoryData();
+            }
+            if (window.updateSoilAnalysisData) {
+                console.log('Updating soil analysis data...');
+                updateSoilAnalysisData();
+            }
+            if (window.updateTrendAnalysisData) {
+                console.log('Updating trend analysis data...');
+                updateTrendAnalysisData();
+            }
         }
 
         // Service management - simple open/close
@@ -2878,6 +2892,7 @@
 
         // Load all data
         function loadAllData() {
+            console.log('loadAllData called for location:', currentLocation.lat, currentLocation.lon);
             loadWeatherData();
             loadMarketData();
             loadSchemesData();
@@ -2885,12 +2900,15 @@
             
             // Also update dynamic data sections
             if (window.updateCropHistoryData) {
+                console.log('Calling updateCropHistoryData...');
                 window.updateCropHistoryData();
             }
             if (window.updateSoilAnalysisData) {
+                console.log('Calling updateSoilAnalysisData...');
                 window.updateSoilAnalysisData();
             }
             if (window.updateTrendAnalysisData) {
+                console.log('Calling updateTrendAnalysisData...');
                 window.updateTrendAnalysisData();
             }
         }

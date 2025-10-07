@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend Dynamic Updates</title>
+</head>
+<body>
+    <h1>Test Frontend Dynamic Updates</h1>
+    
+    <div>
+        <h2>Current Location:</h2>
+        <p id="currentLocation">Loading...</p>
+    </div>
+    
+    <div>
+        <h2>Weather Data:</h2>
+        <p id="weatherData">Loading...</p>
+    </div>
+    
+    <div>
+        <h2>Market Data:</h2>
+        <p id="marketData">Loading...</p>
+    </div>
+    
+    <button onclick="testLocationChange()">Test Location Change</button>
+    
+    <script>
+        let currentLocation = { lat: 28.6139, lon: 77.209, name: 'Delhi' };
+        
+        function updateLocationDisplay() {
+            document.getElementById('currentLocation').textContent = 
+                `Current Location: ${currentLocation.name} (${currentLocation.lat}, ${currentLocation.lon})`;
+        }
+        
+        function loadWeatherData() {
+            console.log('Loading weather for:', currentLocation.lat, currentLocation.lon);
+            fetch(`/api/weather/current/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=en`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('weatherData').innerHTML = 
+                        `Temperature: ${data.current.temp_c}°C<br>
+                         Humidity: ${data.current.humidity}%<br>
+                         Location: ${data.location.name}`;
+                })
+                .catch(error => {
+                    document.getElementById('weatherData').textContent = 'Error: ' + error;
+                });
+        }
+        
+        function loadMarketData() {
+            console.log('Loading market for:', currentLocation.lat, currentLocation.lon);
+            fetch(`/api/market-prices/prices/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=en&product=wheat`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.market_data && data.market_data.length > 0) {
+                        const market = data.market_data[0];
+                        document.getElementById('marketData').innerHTML = 
+                            `Commodity: ${market.commodity}<br>
+                             Price: ${market.price}<br>
+                             Mandi: ${market.mandi}<br>
+                             State: ${market.state}`;
+                    } else {
+                        document.getElementById('marketData').textContent = 'No market data available';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('marketData').textContent = 'Error: ' + error;
+                });
+        }
+        
+        function loadAllData() {
+            loadWeatherData();
+            loadMarketData();
+        }
+        
+        function testLocationChange() {
+            // Change to Chennai
+            currentLocation = { lat: 13.0827, lon: 80.2707, name: 'Chennai' };
+            updateLocationDisplay();
+            loadAllData();
+        }
+        
+        // Initialize
+        updateLocationDisplay();
+        loadAllData();
+    </script>
+</body>
+</html>
