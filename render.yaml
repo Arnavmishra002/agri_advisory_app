@@ -1,4 +1,13 @@
-# Render.com Build Configuration
-
-# Build command for Render.com
-pip install -r requirements.txt && python manage.py collectstatic --noinput
+services:
+  web:
+    type: web
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: "your-app-name.onrender.com"
+      - key: SECRET_KEY
+        value: "your-secret-key-here"

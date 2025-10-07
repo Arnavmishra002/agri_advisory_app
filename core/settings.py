@@ -34,7 +34,9 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     '.onrender.com',  # Render.com domain
-    'krishimitra-ai.onrender.com',  # Specific Render domain
+    '.railway.app',   # Railway.app domain
+    '.herokuapp.com', # Heroku domain
+    '*',  # Allow all hosts for easy deployment (remove in production)
 ]
 
 
