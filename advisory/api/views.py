@@ -2885,8 +2885,8 @@ class WeatherViewSet(viewsets.ViewSet):
                 weather_data = real_time_weather_data['current_weather']
                 data_source = real_time_weather_data.get('source', 'Real-Time Government API')
         
-        if weather_data:
-            return Response(weather_data)
+            if weather_data:
+                return Response(weather_data)
             else:
                 return Response({"error": "Could not retrieve weather data"}, status=500)
                 
