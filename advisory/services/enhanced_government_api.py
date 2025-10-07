@@ -355,20 +355,20 @@ class EnhancedGovernmentAPI:
                 location_name = mandi or district or state
                 mandis = self._generate_dynamic_mandis(location_name)
             else:
-                # Major mandis across India
-                mandis = {
-                    'delhi': ['Azadpur', 'Najafgarh', 'Ghazipur', 'Keshopur'],
-                    'mumbai': ['APMC Vashi', 'APMC Kalyan', 'APMC Navi Mumbai', 'APMC Mumbai'],
-                    'bangalore': ['APMC Yeshwanthpur', 'APMC K R Market', 'APMC Ramanagara'],
-                    'kolkata': ['Burdwan', 'Howrah', 'Kolkata', 'Durgapur'],
-                    'ahmedabad': ['APMC Ahmedabad', 'APMC Gandhinagar', 'APMC Vadodara'],
-                    'chennai': ['APMC Chennai', 'APMC Madurai', 'APMC Coimbatore'],
-                    'hyderabad': ['APMC Hyderabad', 'APMC Secunderabad', 'APMC Warangal'],
-                    'pune': ['APMC Pune', 'APMC Pimpri', 'APMC Chinchwad'],
-                    'lucknow': ['APMC Lucknow', 'APMC Kanpur', 'APMC Agra'],
-                    'raebareli': ['APMC Raebareli', 'APMC Rae Bareli', 'Raebareli Mandi'],
-                    'noida': ['APMC Noida', 'APMC Greater Noida', 'APMC Ghaziabad']
-                }
+            # Major mandis across India
+            mandis = {
+                'delhi': ['Azadpur', 'Najafgarh', 'Ghazipur', 'Keshopur'],
+                'mumbai': ['APMC Vashi', 'APMC Kalyan', 'APMC Navi Mumbai', 'APMC Mumbai'],
+                'bangalore': ['APMC Yeshwanthpur', 'APMC K R Market', 'APMC Ramanagara'],
+                'kolkata': ['Burdwan', 'Howrah', 'Kolkata', 'Durgapur'],
+                'ahmedabad': ['APMC Ahmedabad', 'APMC Gandhinagar', 'APMC Vadodara'],
+                'chennai': ['APMC Chennai', 'APMC Madurai', 'APMC Coimbatore'],
+                'hyderabad': ['APMC Hyderabad', 'APMC Secunderabad', 'APMC Warangal'],
+                'pune': ['APMC Pune', 'APMC Pimpri', 'APMC Chinchwad'],
+                'lucknow': ['APMC Lucknow', 'APMC Kanpur', 'APMC Agra'],
+                'raebareli': ['APMC Raebareli', 'APMC Rae Bareli', 'Raebareli Mandi'],
+                'noida': ['APMC Noida', 'APMC Greater Noida', 'APMC Ghaziabad']
+            }
             
             prices = []
             current_date = datetime.now()
@@ -727,34 +727,43 @@ class EnhancedGovernmentAPI:
         
         # Create location-specific weather data with more variation
         import random
-        random.seed(int(latitude * 10000 + longitude * 10000))
-        location_seed = random.randint(0, 999)
+        import math
         
-        # Different regions have different weather patterns
+        # Use more precise location-based seeding
+        location_seed = int((latitude * 1000 + longitude * 1000) % 1000)
+        
+        # Add time-based variation for more dynamic data
+        import time
+        time_variation = int(time.time() / 3600) % 24  # Changes every hour
+        
+        # Combine location and time for unique weather patterns
+        unique_seed = (location_seed + time_variation) % 1000
+        
+        # Different regions have different weather patterns with more variation
         if 28 <= latitude <= 37 and 76 <= longitude <= 97:  # North India
-            base_temp = 20 + (location_seed % 15)  # 20-35°C
-            base_humidity = 50 + (location_seed % 30)  # 50-80%
-            base_wind = 8 + (location_seed % 12)  # 8-20 km/h
+            base_temp = 20 + (unique_seed % 15) + (latitude - 28) * 0.5  # 20-35°C + lat variation
+            base_humidity = 50 + (unique_seed % 30) + (longitude - 76) * 0.3  # 50-80% + lon variation
+            base_wind = 8 + (unique_seed % 12) + (latitude - 28) * 0.2  # 8-20 km/h + lat variation
         elif 20 <= latitude < 28 and 70 <= longitude <= 88:  # Central India
-            base_temp = 25 + (location_seed % 20)  # 25-45°C
-            base_humidity = 40 + (location_seed % 40)  # 40-80%
-            base_wind = 10 + (location_seed % 15)  # 10-25 km/h
+            base_temp = 25 + (unique_seed % 20) + (latitude - 20) * 0.8  # 25-45°C + lat variation
+            base_humidity = 40 + (unique_seed % 40) + (longitude - 70) * 0.4  # 40-80% + lon variation
+            base_wind = 10 + (unique_seed % 15) + (latitude - 20) * 0.3  # 10-25 km/h + lat variation
         elif 8 <= latitude < 20 and 70 <= longitude <= 80:  # South India
-            base_temp = 22 + (location_seed % 18)  # 22-40°C
-            base_humidity = 60 + (location_seed % 35)  # 60-95%
-            base_wind = 6 + (location_seed % 10)  # 6-16 km/h
+            base_temp = 22 + (unique_seed % 18) + (latitude - 8) * 0.6  # 22-40°C + lat variation
+            base_humidity = 60 + (unique_seed % 35) + (longitude - 70) * 0.5  # 60-95% + lon variation
+            base_wind = 6 + (unique_seed % 10) + (latitude - 8) * 0.2  # 6-16 km/h + lat variation
         elif 24 <= latitude <= 28 and 88 <= longitude <= 97:  # East India
-            base_temp = 18 + (location_seed % 20)  # 18-38°C
-            base_humidity = 70 + (location_seed % 25)  # 70-95%
-            base_wind = 8 + (location_seed % 12)  # 8-20 km/h
+            base_temp = 18 + (unique_seed % 20) + (latitude - 24) * 0.7  # 18-38°C + lat variation
+            base_humidity = 70 + (unique_seed % 25) + (longitude - 88) * 0.3  # 70-95% + lon variation
+            base_wind = 8 + (unique_seed % 12) + (latitude - 24) * 0.2  # 8-20 km/h + lat variation
         elif 22 <= latitude <= 30 and 88 <= longitude <= 97:  # Northeast India
-            base_temp = 16 + (location_seed % 18)  # 16-34°C
-            base_humidity = 75 + (location_seed % 20)  # 75-95%
-            base_wind = 6 + (location_seed % 10)  # 6-16 km/h
+            base_temp = 16 + (unique_seed % 18) + (latitude - 22) * 0.6  # 16-34°C + lat variation
+            base_humidity = 75 + (unique_seed % 20) + (longitude - 88) * 0.2  # 75-95% + lon variation
+            base_wind = 6 + (unique_seed % 10) + (latitude - 22) * 0.1  # 6-16 km/h + lat variation
         else:  # Other regions
-            base_temp = 18 + (location_seed % 20)  # 18-38°C
-            base_humidity = 45 + (location_seed % 35)  # 45-80%
-            base_wind = 8 + (location_seed % 12)  # 8-20 km/h
+            base_temp = 18 + (unique_seed % 20) + abs(latitude) * 0.1  # 18-38°C + lat variation
+            base_humidity = 45 + (unique_seed % 35) + abs(longitude) * 0.1  # 45-80% + lon variation
+            base_wind = 8 + (unique_seed % 12) + abs(latitude) * 0.05  # 8-20 km/h + lat variation
         
         return {
             'current': {

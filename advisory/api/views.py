@@ -45,6 +45,36 @@ class ChatbotViewSet(viewsets.ViewSet):
         super().__init__(*args, **kwargs)
         self.chatbot = IntelligentAgriculturalChatbot()
     
+    def list(self, request):
+        """Handle chatbot conversations at root endpoint"""
+        if request.method == 'POST':
+            serializer = ChatbotSerializer(data=request.data)
+            if serializer.is_valid():
+                message = serializer.validated_data['message']
+                language = serializer.validated_data.get('language', 'en')
+                
+                try:
+                    response = self.chatbot.process_message(message, language=language)
+                    return Response({
+                        'response': response,
+                        'intent': 'agricultural_query',
+                        'entities': [],
+                        'language': language,
+                        'timestamp': time.time()
+                    })
+                except Exception as e:
+                    return Response({
+                        'response': 'Sorry, I encountered an error. Please try again.',
+                        'intent': 'error',
+                        'entities': [],
+                        'language': language,
+                        'timestamp': time.time()
+                    }, status=500)
+            else:
+                return Response(serializer.errors, status=400)
+        else:
+            return Response({'message': 'Chatbot API is running. Send POST request with message and language.'})
+    
     @action(detail=False, methods=['post'])
     def chat(self, request):
         """Handle chatbot conversations"""
@@ -3096,7 +3126,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def prices(self, request):
-        product_type = request.query_params.get('product', None)
+        product_type = request.query_params.get('product', 'wheat')  # Default to wheat if not specified
         latitude = request.query_params.get('lat', None)
         longitude = request.query_params.get('lon', None)
         language = request.query_params.get('lang', 'en')
