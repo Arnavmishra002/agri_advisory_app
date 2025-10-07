@@ -643,7 +643,8 @@ class UltimateIntelligentAI:
                 "language": language
             }
     
-    def generate_response(self, query: str, analysis: Dict[str, Any], language: str = 'en') -> str:
+    def generate_response(self, query: str, analysis: Dict[str, Any], language: str = 'en', 
+                         latitude: float = None, longitude: float = None, location_name: str = None) -> str:
         """Generate intelligent response"""
         try:
             intent = analysis.get("intent", "general")
@@ -654,7 +655,7 @@ class UltimateIntelligentAI:
             elif intent == "market_price":
                 return self._generate_market_response(entities, language, query)
             elif intent == "weather":
-                return self._generate_weather_response(entities, language, query)
+                return self._generate_weather_response(entities, language, query, latitude, longitude, location_name)
             elif intent == "crop_recommendation":
                 return self._generate_crop_response(entities, language, query)
             elif intent == "pest_control":
@@ -820,23 +821,30 @@ class UltimateIntelligentAI:
             base_response += f"🌾 {crop.title()} Price: ₹{price}/quintal\n\n📊 Market analysis and recommendations available."
             return base_response
     
-    def _generate_weather_response(self, entities: Dict[str, Any], language: str, query: str = "") -> str:
+    def _generate_weather_response(self, entities: Dict[str, Any], language: str, query: str = "", 
+                                  latitude: float = None, longitude: float = None, location_name: str = None) -> str:
         """Generate weather response with real IMD data"""
         location = entities.get("location", "Delhi")
         
         # Get real weather data from IMD
         try:
-            # Use coordinates for Delhi if location is Delhi
-            if location.lower() == "delhi":
-                lat, lon = 28.6139, 77.2090
-            elif location.lower() == "mumbai":
-                lat, lon = 19.0760, 72.8777
-            elif location.lower() == "bangalore":
-                lat, lon = 12.9716, 77.5946
-            elif location.lower() == "kolkata":
-                lat, lon = 22.5726, 88.3639
+            # Use actual coordinates if provided, otherwise fallback to location-based coordinates
+            if latitude and longitude:
+                lat, lon = latitude, longitude
             else:
-                lat, lon = 28.6139, 77.2090  # Default to Delhi
+                # Fallback to hardcoded coordinates based on location
+                if location.lower() == "delhi":
+                    lat, lon = 28.6139, 77.2090
+                elif location.lower() == "mumbai":
+                    lat, lon = 19.0760, 72.8777
+                elif location.lower() == "bangalore":
+                    lat, lon = 12.9716, 77.5946
+                elif location.lower() == "chennai":
+                    lat, lon = 13.0827, 80.2707
+                elif location.lower() == "kolkata":
+                    lat, lon = 22.5726, 88.3639
+                else:
+                    lat, lon = 28.6139, 77.2090  # Default to Delhi
             
             weather_data = self.government_api.get_real_weather_data(lat, lon, language)
             
@@ -1219,8 +1227,8 @@ class UltimateIntelligentAI:
             # Get the actual detected language from analysis
             detected_language = analysis.get("language", language)
             
-            # Generate response with detected language
-            response = self.generate_response(user_query, analysis, detected_language)
+            # Generate response with detected language and location data
+            response = self.generate_response(user_query, analysis, detected_language, latitude, longitude, location_name)
             
             return {
                 "response": response,

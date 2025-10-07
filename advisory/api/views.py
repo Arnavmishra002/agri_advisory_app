@@ -73,7 +73,7 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         super().__init__(*args, **kwargs)
         self.ml_system = AgriculturalMLSystem()
         self.feedback_analytics = FeedbackAnalytics()
-        self.weather_api = MockWeatherAPI() # Use the actual weather API
+        self.weather_api = EnhancedGovernmentAPI() # Use the enhanced government API
         self.intelligent_chatbot = IntelligentAgriculturalChatbot() # Initialize the intelligent chatbot
         self.pest_detection_system = PestDetectionSystem() # Initialize the pest detection system
 
