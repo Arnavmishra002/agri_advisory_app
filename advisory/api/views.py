@@ -36,6 +36,43 @@ except ImportError:
 
 # Create your views here.
 
+# Chatbot ViewSet
+class ChatbotViewSet(viewsets.ViewSet):
+    """
+    Chatbot API for agricultural advisory
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.chatbot = IntelligentAgriculturalChatbot()
+    
+    @action(detail=False, methods=['post'])
+    def chat(self, request):
+        """Handle chatbot conversations"""
+        serializer = ChatbotSerializer(data=request.data)
+        if serializer.is_valid():
+            message = serializer.validated_data['message']
+            language = serializer.validated_data.get('language', 'en')
+            
+            try:
+                response = self.chatbot.process_message(message, language=language)
+                return Response({
+                    'response': response,
+                    'intent': 'agricultural_query',
+                    'entities': [],
+                    'language': language,
+                    'timestamp': time.time()
+                })
+            except Exception as e:
+                return Response({
+                    'response': 'Sorry, I encountered an error. Please try again.',
+                    'intent': 'error',
+                    'entities': [],
+                    'language': language,
+                    'timestamp': time.time()
+                }, status=500)
+        else:
+            return Response(serializer.errors, status=400)
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -282,14 +319,33 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
             # Use comprehensive crop recommendation system with real-time government data
             from ..services.comprehensive_crop_system import comprehensive_crop_system
             
-            result = comprehensive_crop_system.get_comprehensive_recommendations(
-                latitude=latitude,
-                longitude=longitude,
-                soil_type=soil_type,
-                season=season
-            )
+            # Add timeout handling
+            import signal
             
-            return Response(result, status=status.HTTP_200_OK)
+            def timeout_handler(signum, frame):
+                raise TimeoutError("Crop recommendation request timed out")
+            
+            # Set timeout to 30 seconds
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(30)
+            
+            try:
+                result = comprehensive_crop_system.get_comprehensive_recommendations(
+                    latitude=latitude,
+                    longitude=longitude,
+                    soil_type=soil_type,
+                    season=season
+                )
+                signal.alarm(0)  # Cancel the alarm
+                return Response(result, status=status.HTTP_200_OK)
+            except TimeoutError:
+                signal.alarm(0)  # Cancel the alarm
+                return Response({
+                    "error": "Request timed out. Please try again.",
+                    "recommendations": [],
+                    "analysis": {},
+                    "location_info": {}
+                }, status=status.HTTP_408_REQUEST_TIMEOUT)
             
         except Exception as e:
             logger.error(f"Crop recommendation error: {e}")
@@ -2884,9 +2940,29 @@ class WeatherViewSet(viewsets.ViewSet):
             else:
                 weather_data = real_time_weather_data['current_weather']
                 data_source = real_time_weather_data.get('source', 'Real-Time Government API')
-
-            if weather_data:
-                return Response(weather_data)
+        
+        if weather_data:
+                # Ensure proper response format
+                if isinstance(weather_data, dict) and 'current' in weather_data:
+                    # Convert nested structure to flat structure for API compatibility
+                    current = weather_data['current']
+                    formatted_response = {
+                        'temperature': current.get('temp_c', 0),
+                        'humidity': current.get('humidity', 0),
+                        'weather_condition': current.get('condition', {}).get('text', 'Clear'),
+                        'wind_speed': current.get('wind_kph', 0),
+                        'wind_direction': current.get('wind_dir', 'N'),
+                        'pressure': current.get('pressure_mb', 1013),
+                        'uv_index': current.get('uv', 0),
+                        'cloud_cover': current.get('cloud', 0),
+                        'feels_like': current.get('feelslike_c', 0),
+                        'location': weather_data.get('location', {}),
+                        'data_source': data_source,
+                        'timestamp': time.time()
+                    }
+                    return Response(formatted_response)
+                else:
+            return Response(weather_data)
             else:
                 return Response({"error": "Could not retrieve weather data"}, status=500)
                 
@@ -2897,7 +2973,27 @@ class WeatherViewSet(viewsets.ViewSet):
             weather_data = weather_api.get_real_weather_data(latitude, longitude, language)
             
             if weather_data:
-                return Response(weather_data)
+                # Ensure proper response format for fallback
+                if isinstance(weather_data, dict) and 'current' in weather_data:
+                    # Convert nested structure to flat structure for API compatibility
+                    current = weather_data['current']
+                    formatted_response = {
+                        'temperature': current.get('temp_c', 0),
+                        'humidity': current.get('humidity', 0),
+                        'weather_condition': current.get('condition', {}).get('text', 'Clear'),
+                        'wind_speed': current.get('wind_kph', 0),
+                        'wind_direction': current.get('wind_dir', 'N'),
+                        'pressure': current.get('pressure_mb', 1013),
+                        'uv_index': current.get('uv', 0),
+                        'cloud_cover': current.get('cloud', 0),
+                        'feels_like': current.get('feelslike_c', 0),
+                        'location': weather_data.get('location', {}),
+                        'data_source': 'Enhanced Government API (Fallback)',
+                        'timestamp': time.time()
+                    }
+                    return Response(formatted_response)
+                else:
+                    return Response(weather_data)
             else:
                 return Response({"error": "Could not retrieve weather data"}, status=500)
 
@@ -3009,13 +3105,13 @@ class MarketPricesViewSet(viewsets.ViewSet):
         if not (latitude and longitude):
             return Response({"error": "Latitude and longitude parameters are required"}, status=400)
         
+        # Validate coordinate ranges
         try:
             latitude = float(latitude)
             longitude = float(longitude)
         except ValueError:
             return Response({"error": "Latitude and longitude must be valid numbers"}, status=400)
         
-        # Validate coordinate ranges
         if not (-90 <= latitude <= 90):
             return Response({"error": "Latitude must be between -90 and 90 degrees"}, status=400)
         if not (-180 <= longitude <= 180):
@@ -3025,22 +3121,32 @@ class MarketPricesViewSet(viewsets.ViewSet):
 
         try:
             # Get REAL-TIME market prices from government APIs
-            real_time_market_data = self.real_time_api.get_real_time_market_prices(latitude, longitude, product_type)
+            try:
+                real_time_market_data = self.real_time_api.get_real_time_market_prices(latitude, longitude, product_type)
+            except Exception as e:
+                print(f"MarketPricesViewSet: Real-time API error: {e}")
+                real_time_market_data = None
             
             # Fallback to enhanced API if real-time fails
             if not real_time_market_data or not real_time_market_data.get('prices'):
-                market_data = self.government_api.get_real_market_prices(
-                    commodity=product_type,
-                    language=language,
-                    latitude=latitude,
-                    longitude=longitude
-                )
-                data_source = 'Enhanced Government API (Fallback)'
+                try:
+                    market_data = self.government_api.get_real_market_prices(
+                        commodity=product_type,
+                        language=language,
+                        latitude=latitude,
+                        longitude=longitude
+                    )
+                    data_source = 'Enhanced Government API (Fallback)'
+                except Exception as e:
+                    print(f"MarketPricesViewSet: Enhanced API error: {e}")
+                    # Final fallback - return empty data instead of error
+                    market_data = []
+                    data_source = 'No Data Available'
             else:
                 market_data = real_time_market_data['prices']
                 data_source = real_time_market_data.get('source', 'Real-Time Government API')
-
-            if market_data:
+        
+        if market_data:
                 print(f"MarketPricesViewSet: Returning REAL-TIME market_data = {market_data}")
                 return Response({
                     'market_data': market_data,
@@ -3080,7 +3186,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
                     'timestamp': time.time()
                 })
             else:
-                return Response({"error": "Could not retrieve market data"}, status=500)
+        return Response({"error": "Could not retrieve market data"}, status=500)
 
 class TrendingCropsViewSet(viewsets.ViewSet):
     """

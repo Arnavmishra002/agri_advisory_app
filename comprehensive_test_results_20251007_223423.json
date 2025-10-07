@@ -1,0 +1,349 @@
+{
+  "total_tests": 50,
+  "passed": 18,
+  "failed": 28,
+  "errors": 4,
+  "test_details": [
+    {
+      "test_name": "Basic API Connectivity",
+      "status": "PASS",
+      "details": "API is accessible",
+      "timestamp": "2025-10-07T22:31:16.409868"
+    },
+    {
+      "test_name": "Weather API Structure",
+      "status": "FAIL",
+      "details": "Missing fields: ['temperature', 'humidity', 'weather_condition']",
+      "timestamp": "2025-10-07T22:31:16.961603"
+    },
+    {
+      "test_name": "Market Prices API Structure",
+      "status": "FAIL",
+      "details": "Expected status 200, got 500",
+      "timestamp": "2025-10-07T22:31:19.725162"
+    },
+    {
+      "test_name": "Crop Recommendation API Structure",
+      "status": "FAIL",
+      "details": "HTTPConnectionPool(host='127.0.0.1', port=8000): Read timed out. (read timeout=10)",
+      "timestamp": "2025-10-07T22:31:29.738940"
+    },
+    {
+      "test_name": "Chatbot API Structure",
+      "status": "FAIL",
+      "details": "Expected status 200, got 404",
+      "timestamp": "2025-10-07T22:31:29.761790"
+    },
+    {
+      "test_name": "Weather Location Dependency",
+      "status": "FAIL",
+      "details": "Weather data is identical across locations",
+      "timestamp": "2025-10-07T22:31:31.299929"
+    },
+    {
+      "test_name": "Market Prices Location Dependency",
+      "status": "ERROR",
+      "details": "Could not fetch market data for multiple locations for pearl millet",
+      "timestamp": "2025-10-07T22:31:36.936729"
+    },
+    {
+      "test_name": "Crop Recommendation Location Dependency",
+      "status": "PASS",
+      "details": "Recommendations vary between Kochi and Nagpur",
+      "timestamp": "2025-10-07T22:32:03.737871"
+    },
+    {
+      "test_name": "Multilingual Weather Support",
+      "status": "PASS",
+      "details": "Supports languages: ['te', 'ta', 'or']",
+      "timestamp": "2025-10-07T22:32:05.409356"
+    },
+    {
+      "test_name": "Multilingual Market Prices Support",
+      "status": "FAIL",
+      "details": "Only supports 0 languages",
+      "timestamp": "2025-10-07T22:32:10.377368"
+    },
+    {
+      "test_name": "Multilingual Chatbot Support",
+      "status": "FAIL",
+      "details": "Only supports 0 languages",
+      "timestamp": "2025-10-07T22:32:10.396694"
+    },
+    {
+      "test_name": "Weather Data Realism",
+      "status": "PASS",
+      "details": "Temperature: 0\u00b0C, Humidity: 0% - Realistic values",
+      "timestamp": "2025-10-07T22:32:10.945195"
+    },
+    {
+      "test_name": "Market Prices Realism",
+      "status": "ERROR",
+      "details": "Expected status 200, got 500",
+      "timestamp": "2025-10-07T22:32:12.277179"
+    },
+    {
+      "test_name": "Crop Recommendation Accuracy",
+      "status": "PASS",
+      "details": "Valid crops recommended: ['potato', 'rice', 'wheat']",
+      "timestamp": "2025-10-07T22:32:21.818988"
+    },
+    {
+      "test_name": "Chatbot Weather Query Understanding",
+      "status": "FAIL",
+      "details": "Only 0/5 queries understood",
+      "timestamp": "2025-10-07T22:32:21.870101"
+    },
+    {
+      "test_name": "Chatbot Crop Query Understanding",
+      "status": "FAIL",
+      "details": "Only 0/5 queries understood",
+      "timestamp": "2025-10-07T22:32:21.924189"
+    },
+    {
+      "test_name": "Chatbot Location Query Understanding",
+      "status": "FAIL",
+      "details": "Only 0/5 queries understood",
+      "timestamp": "2025-10-07T22:32:21.970419"
+    },
+    {
+      "test_name": "Chatbot Hindi Query Understanding",
+      "status": "FAIL",
+      "details": "Only 0/5 queries understood",
+      "timestamp": "2025-10-07T22:32:22.021006"
+    },
+    {
+      "test_name": "Weather Forecast API",
+      "status": "FAIL",
+      "details": "Missing fields: ['forecast']",
+      "timestamp": "2025-10-07T22:32:22.456410"
+    },
+    {
+      "test_name": "Trending Crops API",
+      "status": "FAIL",
+      "details": "Expected status 200, got 500",
+      "timestamp": "2025-10-07T22:32:22.461029"
+    },
+    {
+      "test_name": "Government Schemes API",
+      "status": "FAIL",
+      "details": [
+        {
+          "name": "PM Kisan Samman Nidhi",
+          "description": "\u20b96,000 annual income support for farmers",
+          "eligibility": "All farmers with valid land records",
+          "status": "Active",
+          "amount": "\u20b96,000 per year",
+          "beneficiaries": "12 crore farmers"
+        },
+        {
+          "name": "Pradhan Mantri Fasal Bima Yojana",
+          "description": "Crop insurance scheme for farmers",
+          "eligibility": "Farmers growing notified crops",
+          "status": "Active",
+          "amount": "Subsidized premium",
+          "beneficiaries": "6 crore farmers"
+        },
+        {
+          "name": "Kisan Credit Card",
+          "description": "Credit facility for farmers",
+          "eligibility": "Farmers and agricultural workers",
+          "status": "Active",
+          "amount": "Up to \u20b93 lakh",
+          "beneficiaries": "4 crore farmers"
+        },
+        {
+          "name": "Solar Pump Subsidy",
+          "description": "Subsidy for solar water pumps",
+          "eligibility": "Small and marginal farmers",
+          "status": "Active",
+          "amount": "Up to 90% subsidy",
+          "beneficiaries": "2 lakh farmers"
+        },
+        {
+          "name": "Soil Health Card Scheme",
+          "description": "Free soil testing and recommendations",
+          "eligibility": "All farmers",
+          "status": "Active",
+          "amount": "Free",
+          "beneficiaries": "14 crore soil samples"
+        }
+      ],
+      "timestamp": "2025-10-07T22:32:22.469999"
+    },
+    {
+      "test_name": "Pest Detection API",
+      "status": "FAIL",
+      "details": "Expected status 200, got 404",
+      "timestamp": "2025-10-07T22:32:22.476835"
+    },
+    {
+      "test_name": "SMS/IVR API",
+      "status": "FAIL",
+      "details": "Expected status 200, got 404",
+      "timestamp": "2025-10-07T22:32:22.485882"
+    },
+    {
+      "test_name": "Text to Speech API",
+      "status": "FAIL",
+      "details": "Expected status 200, got 404",
+      "timestamp": "2025-10-07T22:32:22.491514"
+    },
+    {
+      "test_name": "API Response Time",
+      "status": "PASS",
+      "details": "Response time: 0.55s",
+      "timestamp": "2025-10-07T22:32:23.039072"
+    },
+    {
+      "test_name": "Concurrent Requests Handling",
+      "status": "PASS",
+      "details": "5/5 requests successful",
+      "timestamp": "2025-10-07T22:32:24.768008"
+    },
+    {
+      "test_name": "Invalid Coordinates Handling",
+      "status": "FAIL",
+      "details": "Only 0/4 invalid coordinates handled properly",
+      "timestamp": "2025-10-07T22:32:24.793347"
+    },
+    {
+      "test_name": "Missing Parameters Handling",
+      "status": "FAIL",
+      "details": "Weather API accepts requests without coordinates",
+      "timestamp": "2025-10-07T22:32:24.807740"
+    },
+    {
+      "test_name": "Empty Crop Recommendation Request",
+      "status": "FAIL",
+      "details": "API accepts empty requests",
+      "timestamp": "2025-10-07T22:32:26.031659"
+    },
+    {
+      "test_name": "Large Crop List Handling",
+      "status": "PASS",
+      "details": "Returned 8 crop recommendations",
+      "timestamp": "2025-10-07T22:32:34.040488"
+    },
+    {
+      "test_name": "Weather Data Consistency",
+      "status": "PASS",
+      "details": "Temperature and humidity consistent across 3 requests",
+      "timestamp": "2025-10-07T22:32:35.591449"
+    },
+    {
+      "test_name": "Market Prices Consistency",
+      "status": "PASS",
+      "details": "Prices consistent across 3 requests for chilli",
+      "timestamp": "2025-10-07T22:32:40.105251"
+    },
+    {
+      "test_name": "North India Crop Recommendations",
+      "status": "PASS",
+      "details": "North India crops recommended for Lucknow",
+      "timestamp": "2025-10-07T22:32:47.756749"
+    },
+    {
+      "test_name": "South India Crop Recommendations",
+      "status": "PASS",
+      "details": "South India crops recommended for Bangalore",
+      "timestamp": "2025-10-07T22:32:54.839615"
+    },
+    {
+      "test_name": "Coastal Area Weather Patterns",
+      "status": "FAIL",
+      "details": "Low humidity (0%) for coastal location Chennai",
+      "timestamp": "2025-10-07T22:32:55.411318"
+    },
+    {
+      "test_name": "Chatbot Context Understanding",
+      "status": "FAIL",
+      "details": "Only 0/3 contextual responses successful",
+      "timestamp": "2025-10-07T22:32:55.431405"
+    },
+    {
+      "test_name": "Chatbot Complex Queries",
+      "status": "FAIL",
+      "details": "Only 0/5 complex queries handled",
+      "timestamp": "2025-10-07T22:32:55.467772"
+    },
+    {
+      "test_name": "Chatbot Agricultural Knowledge",
+      "status": "FAIL",
+      "details": "Only 0/5 agricultural queries handled",
+      "timestamp": "2025-10-07T22:32:55.509113"
+    },
+    {
+      "test_name": "End-to-End Farmer Workflow",
+      "status": "PASS",
+      "details": "3/4 workflow steps successful",
+      "timestamp": "2025-10-07T22:33:07.195567"
+    },
+    {
+      "test_name": "Multi-Service Data Correlation",
+      "status": "PASS",
+      "details": "Crop recommendations correlate with weather data for Bangalore",
+      "timestamp": "2025-10-07T22:33:15.902953"
+    },
+    {
+      "test_name": "Rapid Successive Requests",
+      "status": "PASS",
+      "details": "10/10 rapid requests successful",
+      "timestamp": "2025-10-07T22:33:22.609434"
+    },
+    {
+      "test_name": "Mixed Request Types",
+      "status": "PASS",
+      "details": "3/4 mixed requests successful",
+      "timestamp": "2025-10-07T22:33:24.899995"
+    },
+    {
+      "test_name": "Malformed Data Handling",
+      "status": "FAIL",
+      "details": "API accepts invalid data types",
+      "timestamp": "2025-10-07T22:33:28.692403"
+    },
+    {
+      "test_name": "Network Timeout Handling",
+      "status": "PASS",
+      "details": "Request properly timed out",
+      "timestamp": "2025-10-07T22:33:28.762551"
+    },
+    {
+      "test_name": "Large Payload Handling",
+      "status": "FAIL",
+      "details": "API fails with large payloads",
+      "timestamp": "2025-10-07T22:33:29.064828"
+    },
+    {
+      "test_name": "SQL Injection Prevention",
+      "status": "FAIL",
+      "details": "API fails with malicious input",
+      "timestamp": "2025-10-07T22:33:29.078386"
+    },
+    {
+      "test_name": "XSS Prevention",
+      "status": "ERROR",
+      "details": "Could not test XSS prevention",
+      "timestamp": "2025-10-07T22:33:29.193263"
+    },
+    {
+      "test_name": "Seasonal Crop Recommendations",
+      "status": "ERROR",
+      "details": "HTTPConnectionPool(host='127.0.0.1', port=8000): Read timed out. (read timeout=10)",
+      "timestamp": "2025-10-07T22:33:39.308378"
+    },
+    {
+      "test_name": "Soil Type Impact on Recommendations",
+      "status": "FAIL",
+      "details": "Recommendations don't vary by soil type",
+      "timestamp": "2025-10-07T22:34:12.284426"
+    },
+    {
+      "test_name": "Comprehensive Data Validation",
+      "status": "PASS",
+      "details": "3/3 data types validated successfully",
+      "timestamp": "2025-10-07T22:34:22.418587"
+    }
+  ]
+}

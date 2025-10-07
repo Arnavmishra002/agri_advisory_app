@@ -725,8 +725,10 @@ class EnhancedGovernmentAPI:
     def _get_fallback_weather_data(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """Fallback weather data when API fails - LOCATION-SPECIFIC"""
         
-        # Create location-specific weather data
-        location_seed = int(latitude * 1000 + longitude * 1000) % 1000
+        # Create location-specific weather data with more variation
+        import random
+        random.seed(int(latitude * 10000 + longitude * 10000))
+        location_seed = random.randint(0, 999)
         
         # Different regions have different weather patterns
         if 28 <= latitude <= 37 and 76 <= longitude <= 97:  # North India

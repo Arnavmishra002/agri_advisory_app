@@ -36,3 +36,7 @@ dj-database-url>=2.1.0
 
 # Security
 django-ratelimit>=4.0.0
+
+# Text-to-Speech
+gtts>=2.3.0
+pyttsx3>=2.90
