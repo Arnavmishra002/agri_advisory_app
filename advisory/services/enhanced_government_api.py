@@ -355,8 +355,8 @@ class EnhancedGovernmentAPI:
                 location_name = mandi or district or state
                 mandis = self._generate_dynamic_mandis(location_name)
             else:
-            # Major mandis across India
-            mandis = {
+                # Major mandis across India
+                mandis = {
                 'delhi': ['Azadpur', 'Najafgarh', 'Ghazipur', 'Keshopur'],
                 'mumbai': ['APMC Vashi', 'APMC Kalyan', 'APMC Navi Mumbai', 'APMC Mumbai'],
                 'bangalore': ['APMC Yeshwanthpur', 'APMC K R Market', 'APMC Ramanagara'],
