@@ -1,0 +1,298 @@
+[
+  {
+    "query": "hello",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E31F620>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E31F620>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "hi bhai",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E2E79D0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E2E79D0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "नमस्ते",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E4042D0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E4042D0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "good morning",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E2EFBB0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E2EFBB0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "hey yaar",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E2EF5C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E2EF5C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "potato price in lucknow",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A69F0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A69F0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "cotton price in ahmedabad",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A9590>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A9590>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "चावल की कीमत मुंबई में",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA580>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA580>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "wheat market rate delhi",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA7A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA7A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "maize price punjab",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA9C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA9C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "weather in delhi",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AABE0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AABE0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "मुंबई का मौसम",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AAE00>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AAE00>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "temperature bangalore",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB020>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB020>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "chennai rain forecast",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB240>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB240>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "crop recommendation for delhi",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB460>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB460>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "kharif season mein kya crop lagayein mumbai mein",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB680>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB680>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "rabi crops for punjab",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB8A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB8A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "loamy soil mein kya crop lagayein bangalore mein",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB8A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB8A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "crop suggest karo lucknow mein aur weather bhi batao",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB680>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB680>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "wheat price in delhi aur weather bhi batao",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB460>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB460>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "pest control for wheat aur crop suggest bhi karo",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB240>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB240>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "rice price in mumbai and weather forecast",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB020>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AB020>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "hi bhai",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AAE00>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AAE00>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "crop suggest karo delhi mein",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AABE0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AABE0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "weather batao mumbai ka",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA9C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA9C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "price batao potato ka lucknow mein",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA7A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA7A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "what crops grow in punjab",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A9260>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A9260>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "delhi mein kya crop lagayein",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A8C00>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A8C00>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "mumbai weather for farming",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA580>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA580>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "tell me about wheat price and weather in delhi",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA470>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA470>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "crop suggest karo aur market price bhi batao",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A98C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A98C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A9480>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A9480>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "123456789",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A96A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A96A0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "crop suggest karo lucknow mein @#$%^&*()",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A9480>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A9480>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "I am a farmer in Punjab, what should I grow this season?",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A98C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3A98C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "मैं दिल्ली में किसान हूँ, मुझे क्या फसल लगानी चाहिए?",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA470>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA470>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  },
+  {
+    "query": "Help me decide between wheat and rice for my farm",
+    "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA580>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))",
+    "success": false,
+    "issues": [
+      "Request failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/advisories/chatbot/ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001937E3AA580>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    ]
+  }
+]

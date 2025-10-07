@@ -26,7 +26,7 @@ class SecurityValidator:
     MAX_SESSION_ID_LENGTH = 100
     
     # Allowed characters patterns
-    ALLOWED_LANGUAGES = ['en', 'hi', 'bn', 'te', 'ta', 'gu', 'mr', 'kn', 'ml', 'pa', 'or', 'as', 'ne', 'ur', 'ar', 'es', 'fr', 'de', 'zh', 'ja', 'ko', 'pt', 'ru', 'it', 'auto']
+    ALLOWED_LANGUAGES = ['en', 'hi', 'hinglish', 'bn', 'te', 'ta', 'gu', 'mr', 'kn', 'ml', 'pa', 'or', 'as', 'ne', 'ur', 'ar', 'es', 'fr', 'de', 'zh', 'ja', 'ko', 'pt', 'ru', 'it', 'auto']
     
     # Dangerous patterns to detect
     DANGEROUS_PATTERNS = [

@@ -486,6 +486,34 @@
             transform: scale(1.1);
         }
         
+        .chat-voice {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 1rem;
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+        
+        .chat-voice:hover {
+            transform: scale(1.1);
+        }
+        
+        .chat-voice.listening {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
         /* Footer */
         .farming-footer {
             background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%);
@@ -628,6 +656,30 @@
             <div class="text-center header-content">
                 <h1 class="farming-title">🌾 कृषिमित्र AI</h1>
                 <p class="farming-subtitle">किसानों का सबसे अच्छा दोस्त</p>
+                
+                <!-- Location Selector -->
+                <div class="location-selector mt-3">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="card" style="background: rgba(255,255,255,0.95); border-radius: 15px; padding: 20px;">
+                                <h5 class="text-success mb-3">📍 अपना स्थान चुनें</h5>
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <input type="text" id="locationInput" class="form-control" placeholder="शहर या गाँव का नाम दर्ज करें" style="border-radius: 25px; border: 2px solid #4a7c59;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-success w-100" onclick="detectLocation()" style="border-radius: 25px;">
+                                            <i class="fas fa-map-marker-alt"></i> मेरा स्थान
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted" id="currentLocationDisplay">वर्तमान स्थान: दिल्ली, दिल्ली</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -636,7 +688,7 @@
     <nav class="navbar navbar-expand-lg nav-bar">
         <div class="container">
             <div class="navbar-nav">
-                <a class="nav-link" href="#advisories">कृषि सलाह</a>
+                <a class="nav-link" href="#schemes">सरकारी योजनाएं</a>
                 <a class="nav-link" href="#crops">फसल जानकारी</a>
                 <a class="nav-link" href="#weather">मौसम</a>
                 <a class="nav-link" href="#market">बाजार कीमतें</a>
@@ -654,13 +706,13 @@
                 <h2 class="section-title">किसानों के लिए आवश्यक सेवाएं</h2>
                 
                 <div class="row">
-                    <!-- Agricultural Advisory -->
+                    <!-- Government Schemes -->
                     <div class="col-md-6 col-lg-4">
-                        <div class="service-card advisory-card" onclick="showService('advisory')">
-                            <i class="fas fa-lightbulb service-icon"></i>
-                            <h3 class="service-title">कृषि सलाह</h3>
-                            <p class="service-description">विशेषज्ञों द्वारा कृषि सलाह और सुझाव। फसल उगाने से लेकर बाजार में बेचने तक की पूरी जानकारी।</p>
-                            <span class="service-btn">सलाह लें</span>
+                        <div class="service-card schemes-card" onclick="showService('schemes')">
+                            <i class="fas fa-landmark service-icon"></i>
+                            <h3 class="service-title">सरकारी योजनाएं</h3>
+                            <p class="service-description">केंद्र और राज्य सरकार की कृषि योजनाएं। सब्सिडी, ऋण और अन्य सहायता की जानकारी।</p>
+                            <span class="service-btn">योजनाएं देखें</span>
                         </div>
                     </div>
                     
@@ -717,29 +769,39 @@
             </section>
 
             <!-- Service Content Areas -->
-            <!-- Agricultural Advisory Content -->
-            <div id="advisory-content" class="service-content">
+            <!-- Government Schemes Content -->
+            <div id="schemes-content" class="service-content">
                 <div class="content-header">
-                    <h3 class="content-title">💡 कृषि सलाह</h3>
+                    <h3 class="content-title">🏛️ सरकारी योजनाएं</h3>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
-                        <h5>🌱 फसल उगाने की सलाह</h5>
+                        <h5>🌾 केंद्र सरकार की योजनाएं</h5>
                         <ul>
-                            <li>मिट्टी की जांच करवाएं</li>
-                            <li>सही समय पर बुवाई करें</li>
-                            <li>उचित सिंचाई का ध्यान रखें</li>
-                            <li>खाद और उर्वरक का सही उपयोग</li>
+                            <li>प्रधान मंत्री किसान सम्मान निधि (PM-KISAN)</li>
+                            <li>प्रधान मंत्री फसल बीमा योजना (PMFBY)</li>
+                            <li>किसान क्रेडिट कार्ड (KCC)</li>
+                            <li>राष्ट्रीय कृषि विकास योजना (RKVY)</li>
+                            <li>प्रधान मंत्री कृषि सिंचाई योजना (PMKSY)</li>
                         </ul>
                     </div>
                     <div class="col-md-6">
-                        <h5>💰 बाजार की सलाह</h5>
+                        <h5>🏛️ राज्य सरकार की योजनाएं</h5>
                         <ul>
-                            <li>बाजार कीमतों पर नजर रखें</li>
-                            <li>सही समय पर बिक्री करें</li>
-                            <li>गुणवत्ता बनाए रखें</li>
-                            <li>सरकारी योजनाओं का लाभ उठाएं</li>
+                            <li>किसान कल्याण योजना</li>
+                            <li>बीज सब्सिडी योजना</li>
+                            <li>खाद सब्सिडी योजना</li>
+                            <li>सिंचाई सब्सिडी योजना</li>
+                            <li>कृषि मशीनरी सब्सिडी</li>
                         </ul>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> जानकारी</h6>
+                            <p>सभी योजनाओं की विस्तृत जानकारी और आवेदन प्रक्रिया के लिए AI सहायक से पूछें या सरकारी वेबसाइट पर जाएं।</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -862,7 +924,10 @@
                     </div>
                     
                     <div class="chat-input-group">
-                        <input type="text" class="chat-input" id="chatInput" placeholder="अपना सवाल लिखें...">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="अपना सवाल लिखें या माइक पर क्लिक करके बोलें...">
+                        <button class="chat-voice" id="voiceButton" onclick="toggleVoiceInput()" title="Voice Input">
+                            <i class="fas fa-microphone"></i>
+                        </button>
                         <button class="chat-send" onclick="sendMessage()">
                             <i class="fas fa-paper-plane"></i>
                         </button>
@@ -880,7 +945,7 @@
                 <p class="footer-subtitle">किसानों का सबसे अच्छा दोस्त</p>
                 
                 <div class="footer-links">
-                    <a href="#advisories">कृषि सलाह</a>
+                    <a href="#schemes">सरकारी योजनाएं</a>
                     <a href="#crops">फसल जानकारी</a>
                     <a href="#weather">मौसम</a>
                     <a href="#market">बाजार कीमतें</a>
@@ -898,6 +963,97 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Global variables
+        let currentLocation = { lat: 28.6139, lon: 77.2090, name: 'दिल्ली, दिल्ली' };
+        let currentLanguage = 'hi';
+        let sessionId = 'web_session_' + Date.now();
+        let conversationHistory = [];
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Location detection
+        function detectLocation() {
+            const locationInput = document.getElementById('locationInput').value.trim();
+            
+            if (locationInput) {
+                // Manual location input
+                geocodeLocation(locationInput);
+            } else if (navigator.geolocation) {
+                // GPS location detection
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        currentLocation.lat = position.coords.latitude;
+                        currentLocation.lon = position.coords.longitude;
+                        reverseGeocode(currentLocation.lat, currentLocation.lon);
+                    },
+                    error => {
+                        console.error('Geolocation error:', error);
+                        alert('स्थान का पता लगाने में असमर्थ। कृपया मैन्युअल रूप से स्थान दर्ज करें।');
+                    }
+                );
+            } else {
+                alert('आपके ब्राउज़र में जियोलोकेशन समर्थित नहीं है। कृपया मैन्युअल रूप से स्थान दर्ज करें।');
+            }
+        }
+
+        // Geocode location name to coordinates
+        function geocodeLocation(locationName) {
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}&countrycodes=in&limit=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        currentLocation.lat = parseFloat(data[0].lat);
+                        currentLocation.lon = parseFloat(data[0].lon);
+                        currentLocation.name = `${data[0].display_name.split(',')[0]}, ${data[0].display_name.split(',')[1] || ''}`;
+                        updateLocationDisplay();
+                        loadAllData();
+                    } else {
+                        alert('स्थान नहीं मिला। कृपया सही स्थान का नाम दर्ज करें।');
+                    }
+                })
+                .catch(error => {
+                    console.error('Geocoding error:', error);
+                    alert('स्थान का पता लगाने में त्रुटि हुई।');
+                });
+        }
+
+        // Reverse geocode coordinates to location name
+        function reverseGeocode(lat, lon) {
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=hi`)
+                .then(response => response.json())
+                .then(data => {
+                    const address = data.address;
+                    currentLocation.name = `${address.city || address.town || address.village || address.hamlet || ''}, ${address.state || ''}`;
+                    updateLocationDisplay();
+                    loadAllData();
+                })
+                .catch(error => {
+                    console.error('Reverse geocoding error:', error);
+                    currentLocation.name = `अक्षांश: ${lat.toFixed(4)}, देशांतर: ${lon.toFixed(4)}`;
+                    updateLocationDisplay();
+                    loadAllData();
+                });
+        }
+
+        // Update location display
+        function updateLocationDisplay() {
+            document.getElementById('currentLocationDisplay').textContent = `वर्तमान स्थान: ${currentLocation.name}`;
+        }
+
         // Service management
         function showService(serviceName) {
             // Hide all service contents
@@ -910,12 +1066,28 @@
             if (content) {
                 content.classList.add('active');
                 content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Load specific data for the service
+                switch(serviceName) {
+                    case 'weather':
+                        loadWeatherData();
+                        break;
+                    case 'market':
+                        loadMarketData();
+                        break;
+                    case 'schemes':
+                        loadSchemesData();
+                        break;
+                    case 'crops':
+                        loadCropData();
+                        break;
+                }
             }
         }
 
-        // Load weather data
+        // Load weather data with current location
         function loadWeatherData() {
-            fetch('/api/weather/current/?lat=28.6139&lon=77.2090&lang=hi')
+            fetch(`/api/weather/current/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=${currentLanguage}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.temperature) {
@@ -939,62 +1111,87 @@
                     }
                 })
                 .catch(error => {
-                    console.log('Weather data not available');
+                    console.log('Weather data not available:', error);
                 });
         }
 
-        // Load market data
+        // Load market data with current location
         function loadMarketData() {
-            // Wheat prices
-            fetch('/api/market-prices/prices/?lat=28.6139&lon=77.2090&lang=hi&product=wheat')
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.length > 0 && data[0].price) {
-                        document.getElementById('market-wheat').textContent = data[0].price;
-                    }
-                })
-                .catch(error => {
-                    console.log('Market data not available');
-                });
+            const crops = ['wheat', 'rice', 'corn', 'peanut'];
+            crops.forEach(crop => {
+                fetch(`/api/market-prices/prices/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=${currentLanguage}&product=${crop}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.length > 0 && data[0].price) {
+                            const priceElement = document.getElementById(`market-${crop}`);
+                            if (priceElement) {
+                                priceElement.textContent = data[0].price;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.log(`Market data for ${crop} not available:`, error);
+                    });
+            });
+        }
 
-            // Rice prices
-            fetch('/api/market-prices/prices/?lat=28.6139&lon=77.2090&lang=hi&product=rice')
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.length > 0 && data[0].price) {
-                        document.getElementById('market-rice').textContent = data[0].price;
-                    }
-                })
-                .catch(error => {
-                    console.log('Market data not available');
-                });
+        // Load government schemes data
+        function loadSchemesData() {
+            // This would load government schemes based on location and farmer profile
+            console.log('Loading government schemes for:', currentLocation.name);
+            // Could fetch from government APIs or database
+        }
 
-            // Corn prices
-            fetch('/api/market-prices/prices/?lat=28.6139&lon=77.2090&lang=hi&product=corn')
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.length > 0 && data[0].price) {
-                        document.getElementById('market-corn').textContent = data[0].price;
-                    }
-                })
-                .catch(error => {
-                    console.log('Market data not available');
-                });
+        // Load crop data
+        function loadCropData() {
+            // This would load crop recommendations based on location
+            console.log('Loading crop data for:', currentLocation.name);
+        }
+
+        // Load all data
+        function loadAllData() {
+            loadWeatherData();
+            loadMarketData();
+            loadSchemesData();
+            loadCropData();
         }
 
         // Pest detection
         document.getElementById('pest-image').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                // Simulate pest detection
-                setTimeout(() => {
-                    document.getElementById('pest-result').style.display = 'block';
+                // Show loading
+                document.getElementById('pest-result').style.display = 'block';
+                document.getElementById('pest-diagnosis').textContent = 'तस्वीर का विश्लेषण कर रहे हैं...';
+                
+                // Simulate pest detection with API call
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('location', currentLocation.name);
+                
+                fetch('/api/pest-detection/detect/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.diagnosis) {
+                        document.getElementById('pest-diagnosis').textContent = data.diagnosis;
+                    } else {
+                        document.getElementById('pest-diagnosis').textContent = 'तस्वीर में कोई कीट या रोग नहीं दिख रहा। फसल स्वस्थ लग रही है।';
+                    }
+                })
+                .catch(error => {
+                    console.error('Pest detection error:', error);
                     document.getElementById('pest-diagnosis').textContent = 'तस्वीर में कोई कीट या रोग नहीं दिख रहा। फसल स्वस्थ लग रही है।';
-                }, 2000);
+                });
             }
         });
 
-        // Chat functionality
+        // Enhanced chat functionality
         function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
@@ -1005,7 +1202,14 @@
             addMessageToChat(message, 'user');
             input.value = '';
 
-            // Send to API with CSRF token
+            // Add to conversation history
+            conversationHistory.push({
+                role: 'user',
+                content: message,
+                timestamp: new Date().toISOString()
+            });
+
+            // Send to API with enhanced data
             fetch('/api/advisories/chatbot/', {
                 method: 'POST',
                 headers: {
@@ -1014,11 +1218,13 @@
                 },
                 body: JSON.stringify({
                     query: message,
-                    language: 'hi',
-                    latitude: 28.6139,
-                    longitude: 77.2090,
+                    language: currentLanguage,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
                     user_id: 'web_user',
-                    session_id: 'web_session_' + Date.now()
+                    session_id: sessionId,
+                    conversation_history: conversationHistory.slice(-5), // Last 5 messages for context
+                    location_name: currentLocation.name
                 })
             })
             .then(response => {
@@ -1030,6 +1236,13 @@
             .then(data => {
                 if (data.response) {
                     addMessageToChat(data.response, 'bot');
+                    
+                    // Add bot response to conversation history
+                    conversationHistory.push({
+                        role: 'assistant',
+                        content: data.response,
+                        timestamp: new Date().toISOString()
+                    });
                 } else {
                     addMessageToChat('क्षमा करें, कुछ त्रुटि हुई। कृपया फिर से प्रयास करें।', 'bot');
                 }
@@ -1073,10 +1286,90 @@
             });
         });
 
-        // Load initial data
+        // Voice input functionality
+        let isListening = false;
+        let recognition = null;
+
+        // Initialize speech recognition
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = currentLanguage === 'hi' ? 'hi-IN' : 'en-US';
+                
+                recognition.onstart = function() {
+                    isListening = true;
+                    const voiceButton = document.getElementById('voiceButton');
+                    voiceButton.classList.add('listening');
+                    voiceButton.innerHTML = '<i class="fas fa-stop"></i>';
+                };
+                
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('chatInput').value = transcript;
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    stopListening();
+                };
+                
+                recognition.onend = function() {
+                    stopListening();
+                };
+            } else {
+                console.warn('Speech recognition not supported');
+            }
+        }
+
+        function toggleVoiceInput() {
+            if (!recognition) {
+                initSpeechRecognition();
+            }
+            
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            if (recognition) {
+                try {
+                    recognition.start();
+                } catch (error) {
+                    console.error('Error starting speech recognition:', error);
+                }
+            }
+        }
+
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+            }
+            isListening = false;
+            const voiceButton = document.getElementById('voiceButton');
+            voiceButton.classList.remove('listening');
+            voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+        }
+
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadWeatherData();
-            loadMarketData();
+            loadAllData();
+            
+            // Add click handlers to service cards
+            document.querySelectorAll('.service-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const serviceName = this.onclick.toString().match(/showService\('(\w+)'\)/);
+                    if (serviceName) {
+                        showService(serviceName[1]);
+                    }
+                });
+            });
         });
     </script>
 </body>

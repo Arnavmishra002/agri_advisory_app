@@ -1,0 +1,3089 @@
+[
+  {
+    "test_name": "Basic crop suggestion",
+    "query": "crop suggest karo lucknow mei",
+    "status_code": "N/A",
+    "response": "🌾 lucknow, Uttar Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: lucknow, Uttar Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 26.0°C\n• वर्षा: 1.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hindi crop suggestion",
+    "query": "फसल सुझाव दो लखनऊ में",
+    "status_code": "N/A",
+    "response": "🌾 में, Rajasthan के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: में, Rajasthan\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.1°C\n• वर्षा: 0.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'लखनऊ' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish crop suggestion",
+    "query": "crop suggest करो lucknow में",
+    "status_code": "N/A",
+    "response": "🌾 में, Rajasthan के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: में, Rajasthan\n\n🌤️ मौसम की स्थिति:\n• तापमान: 28.0°C\n• वर्षा: 10.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Lucknow' not found in response"
+    ]
+  },
+  {
+    "test_name": "Seasonal crop query",
+    "query": "kharif season mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.5°C\n• वर्षा: 3.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Rabi season query",
+    "query": "rabi season mein konsi fasal lagayein",
+    "status_code": "N/A",
+    "response": "🌤️ Delhi का मौसम:\n\n🌡️ तापमान: 24.6°C\n💧 नमी: 83%\n💨 हवा की गति: 17 km/h\n\n📅 आज के लिए सुझाव: सुबह 6-8 बजे सिंचाई करें, दोपहर में खेत में काम न करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Soil-specific query",
+    "query": "loamy soil mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 26.3°C\n• वर्षा: 1.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Location-specific UP",
+    "query": "uttar pradesh mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.3°C\n• वर्षा: 12.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Uttar Pradesh' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Punjab",
+    "query": "punjab mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 25.9°C\n• वर्षा: 4.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Punjab' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Maharashtra",
+    "query": "maharashtra mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.1°C\n• वर्षा: 3.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Maharashtra' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Karnataka",
+    "query": "karnataka mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 22.6°C\n• वर्षा: 4.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Karnataka' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Tamil Nadu",
+    "query": "tamil nadu mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• गेहूं की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Tamil Nadu' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Gujarat",
+    "query": "gujarat mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.9°C\n• वर्षा: 5.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Gujarat' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Rajasthan",
+    "query": "rajasthan mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 25.4°C\n• वर्षा: 12.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Rajasthan' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific West Bengal",
+    "query": "west bengal mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'West Bengal' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Bihar",
+    "query": "bihar mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.3°C\n• वर्षा: 6.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Bihar' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Madhya Pradesh",
+    "query": "madhya pradesh mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.3°C\n• वर्षा: 10.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Madhya Pradesh' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Andhra Pradesh",
+    "query": "andhra pradesh mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 25.9°C\n• वर्षा: 3.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Andhra Pradesh' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Telangana",
+    "query": "telangana mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.5°C\n• वर्षा: 13.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Telangana' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Kerala",
+    "query": "kerala mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.3°C\n• वर्षा: 1.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Kerala' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Odisha",
+    "query": "odisha mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 27.9°C\n• वर्षा: 10.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Odisha' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Assam",
+    "query": "assam mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.3°C\n• वर्षा: 4.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Assam' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Haryana",
+    "query": "haryana mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 25.6°C\n• वर्षा: 11.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Haryana' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Himachal Pradesh",
+    "query": "himachal pradesh mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Himachal Pradesh' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Uttarakhand",
+    "query": "uttarakhand mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 22.6°C\n• वर्षा: 13.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Uttarakhand' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Jharkhand",
+    "query": "jharkhand mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.8°C\n• वर्षा: 9.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Jharkhand' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Chhattisgarh",
+    "query": "chhattisgarh mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.1°C\n• वर्षा: 7.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Chhattisgarh' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Goa",
+    "query": "goa mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.5°C\n• वर्षा: 7.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Goa' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Manipur",
+    "query": "manipur mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.0°C\n• वर्षा: 10.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Manipur' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Meghalaya",
+    "query": "meghalaya mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.4°C\n• वर्षा: 3.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Meghalaya' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Mizoram",
+    "query": "mizoram mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 22.1°C\n• वर्षा: 1.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Mizoram' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Nagaland",
+    "query": "nagaland mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 25.3°C\n• वर्षा: 4.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Nagaland' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Sikkim",
+    "query": "sikkim mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 26.2°C\n• वर्षा: 1.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Sikkim' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Tripura",
+    "query": "tripura mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.7°C\n• वर्षा: 14.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Tripura' not found in response"
+    ]
+  },
+  {
+    "test_name": "Location-specific Arunachal Pradesh",
+    "query": "arunachal pradesh mein kya crop lagayein",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 22.1°C\n• वर्षा: 7.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Arunachal Pradesh' not found in response"
+    ]
+  },
+  {
+    "test_name": "Wheat price Delhi",
+    "query": "wheat price in delhi",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Rice price Mumbai",
+    "query": "rice price in mumbai",
+    "status_code": "N/A",
+    "response": "💰 mumbai, Maharashtra में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 कपास: ₹6,200/क्विंटल\n🌾 गन्ना: ₹3,100/क्विंटल\n🌾 सोयाबीन: ₹3,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'rice' not found in response"
+    ]
+  },
+  {
+    "test_name": "Potato price Lucknow",
+    "query": "potato price in lucknow",
+    "status_code": "N/A",
+    "response": "💰 lucknow, Uttar Pradesh में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 गन्ना: ₹3,100/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'potato' not found in response"
+    ]
+  },
+  {
+    "test_name": "Onion price Bangalore",
+    "query": "onion price in bangalore",
+    "status_code": "N/A",
+    "response": "💰 bangalore, Karnataka में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गन्ना: ₹3,100/क्विंटल\n🌾 कपास: ₹6,200/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'onion' not found in response"
+    ]
+  },
+  {
+    "test_name": "Tomato price Chennai",
+    "query": "tomato price in chennai",
+    "status_code": "N/A",
+    "response": "💰 chennai, Tamil Nadu में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गन्ना: ₹3,100/क्विंटल\n🌾 कपास: ₹6,200/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'tomato' not found in response"
+    ]
+  },
+  {
+    "test_name": "Cotton price Hyderabad",
+    "query": "cotton price in hyderabad",
+    "status_code": "N/A",
+    "response": "💰 hyderabad, Telangana में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'cotton' not found in response"
+    ]
+  },
+  {
+    "test_name": "Sugarcane price Kanpur",
+    "query": "sugarcane price in kanpur",
+    "status_code": "N/A",
+    "response": "💰 kanpur, Uttar Pradesh में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 गन्ना: ₹3,100/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'sugarcane' not found in response"
+    ]
+  },
+  {
+    "test_name": "Groundnut price Ahmedabad",
+    "query": "groundnut price in ahmedabad",
+    "status_code": "N/A",
+    "response": "💰 ahmedabad, Gujarat में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 कपास: ₹6,200/क्विंटल\n🌾 मूंगफली: ₹5,500/क्विंटल\n🌾 गेहूं: ₹2,450/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'groundnut' not found in response"
+    ]
+  },
+  {
+    "test_name": "Maize price Jaipur",
+    "query": "maize price in jaipur",
+    "status_code": "N/A",
+    "response": "💰 jaipur, Rajasthan में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 सरसों: ₹4,200/क्विंटल\n🌾 कपास: ₹6,200/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'maize' not found in response"
+    ]
+  },
+  {
+    "test_name": "Soybean price Indore",
+    "query": "soybean price in indore",
+    "status_code": "N/A",
+    "response": "💰 indore, Madhya Pradesh में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'soybean' not found in response"
+    ]
+  },
+  {
+    "test_name": "Mustard price Bhopal",
+    "query": "mustard price in bhopal",
+    "status_code": "N/A",
+    "response": "💰 bhopal, Madhya Pradesh में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'mustard' not found in response"
+    ]
+  },
+  {
+    "test_name": "Barley price Chandigarh",
+    "query": "barley price in chandigarh",
+    "status_code": "N/A",
+    "response": "💰 chandigarh, Chandigarh में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'barley' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi wheat price",
+    "query": "गेहूं की कीमत दिल्ली में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• गेहूं की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'दिल्ली' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi rice price",
+    "query": "चावल की कीमत मुंबई में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'मुंबई' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi potato price",
+    "query": "आलू की कीमत लखनऊ में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 आलू: ₹1,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• आलू की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'लखनऊ' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi onion price",
+    "query": "प्याज की कीमत बैंगलोर में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 प्याज: ₹2,800/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• प्याज की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'बैंगलोर' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi tomato price",
+    "query": "टमाटर की कीमत चेन्नई में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 टमाटर: ₹3,500/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• टमाटर की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'चेन्नई' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi cotton price",
+    "query": "कपास की कीमत हैदराबाद में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 कपास: ₹6,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• कपास की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'हैदराबाद' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi sugarcane price",
+    "query": "गन्ना की कीमत कानपुर में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 गन्ना: ₹3,100/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• गन्ना की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'कानपुर' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi groundnut price",
+    "query": "मूंगफली की कीमत अहमदाबाद में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 मूंगफली: ₹5,500/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• मूंगफली की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'अहमदाबाद' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish wheat price",
+    "query": "wheat की कीमत delhi में",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish rice price",
+    "query": "rice की कीमत mumbai में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• चावल की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'rice' not found in response",
+      "Expected location 'mumbai' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish potato price",
+    "query": "potato की कीमत lucknow में",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 आलू: ₹1,200/क्विंटल\n\n🌾 गेहूं: ₹2,450/क्विंटल\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• आलू की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'potato' not found in response",
+      "Expected location 'lucknow' not found in response"
+    ]
+  },
+  {
+    "test_name": "Price without location",
+    "query": "wheat price",
+    "status_code": "N/A",
+    "response": "💰 Delhi में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• गेहूं की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response"
+    ]
+  },
+  {
+    "test_name": "Price without crop",
+    "query": "price in delhi",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Market price query",
+    "query": "market price of wheat",
+    "status_code": "N/A",
+    "response": "💰 wheat, Telangana में बाजार कीमतें:\n\n🌾 चावल: ₹3,200/क्विंटल\n🌾 मक्का: ₹1,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• गेहूं की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Rate query",
+    "query": "wheat rate in delhi",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Cost query",
+    "query": "wheat cost in delhi",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Mandi price query",
+    "query": "wheat price in delhi mandi",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Bazaar price query",
+    "query": "wheat price in delhi bazaar",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Basic weather query",
+    "query": "weather in delhi",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi weather query",
+    "query": "दिल्ली में मौसम",
+    "status_code": "N/A",
+    "response": "🌤️ मौसम, Unknown का मौसम:\n\n🌡️ तापमान: 26.8°C\n💧 नमी: 73%\n💨 हवा की गति: 9 km/h\n\n📅 आज के लिए सुझाव: सुबह 6-8 बजे सिंचाई करें, दोपहर में खेत में काम न करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'दिल्ली' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish weather query",
+    "query": "delhi में weather",
+    "status_code": "N/A",
+    "response": "नमस्ते! मैं कृषिमित्र AI हूँ, आपका बुद्धिमान कृषि सहायक। मैं आपकी हर जरूरत को समझ सकता हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Temperature query",
+    "query": "temperature in mumbai",
+    "status_code": "N/A",
+    "response": "🌤️ mumbai, Maharashtra का मौसम:\n\n🌡️ तापमान: 29.5°C\n💧 नमी: 62%\n💨 हवा की गति: 5 km/h\n\n🌡️ तापमान सामान्य है। खेती के लिए अच्छा मौसम है।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Rain query",
+    "query": "rain in bangalore",
+    "status_code": "N/A",
+    "response": "🌤️ bangalore, Karnataka का मौसम:\n\n🌡️ तापमान: 28.0°C\n💧 नमी: 81%\n💨 हवा की गति: 7 km/h\n\n🌧️ बारिश की संभावना के लिए मौसम विभाग से जांच करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Humidity query",
+    "query": "humidity in chennai",
+    "status_code": "N/A",
+    "response": "🌤️ chennai, Tamil Nadu का मौसम:\n\n🌡️ तापमान: 30.6°C\n💧 नमी: 62%\n💨 हवा की गति: 8 km/h\n\n💧 नमी सामान्य है। फसलों के लिए अच्छा है।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Wind query",
+    "query": "wind in hyderabad",
+    "status_code": "N/A",
+    "response": "🌤️ hyderabad, Telangana का मौसम:\n\n🌡️ तापमान: 33.0°C\n💧 नमी: 48%\n💨 हवा की गति: 13 km/h\n\n📅 आज के लिए सुझाव: सुबह 6-8 बजे सिंचाई करें, दोपहर में खेत में काम न करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hindi temperature",
+    "query": "मुंबई में तापमान",
+    "status_code": "N/A",
+    "response": "🌤️ Delhi का मौसम:\n\n🌡️ तापमान: 27.9°C\n💧 नमी: 82%\n💨 हवा की गति: 14 km/h\n\n🌡️ तापमान सामान्य है। खेती के लिए अच्छा मौसम है।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'मुंबई' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi rain",
+    "query": "बैंगलोर में बारिश",
+    "status_code": "N/A",
+    "response": "🌤️ Delhi का मौसम:\n\n🌡️ तापमान: 23.3°C\n💧 नमी: 83%\n💨 हवा की गति: 19 km/h\n\n🌧️ बारिश की संभावना के लिए मौसम विभाग से जांच करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'बैंगलोर' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi humidity",
+    "query": "चेन्नई में नमी",
+    "status_code": "N/A",
+    "response": "🌤️ नमी, Karnataka का मौसम:\n\n🌡️ तापमान: 32.9°C\n💧 नमी: 56%\n💨 हवा की गति: 16 km/h\n\n💧 नमी सामान्य है। फसलों के लिए अच्छा है।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'चेन्नई' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi wind",
+    "query": "हैदराबाद में हवा",
+    "status_code": "N/A",
+    "response": "💰 हवा, Rajasthan में बाजार कीमतें:\n\n🌾 सरसों: ₹4,200/क्विंटल\n🌾 कपास: ₹6,200/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• गेहूं की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'हैदराबाद' not found in response"
+    ]
+  },
+  {
+    "test_name": "Weather forecast",
+    "query": "weather forecast for delhi",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Rain forecast",
+    "query": "rain forecast for mumbai",
+    "status_code": "N/A",
+    "response": "🌤️ mumbai, Maharashtra का मौसम:\n\n🌡️ तापमान: 28.6°C\n💧 नमी: 52%\n💨 हवा की गति: 14 km/h\n\n🌧️ बारिश की संभावना के लिए मौसम विभाग से जांच करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Temperature forecast",
+    "query": "temperature forecast for bangalore",
+    "status_code": "N/A",
+    "response": "🌤️ bangalore, Karnataka का मौसम:\n\n🌡️ तापमान: 27.1°C\n💧 नमी: 57%\n💨 हवा की गति: 13 km/h\n\n🌡️ तापमान सामान्य है। खेती के लिए अच्छा मौसम है।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hindi weather forecast",
+    "query": "दिल्ली के लिए मौसम पूर्वानुमान",
+    "status_code": "N/A",
+    "response": "🌤️ मौसम, Unknown का मौसम:\n\n🌡️ तापमान: 22.6°C\n💧 नमी: 51%\n💨 हवा की गति: 15 km/h\n\n📅 आज के लिए सुझाव: सुबह 6-8 बजे सिंचाई करें, दोपहर में खेत में काम न करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'दिल्ली' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi rain forecast",
+    "query": "मुंबई के लिए बारिश पूर्वानुमान",
+    "status_code": "N/A",
+    "response": "🌤️ Delhi का मौसम:\n\n🌡️ तापमान: 26.8°C\n💧 नमी: 80%\n💨 हवा की गति: 5 km/h\n\n🌧️ बारिश की संभावना के लिए मौसम विभाग से जांच करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'मुंबई' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi temperature forecast",
+    "query": "बैंगलोर के लिए तापमान पूर्वानुमान",
+    "status_code": "N/A",
+    "response": "🌤️ Delhi का मौसम:\n\n🌡️ तापमान: 26.9°C\n💧 नमी: 59%\n💨 हवा की गति: 20 km/h\n\n🌡️ तापमान सामान्य है। खेती के लिए अच्छा मौसम है।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'बैंगलोर' not found in response"
+    ]
+  },
+  {
+    "test_name": "Weather for farming",
+    "query": "weather for farming in delhi",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Rain for crops",
+    "query": "rain for crops in mumbai",
+    "status_code": "N/A",
+    "response": "🌾 crops, Andhra Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: crops, Andhra Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 31.5°C\n• वर्षा: 1.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'Mumbai' not found in response"
+    ]
+  },
+  {
+    "test_name": "Temperature for crops",
+    "query": "temperature for crops in bangalore",
+    "status_code": "N/A",
+    "response": "🌾 crops, Andhra Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: crops, Andhra Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 27.9°C\n• वर्षा: 8.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'Bangalore' not found in response"
+    ]
+  },
+  {
+    "test_name": "Basic pest query",
+    "query": "pest control for wheat",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'wheat' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi pest query",
+    "query": "गेहूं में कीट नियंत्रण",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'गेहूं' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish pest query",
+    "query": "wheat में pest control",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'wheat' not found in response"
+    ]
+  },
+  {
+    "test_name": "Disease query",
+    "query": "disease in rice",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'rice' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi disease query",
+    "query": "चावल में रोग",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'चावल' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish disease query",
+    "query": "rice में disease",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'rice' not found in response"
+    ]
+  },
+  {
+    "test_name": "Pest identification",
+    "query": "identify pest in potato",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'potato' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi pest identification",
+    "query": "आलू में कीट की पहचान",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'आलू' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish pest identification",
+    "query": "potato में pest identify",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'potato' not found in response"
+    ]
+  },
+  {
+    "test_name": "Disease identification",
+    "query": "identify disease in onion",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'onion' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi disease identification",
+    "query": "प्याज में रोग की पहचान",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'प्याज' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish disease identification",
+    "query": "onion में disease identify",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'onion' not found in response"
+    ]
+  },
+  {
+    "test_name": "Pest treatment",
+    "query": "pest treatment for tomato",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'tomato' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi pest treatment",
+    "query": "टमाटर में कीट उपचार",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'टमाटर' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish pest treatment",
+    "query": "tomato में pest treatment",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'tomato' not found in response"
+    ]
+  },
+  {
+    "test_name": "Disease treatment",
+    "query": "disease treatment for cotton",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'cotton' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi disease treatment",
+    "query": "कपास में रोग उपचार",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'कपास' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish disease treatment",
+    "query": "cotton में disease treatment",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'cotton' not found in response"
+    ]
+  },
+  {
+    "test_name": "Pesticide query",
+    "query": "pesticide for sugarcane",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'sugarcane' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi pesticide query",
+    "query": "गन्ना के लिए कीटनाशक",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'गन्ना' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish pesticide query",
+    "query": "sugarcane के लिए pesticide",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'sugarcane' not found in response"
+    ]
+  },
+  {
+    "test_name": "Basic greeting",
+    "query": "hello",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hindi greeting",
+    "query": "नमस्ते",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hinglish greeting",
+    "query": "hi bhai",
+    "status_code": "N/A",
+    "response": "नमस्ते! मैं कृषिमित्र AI हूँ, आपका बुद्धिमान कृषि सहायक। मैं आपकी हर जरूरत को समझ सकता हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Good morning",
+    "query": "good morning",
+    "status_code": "N/A",
+    "response": "नमस्ते! मैं कृषिमित्र AI हूँ, आपका बुद्धिमान कृषि सहायक। मैं आपकी हर जरूरत को समझ सकता हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hindi good morning",
+    "query": "सुप्रभात",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hinglish good morning",
+    "query": "good morning bhai",
+    "status_code": "N/A",
+    "response": "नमस्ते! मैं कृषिमित्र AI हूँ, आपका बुद्धिमान कृषि सहायक। मैं आपकी हर जरूरत को समझ सकता हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Good evening",
+    "query": "good evening",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hindi good evening",
+    "query": "शुभ संध्या",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hinglish good evening",
+    "query": "good evening bhai",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "How are you",
+    "query": "how are you",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hindi how are you",
+    "query": "आप कैसे हैं",
+    "status_code": "N/A",
+    "response": "नमस्ते! मैं कृषिमित्र AI हूँ, आपका बुद्धिमान कृषि सहायक। मैं आपकी हर जरूरत को समझ सकता हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hinglish how are you",
+    "query": "kaise ho bhai",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.8°C\n• वर्षा: 10.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Help query",
+    "query": "help",
+    "status_code": "N/A",
+    "response": "मैं आपकी बात समझ गया। 💡 मैं आपको बता सकता हूँ:\n• मौसम की जानकारी\n• बाजार कीमतें\n• फसल सुझाव\n• कीट नियंत्रण\n• खाद प्रबंधन\n\nकृपया अपना सवाल स्पष्ट करें ताकि मैं आपकी बेहतर मदद कर सकूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.7,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hindi help query",
+    "query": "मदद",
+    "status_code": "N/A",
+    "response": "मैं आपकी बात समझ गया। 💡 मैं आपको बता सकता हूँ:\n• मौसम की जानकारी\n• बाजार कीमतें\n• फसल सुझाव\n• कीट नियंत्रण\n• खाद प्रबंधन\n\nकृपया अपना सवाल स्पष्ट करें ताकि मैं आपकी बेहतर मदद कर सकूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.7,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Hinglish help query",
+    "query": "help chahiye",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "English crop query",
+    "query": "crop recommendation for delhi",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi crop query",
+    "query": "दिल्ली के लिए फसल सुझाव",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.2°C\n• वर्षा: 13.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'दिल्ली' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish crop query",
+    "query": "delhi के लिए crop suggest करो",
+    "status_code": "N/A",
+    "response": "नमस्ते! मैं कृषिमित्र AI हूँ, आपका बुद्धिमान कृषि सहायक। मैं आपकी हर जरूरत को समझ सकता हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "English price query",
+    "query": "wheat price in delhi",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi price query",
+    "query": "दिल्ली में गेहूं की कीमत",
+    "status_code": "N/A",
+    "response": "💰 गेहूं, Rajasthan में बाजार कीमतें:\n\n🌾 सरसों: ₹4,200/क्विंटल\n🌾 कपास: ₹6,200/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• गेहूं की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.95,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected location 'दिल्ली' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish price query",
+    "query": "delhi में wheat की price",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "English weather query",
+    "query": "weather in delhi",
+    "status_code": "N/A",
+    "response": "नमस्ते! मैं कृषिमित्र AI हूँ, आपका बुद्धिमान कृषि सहायक। मैं आपकी हर जरूरत को समझ सकता हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi weather query",
+    "query": "दिल्ली में मौसम",
+    "status_code": "N/A",
+    "response": "🌤️ मौसम, Unknown का मौसम:\n\n🌡️ तापमान: 22.2°C\n💧 नमी: 65%\n💨 हवा की गति: 11 km/h\n\n📅 आज के लिए सुझाव: सुबह 6-8 बजे सिंचाई करें, दोपहर में खेत में काम न करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'दिल्ली' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish weather query",
+    "query": "delhi में weather कैसा है",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "English pest query",
+    "query": "pest control for wheat",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'wheat' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hindi pest query",
+    "query": "गेहूं में कीट नियंत्रण",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'गेहूं' not found in response"
+    ]
+  },
+  {
+    "test_name": "Hinglish pest query",
+    "query": "wheat में pest control कैसे करें",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'wheat' not found in response"
+    ]
+  },
+  {
+    "test_name": "Spelling error crop",
+    "query": "crop sugest karo lucknow mei",
+    "status_code": "N/A",
+    "response": "🌾 lucknow, Uttar Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: lucknow, Uttar Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 27.5°C\n• वर्षा: 12.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Spelling error price",
+    "query": "wheat prize in delhi",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Spelling error weather",
+    "query": "wheather in mumbai",
+    "status_code": "N/A",
+    "response": "🌤️ mumbai, Maharashtra का मौसम:\n\n🌡️ तापमान: 29.1°C\n💧 नमी: 64%\n💨 हवा की गति: 11 km/h\n\n📅 आज के लिए सुझाव: सुबह 6-8 बजे सिंचाई करें, दोपहर में खेत में काम न करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Spelling error pest",
+    "query": "pest contol for rice",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'rice' not found in response"
+    ]
+  },
+  {
+    "test_name": "Grammatical error crop",
+    "query": "crop suggest do lucknow mein",
+    "status_code": "N/A",
+    "response": "🌾 lucknow, Uttar Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: lucknow, Uttar Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.6°C\n• वर्षा: 1.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Grammatical error price",
+    "query": "wheat price tell delhi mein",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Grammatical error weather",
+    "query": "weather tell mumbai mein",
+    "status_code": "N/A",
+    "response": "💰 mumbai, Maharashtra में बाजार कीमतें:\n\n🌾 कपास: ₹6,200/क्विंटल\n🌾 गन्ना: ₹3,100/क्विंटल\n🌾 सोयाबीन: ₹3,800/क्विंटल\n\n💡 सुझाव:\n• अच्छी गुणवत्ता वाली फसल बेचें\n• सरकारी मंडियों में बेचें\n• बाजार कीमतों पर नजर रखें\n• गेहूं की कीमत स्थिर है\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Grammatical error pest",
+    "query": "pest control tell rice mein",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'rice' not found in response"
+    ]
+  },
+  {
+    "test_name": "Mixed language error",
+    "query": "crop suggest करो lucknow में",
+    "status_code": "N/A",
+    "response": "🌾 में, Rajasthan के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: में, Rajasthan\n\n🌤️ मौसम की स्थिति:\n• तापमान: 22.1°C\n• वर्षा: 10.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Lucknow' not found in response"
+    ]
+  },
+  {
+    "test_name": "Mixed language error price",
+    "query": "wheat price बताओ delhi में",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Mixed language error weather",
+    "query": "weather बताओ mumbai में",
+    "status_code": "N/A",
+    "response": "🌤️ में, Rajasthan का मौसम:\n\n🌡️ तापमान: 23.8°C\n💧 नमी: 60%\n💨 हवा की गति: 14 km/h\n\n📅 आज के लिए सुझाव: सुबह 6-8 बजे सिंचाई करें, दोपहर में खेत में काम न करें।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'Mumbai' not found in response"
+    ]
+  },
+  {
+    "test_name": "Mixed language error pest",
+    "query": "pest control बताओ rice में",
+    "status_code": "N/A",
+    "response": "🐛 Delhi में कीट नियंत्रण:\n\n🔍 कीट और रोग की पहचान के लिए:\n• फसल की तस्वीर अपलोड करें\n• लक्षणों का विस्तार से वर्णन करें\n• फसल का नाम और उम्र बताएं\n\n💡 सामान्य सुझाव:\n• नियमित रूप से फसल की जांच करें\n• जैविक कीटनाशक का उपयोग करें\n• समय पर उपचार करें\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'rice' not found in response"
+    ]
+  },
+  {
+    "test_name": "Complex crop weather",
+    "query": "crop suggest karo lucknow mein aur weather bhi batao",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Lucknow' not found in response"
+    ]
+  },
+  {
+    "test_name": "Complex price weather",
+    "query": "wheat price in delhi aur weather bhi batao",
+    "status_code": "N/A",
+    "response": "नमस्ते! मैं कृषिमित्र AI हूँ, आपका बुद्धिमान कृषि सहायक। मैं आपकी हर जरूरत को समझ सकता हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Complex pest crop",
+    "query": "pest control for wheat aur crop suggest bhi karo",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'wheat' not found in response"
+    ]
+  },
+  {
+    "test_name": "Complex location crop",
+    "query": "lucknow mein kya crop lagayein aur weather kaisa hai",
+    "status_code": "N/A",
+    "response": "🌾 lucknow, Uttar Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: lucknow, Uttar Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 26.3°C\n• वर्षा: 14.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Complex season crop",
+    "query": "kharif season mein kya crop lagayein lucknow mein",
+    "status_code": "N/A",
+    "response": "🌾 lucknow, Uttar Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: lucknow, Uttar Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 27.9°C\n• वर्षा: 13.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Complex soil crop",
+    "query": "loamy soil mein kya crop lagayein delhi mein",
+    "status_code": "N/A",
+    "response": "नमस्कार! मैं आपका व्यक्तिगत कृषि सलाहकार हूँ। बताइए, आज आपकी क्या जरूरत है?",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Complex price location",
+    "query": "wheat price in delhi mandi aur mumbai mandi",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'market', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Complex weather location",
+    "query": "weather in delhi aur mumbai mein",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'weather', got 'None'",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Complex pest location",
+    "query": "pest control for wheat in delhi aur mumbai",
+    "status_code": "N/A",
+    "response": "नमस्ते! मैं कृषिमित्र AI हूँ, आपका बुद्धिमान कृषि सहायक। मैं आपकी हर जरूरत को समझ सकता हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'pest_control', got 'None'",
+      "Expected crop 'wheat' not found in response",
+      "Expected location 'Delhi' not found in response"
+    ]
+  },
+  {
+    "test_name": "Complex crop season",
+    "query": "kharif season mein kya crop lagayein aur rabi season mein kya",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 27.6°C\n• वर्षा: 6.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Empty query",
+    "query": "",
+    "status_code": "N/A",
+    "response": "API Error",
+    "source": "unknown",
+    "confidence": 0,
+    "metadata": {},
+    "passed": false,
+    "issues": [
+      "Expected intent 'greeting', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Single word",
+    "query": "crop",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 23.9°C\n• वर्षा: 11.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Single word Hindi",
+    "query": "फसल",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 26.9°C\n• वर्षा: 0.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Single word Hinglish",
+    "query": "crop",
+    "status_code": "N/A",
+    "response": "🌾 Delhi के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: Delhi\n\n🌤️ मौसम की स्थिति:\n• तापमान: 22.3°C\n• वर्षा: 13.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Very long query",
+    "query": "crop suggest karo lucknow mein aur weather bhi batao aur price bhi batao aur pest control bhi batao",
+    "status_code": "N/A",
+    "response": "शुभ संध्या! मैं यहाँ आपकी कृषि से जुड़ी हर समस्या का समाधान देने के लिए हूँ।",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Lucknow' not found in response"
+    ]
+  },
+  {
+    "test_name": "Numbers in query",
+    "query": "crop suggest karo lucknow mein 2024 mein",
+    "status_code": "N/A",
+    "response": "🌾 lucknow, Uttar Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: lucknow, Uttar Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 27.9°C\n• वर्षा: 4.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Special characters",
+    "query": "crop suggest karo lucknow mein!!!",
+    "status_code": "N/A",
+    "response": "🌾 lucknow, Uttar Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: lucknow, Uttar Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.8°C\n• वर्षा: 13.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Mixed case",
+    "query": "CROP SUGGEST KARO LUCKNOW MEIN",
+    "status_code": "N/A",
+    "response": "🌾 lucknow, Uttar Pradesh के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: lucknow, Uttar Pradesh\n\n🌤️ मौसम की स्थिति:\n• तापमान: 25.4°C\n• वर्षा: 2.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'"
+    ]
+  },
+  {
+    "test_name": "Mixed case Hindi",
+    "query": "फसल सुझाव दो लखनऊ में",
+    "status_code": "N/A",
+    "response": "🌾 में, Rajasthan के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: में, Rajasthan\n\n🌤️ मौसम की स्थिति:\n• तापमान: 24.9°C\n• वर्षा: 6.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'लखनऊ' not found in response"
+    ]
+  },
+  {
+    "test_name": "Mixed case Hinglish",
+    "query": "CROP suggest करो LUCKNOW में",
+    "status_code": "N/A",
+    "response": "🌾 में, Rajasthan के लिए फसल सुझाव:\n\n1. 🌱 Maize (सुझाव: 85%)\n2. 🌱 Soybean (सुझाव: 80%)\n3. 🌱 Rice (सुझाव: 63%)\n\n📅 मौसम: kharif\n🌱 मिट्टी: loamy\n📍 स्थान: में, Rajasthan\n\n🌤️ मौसम की स्थिति:\n• तापमान: 22.9°C\n• वर्षा: 14.0mm\n\n📈 बाजार रुझान: बढ़ती\n\n💡 सुझाव:\n• मिट्टी की जांच करवाएं\n• सही समय पर बुवाई करें\n• उचित सिंचाई का ध्यान रखें\n• सरकारी योजनाओं का लाभ उठाएं\n",
+    "source": "intelligent_chatbot",
+    "confidence": 0.9,
+    "metadata": {
+      "has_location": false,
+      "has_product": false,
+      "conversation_length": 0,
+      "user_id": "anonymous"
+    },
+    "passed": false,
+    "issues": [
+      "Expected intent 'crop_recommendation', got 'None'",
+      "Expected location 'Lucknow' not found in response"
+    ]
+  }
+]

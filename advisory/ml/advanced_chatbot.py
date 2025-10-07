@@ -387,7 +387,7 @@ Would you like to know about tomorrow's weather?"""
 • सरकारी मंडियों में बेचें
 
 किसी विशेष फसल की कीमत जानना चाहते हैं?"""
-            else:
+        else:
                 return f"""💰 **Market Prices:**
 
 🌾 Wheat: ₹{market_data[0].get('price', '2,450')}/quintal
@@ -411,7 +411,7 @@ Would you like to know prices for any specific crop?"""
             logger.error(f"Market query error: {e}")
             if language == 'hi':
                 return "क्षमा करें, बाजार कीमतें अभी उपलब्ध नहीं हैं। कृपया बाद में पूछें।"
-            else:
+        else:
                 return "Sorry, market prices are not available right now. Please try again later."
     
     def _handle_general_question(self, query: str, language: str) -> str:

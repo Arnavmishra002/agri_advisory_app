@@ -1,0 +1,4 @@
+# Render.com Build Configuration
+
+# Build command for Render.com
+pip install -r requirements.txt && python manage.py collectstatic --noinput

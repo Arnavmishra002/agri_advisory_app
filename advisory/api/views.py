@@ -7,10 +7,10 @@ from ..ml.ai_models import predict_yield
 from ..ml.fertilizer_recommendations import FertilizerRecommendationEngine
 from ..ml.ml_models import AgriculturalMLSystem
 from ..feedback_system import FeedbackAnalytics
-from ..ml.advanced_chatbot import AdvancedAgriculturalChatbot
+from ..ml.intelligent_chatbot import IntelligentAgriculturalChatbot
 import uuid
 from ..services.weather_api import MockWeatherAPI
-from ..services.market_api import get_market_prices, get_trending_crops
+from ..services.enhanced_government_api import EnhancedGovernmentAPI
 from ..services.pest_detection import PestDetectionSystem
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
@@ -75,7 +75,7 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         self.ml_system = AgriculturalMLSystem()
         self.feedback_analytics = FeedbackAnalytics()
         self.weather_api = MockWeatherAPI() # Use the actual weather API
-        self.nlp_chatbot = AdvancedAgriculturalChatbot() # Initialize the advanced chatbot
+        self.intelligent_chatbot = IntelligentAgriculturalChatbot() # Initialize the intelligent chatbot
         self.pest_detection_system = PestDetectionSystem() # Initialize the pest detection system
 
     @action(detail=False, methods=['post'], serializer_class=YieldPredictionSerializer)
@@ -155,19 +155,28 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
             longitude = request.data.get('longitude', 77.2090)
             
             # Always include location data for comprehensive responses
-            if latitude and longitude:
-                # Update chatbot context with location
-                self.nlp_chatbot.conversation_context["last_lat"] = latitude
-                self.nlp_chatbot.conversation_context["last_lon"] = longitude
+            # Note: Location is passed directly to get_response method
             
-            # Get enhanced chatbot response with ChatGPT-like capabilities
-            chatbot_response = self.nlp_chatbot.get_response(user_query, language)
+            # Get enhanced chatbot response with intelligent capabilities
+            chatbot_response = self.intelligent_chatbot.get_response(
+                user_query=user_query,
+                language=language,
+                user_id=user_id,
+                session_id=session_id,
+                latitude=latitude,
+                longitude=longitude,
+                conversation_history=request.data.get('conversation_history', []),
+                location_name=request.data.get('location_name', 'Unknown Location')
+            )
             
             # Debug logging
             print(f"Chatbot response for query '{user_query}': {chatbot_response}")
             
-            # Extract response data
+            # Extract response data with proper encoding
             response = chatbot_response.get('response', 'Sorry, I could not process your request.')
+            # Ensure proper UTF-8 encoding for Hindi text
+            if isinstance(response, str):
+                response = response.encode('utf-8').decode('utf-8')
             source = chatbot_response.get('source', 'conversational_ai')
             confidence = chatbot_response.get('confidence', 0.8)
             detected_language = chatbot_response.get('language', language)
@@ -193,10 +202,15 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
                 'ml_enhanced': ml_enhanced,
                 'timestamp': chatbot_response.get('timestamp'),
                 'metadata': {
+                    'intent': metadata.get('intent', 'general'),
+                    'entities': metadata.get('entities', {}),
                     'has_location': metadata.get('has_location', False),
                     'has_product': metadata.get('has_product', False),
                     'conversation_length': metadata.get('conversation_length', 0),
-                    'user_id': user_id
+                    'user_id': user_id,
+                    'location_based': metadata.get('location_based', False),
+                    'processed_query': metadata.get('processed_query', user_query),
+                    'original_query': metadata.get('original_query', user_query)
                 }
             })
             
@@ -433,6 +447,12 @@ class WeatherViewSet(viewsets.ViewSet):
             longitude = float(longitude)
         except ValueError:
             return Response({"error": "Latitude and longitude must be valid numbers"}, status=400)
+        
+        # Validate coordinate ranges
+        if not (-90 <= latitude <= 90):
+            return Response({"error": "Latitude must be between -90 and 90 degrees"}, status=400)
+        if not (-180 <= longitude <= 180):
+            return Response({"error": "Longitude must be between -180 and 180 degrees"}, status=400)
 
         weather_api = MockWeatherAPI()
         weather_data = weather_api.get_current_weather(latitude, longitude, language)
@@ -498,15 +518,40 @@ class MarketPricesViewSet(viewsets.ViewSet):
     """
     A simple ViewSet for retrieving real-time market prices.
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.government_api = EnhancedGovernmentAPI()
+    
     @action(detail=False, methods=['get'])
     def prices(self, request):
         product_type = request.query_params.get('product', None)
         latitude = request.query_params.get('lat', None)
         longitude = request.query_params.get('lon', None)
         language = request.query_params.get('lang', 'en')
+        
+        # Validate coordinates
+        if not (latitude and longitude):
+            return Response({"error": "Latitude and longitude parameters are required"}, status=400)
+        
+        try:
+            latitude = float(latitude)
+            longitude = float(longitude)
+        except ValueError:
+            return Response({"error": "Latitude and longitude must be valid numbers"}, status=400)
+        
+        # Validate coordinate ranges
+        if not (-90 <= latitude <= 90):
+            return Response({"error": "Latitude must be between -90 and 90 degrees"}, status=400)
+        if not (-180 <= longitude <= 180):
+            return Response({"error": "Longitude must be between -180 and 180 degrees"}, status=400)
+        
         print(f"MarketPricesViewSet: Received lat={latitude}, lon={longitude}, lang={language}, product_type={product_type}")
 
-        market_data = get_market_prices(latitude, longitude, language, product_type) # Updated function call
+        # Use the enhanced government API
+        market_data = self.government_api.get_real_market_prices(
+            commodity=product_type,
+            language=language
+        )
         
         if market_data:
             print(f"MarketPricesViewSet: Returning market_data = {market_data}")

@@ -1,0 +1,1475 @@
+{
+    "overall_results": {
+        "total_tests": 189,
+        "passed_tests": 155,
+        "failed_tests": 34,
+        "success_rate": "82.0%"
+    },
+    "category_results": {
+        "direct_ai_tests": {
+            "passed": 56,
+            "total": 70,
+            "details": [
+                {
+                    "test_name": "hello variation 1",
+                    "query": "hi",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.017607688903808594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "hello variation 2",
+                    "query": "hey",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019741058349609375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "hello variation 3",
+                    "query": "namaste",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'greeting', got 'general'"
+                    ],
+                    "response_time": 0.00021982192993164062,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "hello variation 4",
+                    "query": "नमस्ते",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00043511390686035156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "hello variation 5",
+                    "query": "hello bhai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002853870391845703,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "hello variation 6",
+                    "query": "hi dost",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00021505355834960938,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "hello variation 7",
+                    "query": "hey farmer",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00040984153747558594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "hello variation 8",
+                    "query": "hello kisan",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0010426044464111328,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "hello variation 9",
+                    "query": "hi agricultural",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00026535987854003906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "hello variation 10",
+                    "query": "hey farming",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'greeting', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0003428459167480469,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 1",
+                    "query": "help me",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00029206275939941406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 2",
+                    "query": "मदद",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001227855682373047,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 3",
+                    "query": "help chahiye",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001709461212158203,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 4",
+                    "query": "assistance",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'government_schemes'"
+                    ],
+                    "response_time": 0.0004515647888183594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 5",
+                    "query": "support",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'government_schemes'"
+                    ],
+                    "response_time": 0.0007650852203369141,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 6",
+                    "query": "guidance",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0003638267517089844,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 7",
+                    "query": "help needed",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001857280731201172,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 8",
+                    "query": "मदद चाहिए",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002474784851074219,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 9",
+                    "query": "help karo",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001690387725830078,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "help variation 10",
+                    "query": "support chahiye",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'greeting'"
+                    ],
+                    "response_time": 0.00043463706970214844,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 1",
+                    "query": "kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00037360191345214844,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 2",
+                    "query": "what to grow",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00027871131896972656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 3",
+                    "query": "crop recommendation",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004050731658935547,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 4",
+                    "query": "फसल सुझाव",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004107952117919922,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 5",
+                    "query": "crop suggest karo",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00037479400634765625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 6",
+                    "query": "what crops",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00048613548278808594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 7",
+                    "query": "kya crop",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002956390380859375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 8",
+                    "query": "फसल क्या लगाएं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002713203430175781,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 9",
+                    "query": "crop advice",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001742839813232422,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "crop suggest variation 10",
+                    "query": "suggest crops",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00021600723266601562,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 1",
+                    "query": "wheat ka price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017690658569335938,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 2",
+                    "query": "wheat rate",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00012445449829101562,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 3",
+                    "query": "गेहूं की कीमत",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002627372741699219,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 4",
+                    "query": "wheat cost",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001742839813232422,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 5",
+                    "query": "wheat price kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002415180206298828,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 6",
+                    "query": "wheat ka rate",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001494884490966797,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 7",
+                    "query": "wheat market price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00014829635620117188,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 8",
+                    "query": "गेहूं का दाम",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00026035308837890625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 9",
+                    "query": "wheat price kitna",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011777877807617188,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "wheat price variation 10",
+                    "query": "wheat ki price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011229515075683594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 1",
+                    "query": "mausam",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'general'"
+                    ],
+                    "response_time": 0.00021982192993164062,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 2",
+                    "query": "weather kaisa hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00029540061950683594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 3",
+                    "query": "मौसम",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003781318664550781,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 4",
+                    "query": "weather forecast",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00024890899658203125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 5",
+                    "query": "rain",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001983642578125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 6",
+                    "query": "barish",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'general'"
+                    ],
+                    "response_time": 0.0002315044403076172,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 7",
+                    "query": "temperature",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001895427703857422,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 8",
+                    "query": "तापमान",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001575946807861328,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 9",
+                    "query": "weather condition",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001952648162841797,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "weather variation 10",
+                    "query": "मौसम कैसा है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003616809844970703,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 1",
+                    "query": "rog",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'general'"
+                    ],
+                    "response_time": 0.00020241737365722656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 2",
+                    "query": "disease treatment",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00042366981506347656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 3",
+                    "query": "रोग",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003323554992675781,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 4",
+                    "query": "pest control",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003437995910644531,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 5",
+                    "query": "disease ka treatment",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00023436546325683594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 6",
+                    "query": "रोग का उपचार",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00026154518127441406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 7",
+                    "query": "plant disease",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00022077560424804688,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 8",
+                    "query": "crop disease",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00024199485778808594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 9",
+                    "query": "disease problem",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019216537475585938,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "disease variation 10",
+                    "query": "रोग की समस्या",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020766258239746094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 1",
+                    "query": "sarkari yojana",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0005435943603515625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 2",
+                    "query": "PM Kisan",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00028896331787109375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 3",
+                    "query": "सरकारी योजना",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002658367156982422,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 4",
+                    "query": "subsidy",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00012683868408203125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 5",
+                    "query": "सब्सिडी",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00015473365783691406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 6",
+                    "query": "loan",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00010156631469726562,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 7",
+                    "query": "कर्ज",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'government_schemes', got 'general'"
+                    ],
+                    "response_time": 0.00018477439880371094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 8",
+                    "query": "government help",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'government_schemes', got 'general'"
+                    ],
+                    "response_time": 9.322166442871094e-05,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 9",
+                    "query": "सरकारी मदद",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'government_schemes', got 'general'"
+                    ],
+                    "response_time": 0.00038814544677734375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "government scheme variation 10",
+                    "query": "scheme details",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001308917999267578,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "server_api_tests": {
+            "passed": 0,
+            "total": 5,
+            "details": [
+                {
+                    "test_name": "Server: hello",
+                    "query": "hello",
+                    "passed": false,
+                    "issues": [
+                        "Server error: 404"
+                    ],
+                    "response_time": 2.3192012310028076,
+                    "confidence": 0
+                },
+                {
+                    "test_name": "Server: wheat price",
+                    "query": "wheat price",
+                    "passed": false,
+                    "issues": [
+                        "Server error: 404"
+                    ],
+                    "response_time": 2.0847675800323486,
+                    "confidence": 0
+                },
+                {
+                    "test_name": "Server: crop suggestion",
+                    "query": "crop suggestion",
+                    "passed": false,
+                    "issues": [
+                        "Server error: 404"
+                    ],
+                    "response_time": 2.058100461959839,
+                    "confidence": 0
+                },
+                {
+                    "test_name": "Server: weather forecast",
+                    "query": "weather forecast",
+                    "passed": false,
+                    "issues": [
+                        "Server error: 404"
+                    ],
+                    "response_time": 2.066159725189209,
+                    "confidence": 0
+                },
+                {
+                    "test_name": "Server: plant disease",
+                    "query": "plant disease",
+                    "passed": false,
+                    "issues": [
+                        "Server error: 404"
+                    ],
+                    "response_time": 2.1817986965179443,
+                    "confidence": 0
+                }
+            ]
+        },
+        "performance_tests": {
+            "passed": 21,
+            "total": 21,
+            "details": []
+        },
+        "edge_case_tests": {
+            "passed": 16,
+            "total": 22,
+            "details": [
+                {
+                    "test_name": "Edge case: ...",
+                    "query": "",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002961158752441406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case:  ...",
+                    "query": " ",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002205371856689453,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: a...",
+                    "query": "a",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003204345703125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: ?...",
+                    "query": "?",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018072128295898438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: 123...",
+                    "query": "123",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00013399124145507812,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: !@#$%...",
+                    "query": "!@#$%",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001819133758544922,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: crop123...",
+                    "query": "crop123",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003123283386230469,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: price@123...",
+                    "query": "price@123",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011992454528808594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: aaaaaaaaaaaaaaaaaaaa...",
+                    "query": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.001390695571899414,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: wheat wheat wheat wh...",
+                    "query": "wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat wheat ",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'market_price', got 'general'"
+                    ],
+                    "response_time": 0.004389762878417969,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: WHEAT PRICE...",
+                    "query": "WHEAT PRICE",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001366138458251953,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: wheat pric...",
+                    "query": "wheat pric",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'market_price', got 'general'"
+                    ],
+                    "response_time": 0.00019240379333496094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: wheat priice...",
+                    "query": "wheat priice",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'market_price', got 'general'"
+                    ],
+                    "response_time": 0.00013875961303710938,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: kya...",
+                    "query": "kya",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001480579376220703,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: what...",
+                    "query": "what",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.000217437744140625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: how...",
+                    "query": "how",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00014019012451171875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: when...",
+                    "query": "when",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00012946128845214844,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: where...",
+                    "query": "where",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001163482666015625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: my farm...",
+                    "query": "my farm",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00015783309936523438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: my crops...",
+                    "query": "my crops",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003006458282470703,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: my field...",
+                    "query": "my field",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00018906593322753906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Edge case: my land...",
+                    "query": "my land",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00025177001953125,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "language_tests": {
+            "passed": 15,
+            "total": 15,
+            "details": [
+                {
+                    "test_name": "Language test: en",
+                    "query": "what crops should I grow",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00027298927307128906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: en",
+                    "query": "wheat price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003726482391357422,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: en",
+                    "query": "weather forecast",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00030159950256347656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: en",
+                    "query": "plant disease treatment",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019121170043945312,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: en",
+                    "query": "government schemes",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001513957977294922,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hi",
+                    "query": "क्या फसल लगाएं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003361701965332031,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hi",
+                    "query": "गेहूं की कीमत",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011134147644042969,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hi",
+                    "query": "मौसम कैसा है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019121170043945312,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hi",
+                    "query": "रोग का उपचार",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00034236907958984375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hi",
+                    "query": "सरकारी योजना",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00016546249389648438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hinglish",
+                    "query": "kya crop lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0009062290191650391,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hinglish",
+                    "query": "wheat ka price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001621246337890625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hinglish",
+                    "query": "weather kaisa hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004181861877441406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hinglish",
+                    "query": "disease ka treatment",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002334117889404297,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Language test: hinglish",
+                    "query": "sarkari yojana",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00021958351135253906,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "intent_tests": {
+            "passed": 26,
+            "total": 32,
+            "details": [
+                {
+                    "test_name": "Intent: greeting",
+                    "query": "hello",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00027751922607421875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: greeting",
+                    "query": "hi",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00016736984252929688,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: greeting",
+                    "query": "नमस्ते",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003345012664794922,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: greeting",
+                    "query": "hello bhai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00030422210693359375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: general",
+                    "query": "help",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0005261898040771484,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: general",
+                    "query": "मदद",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00015211105346679688,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: general",
+                    "query": "help chahiye",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020051002502441406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: general",
+                    "query": "assistance",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'government_schemes'"
+                    ],
+                    "response_time": 0.00021195411682128906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: crop_recommendation",
+                    "query": "what crops to grow",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002434253692626953,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: crop_recommendation",
+                    "query": "kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018668174743652344,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: crop_recommendation",
+                    "query": "फसल सुझाव",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0007176399230957031,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: crop_recommendation",
+                    "query": "crop suggestion",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0008249282836914062,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: market_price",
+                    "query": "wheat price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00023412704467773438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: market_price",
+                    "query": "rice rate",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019693374633789062,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: market_price",
+                    "query": "गेहूं की कीमत",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018548965454101562,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: market_price",
+                    "query": "cotton ka price",
+                    "passed": false,
+                    "issues": [
+                        "Expected entity 'crop': 'cotton', got 'rice'"
+                    ],
+                    "response_time": 0.00021123886108398438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: weather",
+                    "query": "weather forecast",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003528594970703125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: weather",
+                    "query": "मौसम",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004210472106933594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: weather",
+                    "query": "weather kaisa hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00041031837463378906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: weather",
+                    "query": "rain prediction",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004658699035644531,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: pest_control",
+                    "query": "plant disease",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0004038810729980469,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: pest_control",
+                    "query": "रोग",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.001622915267944336,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: pest_control",
+                    "query": "disease treatment",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004100799560546875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: pest_control",
+                    "query": "pest control",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002522468566894531,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: government_schemes",
+                    "query": "PM Kisan",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00034928321838378906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: government_schemes",
+                    "query": "सरकारी योजना",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002200603485107422,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: government_schemes",
+                    "query": "subsidy",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011610984802246094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: government_schemes",
+                    "query": "loan scheme",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00016307830810546875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: complex_query",
+                    "query": "wheat price and weather",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'complex_query', got 'market_price'"
+                    ],
+                    "response_time": 0.00018596649169921875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: complex_query",
+                    "query": "crop suggestion and market rate",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'complex_query', got 'market_price'"
+                    ],
+                    "response_time": 0.0003104209899902344,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: complex_query",
+                    "query": "गेहूं की कीमत और मौसम",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'complex_query', got 'market_price'"
+                    ],
+                    "response_time": 0.00023126602172851562,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intent: complex_query",
+                    "query": "crop aur weather",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003299713134765625,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "entity_tests": {
+            "passed": 19,
+            "total": 19,
+            "details": [
+                {
+                    "test_name": "Entity: wheat price",
+                    "query": "wheat price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00015664100646972656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: rice cultivation",
+                    "query": "rice cultivation",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019025802612304688,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: cotton disease",
+                    "query": "cotton disease",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00016832351684570312,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: गेहूं की कीमत",
+                    "query": "गेहूं की कीमत",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020599365234375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: चावल की खेती",
+                    "query": "चावल की खेती",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002193450927734375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: Delhi weather",
+                    "query": "Delhi weather",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00013446807861328125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: Punjab crops",
+                    "query": "Punjab crops",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00039196014404296875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: Maharashtra farming",
+                    "query": "Maharashtra farming",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.000270843505859375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: पंजाब में फसल",
+                    "query": "पंजाब में फसल",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003147125244140625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: महाराष्ट्र में खेती",
+                    "query": "महाराष्ट्र में खेती",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002753734588623047,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: kharif crops",
+                    "query": "kharif crops",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019502639770507812,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: rabi season",
+                    "query": "rabi season",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00016164779663085938,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: monsoon farming",
+                    "query": "monsoon farming",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003063678741455078,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: खरीफ फसल",
+                    "query": "खरीफ फसल",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019168853759765625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: रबी सीजन",
+                    "query": "रबी सीजन",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018405914306640625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: Delhi wheat price",
+                    "query": "Delhi wheat price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001842975616455078,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: Punjab rice cultivation",
+                    "query": "Punjab rice cultivation",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004143714904785156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: kharif rice in Maharashtra",
+                    "query": "kharif rice in Maharashtra",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00022339820861816406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Entity: पंजाब में गेहूं की कीमत",
+                    "query": "पंजाब में गेहूं की कीमत",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018072128295898438,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "response_quality_tests": {
+            "passed": 2,
+            "total": 5,
+            "details": [
+                {
+                    "test_name": "Quality: wheat price",
+                    "query": "wheat price",
+                    "passed": false,
+                    "issues": [
+                        "Expected keyword 'price' not found in response"
+                    ],
+                    "response_time": 0.0001347064971923828,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Quality: crop suggestion",
+                    "query": "crop suggestion",
+                    "passed": false,
+                    "issues": [
+                        "Expected keyword 'suggest' not found in response",
+                        "Expected keyword 'season' not found in response"
+                    ],
+                    "response_time": 0.00017452239990234375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Quality: weather forecast",
+                    "query": "weather forecast",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017595291137695312,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Quality: plant disease",
+                    "query": "plant disease",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'",
+                        "Expected keyword 'disease' not found in response",
+                        "Expected keyword 'treatment' not found in response",
+                        "Expected keyword 'pest' not found in response",
+                        "Expected keyword 'control' not found in response"
+                    ],
+                    "response_time": 0.00025177001953125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Quality: government scheme",
+                    "query": "government scheme",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018215179443359375,
+                    "confidence": 0.95
+                }
+            ]
+        }
+    },
+    "timestamp": "2025-10-07T12:18:02.626878"
+}

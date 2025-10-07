@@ -75,9 +75,17 @@ class YieldPredictionSerializer(serializers.Serializer):
 
 class ChatbotSerializer(serializers.Serializer):
     query = serializers.CharField(max_length=500, help_text="User's question or query")
-    language = serializers.CharField(default='en', max_length=10, help_text="Language code (en, hi, etc.)")
+    language = serializers.ChoiceField(
+        choices=[('en', 'English'), ('hi', 'Hindi'), ('hinglish', 'Hinglish'), ('auto', 'Auto-detect')],
+        default='en', 
+        help_text="Language code (en, hi, hinglish, auto)"
+    )
     user_id = serializers.CharField(default='anonymous', max_length=100, help_text="User identifier")
     session_id = serializers.CharField(required=False, max_length=100, help_text="Session identifier")
+    latitude = serializers.FloatField(required=False, help_text="Latitude coordinate")
+    longitude = serializers.FloatField(required=False, help_text="Longitude coordinate")
+    conversation_history = serializers.ListField(required=False, help_text="Previous conversation history")
+    location_name = serializers.CharField(required=False, max_length=100, help_text="Location name")
 
 class FertilizerRecommendationSerializer(serializers.Serializer):
     crop_type = serializers.CharField(max_length=100, help_text="Type of crop")

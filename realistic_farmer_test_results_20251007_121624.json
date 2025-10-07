@@ -1,0 +1,1981 @@
+{
+    "overall_results": {
+        "total_tests": 218,
+        "passed_tests": 147,
+        "failed_tests": 71,
+        "success_rate": "67.4%"
+    },
+    "category_results": {
+        "basic_farmer_queries": {
+            "passed": 14,
+            "total": 15,
+            "details": [
+                {
+                    "test_name": "Simple Greeting",
+                    "query": "hello",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.027777910232543945,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi Greeting",
+                    "query": "नमस्ते",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003554821014404297,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hinglish Greeting",
+                    "query": "hi bhai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002524852752685547,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Basic Help",
+                    "query": "help",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018739700317382812,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi Help",
+                    "query": "मदद",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017690658569335938,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hinglish Help",
+                    "query": "help chahiye",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.000194549560546875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "What to grow",
+                    "query": "kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020956993103027344,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Crop suggestion",
+                    "query": "crop suggest karo",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003802776336669922,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Best crop",
+                    "query": "best crop kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003724098205566406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Weather check",
+                    "query": "weather kaisa hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004525184631347656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Rain question",
+                    "query": "barish hogi",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'general'"
+                    ],
+                    "response_time": 0.0004734992980957031,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Temperature",
+                    "query": "temperature kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003566741943359375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Price inquiry",
+                    "query": "price kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020170211791992188,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Wheat price",
+                    "query": "wheat ka price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00022172927856445312,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Rice price",
+                    "query": "rice ka rate",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00021457672119140625,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "crop_advice": {
+            "passed": 10,
+            "total": 16,
+            "details": [
+                {
+                    "test_name": "Punjab crops",
+                    "query": "Punjab mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.000209808349609375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Maharashtra crops",
+                    "query": "Maharashtra mein kya crop",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002028942108154297,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "UP crops",
+                    "query": "Uttar Pradesh mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00022649765014648438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Delhi crops",
+                    "query": "Delhi mein kya crop lagayein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'greeting'"
+                    ],
+                    "response_time": 0.0004074573516845703,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Kharif crops",
+                    "query": "kharif season mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003352165222167969,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Rabi crops",
+                    "query": "rabi season mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0005104541778564453,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Summer crops",
+                    "query": "summer mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002961158752441406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Wheat advice",
+                    "query": "wheat kaise lagayein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.00022530555725097656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Rice advice",
+                    "query": "rice kaise lagayein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.00019598007202148438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Cotton advice",
+                    "query": "cotton kaise lagayein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'market_price'"
+                    ],
+                    "response_time": 0.00021505355834960938,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi crop query",
+                    "query": "क्या फसल लगाएं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002474784851074219,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi wheat",
+                    "query": "गेहूं कैसे लगाएं",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.0002524852752685547,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi rice",
+                    "query": "चावल कैसे लगाएं",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.0007688999176025391,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English crop query",
+                    "query": "what crops should I grow",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00026535987854003906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English wheat",
+                    "query": "how to grow wheat",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002498626708984375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English rice",
+                    "query": "how to grow rice",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002918243408203125,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "weather_concerns": {
+            "passed": 7,
+            "total": 16,
+            "details": [
+                {
+                    "test_name": "Weather check",
+                    "query": "mausam kaisa hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'general'"
+                    ],
+                    "response_time": 0.00019788742065429688,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Rain question",
+                    "query": "barish hogi kya",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'general'"
+                    ],
+                    "response_time": 0.0003249645233154297,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Temperature",
+                    "query": "kitna garam hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'general'"
+                    ],
+                    "response_time": 0.0004069805145263672,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Humidity",
+                    "query": "humidity kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019168853759765625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Delhi weather",
+                    "query": "Delhi ka mausam",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'greeting'"
+                    ],
+                    "response_time": 0.00017595291137695312,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mumbai weather",
+                    "query": "Mumbai ka mausam",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'general'"
+                    ],
+                    "response_time": 0.0001671314239501953,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Punjab weather",
+                    "query": "Punjab ka mausam",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'general'"
+                    ],
+                    "response_time": 0.00023603439331054688,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi weather",
+                    "query": "मौसम कैसा है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00034809112548828125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi rain",
+                    "query": "बारिश होगी क्या",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00025272369384765625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi temperature",
+                    "query": "तापमान क्या है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00036835670471191406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English weather",
+                    "query": "how is the weather",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002758502960205078,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English rain",
+                    "query": "will it rain",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00022363662719726562,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English temperature",
+                    "query": "what is the temperature",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00022673606872558594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Farming weather",
+                    "query": "farming ke liye weather",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00043487548828125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Crop weather",
+                    "query": "crop ke liye mausam",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0005528926849365234,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Sowing weather",
+                    "query": "sowing ke liye weather",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0002338886260986328,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "disease_problems": {
+            "passed": 14,
+            "total": 19,
+            "details": [
+                {
+                    "test_name": "Yellow spots",
+                    "query": "yellow spots aa rahe hain",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00023293495178222656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Wilting plants",
+                    "query": "plants murjha rahe hain",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00021147727966308594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Brown patches",
+                    "query": "brown patches aa rahe hain",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018477439880371094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "White spots",
+                    "query": "white spots aa rahe hain",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'greeting'"
+                    ],
+                    "response_time": 0.0004124641418457031,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Wheat disease",
+                    "query": "wheat mein disease",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00025081634521484375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Rice disease",
+                    "query": "rice mein disease",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00026702880859375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Cotton disease",
+                    "query": "cotton mein disease",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'market_price'"
+                    ],
+                    "response_time": 0.0003039836883544922,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Insect problem",
+                    "query": "insects aa gaye hain",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00042366981506347656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Whitefly attack",
+                    "query": "whitefly attack ho gaya",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002455711364746094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Aphid problem",
+                    "query": "aphid problem hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'greeting'"
+                    ],
+                    "response_time": 0.00022411346435546875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi disease",
+                    "query": "रोग लग गया है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002276897430419922,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi pest",
+                    "query": "कीट लग गए हैं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00022482872009277344,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi treatment",
+                    "query": "उपचार क्या है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002219676971435547,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English disease",
+                    "query": "plants are diseased",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00017309188842773438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English pest",
+                    "query": "pests are attacking",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00036072731018066406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English treatment",
+                    "query": "what is the treatment",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004696846008300781,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Organic treatment",
+                    "query": "organic treatment kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002465248107910156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Chemical treatment",
+                    "query": "chemical treatment kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020623207092285156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Medicine",
+                    "query": "medicine kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017976760864257812,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "market_queries": {
+            "passed": 15,
+            "total": 19,
+            "details": [
+                {
+                    "test_name": "Wheat price",
+                    "query": "wheat ka price kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001308917999267578,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Rice price",
+                    "query": "rice ka price kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00014138221740722656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Cotton price",
+                    "query": "cotton ka price kya hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected entity 'crop': 'cotton', got 'rice'"
+                    ],
+                    "response_time": 0.00011348724365234375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Maize price",
+                    "query": "maize ka price kya hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected entity 'crop': 'maize', got 'rice'"
+                    ],
+                    "response_time": 0.00023651123046875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Delhi price",
+                    "query": "Delhi mein wheat ka price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002372264862060547,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mumbai price",
+                    "query": "Mumbai mein rice ka price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002014636993408203,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Punjab price",
+                    "query": "Punjab mein cotton ka price",
+                    "passed": false,
+                    "issues": [
+                        "Expected entity 'crop': 'cotton', got 'rice'"
+                    ],
+                    "response_time": 0.0004200935363769531,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi wheat price",
+                    "query": "गेहूं की कीमत क्या है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002110004425048828,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi rice price",
+                    "query": "चावल की कीमत क्या है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017380714416503906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi cotton price",
+                    "query": "कपास की कीमत क्या है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00014495849609375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English wheat price",
+                    "query": "what is wheat price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011348724365234375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English rice price",
+                    "query": "what is rice price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011897087097167969,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English cotton price",
+                    "query": "what is cotton price",
+                    "passed": false,
+                    "issues": [
+                        "Expected entity 'crop': 'cotton', got 'rice'"
+                    ],
+                    "response_time": 0.0002453327178955078,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Market trend",
+                    "query": "market trend kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001518726348876953,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Price prediction",
+                    "query": "price prediction kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017952919006347656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Future price",
+                    "query": "future price kya hoga",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00026416778564453125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "MSP query",
+                    "query": "MSP kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001430511474609375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Support price",
+                    "query": "support price kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017404556274414062,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Government price",
+                    "query": "government price kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018286705017089844,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "government_help": {
+            "passed": 15,
+            "total": 18,
+            "details": [
+                {
+                    "test_name": "PM Kisan",
+                    "query": "PM Kisan scheme",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00012755393981933594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Kisan Credit Card",
+                    "query": "Kisan Credit Card",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00010704994201660156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Crop Insurance",
+                    "query": "crop insurance",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00013518333435058594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Subsidy",
+                    "query": "subsidy kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011897087097167969,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi PM Kisan",
+                    "query": "पीएम किसान योजना",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003285408020019531,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi Credit Card",
+                    "query": "किसान क्रेडिट कार्ड",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002257823944091797,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi Insurance",
+                    "query": "फसल बीमा",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.000209808349609375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi Subsidy",
+                    "query": "सब्सिडी क्या है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00026798248291015625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English PM Kisan",
+                    "query": "PM Kisan scheme details",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00015282630920410156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English Credit Card",
+                    "query": "Kisan Credit Card details",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00012803077697753906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English Insurance",
+                    "query": "crop insurance details",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020813941955566406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English Subsidy",
+                    "query": "subsidy information",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001316070556640625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "How to apply",
+                    "query": "kaise apply karein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'government_schemes', got 'general'"
+                    ],
+                    "response_time": 0.00018405914306640625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Application process",
+                    "query": "application process kya hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'government_schemes', got 'general'"
+                    ],
+                    "response_time": 0.00019979476928710938,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Documents needed",
+                    "query": "documents kya chahiye",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'government_schemes', got 'greeting'"
+                    ],
+                    "response_time": 0.0004208087921142578,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Loan amount",
+                    "query": "loan kitna milega",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020623207092285156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Loan interest",
+                    "query": "loan interest kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.000141143798828125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Loan process",
+                    "query": "loan process kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00015497207641601562,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "emergency_situations": {
+            "passed": 10,
+            "total": 16,
+            "details": [
+                {
+                    "test_name": "Urgent help",
+                    "query": "urgent help chahiye",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011205673217773438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Emergency",
+                    "query": "emergency hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002505779266357422,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Quick advice",
+                    "query": "quick advice chahiye",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00013875961303710938,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Immediate help",
+                    "query": "immediate help chahiye",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001201629638671875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Crop dying",
+                    "query": "crop mar raha hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0002334117889404297,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Plants dying",
+                    "query": "plants mar rahe hain",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0001976490020751953,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Crop problem",
+                    "query": "crop mein problem hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0005564689636230469,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Heavy rain",
+                    "query": "heavy rain aa rahi hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'greeting'"
+                    ],
+                    "response_time": 0.0015757083892822266,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Drought",
+                    "query": "drought ho gaya",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019431114196777344,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Storm",
+                    "query": "storm aa raha hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018596649169921875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi urgent",
+                    "query": "तुरंत मदद चाहिए",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00014853477478027344,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi emergency",
+                    "query": "आपातकाल है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020360946655273438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi crop dying",
+                    "query": "फसल मर रही है",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00022363662719726562,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English urgent",
+                    "query": "urgent help needed",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011754035949707031,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English emergency",
+                    "query": "emergency situation",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017404556274414062,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English crop dying",
+                    "query": "crops are dying",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0003120899200439453,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "seasonal_questions": {
+            "passed": 14,
+            "total": 15,
+            "details": [
+                {
+                    "test_name": "Kharif crops",
+                    "query": "kharif mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002467632293701172,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Monsoon crops",
+                    "query": "monsoon mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0006568431854248047,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Rainy season",
+                    "query": "rainy season mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017213821411132812,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Rabi crops",
+                    "query": "rabi mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00024247169494628906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Winter crops",
+                    "query": "winter mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017523765563964844,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Cold season",
+                    "query": "cold season mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017714500427246094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi kharif",
+                    "query": "खरीफ में क्या लगाएं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00029969215393066406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi rabi",
+                    "query": "रबी में क्या लगाएं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00029754638671875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi monsoon",
+                    "query": "मानसून में क्या लगाएं",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'weather'"
+                    ],
+                    "response_time": 0.00024247169494628906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English kharif",
+                    "query": "what to grow in kharif",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002484321594238281,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English rabi",
+                    "query": "what to grow in rabi",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00046372413635253906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English monsoon",
+                    "query": "what to grow in monsoon",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003273487091064453,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Sowing time",
+                    "query": "sowing time kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019621849060058594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Planting time",
+                    "query": "planting time kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019669532775878906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Harvest time",
+                    "query": "harvest time kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020456314086914062,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "beginner_farmer": {
+            "passed": 8,
+            "total": 16,
+            "details": [
+                {
+                    "test_name": "How to start",
+                    "query": "farming kaise start karein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00017523765563964844,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "New farmer",
+                    "query": "new farmer hun",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00017714500427246094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Beginner help",
+                    "query": "beginner help chahiye",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003428459167480469,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "First time",
+                    "query": "first time farming",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0002930164337158203,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Easy crops",
+                    "query": "easy crops kya hain",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002200603485107422,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Simple crops",
+                    "query": "simple crops kya hain",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00020813941955566406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Beginner crops",
+                    "query": "beginner crops kya hain",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00021314620971679688,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "How to sow",
+                    "query": "kaise sow karein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00031948089599609375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "How to water",
+                    "query": "kaise water karein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.00020885467529296875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "How to fertilize",
+                    "query": "kaise fertilize karein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.00018310546875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi beginner",
+                    "query": "नया किसान हूँ",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001766681671142578,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi easy crops",
+                    "query": "आसान फसलें क्या हैं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003848075866699219,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi how to start",
+                    "query": "खेती कैसे शुरू करें",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0004496574401855469,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English beginner",
+                    "query": "I am new to farming",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0016071796417236328,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English easy crops",
+                    "query": "what are easy crops",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.000217437744140625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English how to start",
+                    "query": "how to start farming",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0002200603485107422,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "experienced_farmer": {
+            "passed": 10,
+            "total": 15,
+            "details": [
+                {
+                    "test_name": "Crop rotation",
+                    "query": "crop rotation kaise karein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00025081634521484375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Intercropping",
+                    "query": "intercropping kaise karein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00019741058349609375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mixed farming",
+                    "query": "mixed farming kaise karein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017404556274414062,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Yield optimization",
+                    "query": "yield kaise badhayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018143653869628906,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Quality improvement",
+                    "query": "quality kaise improve karein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.0005300045013427734,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Cost reduction",
+                    "query": "cost kaise kam karein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'market_price'"
+                    ],
+                    "response_time": 0.0004487037658691406,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "IPM",
+                    "query": "IPM kaise karein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'general'"
+                    ],
+                    "response_time": 0.0004909038543701172,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Biological control",
+                    "query": "biological control kaise karein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003807544708251953,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Integrated pest management",
+                    "query": "integrated pest management",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'market_price'"
+                    ],
+                    "response_time": 0.00016689300537109375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi crop rotation",
+                    "query": "फसल चक्र कैसे करें",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002288818359375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi yield",
+                    "query": "उत्पादन कैसे बढ़ाएं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.000194549560546875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi IPM",
+                    "query": "समेकित कीट प्रबंधन",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002510547637939453,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English crop rotation",
+                    "query": "how to do crop rotation",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00021409988403320312,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English yield",
+                    "query": "how to increase yield",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00040793418884277344,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English IPM",
+                    "query": "integrated pest management",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'pest_control', got 'market_price'"
+                    ],
+                    "response_time": 0.0004177093505859375,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "mixed_language": {
+            "passed": 10,
+            "total": 12,
+            "details": [
+                {
+                    "test_name": "Mixed greeting",
+                    "query": "नमस्ते, hello",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002465248107910156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mixed help",
+                    "query": "मदद chahiye",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001671314239501953,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mixed crop",
+                    "query": "फसल suggest karo",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002281665802001953,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English-Hindi greeting",
+                    "query": "hello नमस्ते",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018858909606933594,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English-Hindi help",
+                    "query": "help मदद",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011110305786132812,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English-Hindi crop",
+                    "query": "crop फसल",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001685619354248047,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Complex mixed",
+                    "query": "wheat की price क्या hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00017571449279785156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mixed weather",
+                    "query": "weather मौसम kaisa hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0017189979553222656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mixed disease",
+                    "query": "disease रोग ka treatment क्या hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0004706382751464844,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mixed location",
+                    "query": "Delhi में wheat की price",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011920928955078125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mixed Punjab",
+                    "query": "Punjab में क्या lagayein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.00024437904357910156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mixed Maharashtra",
+                    "query": "Maharashtra में rice kaise lagayein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.00023031234741210938,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "complex_scenarios": {
+            "passed": 8,
+            "total": 12,
+            "details": [
+                {
+                    "test_name": "Price and weather",
+                    "query": "wheat price aur weather kaisa hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'complex_query', got 'market_price'"
+                    ],
+                    "response_time": 0.00019121170043945312,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Crop and disease",
+                    "query": "rice crop mein disease ka treatment",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'complex_query', got 'pest_control'"
+                    ],
+                    "response_time": 0.00036907196044921875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Weather and crop",
+                    "query": "weather ke hisab se kya lagayein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'complex_query', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00016379356384277344,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Land size",
+                    "query": "5 acre land mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00015878677368164062,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Soil type",
+                    "query": "clay soil mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00025153160095214844,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Water availability",
+                    "query": "kam water mein kya lagayein",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002415180206298828,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi complex",
+                    "query": "गेहूं की कीमत और मौसम बताओ",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00015687942504882812,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi contextual",
+                    "query": "5 एकड़ जमीन में क्या लगाएं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00036025047302246094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi soil",
+                    "query": "चिकनी मिट्टी में क्या लगाएं",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002658367156982422,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English complex",
+                    "query": "wheat price and weather forecast",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'complex_query', got 'market_price'"
+                    ],
+                    "response_time": 0.0001761913299560547,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English contextual",
+                    "query": "what to grow in 5 acres",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00022029876708984375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "English soil",
+                    "query": "what to grow in clay soil",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0002276897430419922,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "edge_cases": {
+            "passed": 10,
+            "total": 14,
+            "details": [
+                {
+                    "test_name": "Single word",
+                    "query": "help",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011396408081054688,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Two words",
+                    "query": "crop suggest",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003440380096435547,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Three words",
+                    "query": "wheat price kya",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00023055076599121094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Long query",
+                    "query": "I am a farmer from Punjab and I want to know about wheat cultivation and its market price and weather conditions",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'complex_query', got 'market_price'"
+                    ],
+                    "response_time": 0.00023055076599121094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Very long Hindi",
+                    "query": "मैं पंजाब का किसान हूँ और मुझे गेहूं की खेती और उसकी बाजार कीमत और मौसम की स्थिति के बारे में जानना है",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'complex_query', got 'market_price'"
+                    ],
+                    "response_time": 0.00031566619873046875,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Numbers",
+                    "query": "123",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001728534698486328,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Special chars",
+                    "query": "!@#$%",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00016951560974121094,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Mixed chars",
+                    "query": "crop123",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001666545867919922,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Ambiguous",
+                    "query": "kya",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00011968612670898438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Vague",
+                    "query": "help me",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 9.608268737792969e-05,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Unclear",
+                    "query": "samajh nahi aa raha",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'greeting'"
+                    ],
+                    "response_time": 0.0002694129943847656,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Typo wheat",
+                    "query": "wheat price kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00027489662170410156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Misspelled",
+                    "query": "rice price kya hai",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.00018930435180664062,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Wrong spelling",
+                    "query": "cotton price kya hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected entity 'crop': 'cotton', got 'rice'"
+                    ],
+                    "response_time": 0.00021195411682128906,
+                    "confidence": 0.95
+                }
+            ]
+        },
+        "normal_people": {
+            "passed": 2,
+            "total": 15,
+            "details": [
+                {
+                    "test_name": "General curiosity",
+                    "query": "what is farming",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00030422210693359375,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi curiosity",
+                    "query": "खेती क्या है",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00029778480529785156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hinglish curiosity",
+                    "query": "farming kya hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00022864341735839844,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Food source",
+                    "query": "where does rice come from",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.00022983551025390625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi food",
+                    "query": "चावल कहाँ से आता है",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.00026035308837890625,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hinglish food",
+                    "query": "rice kahan se aata hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'crop_recommendation', got 'general'"
+                    ],
+                    "response_time": 0.0001990795135498047,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Price curiosity",
+                    "query": "how much does wheat cost",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0001380443572998047,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi price",
+                    "query": "गेहूं की कीमत कितनी है",
+                    "passed": true,
+                    "issues": [],
+                    "response_time": 0.0003287792205810547,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hinglish price",
+                    "query": "wheat kitne ka hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'market_price', got 'general'"
+                    ],
+                    "response_time": 0.0004138946533203125,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Weather curiosity",
+                    "query": "how is the weather for farming",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0002753734588623047,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi weather",
+                    "query": "खेती के लिए मौसम कैसा है",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.0002770423889160156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hinglish weather",
+                    "query": "farming ke liye weather kaisa hai",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'weather', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00022649765014648438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Learning",
+                    "query": "how to learn farming",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00018334388732910156,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hindi learning",
+                    "query": "खेती कैसे सीखें",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00024175643920898438,
+                    "confidence": 0.95
+                },
+                {
+                    "test_name": "Hinglish learning",
+                    "query": "farming kaise seekhein",
+                    "passed": false,
+                    "issues": [
+                        "Expected intent 'general', got 'crop_recommendation'"
+                    ],
+                    "response_time": 0.00019979476928710938,
+                    "confidence": 0.95
+                }
+            ]
+        }
+    },
+    "timestamp": "2025-10-07T12:16:24.033962"
+}
