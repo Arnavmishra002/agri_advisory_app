@@ -2,12 +2,14 @@ services:
   web:
     type: web
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements-production.txt
     startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: "your-app-name.onrender.com"
+        value: "krisimitra.onrender.com"
       - key: SECRET_KEY
-        value: "your-secret-key-here"
+        value: "drz3@pxlvn*5y0zsu7&q&u+2v_%pm+sc8b_f6c3(*3+^7u-1l$"
+      - key: DATABASE_URL
+        value: "sqlite:///db.sqlite3"
