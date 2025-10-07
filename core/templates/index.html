@@ -1828,6 +1828,15 @@
             console.log('Updating location display to:', currentLocation.name, currentLocation.lat, currentLocation.lon);
             document.getElementById('currentLocationDisplay').textContent = `वर्तमान स्थान: ${currentLocation.name}`;
             
+            // Show loading state for market prices
+            const crops = ['wheat', 'rice', 'corn', 'peanut', 'onion', 'tomato', 'potato', 'cotton', 'sugarcane', 'turmeric', 'chilli', 'mustard'];
+            crops.forEach(crop => {
+                const priceElement = document.getElementById(`market-${crop}`);
+                if (priceElement) {
+                    priceElement.textContent = '...';
+                }
+            });
+            
             // Automatically load data when location changes
             console.log('Loading all data for new location...');
             loadAllData(); // This will load weather, market, and other data
@@ -2144,17 +2153,21 @@
                     .then(response => response.json())
                     .then(data => {
                         console.log(`Market data for ${crop}:`, data);
-                        if (data && data.length > 0 && data[0].price) {
+                        // Check for the correct data structure: data.market_data
+                        if (data.market_data && data.market_data.length > 0 && data.market_data[0].price) {
                             const priceElement = document.getElementById(`market-${crop}`);
                             if (priceElement) {
                                 // Extract price number from string like "₹2,450" or "₹2450"
-                                let price = data[0].price;
+                                let price = data.market_data[0].price;
                                 if (typeof price === 'string') {
                                     price = price.replace(/[₹,]/g, ''); // Remove ₹ and commas
                                     price = parseFloat(price);
                                 }
                                 priceElement.textContent = price ? price.toLocaleString('en-IN') : 'N/A';
+                                console.log(`Updated ${crop} price to:`, price);
                             }
+                        } else {
+                            console.log(`No market data available for ${crop}`);
                         }
                     })
                     .catch(error => {
@@ -2182,15 +2195,16 @@
                     .then(response => response.json())
                     .then(data => {
                         console.log(`Market data for ${crop}:`, data);
-                        if (data && data.length > 0 && data[0].price) {
+                        if (data.market_data && data.market_data.length > 0 && data.market_data[0].price) {
                             const priceElement = document.getElementById(`market-${crop}`);
                             if (priceElement) {
-                                let price = data[0].price;
+                                let price = data.market_data[0].price;
                                 if (typeof price === 'string') {
                                     price = price.replace(/[₹,]/g, '');
                                     price = parseFloat(price);
                                 }
                                 priceElement.textContent = price ? price.toLocaleString('en-IN') : 'N/A';
+                                console.log(`Updated ${crop} price to:`, price);
                             }
                         }
                     })
