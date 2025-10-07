@@ -1087,10 +1087,38 @@
 
         // Load weather data with current location
         function loadWeatherData() {
+            console.log('Loading weather data for:', currentLocation.lat, currentLocation.lon);
             fetch(`/api/weather/current/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=${currentLanguage}`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data && data.temperature) {
+                    console.log('Weather API response:', data);
+                    if (data && data.current) {
+                        // Handle the new API response structure
+                        let temp = data.current.temp_c;
+                        if (typeof temp === 'string') {
+                            temp = parseFloat(temp.replace(/[^\d.-]/g, ''));
+                        }
+                        document.getElementById('weather-temp').textContent = Math.round(temp || 25) + '°C';
+                        
+                        let humidity = data.current.humidity;
+                        if (typeof humidity === 'string') {
+                            humidity = parseFloat(humidity.replace(/[^\d.-]/g, ''));
+                        }
+                        document.getElementById('weather-humidity').textContent = Math.round(humidity || 70) + '%';
+                        
+                        let windSpeed = data.current.wind_kph;
+                        if (typeof windSpeed === 'string') {
+                            windSpeed = parseFloat(windSpeed.replace(/[^\d.-]/g, ''));
+                        }
+                        document.getElementById('weather-wind').textContent = Math.round(windSpeed || 5) + ' km/h';
+                        
+                        // Update weather condition
+                        const conditionElement = document.querySelector('#weather-content .weather-item:nth-child(4) .value');
+                        if (conditionElement && data.current.condition) {
+                            conditionElement.textContent = data.current.condition.text || 'साफ';
+                        }
+                    } else if (data && data.temperature) {
+                        // Fallback for old API structure
                         let temp = data.temperature;
                         if (typeof temp === 'string') {
                             temp = parseFloat(temp.replace(/[^\d.-]/g, ''));
@@ -1117,15 +1145,23 @@
 
         // Load market data with current location
         function loadMarketData() {
+            console.log('Loading market data for:', currentLocation.lat, currentLocation.lon);
             const crops = ['wheat', 'rice', 'corn', 'peanut'];
             crops.forEach(crop => {
                 fetch(`/api/market-prices/prices/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=${currentLanguage}&product=${crop}`)
                     .then(response => response.json())
                     .then(data => {
+                        console.log(`Market data for ${crop}:`, data);
                         if (data && data.length > 0 && data[0].price) {
                             const priceElement = document.getElementById(`market-${crop}`);
                             if (priceElement) {
-                                priceElement.textContent = data[0].price;
+                                // Extract price number from string like "₹2,450" or "₹2450"
+                                let price = data[0].price;
+                                if (typeof price === 'string') {
+                                    price = price.replace(/[₹,]/g, ''); // Remove ₹ and commas
+                                    price = parseFloat(price);
+                                }
+                                priceElement.textContent = price ? price.toLocaleString('en-IN') : 'N/A';
                             }
                         }
                     })
@@ -1370,6 +1406,31 @@
                     }
                 });
             });
+        });
+        // Add event listeners for location changes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Manual location input handler
+            const locationInput = document.getElementById('locationInput');
+            if (locationInput) {
+                locationInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const locationName = this.value.trim();
+                        if (locationName) {
+                            console.log('Manual location input:', locationName);
+                            geocodeLocation(locationName);
+                        }
+                    }
+                });
+            }
+            
+            // Detect location button handler
+            const detectBtn = document.querySelector('button[onclick="detectLocation()"]');
+            if (detectBtn) {
+                detectBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    detectLocation();
+                });
+            }
         });
     </script>
 </body>
