@@ -9,7 +9,6 @@ from ..ml.ml_models import AgriculturalMLSystem
 from ..feedback_system import FeedbackAnalytics
 from ..ml.intelligent_chatbot import IntelligentAgriculturalChatbot
 import uuid
-from ..services.weather_api import MockWeatherAPI
 from ..services.enhanced_government_api import EnhancedGovernmentAPI
 from ..services.pest_detection import PestDetectionSystem
 from django_filters.rest_framework import DjangoFilterBackend
@@ -454,12 +453,12 @@ class WeatherViewSet(viewsets.ViewSet):
         if not (-180 <= longitude <= 180):
             return Response({"error": "Longitude must be between -180 and 180 degrees"}, status=400)
 
-        weather_api = MockWeatherAPI()
-        weather_data = weather_api.get_current_weather(latitude, longitude, language)
+        weather_api = EnhancedGovernmentAPI()
+        weather_data = weather_api.get_real_weather_data(latitude, longitude, language)
         
         if weather_data:
             return Response(weather_data)
-        return Response({"error": "Could not retrieve mock weather data"}, status=500)
+        return Response({"error": "Could not retrieve weather data"}, status=500)
 
     @action(detail=False, methods=['get'])
     def forecast(self, request):
@@ -478,12 +477,13 @@ class WeatherViewSet(viewsets.ViewSet):
         except ValueError:
             return Response({"error": "Latitude, longitude, and days parameters must be valid numbers"}, status=400)
         
-        weather_api = MockWeatherAPI()
-        forecast_data = weather_api.get_forecast_weather(latitude, longitude, language, days)
+        weather_api = EnhancedGovernmentAPI()
+        weather_data = weather_api.get_real_weather_data(latitude, longitude, language)
+        forecast_data = weather_data.get('forecast', {}) if weather_data else {}
         
         if forecast_data:
             return Response(forecast_data)
-        return Response({"error": "Could not retrieve mock forecast data"}, status=500)
+        return Response({"error": "Could not retrieve forecast data"}, status=500)
 
 
 class TextToSpeechViewSet(viewsets.ViewSet):
