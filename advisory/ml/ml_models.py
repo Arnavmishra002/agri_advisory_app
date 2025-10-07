@@ -8,6 +8,7 @@ import pandas as pd
 import joblib
 import json
 import os
+import warnings
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
@@ -17,6 +18,9 @@ from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, classi
 from sklearn.linear_model import LinearRegression
 from sklearn.neural_network import MLPRegressor
 import logging
+
+# Suppress sklearn convergence warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +61,10 @@ class AgriculturalMLSystem:
         # Fertilizer Recommendation Model (Regression for nutrient amounts)
         self.models['fertilizer_recommendation'] = MLPRegressor(
             hidden_layer_sizes=(50, 25),
-            max_iter=200,
-            random_state=42
+            max_iter=1000,
+            random_state=42,
+            early_stopping=True,
+            validation_fraction=0.1
         )
         
         # Market Price Prediction Model

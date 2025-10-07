@@ -95,7 +95,7 @@ class FertilizerRecommendationSerializer(serializers.Serializer):
     language = serializers.CharField(default='en', max_length=10, help_text="Language code")
 
 class CropRecommendationSerializer(serializers.Serializer):
-    soil_type = serializers.CharField(max_length=100, help_text="Type of soil")
+    soil_type = serializers.CharField(max_length=100, required=False, help_text="Type of soil (auto-detected if not provided)")
     latitude = serializers.FloatField(help_text="Latitude coordinate")
     longitude = serializers.FloatField(help_text="Longitude coordinate")
     season = serializers.CharField(default='kharif', max_length=50, help_text="Growing season")

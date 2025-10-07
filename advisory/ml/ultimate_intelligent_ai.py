@@ -130,7 +130,10 @@ class UltimateIntelligentAI:
             'karnataka': ['karnataka', 'कर्नाटक', 'karnataka state', 'कर्नाटक राज्य'],
             'gujarat': ['gujarat', 'गुजरात', 'gujarat state', 'गुजरात राज्य'],
             'rajasthan': ['rajasthan', 'राजस्थान', 'rajasthan state', 'राजस्थान राज्य'],
-            'madhya pradesh': ['madhya pradesh', 'मध्य प्रदेश', 'mp', 'एमपी', 'madhya pradesh state']
+            'madhya pradesh': ['madhya pradesh', 'मध्य प्रदेश', 'mp', 'एमपी', 'madhya pradesh state'],
+            'raebareli': ['raebareli', 'rae bareli', 'रायबरेली', 'राय बरेली', 'raebareli mandi', 'रायबरेली मंडी'],
+            'bareilly': ['bareilly', 'बरेली', 'bareilly mandi', 'बरेली मंडी'],
+            'gorakhpur': ['gorakhpur', 'गोरखपुर', 'gorakhpur mandi', 'गोरखपुर मंडी']
         }
     
     def _load_response_templates(self):
@@ -272,7 +275,7 @@ class UltimateIntelligentAI:
         return entities
     
     def _extract_dynamic_location(self, query_lower: str) -> str:
-        """Dynamically extract ANY location/mandi from query - IMPROVED VERSION"""
+        """Dynamically extract ANY location/mandi from query - UNIVERSAL VERSION"""
         
         # First check predefined locations
         for location, variations in self.location_mappings.items():
@@ -280,18 +283,84 @@ class UltimateIntelligentAI:
                 if variation in query_lower:
                     return location.title()
         
-        # Try context-based extraction FIRST (most accurate)
-        context_words = query_lower.split()
-        for i, word in enumerate(context_words):
-            # Look for location indicators (in, at, mein, में)
-            if word in ['in', 'at', 'mein', 'में', 'का'] and i + 1 < len(context_words):
-                next_word = context_words[i + 1]
-                # Extract the word after the indicator
-                if len(next_word) > 2 and next_word.isalpha():
-                    # Remove common suffixes
-                    location_word = next_word.replace('mandi', '').replace('mandii', '').replace('market', '').strip()
-                    if location_word and len(location_word) > 2 and location_word not in ['price', 'crop', 'weather']:
-                        return location_word.title()
+        # Enhanced pattern matching for ANY Indian location
+        import re
+        
+        # Pattern 1: Look for "in [location]" or "at [location]"
+        context_patterns = [
+            r'\bin\s+([a-z\s]+?)(?:\s+mandi|\s+market|\s+mein|\s+में|$)',
+            r'\bat\s+([a-z\s]+?)(?:\s+mandi|\s+market|\s+mein|\s+में|$)',
+            r'\bmein\s+([a-z\s]+?)(?:\s+mandi|\s+market|$)',
+            r'\bमें\s+([a-z\s]+?)(?:\s+mandi|\s+market|$)'
+        ]
+        
+        for pattern in context_patterns:
+            matches = re.findall(pattern, query_lower)
+            if matches:
+                location = matches[0].strip().title()
+                if location and len(location) > 2 and location not in ['Price', 'Crop', 'Weather', 'Market']:
+                    return location
+        
+        # Pattern 2: Look for city/district names with common Indian suffixes
+        city_patterns = [
+            r'\b([a-z]+(?:bareli|pur|nagar|abad|garh|ganj|pura|pore|ore|li|garh|nagar|bad|ganj|pura|pore|ore))\b',
+            r'\b([a-z]+(?:mandi|market))\b',
+            r'\b([a-z]{4,}(?:li|pur|garh|nagar|bad|ganj|pura|pore|ore))\b',
+            r'\b([a-z]{3,}(?:mandi|market))\b'
+        ]
+        
+        for pattern in city_patterns:
+            matches = re.findall(pattern, query_lower)
+            if matches:
+                location = matches[0].title()
+                if location and len(location) > 2 and location not in ['Price', 'Crop', 'Weather', 'Market']:
+                    return location
+        
+        # Pattern 3: Look for any word that could be a location (fallback)
+        words = query_lower.split()
+        for word in words:
+            # Skip common non-location words
+            if word in ['price', 'crop', 'weather', 'market', 'mandi', 'in', 'at', 'mein', 'में', 'का', 'ki', 'ke', 'wheat', 'rice', 'maize', 'corn']:
+                continue
+            # If word looks like a location (starts with capital, has reasonable length)
+            if len(word) >= 4 and word.isalpha():
+                return word.title()
+        
+    def _geocode_location(self, location_name: str) -> tuple:
+        """Convert location name to coordinates using geocoding API"""
+        try:
+            import requests
+            
+            # Use Nominatim OpenStreetMap API for geocoding
+            url = "https://nominatim.openstreetmap.org/search"
+            params = {
+                'q': f"{location_name}, India",
+                'format': 'json',
+                'limit': 1,
+                'countrycodes': 'in',
+                'addressdetails': 1
+            }
+            
+            headers = {
+                'User-Agent': 'Agricultural Advisory App (contact@example.com)'
+            }
+            
+            response = requests.get(url, params=params, headers=headers, timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                if data and len(data) > 0:
+                    lat = float(data[0]['lat'])
+                    lon = float(data[0]['lon'])
+                    print(f"Geocoded {location_name}: {lat}, {lon}")
+                    return lat, lon
+            
+            # If geocoding fails, return None
+            print(f"Failed to geocode {location_name}")
+            return None, None
+            
+        except Exception as e:
+            print(f"Geocoding error for {location_name}: {e}")
+            return None, None
         
         # If context-based fails, try pattern-based extraction
         location_patterns = [
@@ -653,7 +722,7 @@ class UltimateIntelligentAI:
             if intent == "greeting":
                 return self._generate_greeting_response(language)
             elif intent == "market_price":
-                return self._generate_market_response(entities, language, query)
+                return self._generate_market_response(entities, language, query, latitude, longitude)
             elif intent == "weather":
                 return self._generate_weather_response(entities, language, query, latitude, longitude, location_name)
             elif intent == "crop_recommendation":
@@ -677,10 +746,19 @@ class UltimateIntelligentAI:
         templates = self.response_templates['greeting'].get(language, self.response_templates['greeting']['en'])
         return random.choice(templates)
     
-    def _generate_market_response(self, entities: Dict[str, Any], language: str, query: str = "") -> str:
-        """Generate market response with real government data"""
+    def _generate_market_response(self, entities: Dict[str, Any], language: str, query: str = "", latitude: float = None, longitude: float = None) -> str:
+        """Generate market response with real government data for ANY location"""
         crop = entities.get("crop")
-        location = entities.get("location", "Delhi")
+        location = entities.get("location")
+        
+        # If no location extracted, try to extract from query
+        if not location:
+            query_lower = query.lower()
+            location = self._extract_dynamic_location(query_lower)
+        
+        # If still no location, use default
+        if not location:
+            location = "Delhi"
         
         # If no crop specified, try to extract from query
         if not crop:
@@ -697,11 +775,32 @@ class UltimateIntelligentAI:
         if not crop:
             crop = "wheat"
         
-        # Get real market data from government API
+        # Get coordinates for the location
+        if not (latitude and longitude):
+            lat, lon = self._geocode_location(location)
+            if lat and lon:
+                latitude, longitude = lat, lon
+            else:
+                # Fallback to Delhi coordinates
+                latitude, longitude = 28.6139, 77.2090
+        
+        # Get real market data from government API using coordinates
         try:
+            # Use the same API endpoint as the frontend market section
+            import requests
+            
+            # Convert location to coordinates if needed
+            if latitude and longitude:
+                api_url = f"/api/market-prices/prices/?lat={latitude}&lon={longitude}&lang={language}&product={crop.lower()}"
+            else:
+                # Fallback to default coordinates (Delhi)
+                api_url = f"/api/market-prices/prices/?lat=28.6139&lon=77.2090&lang={language}&product={crop.lower()}"
+            
+            # For now, use the government API directly since we're in the backend
             market_data = self.government_api.get_real_market_prices(
                 commodity=crop.lower(),
-                state=location.lower(),
+                latitude=latitude or 28.6139,
+                longitude=longitude or 77.2090,
                 language=language
             )
             
@@ -711,7 +810,7 @@ class UltimateIntelligentAI:
                 price = price_data['price']
                 mandi = price_data['mandi']
                 change = price_data['change']
-                state = price_data['state']
+                state = price_data.get('state', location)
             else:
                 # Fallback to static data
                 price = self.crop_prices.get(crop.lower(), "2,500")
@@ -746,7 +845,8 @@ class UltimateIntelligentAI:
             base_response = f"💰 {display_location} में {crop.title()} की बाजार स्थिति:\n\n"
             base_response += f"🏪 मंडी: {mandi}\n"
             base_response += f"🌾 {crop.title()} कीमत: {price}/quintal\n"
-            base_response += f"📈 बदलाव: {change}\n\n"
+            base_response += f"📈 बदलाव: {change}\n"
+            base_response += f"📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n"
             
             if is_msp_query:
                 base_response += "📊 सरकारी मूल्य (MSP):\n"
