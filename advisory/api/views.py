@@ -18,10 +18,13 @@ from rest_framework import filters
 from django.core.files.uploadedfile import File
 from ..permissions import IsAdmin, IsOfficer, IsFarmer, IsOwnerOrReadOnly
 from ..utils import convert_text_to_speech
+import logging
 from .serializers import (CropAdvisorySerializer, CropSerializer, UserSerializer, SMSSerializer, 
                          IVRInputSerializer, PestDetectionSerializer, TextToSpeechSerializer, 
                          ForumPostSerializer, YieldPredictionSerializer, ChatbotSerializer, 
                          FertilizerRecommendationSerializer, CropRecommendationSerializer, FeedbackSerializer)
+
+logger = logging.getLogger(__name__)
 
 # Enhanced imports for security and caching
 try:
@@ -43,7 +46,12 @@ class ChatbotViewSet(viewsets.ViewSet):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.chatbot = IntelligentAgriculturalChatbot()
+        try:
+            from ..ml.ultimate_intelligent_ai import ultimate_ai
+            self.chatbot = ultimate_ai
+        except ImportError:
+            from ..ml.intelligent_chatbot import IntelligentAgriculturalChatbot
+            self.chatbot = IntelligentAgriculturalChatbot()
     
     def list(self, request):
         """Handle chatbot conversations at root endpoint"""
@@ -54,9 +62,23 @@ class ChatbotViewSet(viewsets.ViewSet):
                 language = serializer.validated_data.get('language', 'en')
                 
                 try:
-                    response = self.chatbot.process_message(message, language=language)
+                    # Use enhanced AI if available, otherwise fallback
+                    if hasattr(self.chatbot, 'get_response'):
+                        # UltimateIntelligentAI
+                        response_data = self.chatbot.get_response(
+                            user_query=message,
+                            language=language,
+                            latitude=request.data.get('latitude'),
+                            longitude=request.data.get('longitude'),
+                            location_name=request.data.get('location')
+                        )
+                        response_text = response_data.get('response', 'Sorry, I could not process your request.')
+                    else:
+                        # IntelligentAgriculturalChatbot
+                        response_text = self.chatbot.process_message(message, language=language)
+                    
                     return Response({
-                        'response': response,
+                        'response': response_text,
                         'intent': 'agricultural_query',
                         'entities': [],
                         'language': language,
@@ -84,9 +106,23 @@ class ChatbotViewSet(viewsets.ViewSet):
             language = serializer.validated_data.get('language', 'en')
             
             try:
-                response = self.chatbot.process_message(message, language=language)
+                # Use enhanced AI if available, otherwise fallback
+                if hasattr(self.chatbot, 'get_response'):
+                    # UltimateIntelligentAI
+                    response_data = self.chatbot.get_response(
+                        user_query=message,
+                        language=language,
+                        latitude=request.data.get('latitude'),
+                        longitude=request.data.get('longitude'),
+                        location_name=request.data.get('location')
+                    )
+                    response_text = response_data.get('response', 'Sorry, I could not process your request.')
+                else:
+                    # IntelligentAgriculturalChatbot
+                    response_text = self.chatbot.process_message(message, language=language)
+                
                 return Response({
-                    'response': response,
+                    'response': response_text,
                     'intent': 'agricultural_query',
                     'entities': [],
                     'language': language,
@@ -347,39 +383,81 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         
         try:
             # Use comprehensive crop recommendation system with real-time government data
-            from ..services.comprehensive_crop_system import comprehensive_crop_system
-            
-            # Add timeout handling
-            import signal
-            
-            def timeout_handler(signum, frame):
-                raise TimeoutError("Crop recommendation request timed out")
-            
-            # Set timeout to 30 seconds
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(30)
-            
             try:
+                from ..services.comprehensive_crop_system import comprehensive_crop_system
                 result = comprehensive_crop_system.get_comprehensive_recommendations(
                     latitude=latitude,
                     longitude=longitude,
-                soil_type=soil_type,
+                    soil_type=soil_type,
                     season=season
                 )
-                signal.alarm(0)  # Cancel the alarm
                 return Response(result, status=status.HTTP_200_OK)
-            except TimeoutError:
-                signal.alarm(0)  # Cancel the alarm
-            return Response({
-                    "error": "Request timed out. Please try again.",
-                    "recommendations": [],
-                    "analysis": {},
-                    "location_info": {}
-                }, status=status.HTTP_408_REQUEST_TIMEOUT)
+            except ImportError:
+                # Fallback to basic crop recommendation
+                logger.warning("Comprehensive crop system not available, using fallback")
+                result = self._get_fallback_crop_recommendations(latitude, longitude, soil_type, season)
+                return Response(result, status=status.HTTP_200_OK)
+            except Exception as e:
+                logger.error(f"Error in comprehensive crop system: {e}")
+                # Fallback to basic crop recommendation
+                result = self._get_fallback_crop_recommendations(latitude, longitude, soil_type, season)
+                return Response(result, status=status.HTTP_200_OK)
             
         except Exception as e:
             logger.error(f"Crop recommendation error: {e}")
             return Response({"error": f"Crop recommendation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _get_fallback_crop_recommendations(self, latitude, longitude, soil_type, season):
+        """Fallback crop recommendations when comprehensive system fails"""
+        try:
+            # Basic crop recommendations based on location and season
+            crops = {
+                'kharif': ['rice', 'maize', 'cotton', 'sugarcane', 'groundnut', 'soybean'],
+                'rabi': ['wheat', 'barley', 'mustard', 'chickpea', 'potato', 'onion'],
+                'zaid': ['cucumber', 'watermelon', 'muskmelon', 'bitter gourd']
+            }
+            
+            # Get crops for the season
+            season_crops = crops.get(season, crops['kharif'])
+            
+            # Generate recommendations
+            recommendations = []
+            for i, crop in enumerate(season_crops[:5]):  # Top 5 crops
+                recommendations.append({
+                    'crop': crop,
+                    'score': 85 - (i * 10),  # Decreasing scores
+                    'reason': f'Recommended for {season} season in {soil_type} soil',
+                    'profitability': 'High' if i < 2 else 'Medium',
+                    'market_demand': 'High',
+                    'climate_suitability': 'Excellent',
+                    'soil_compatibility': 'Good'
+                })
+            
+            return {
+                'recommendations': recommendations,
+                'analysis': {
+                    'total_crops_analyzed': len(season_crops),
+                    'season': season,
+                    'soil_type': soil_type,
+                    'location': f'Lat: {latitude}, Lon: {longitude}',
+                    'confidence': 'Medium (Fallback Mode)'
+                },
+                'location_info': {
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'soil_type': soil_type,
+                    'season': season
+                },
+                'source': 'Fallback Crop Recommendation System'
+            }
+        except Exception as e:
+            logger.error(f"Fallback crop recommendation error: {e}")
+            return {
+                'recommendations': [],
+                'analysis': {'error': str(e)},
+                'location_info': {},
+                'source': 'Error in Fallback System'
+            }
 
     
     @action(detail=False, methods=['post'])

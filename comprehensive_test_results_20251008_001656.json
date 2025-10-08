@@ -1,0 +1,38 @@
+{
+  "total_tests": 5,
+  "passed": 4,
+  "failed": 1,
+  "errors": 0,
+  "test_details": [
+    {
+      "test_name": "Basic API Connectivity",
+      "status": "PASS",
+      "details": "API is accessible",
+      "timestamp": "2025-10-08T00:16:48.298757"
+    },
+    {
+      "test_name": "Weather API Structure",
+      "status": "PASS",
+      "details": "All required fields present for Chennai",
+      "timestamp": "2025-10-08T00:16:48.862302"
+    },
+    {
+      "test_name": "Market Prices API Structure",
+      "status": "FAIL",
+      "details": "Expected status 200, got 500",
+      "timestamp": "2025-10-08T00:16:50.656080"
+    },
+    {
+      "test_name": "Weather Location Dependency",
+      "status": "PASS",
+      "details": "Weather data varies between Jaipur and Mumbai",
+      "timestamp": "2025-10-08T00:16:52.271497"
+    },
+    {
+      "test_name": "Market Prices Location Dependency",
+      "status": "PASS",
+      "details": "Market prices vary between Jaipur and Nagpur for turmeric",
+      "timestamp": "2025-10-08T00:16:56.134400"
+    }
+  ]
+}
