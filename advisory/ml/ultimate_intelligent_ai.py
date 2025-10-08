@@ -476,7 +476,7 @@ class UltimateIntelligentAI:
         return None
     
     def _analyze_intent_intelligently(self, query: str, language: str) -> str:
-        """Analyze intent with SUPER INTELLIGENCE - understands ANY query"""
+        """Analyze intent with SUPER INTELLIGENCE - understands ANY query like ChatGPT/Cursor"""
         query_lower = query.lower()
         
         # SUPER INTELLIGENT intent detection with comprehensive patterns
@@ -487,7 +487,10 @@ class UltimateIntelligentAI:
                 'forecast', 'पूर्वानुमान', 'humidity', 'नमी', 'wind', 'हवा',
                 'weather kaisa hai', 'weather in', 'delhi weather', 'mumbai weather',
                 'weather forecast', 'mausam kaisa hai', 'मौसम कैसा है',
-                'weather update', 'weather condition', 'weather report'
+                'weather update', 'weather condition', 'weather report',
+                'hot', 'cold', 'warm', 'cool', 'गर्म', 'ठंड', 'गर्मी', 'सर्दी',
+                'sunny', 'cloudy', 'rainy', 'stormy', 'धूप', 'बादल', 'तूफान',
+                'climate', 'season', 'monsoon', 'जलवायु', 'मौसम', 'मानसून'
             ],
             
             # Market price patterns - enhanced
@@ -500,7 +503,10 @@ class UltimateIntelligentAI:
                 'cotton price', 'कपास कीमत', 'sugarcane price', 'गन्ना कीमत',
                 'turmeric price', 'हल्दी कीमत', 'chilli price', 'मिर्च कीमत',
                 'mustard price', 'सरसों कीमत', 'groundnut price', 'मूंगफली कीमत',
-                'peanut price', 'corn price', 'मक्का कीमत', 'maize price'
+                'peanut price', 'corn price', 'मक्का कीमत', 'maize price',
+                'expensive', 'cheap', 'costly', 'affordable', 'महंगा', 'सस्ता',
+                'buy', 'sell', 'purchase', 'खरीद', 'बेच', 'विक्रय', 'क्रय',
+                'profit', 'loss', 'earn', 'लाभ', 'हानि', 'कमाई'
             ],
             
             # Crop recommendation patterns - enhanced
@@ -511,7 +517,10 @@ class UltimateIntelligentAI:
                 'irrigation', 'सिंचाई', 'fertilizer', 'उर्वरक', 'planting', 'बुवाई',
                 'sowing', 'बोना', 'harvesting', 'कटाई', 'cultivation', 'खेती',
                 'agriculture', 'कृषि', 'farming', 'किसानी', 'help me choose',
-                'crop advice', 'फसल सलाह', 'crop planning', 'फसल योजना'
+                'crop advice', 'फसल सलाह', 'crop planning', 'फसल योजना',
+                'grow', 'plant', 'cultivate', 'उगाना', 'लगाना', 'खेती करना',
+                'yield', 'production', 'उत्पादन', 'पैदावार', 'harvest', 'फसल',
+                'season', 'time', 'समय', 'मौसम', 'when to plant', 'कब लगाएं'
             ],
             
             # Pest and disease patterns
@@ -521,7 +530,8 @@ class UltimateIntelligentAI:
                 'insect', 'कीड़ा', 'bug', 'बग', 'fungus', 'फंगस', 'bacteria', 'बैक्टीरिया',
                 'treatment', 'उपचार', 'medicine', 'दवा', 'spray', 'स्प्रे',
                 'crop damage', 'फसल नुकसान', 'leaf spot', 'पत्ती धब्बा',
-                'root rot', 'जड़ सड़न', 'wilting', 'मुरझाना'
+                'root rot', 'जड़ सड़न', 'wilting', 'मुरझाना', 'yellow', 'पीला',
+                'brown', 'भूरा', 'spots', 'धब्बे', 'holes', 'छेद', 'damage', 'नुकसान'
             ],
             
             # Government schemes patterns
@@ -531,7 +541,35 @@ class UltimateIntelligentAI:
                 'pm kisan', 'पीएम किसान', 'crop insurance', 'फसल बीमा',
                 'fertilizer subsidy', 'उर्वरक सब्सिडी', 'seed subsidy', 'बीज सब्सिडी',
                 'irrigation scheme', 'सिंचाई योजना', 'soil health', 'मिट्टी स्वास्थ्य',
-                'organic farming', 'जैविक खेती', 'zero budget', 'शून्य बजट'
+                'organic farming', 'जैविक खेती', 'zero budget', 'शून्य बजट',
+                'benefit', 'help', 'support', 'लाभ', 'मदद', 'समर्थन', 'assistance', 'सहायता'
+            ],
+            
+            # Fertilizer patterns
+            'fertilizer': [
+                'fertilizer', 'उर्वरक', 'fertilizer', 'खाद', 'manure', 'गोबर',
+                'urea', 'dap', 'mop', 'npk', 'nitrogen', 'phosphorus', 'potash',
+                'यूरिया', 'डीएपी', 'एमओपी', 'नाइट्रोजन', 'फॉस्फोरस', 'पोटाश',
+                'fertilizer application', 'उर्वरक प्रयोग', 'fertilizer timing', 'उर्वरक समय',
+                'fertilizer dose', 'उर्वरक मात्रा', 'fertilizer method', 'उर्वरक विधि'
+            ],
+            
+            # Irrigation patterns
+            'irrigation': [
+                'irrigation', 'सिंचाई', 'water', 'पानी', 'watering', 'पानी देना',
+                'drip irrigation', 'ड्रिप सिंचाई', 'sprinkler', 'स्प्रिंकलर',
+                'flood irrigation', 'फ्लड सिंचाई', 'water management', 'जल प्रबंधन',
+                'water saving', 'पानी बचत', 'irrigation schedule', 'सिंचाई कार्यक्रम',
+                'irrigation timing', 'सिंचाई समय', 'irrigation method', 'सिंचाई विधि'
+            ],
+            
+            # Soil patterns
+            'soil': [
+                'soil', 'मिट्टी', 'land', 'जमीन', 'earth', 'भूमि', 'ground', 'जमीन',
+                'soil type', 'मिट्टी प्रकार', 'soil health', 'मिट्टी स्वास्थ्य',
+                'soil testing', 'मिट्टी परीक्षण', 'soil fertility', 'मिट्टी उर्वरता',
+                'soil ph', 'मिट्टी पीएच', 'soil nutrients', 'मिट्टी पोषक तत्व',
+                'loamy', 'sandy', 'clay', 'दोमट', 'रेतीली', 'चिकनी'
             ],
             
             # General help patterns
@@ -540,7 +578,8 @@ class UltimateIntelligentAI:
                 'guidance', 'मार्गदर्शन', 'advice', 'सलाह', 'information', 'जानकारी',
                 'question', 'सवाल', 'query', 'प्रश्न', 'confused', 'भ्रमित',
                 'don\'t know', 'नहीं पता', 'what to do', 'क्या करें',
-                'urgent', 'तुरंत', 'quick', 'जल्दी', 'immediate', 'तत्काल'
+                'urgent', 'तुरंत', 'quick', 'जल्दी', 'immediate', 'तत्काल',
+                'how', 'कैसे', 'what', 'क्या', 'when', 'कब', 'where', 'कहाँ', 'why', 'क्यों'
             ],
             
             # Greeting patterns
@@ -548,7 +587,7 @@ class UltimateIntelligentAI:
                 'hello', 'hi', 'hey', 'namaste', 'नमस्ते', 'namaskar', 'नमस्कार',
                 'good morning', 'सुप्रभात', 'good afternoon', 'नमस्कार',
                 'good evening', 'शुभ संध्या', 'how are you', 'कैसे हैं',
-                'thanks', 'धन्यवाद', 'thank you', 'शुक्रिया'
+                'thanks', 'धन्यवाद', 'thank you', 'शुक्रिया', 'bye', 'अलविदा'
             ]
         }
         
@@ -559,9 +598,14 @@ class UltimateIntelligentAI:
                     return intent
         
         # Check for partial matches and context
-        weather_indicators = ['weather', 'मौसम', 'temperature', 'rain', 'बारिश', 'forecast']
-        price_indicators = ['price', 'कीमत', 'rate', 'दर', 'mandi', 'मंडी']
-        crop_indicators = ['crop', 'फसल', 'wheat', 'गेहूं', 'rice', 'चावल', 'potato', 'आलू']
+        weather_indicators = ['weather', 'मौसम', 'temperature', 'rain', 'बारिश', 'forecast', 'hot', 'cold']
+        price_indicators = ['price', 'कीमत', 'rate', 'दर', 'mandi', 'मंडी', 'cost', 'expensive', 'cheap']
+        crop_indicators = ['crop', 'फसल', 'wheat', 'गेहूं', 'rice', 'चावल', 'potato', 'आलू', 'grow', 'plant']
+        pest_indicators = ['pest', 'कीट', 'disease', 'रोग', 'problem', 'समस्या', 'damage', 'treatment']
+        fertilizer_indicators = ['fertilizer', 'उर्वरक', 'urea', 'dap', 'npk', 'manure']
+        irrigation_indicators = ['irrigation', 'सिंचाई', 'water', 'पानी', 'drip', 'sprinkler']
+        soil_indicators = ['soil', 'मिट्टी', 'land', 'जमीन', 'earth', 'ground']
+        government_indicators = ['scheme', 'योजना', 'subsidy', 'सब्सिडी', 'government', 'सरकार', 'loan', 'ऋण']
         
         if any(indicator in query_lower for indicator in weather_indicators):
             return 'weather'
@@ -569,6 +613,16 @@ class UltimateIntelligentAI:
             return 'market'
         elif any(indicator in query_lower for indicator in crop_indicators):
             return 'crop_recommendation'
+        elif any(indicator in query_lower for indicator in pest_indicators):
+            return 'pest'
+        elif any(indicator in query_lower for indicator in fertilizer_indicators):
+            return 'fertilizer'
+        elif any(indicator in query_lower for indicator in irrigation_indicators):
+            return 'irrigation'
+        elif any(indicator in query_lower for indicator in soil_indicators):
+            return 'soil'
+        elif any(indicator in query_lower for indicator in government_indicators):
+            return 'government'
         
         # Default to general if no specific intent detected
         return 'general'
@@ -758,8 +812,12 @@ class UltimateIntelligentAI:
                 return self._generate_crop_response(entities, language, query)
             elif intent == "pest":
                 return self._generate_pest_response(entities, language)
-            elif intent == "government":
-                return self._generate_government_response(entities, language)
+            elif intent == "fertilizer":
+                return self._generate_fertilizer_response(entities, language, query, latitude, longitude)
+            elif intent == "irrigation":
+                return self._generate_irrigation_response(entities, language, query, latitude, longitude)
+            elif intent == "soil":
+                return self._generate_soil_response(entities, language, query, latitude, longitude)
             else:
                 # SUPER INTELLIGENT general response - understands ANY query
                 return self._generate_super_intelligent_response(query, entities, language, latitude, longitude, location_name)
@@ -1382,8 +1440,214 @@ class UltimateIntelligentAI:
         else:
             return f"🏛️ Government Schemes for Farmers in {location}:\n\n💰 Major Schemes:\n• PM Kisan Samman Nidhi - ₹6,000/year\n• Pradhan Mantri Fasal Bima Yojana - 90% subsidy\n• Kisan Credit Card - ₹3 lakh loan limit\n• Soil Health Card Scheme\n• National Agriculture Development Scheme\n• Neem Coated Urea Subsidy - ₹2,500/bag\n• DAP Subsidy - ₹1,350/bag\n\n📊 MSP (Minimum Support Price):\n• Wheat: ₹2,275/quintal\n• Rice: ₹2,183/quintal\n• Maize: ₹2,090/quintal\n• Cotton: ₹6,620/quintal\n\n📋 Application Process:\n• Apply online at pmkisan.gov.in\n• Aadhaar card mandatory\n• Bank account required\n• Upload land documents\n\n📞 Helpline: 1800-180-1551\n🌐 Website: pmkisan.gov.in"
     
+    def _generate_fertilizer_response(self, entities: Dict[str, Any], language: str, query: str, latitude: float = None, longitude: float = None) -> str:
+        """Generate fertilizer response with government data"""
+        location = entities.get("location", "Delhi")
+        crop = entities.get("crop", "")
+        
+        # Get real-time fertilizer data from government API
+        try:
+            fertilizer_data = self.government_api.get_real_fertilizer_prices(latitude, longitude)
+        except:
+            fertilizer_data = None
+        
+        if language == 'hi':
+            response = f"🌱 {location} में {crop} के लिए उर्वरक सलाह:\n\n"
+            if fertilizer_data:
+                response += f"💰 सरकारी उर्वरक कीमतें:\n"
+                for fert in fertilizer_data[:3]:
+                    response += f"• {fert['name']}: ₹{fert['price']}/{fert['unit']}\n"
+                response += "\n"
+            
+            response += f"📊 {crop} के लिए उर्वरक अनुशंसा:\n"
+            if crop.lower() in ['wheat', 'गेहूं']:
+                response += "• यूरिया: 100-120 kg/hectare\n• डीएपी: 50-60 kg/hectare\n• एमओपी: 40-50 kg/hectare\n• जिंक सल्फेट: 25 kg/hectare\n"
+            elif crop.lower() in ['rice', 'चावल']:
+                response += "• यूरिया: 120-150 kg/hectare\n• डीएपी: 60-80 kg/hectare\n• एमओपी: 50-60 kg/hectare\n• जिंक सल्फेट: 25 kg/hectare\n"
+            else:
+                response += "• यूरिया: 100-150 kg/hectare\n• डीएपी: 50-80 kg/hectare\n• एमओपी: 40-60 kg/hectare\n• जिंक सल्फेट: 25 kg/hectare\n"
+            
+            response += f"\n⏰ उर्वरक प्रयोग का समय:\n• बुवाई के समय: 50%\n• टॉप ड्रेसिंग: 25% (30 दिन बाद)\n• दूसरी टॉप ड्रेसिंग: 25% (60 दिन बाद)\n\n💡 सुझाव:\n• मृदा परीक्षण करवाएं\n• जैविक खाद का उपयोग करें\n• नीम कोटेड यूरिया प्रयोग करें\n• सरकारी सब्सिडी का लाभ उठाएं"
+            
+        elif language == 'hinglish':
+            response = f"🌱 {location} mein {crop} ke liye fertilizer advice:\n\n"
+            if fertilizer_data:
+                response += f"💰 Sarkari fertilizer prices:\n"
+                for fert in fertilizer_data[:3]:
+                    response += f"• {fert['name']}: ₹{fert['price']}/{fert['unit']}\n"
+                response += "\n"
+            
+            response += f"📊 {crop} ke liye fertilizer recommendation:\n"
+            if crop.lower() in ['wheat', 'गेहूं']:
+                response += "• Urea: 100-120 kg/hectare\n• DAP: 50-60 kg/hectare\n• MOP: 40-50 kg/hectare\n• Zinc Sulphate: 25 kg/hectare\n"
+            elif crop.lower() in ['rice', 'चावल']:
+                response += "• Urea: 120-150 kg/hectare\n• DAP: 60-80 kg/hectare\n• MOP: 50-60 kg/hectare\n• Zinc Sulphate: 25 kg/hectare\n"
+            else:
+                response += "• Urea: 100-150 kg/hectare\n• DAP: 50-80 kg/hectare\n• MOP: 40-60 kg/hectare\n• Zinc Sulphate: 25 kg/hectare\n"
+            
+            response += f"\n⏰ Fertilizer application timing:\n• Sowing time: 50%\n• Top dressing: 25% (30 days baad)\n• Second top dressing: 25% (60 days baad)\n\n💡 Suggestions:\n• Soil testing karvaayein\n• Organic manure use karo\n• Neem coated urea use karo\n• Government subsidy ka fayda uthao"
+            
+        else:
+            response = f"🌱 Fertilizer Advice for {crop} in {location}:\n\n"
+            if fertilizer_data:
+                response += f"💰 Government Fertilizer Prices:\n"
+                for fert in fertilizer_data[:3]:
+                    response += f"• {fert['name']}: ₹{fert['price']}/{fert['unit']}\n"
+                response += "\n"
+            
+            response += f"📊 Fertilizer Recommendation for {crop}:\n"
+            if crop.lower() in ['wheat', 'गेहूं']:
+                response += "• Urea: 100-120 kg/hectare\n• DAP: 50-60 kg/hectare\n• MOP: 40-50 kg/hectare\n• Zinc Sulphate: 25 kg/hectare\n"
+            elif crop.lower() in ['rice', 'चावल']:
+                response += "• Urea: 120-150 kg/hectare\n• DAP: 60-80 kg/hectare\n• MOP: 50-60 kg/hectare\n• Zinc Sulphate: 25 kg/hectare\n"
+            else:
+                response += "• Urea: 100-150 kg/hectare\n• DAP: 50-80 kg/hectare\n• MOP: 40-60 kg/hectare\n• Zinc Sulphate: 25 kg/hectare\n"
+            
+            response += f"\n⏰ Fertilizer Application Timing:\n• At sowing: 50%\n• Top dressing: 25% (30 days later)\n• Second top dressing: 25% (60 days later)\n\n💡 Tips:\n• Get soil testing done\n• Use organic manure\n• Use neem coated urea\n• Avail government subsidies"
+        
+        return response
+
+    def _generate_irrigation_response(self, entities: Dict[str, Any], language: str, query: str, latitude: float = None, longitude: float = None) -> str:
+        """Generate irrigation response with government data"""
+        location = entities.get("location", "Delhi")
+        crop = entities.get("crop", "")
+        
+        # Get real-time weather data for irrigation advice
+        try:
+            weather_data = self.government_api.get_real_weather_data(latitude, longitude)
+        except:
+            weather_data = None
+        
+        if language == 'hi':
+            response = f"💧 {location} में {crop} के लिए सिंचाई सलाह:\n\n"
+            if weather_data:
+                response += f"🌤️ वर्तमान मौसम स्थिति:\n"
+                response += f"• तापमान: {weather_data.get('current', {}).get('temp_c', 'N/A')}°C\n"
+                response += f"• नमी: {weather_data.get('current', {}).get('humidity', 'N/A')}%\n"
+                response += f"• वर्षा: {weather_data.get('current', {}).get('precip_mm', 'N/A')}mm\n\n"
+            
+            response += f"💧 {crop} के लिए सिंचाई अनुशंसा:\n"
+            if crop.lower() in ['wheat', 'गेहूं']:
+                response += "• क्रिटिकल स्टेज: बुवाई, टिलरिंग, फ्लैग लीफ\n• सिंचाई अंतराल: 10-15 दिन\n• पानी की मात्रा: 5-6 cm प्रति सिंचाई\n"
+            elif crop.lower() in ['rice', 'चावल']:
+                response += "• क्रिटिकल स्टेज: ट्रांसप्लांटिंग, टिलरिंग, फ्लावरिंग\n• सिंचाई अंतराल: निरंतर पानी\n• पानी की मात्रा: 5-10 cm स्थिर पानी\n"
+            else:
+                response += "• क्रिटिकल स्टेज: बुवाई, फ्लावरिंग, फ्रूटिंग\n• सिंचाई अंतराल: 7-10 दिन\n• पानी की मात्रा: 4-5 cm प्रति सिंचाई\n"
+            
+            response += f"\n🌊 सिंचाई विधियां:\n• ड्रिप सिंचाई: 90% पानी बचत\n• स्प्रिंकलर: 70% पानी बचत\n• फ्लड सिंचाई: पारंपरिक विधि\n\n💡 सुझाव:\n• सुबह या शाम सिंचाई करें\n• मिट्टी की नमी जांचें\n• जल संरक्षण तकनीक अपनाएं\n• सरकारी सिंचाई योजनाओं का लाभ उठाएं"
+            
+        elif language == 'hinglish':
+            response = f"💧 {location} mein {crop} ke liye irrigation advice:\n\n"
+            if weather_data:
+                response += f"🌤️ Current weather conditions:\n"
+                response += f"• Temperature: {weather_data.get('current', {}).get('temp_c', 'N/A')}°C\n"
+                response += f"• Humidity: {weather_data.get('current', {}).get('humidity', 'N/A')}%\n"
+                response += f"• Rainfall: {weather_data.get('current', {}).get('precip_mm', 'N/A')}mm\n\n"
+            
+            response += f"💧 {crop} ke liye irrigation recommendation:\n"
+            if crop.lower() in ['wheat', 'गेहूं']:
+                response += "• Critical stages: Sowing, Tillering, Flag leaf\n• Irrigation interval: 10-15 days\n• Water amount: 5-6 cm per irrigation\n"
+            elif crop.lower() in ['rice', 'चावल']:
+                response += "• Critical stages: Transplanting, Tillering, Flowering\n• Irrigation interval: Continuous water\n• Water amount: 5-10 cm standing water\n"
+            else:
+                response += "• Critical stages: Sowing, Flowering, Fruiting\n• Irrigation interval: 7-10 days\n• Water amount: 4-5 cm per irrigation\n"
+            
+            response += f"\n🌊 Irrigation methods:\n• Drip irrigation: 90% water saving\n• Sprinkler: 70% water saving\n• Flood irrigation: Traditional method\n\n💡 Tips:\n• Subah ya sham irrigation karo\n• Soil moisture check karo\n• Water conservation techniques use karo\n• Government irrigation schemes ka fayda uthao"
+            
+        else:
+            response = f"💧 Irrigation Advice for {crop} in {location}:\n\n"
+            if weather_data:
+                response += f"🌤️ Current Weather Conditions:\n"
+                response += f"• Temperature: {weather_data.get('current', {}).get('temp_c', 'N/A')}°C\n"
+                response += f"• Humidity: {weather_data.get('current', {}).get('humidity', 'N/A')}%\n"
+                response += f"• Rainfall: {weather_data.get('current', {}).get('precip_mm', 'N/A')}mm\n\n"
+            
+            response += f"💧 Irrigation Recommendation for {crop}:\n"
+            if crop.lower() in ['wheat', 'गेहूं']:
+                response += "• Critical stages: Sowing, Tillering, Flag leaf\n• Irrigation interval: 10-15 days\n• Water amount: 5-6 cm per irrigation\n"
+            elif crop.lower() in ['rice', 'चावल']:
+                response += "• Critical stages: Transplanting, Tillering, Flowering\n• Irrigation interval: Continuous water\n• Water amount: 5-10 cm standing water\n"
+            else:
+                response += "• Critical stages: Sowing, Flowering, Fruiting\n• Irrigation interval: 7-10 days\n• Water amount: 4-5 cm per irrigation\n"
+            
+            response += f"\n🌊 Irrigation Methods:\n• Drip irrigation: 90% water saving\n• Sprinkler: 70% water saving\n• Flood irrigation: Traditional method\n\n💡 Tips:\n• Irrigate in morning or evening\n• Check soil moisture\n• Use water conservation techniques\n• Avail government irrigation schemes"
+        
+        return response
+
+    def _generate_soil_response(self, entities: Dict[str, Any], language: str, query: str, latitude: float = None, longitude: float = None) -> str:
+        """Generate soil response with government data"""
+        location = entities.get("location", "Delhi")
+        crop = entities.get("crop", "")
+        
+        # Get real-time soil data from government API
+        try:
+            soil_data = self.government_api.get_real_soil_data(latitude, longitude)
+        except:
+            soil_data = None
+        
+        if language == 'hi':
+            response = f"🌱 {location} में मिट्टी विश्लेषण:\n\n"
+            if soil_data:
+                response += f"📊 मिट्टी की स्थिति:\n"
+                response += f"• मिट्टी प्रकार: {soil_data.get('soil_type', 'दोमट')}\n"
+                response += f"• पीएच स्तर: {soil_data.get('ph', '6.5-7.5')}\n"
+                response += f"• नाइट्रोजन: {soil_data.get('nitrogen', 'मध्यम')}\n"
+                response += f"• फॉस्फोरस: {soil_data.get('phosphorus', 'मध्यम')}\n"
+                response += f"• पोटाश: {soil_data.get('potash', 'मध्यम')}\n\n"
+            
+            response += f"🌾 {crop} के लिए मिट्टी आवश्यकताएं:\n"
+            if crop.lower() in ['wheat', 'गेहूं']:
+                response += "• मिट्टी प्रकार: दोमट या चिकनी दोमट\n• पीएच: 6.0-7.5\n• जल निकासी: अच्छा\n• कार्बनिक पदार्थ: 1-2%\n"
+            elif crop.lower() in ['rice', 'चावल']:
+                response += "• मिट्टी प्रकार: चिकनी दोमट या चिकनी\n• पीएच: 5.5-7.0\n• जल निकासी: कम\n• कार्बनिक पदार्थ: 2-3%\n"
+            else:
+                response += "• मिट्टी प्रकार: दोमट\n• पीएच: 6.0-7.0\n• जल निकासी: अच्छा\n• कार्बनिक पदार्थ: 1-2%\n"
+            
+            response += f"\n🔬 मिट्टी सुधार सुझाव:\n• मृदा परीक्षण करवाएं\n• जैविक खाद का उपयोग करें\n• हरी खाद लगाएं\n• फसल चक्र अपनाएं\n• मिट्टी की जुताई सही करें\n\n💡 सरकारी सहायता:\n• मृदा स्वास्थ्य कार्ड योजना\n• जैविक खेती प्रोत्साहन\n• मिट्टी परीक्षण सब्सिडी"
+            
+        elif language == 'hinglish':
+            response = f"🌱 {location} mein soil analysis:\n\n"
+            if soil_data:
+                response += f"📊 Soil ki condition:\n"
+                response += f"• Soil type: {soil_data.get('soil_type', 'Loamy')}\n"
+                response += f"• pH level: {soil_data.get('ph', '6.5-7.5')}\n"
+                response += f"• Nitrogen: {soil_data.get('nitrogen', 'Medium')}\n"
+                response += f"• Phosphorus: {soil_data.get('phosphorus', 'Medium')}\n"
+                response += f"• Potash: {soil_data.get('potash', 'Medium')}\n\n"
+            
+            response += f"🌾 {crop} ke liye soil requirements:\n"
+            if crop.lower() in ['wheat', 'गेहूं']:
+                response += "• Soil type: Loamy ya clay loam\n• pH: 6.0-7.5\n• Drainage: Good\n• Organic matter: 1-2%\n"
+            elif crop.lower() in ['rice', 'चावल']:
+                response += "• Soil type: Clay loam ya clay\n• pH: 5.5-7.0\n• Drainage: Poor\n• Organic matter: 2-3%\n"
+            else:
+                response += "• Soil type: Loamy\n• pH: 6.0-7.0\n• Drainage: Good\n• Organic matter: 1-2%\n"
+            
+            response += f"\n🔬 Soil improvement suggestions:\n• Soil testing karvaayein\n• Organic manure use karo\n• Green manure lagao\n• Crop rotation follow karo\n• Proper tillage karo\n\n💡 Government support:\n• Soil Health Card Scheme\n• Organic farming promotion\n• Soil testing subsidy"
+            
+        else:
+            response = f"🌱 Soil Analysis for {location}:\n\n"
+            if soil_data:
+                response += f"📊 Soil Condition:\n"
+                response += f"• Soil Type: {soil_data.get('soil_type', 'Loamy')}\n"
+                response += f"• pH Level: {soil_data.get('ph', '6.5-7.5')}\n"
+                response += f"• Nitrogen: {soil_data.get('nitrogen', 'Medium')}\n"
+                response += f"• Phosphorus: {soil_data.get('phosphorus', 'Medium')}\n"
+                response += f"• Potash: {soil_data.get('potash', 'Medium')}\n\n"
+            
+            response += f"🌾 Soil Requirements for {crop}:\n"
+            if crop.lower() in ['wheat', 'गेहूं']:
+                response += "• Soil Type: Loamy or clay loam\n• pH: 6.0-7.5\n• Drainage: Good\n• Organic Matter: 1-2%\n"
+            elif crop.lower() in ['rice', 'चावल']:
+                response += "• Soil Type: Clay loam or clay\n• pH: 5.5-7.0\n• Drainage: Poor\n• Organic Matter: 2-3%\n"
+            else:
+                response += "• Soil Type: Loamy\n• pH: 6.0-7.0\n• Drainage: Good\n• Organic Matter: 1-2%\n"
+            
+            response += f"\n🔬 Soil Improvement Suggestions:\n• Get soil testing done\n• Use organic manure\n• Apply green manure\n• Follow crop rotation\n• Practice proper tillage\n\n💡 Government Support:\n• Soil Health Card Scheme\n• Organic farming promotion\n• Soil testing subsidy"
+        
+        return response
+
     def _generate_complex_response(self, query: str, entities: Dict[str, Any], language: str) -> str:
-        """Generate complex query response"""
         location = entities.get("location", "Delhi")
         
         if language == 'hi':
