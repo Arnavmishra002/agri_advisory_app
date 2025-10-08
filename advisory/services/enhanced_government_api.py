@@ -624,14 +624,60 @@ class EnhancedGovernmentAPI:
             return None
     
     def _generate_mandi_search_results(self, query: str, state: str = None, district: str = None, commodity: str = None) -> List[Dict[str, Any]]:
-        """Generate mandi search results based on query"""
+        """Generate mandi search results based on query with enhanced input parsing"""
         import random
+        import re
         
         # Generate realistic mandi data based on query
         mandis = []
         
+        # Parse and normalize inputs
+        query_lower = query.lower().strip() if query else ""
+        state_lower = state.lower().strip() if state else ""
+        commodity_lower = commodity.lower().strip() if commodity else ""
+        
+        # State mapping for better matching
+        state_mapping = {
+            'delhi': 'Delhi', 'new delhi': 'Delhi', 'ncr': 'Delhi',
+            'mumbai': 'Maharashtra', 'bombay': 'Maharashtra', 'maharashtra': 'Maharashtra', 'maharashtra': 'Maharashtra',
+            'bangalore': 'Karnataka', 'bengaluru': 'Karnataka', 'karnataka': 'Karnataka',
+            'kolkata': 'West Bengal', 'calcutta': 'West Bengal', 'west bengal': 'West Bengal',
+            'hyderabad': 'Telangana', 'telangana': 'Telangana',
+            'chennai': 'Tamil Nadu', 'madras': 'Tamil Nadu', 'tamil nadu': 'Tamil Nadu',
+            'ahmedabad': 'Gujarat', 'gujarat': 'Gujarat',
+            'pune': 'Maharashtra', 'nashik': 'Maharashtra',
+            'jaipur': 'Rajasthan', 'rajasthan': 'Rajasthan',
+            'lucknow': 'Uttar Pradesh', 'kanpur': 'Uttar Pradesh', 'uttar pradesh': 'Uttar Pradesh', 'up': 'Uttar Pradesh',
+            'bhopal': 'Madhya Pradesh', 'madhya pradesh': 'Madhya Pradesh', 'mp': 'Madhya Pradesh'
+        }
+        
+        # Commodity mapping
+        commodity_mapping = {
+            'wheat': 'गेहूं', 'गेहूं': 'Wheat',
+            'rice': 'चावल', 'चावल': 'Rice',
+            'maize': 'मक्का', 'मक्का': 'Maize',
+            'cotton': 'कपास', 'कपास': 'Cotton',
+            'sugarcane': 'गन्ना', 'गन्ना': 'Sugarcane',
+            'potato': 'आलू', 'आलू': 'Potato',
+            'onion': 'प्याज', 'प्याज': 'Onion',
+            'tomato': 'टमाटर', 'टमाटर': 'Tomato',
+            'vegetables': 'सब्जियां', 'सब्जियां': 'Vegetables',
+            'fruits': 'फल', 'फल': 'Fruits'
+        }
+        
+        # Determine search location
+        search_location = ""
+        if query_lower:
+            search_location = query_lower
+        elif state_lower:
+            search_location = state_lower
+        
+        # Map to standardized names
+        if search_location in state_mapping:
+            search_location = state_mapping[search_location].lower()
+        
         # Common mandi patterns based on query
-        if query.lower() in ['delhi', 'new delhi', 'ncr']:
+        if search_location in ['delhi', 'new delhi', 'ncr'] or 'delhi' in search_location:
             mandis = [
                 {
                     'mandi_id': 'DL001',
@@ -643,7 +689,9 @@ class EnhancedGovernmentAPI:
                     'contact': '+91-11-2389-1234',
                     'address': 'Azadpur, Delhi-110033',
                     'operating_days': 'Monday-Saturday',
-                    'timings': '6:00 AM - 2:00 PM'
+                    'timings': '6:00 AM - 2:00 PM',
+                    'latitude': 28.6139,
+                    'longitude': 77.2090
                 },
                 {
                     'mandi_id': 'DL002',
@@ -655,10 +703,12 @@ class EnhancedGovernmentAPI:
                     'contact': '+91-11-2389-5678',
                     'address': 'Ghazipur, Delhi-110096',
                     'operating_days': 'Monday-Saturday',
-                    'timings': '5:00 AM - 1:00 PM'
+                    'timings': '5:00 AM - 1:00 PM',
+                    'latitude': 28.6139,
+                    'longitude': 77.2090
                 }
             ]
-        elif query.lower() in ['mumbai', 'bombay']:
+        elif search_location in ['mumbai', 'bombay', 'maharashtra'] or 'mumbai' in search_location or 'maharashtra' in search_location:
             mandis = [
                 {
                     'mandi_id': 'MH001',
@@ -670,7 +720,9 @@ class EnhancedGovernmentAPI:
                     'contact': '+91-22-2766-1234',
                     'address': 'Vashi, Navi Mumbai-400703',
                     'operating_days': 'Monday-Sunday',
-                    'timings': '4:00 AM - 12:00 PM'
+                    'timings': '4:00 AM - 12:00 PM',
+                    'latitude': 19.0760,
+                    'longitude': 72.8777
                 },
                 {
                     'mandi_id': 'MH002',
@@ -682,13 +734,69 @@ class EnhancedGovernmentAPI:
                     'contact': '+91-22-2766-5678',
                     'address': 'Mumbai-400001',
                     'operating_days': 'Monday-Saturday',
-                    'timings': '6:00 AM - 2:00 PM'
+                    'timings': '6:00 AM - 2:00 PM',
+                    'latitude': 19.0760,
+                    'longitude': 72.8777
+                }
+            ]
+        elif search_location in ['bangalore', 'bengaluru', 'karnataka'] or 'bangalore' in search_location:
+            mandis = [
+                {
+                    'mandi_id': 'KA001',
+                    'mandi_name': 'Bangalore APMC',
+                    'state': 'Karnataka',
+                    'district': 'Bangalore',
+                    'commodities': ['Rice', 'Vegetables', 'Spices', 'Fruits'],
+                    'market_type': 'APMC',
+                    'contact': '+91-80-XXXX-XXXX',
+                    'address': 'Bangalore, Karnataka',
+                    'operating_days': 'Monday-Saturday',
+                    'timings': '6:00 AM - 2:00 PM',
+                    'latitude': 12.9716,
+                    'longitude': 77.5946
+                }
+            ]
+        elif search_location in ['kolkata', 'west bengal'] or 'kolkata' in search_location:
+            mandis = [
+                {
+                    'mandi_id': 'WB001',
+                    'mandi_name': 'Kolkata APMC',
+                    'state': 'West Bengal',
+                    'district': 'Kolkata',
+                    'commodities': ['Rice', 'Vegetables', 'Fish', 'Fruits'],
+                    'market_type': 'APMC',
+                    'contact': '+91-33-XXXX-XXXX',
+                    'address': 'Kolkata, West Bengal',
+                    'operating_days': 'Monday-Saturday',
+                    'timings': '5:00 AM - 1:00 PM',
+                    'latitude': 22.5726,
+                    'longitude': 88.3639
+                }
+            ]
+        elif search_location in ['hyderabad', 'telangana'] or 'hyderabad' in search_location:
+            mandis = [
+                {
+                    'mandi_id': 'TS001',
+                    'mandi_name': 'Hyderabad APMC',
+                    'state': 'Telangana',
+                    'district': 'Hyderabad',
+                    'commodities': ['Rice', 'Cotton', 'Vegetables', 'Spices'],
+                    'market_type': 'APMC',
+                    'contact': '+91-40-XXXX-XXXX',
+                    'address': 'Hyderabad, Telangana',
+                    'operating_days': 'Monday-Saturday',
+                    'timings': '6:00 AM - 2:00 PM',
+                    'latitude': 17.3850,
+                    'longitude': 78.4867
                 }
             ]
         else:
-            # Generate generic mandis based on state/district
+            # Generate generic mandis based on state/district/query
             state_name = state or 'Unknown State'
-            district_name = district or 'Unknown District'
+            district_name = district or query or 'Unknown District'
+            
+            # Generate coordinates based on state
+            coordinates = self._get_state_coordinates(state_name)
             
             mandis = [
                 {
@@ -701,11 +809,51 @@ class EnhancedGovernmentAPI:
                     'contact': '+91-XXX-XXXX-XXXX',
                     'address': f'{district_name}, {state_name}',
                     'operating_days': 'Monday-Saturday',
-                    'timings': '6:00 AM - 2:00 PM'
+                    'timings': '6:00 AM - 2:00 PM',
+                    'latitude': coordinates[0],
+                    'longitude': coordinates[1]
                 }
             ]
         
         return mandis
+    
+    def _get_state_coordinates(self, state_name: str) -> tuple:
+        """Get approximate coordinates for a state"""
+        state_coords = {
+            'Delhi': (28.6139, 77.2090),
+            'Maharashtra': (19.0760, 72.8777),
+            'Karnataka': (12.9716, 77.5946),
+            'West Bengal': (22.5726, 88.3639),
+            'Telangana': (17.3850, 78.4867),
+            'Tamil Nadu': (13.0827, 80.2707),
+            'Gujarat': (23.0225, 72.5714),
+            'Rajasthan': (26.9124, 75.7873),
+            'Uttar Pradesh': (25.3176, 82.9739),
+            'Madhya Pradesh': (23.0225, 72.5714),
+            'Punjab': (31.1471, 75.3412),
+            'Haryana': (29.0588, 76.0856),
+            'Bihar': (25.0961, 85.3131),
+            'Odisha': (20.2961, 85.8245),
+            'Assam': (26.2006, 92.9376),
+            'Kerala': (10.8505, 76.2711),
+            'Andhra Pradesh': (15.9129, 79.7400),
+            'Jharkhand': (23.6102, 85.2799),
+            'Chhattisgarh': (21.2787, 81.8661),
+            'Uttarakhand': (30.0668, 79.0193),
+            'Himachal Pradesh': (31.1048, 77.1734),
+            'Goa': (15.2993, 74.1240),
+            'Manipur': (24.6637, 93.9063),
+            'Meghalaya': (25.4670, 91.3662),
+            'Mizoram': (23.1645, 92.9376),
+            'Nagaland': (26.1584, 94.5624),
+            'Tripura': (23.9408, 91.9882),
+            'Sikkim': (27.5330, 88.5122),
+            'Arunachal Pradesh': (28.2180, 94.7278),
+            'Jammu and Kashmir': (34.0837, 74.7973),
+            'Ladakh': (34.1526, 77.5771)
+        }
+        
+        return state_coords.get(state_name, (20.5937, 78.9629))  # Default to India center
     
     def _generate_village_data(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """Generate village-level location data"""

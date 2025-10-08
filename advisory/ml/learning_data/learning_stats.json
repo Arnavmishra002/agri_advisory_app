@@ -1,8 +1,8 @@
 {
-  "total_queries": 7,
-  "total_feedback": 7,
+  "total_queries": 140,
+  "total_feedback": 140,
   "improvement_rate": 0.0,
-  "last_learning": "2025-10-08T21:46:45.625445",
-  "patterns_learned": 7,
-  "knowledge_entries": 7
+  "last_learning": "2025-10-08T22:20:35.147318",
+  "patterns_learned": 140,
+  "knowledge_entries": 140
 }

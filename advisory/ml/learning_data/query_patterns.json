@@ -1,46 +1,49 @@
 {
   "market_price": {
-    "count": 2,
+    "count": 3,
     "common_words": {
-      "what": 2,
-      "price": 2,
-      "wheat": 2,
+      "what": 3,
+      "price": 3,
+      "wheat": 3,
       "area?": 1
     },
     "complexity_distribution": {
-      "medium": 2
+      "medium": 3
     },
     "location_frequency": {
-      "location_specific": 2
+      "location_specific": 3
     },
     "language_frequency": {
-      "en": 2
+      "en": 2,
+      "hi": 1
     }
   },
   "crop_recommendation": {
-    "count": 2,
+    "count": 3,
     "common_words": {
-      "grow": 1,
+      "grow": 2,
       "rice?": 1,
       "what": 1,
       "best": 1,
       "crops": 1,
       "black": 1,
-      "soil?": 1
+      "soil?": 1,
+      "rice": 1
     },
     "complexity_distribution": {
-      "simple": 1,
+      "simple": 2,
       "medium": 1
     },
     "location_frequency": {
-      "location_specific": 2
+      "location_specific": 3
     },
     "language_frequency": {
-      "en": 2
+      "en": 2,
+      "hi": 1
     }
   },
   "general": {
-    "count": 3,
+    "count": 133,
     "common_words": {
       "tell": 1,
       "about": 1,
@@ -48,18 +51,46 @@
       "farming": 1,
       "techniques": 1,
       "test": 2,
-      "query": 2
+      "query": 2,
+      "उरवरक": 30,
+      "टमटर": 17,
+      "दखभल": 2,
+      "सरकर": 3,
+      "यजनए": 2,
+      "जनकर": 2,
+      "करडट": 2,
+      "बनवए": 2,
+      "सबसड": 1,
+      "सहयत": 1,
+      "भडरण": 2
     },
     "complexity_distribution": {
-      "medium": 1,
-      "simple": 2
+      "medium": 74,
+      "simple": 59
     },
     "location_frequency": {
-      "location_specific": 3
+      "location_specific": 133
     },
     "language_frequency": {
       "en": 1,
-      "hi": 2
+      "hi": 132
+    }
+  },
+  "weather": {
+    "count": 1,
+    "common_words": {
+      "weather": 1,
+      "forecast": 1,
+      "please": 1
+    },
+    "complexity_distribution": {
+      "simple": 1
+    },
+    "location_frequency": {
+      "location_specific": 1
+    },
+    "language_frequency": {
+      "hi": 1
     }
   }
 }

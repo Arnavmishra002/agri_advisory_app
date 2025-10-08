@@ -1,20 +1,20 @@
 {
   "Delhi": {
     "query_types": {
-      "market_price": 2,
-      "general": 2
+      "market_price": 3,
+      "general": 30
     },
     "languages": {
       "en": 2,
-      "hi": 2
+      "hi": 31
     },
     "topics": {
-      "crops": 2,
-      "markets": 2
+      "crops": 3,
+      "markets": 3
     },
     "complexity_preference": {
-      "medium": 2,
-      "simple": 2
+      "medium": 18,
+      "simple": 15
     }
   },
   "Test Location": {
@@ -32,6 +32,62 @@
     "complexity_preference": {
       "simple": 1,
       "medium": 2
+    }
+  },
+  "Mumbai": {
+    "query_types": {
+      "crop_recommendation": 1,
+      "general": 26
+    },
+    "languages": {
+      "hi": 27
+    },
+    "topics": {
+      "crops": 1
+    },
+    "complexity_preference": {
+      "simple": 12,
+      "medium": 15
+    }
+  },
+  "Bangalore": {
+    "query_types": {
+      "weather": 1,
+      "general": 30
+    },
+    "languages": {
+      "hi": 31
+    },
+    "topics": {},
+    "complexity_preference": {
+      "simple": 14,
+      "medium": 17
+    }
+  },
+  "Hyderabad": {
+    "query_types": {
+      "general": 24
+    },
+    "languages": {
+      "hi": 24
+    },
+    "topics": {},
+    "complexity_preference": {
+      "simple": 11,
+      "medium": 13
+    }
+  },
+  "Kolkata": {
+    "query_types": {
+      "general": 22
+    },
+    "languages": {
+      "hi": 22
+    },
+    "topics": {},
+    "complexity_preference": {
+      "medium": 13,
+      "simple": 9
     }
   }
 }

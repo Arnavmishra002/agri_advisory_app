@@ -464,8 +464,8 @@ class SelfLearningAI:
         return {
             location: {
                 "total_queries": sum(data["query_types"].values()),
-                "top_topics": [topic for topic, count in data["topics"].most_common(3)],
-                "language_preference": data["languages"].most_common(1)[0][0] if data["languages"] else "en"
+                "top_topics": [topic for topic, count in sorted(data["topics"].items(), key=lambda x: x[1], reverse=True)[:3]],
+                "language_preference": sorted(data["languages"].items(), key=lambda x: x[1], reverse=True)[0][0] if data["languages"] else "en"
             }
             for location, data in self.farmer_preferences.items()
         }
