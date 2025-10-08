@@ -1,20 +1,20 @@
 {
   "market_price": {
-    "count": 1,
+    "count": 2,
     "common_words": {
-      "what": 1,
-      "price": 1,
-      "wheat": 1,
+      "what": 2,
+      "price": 2,
+      "wheat": 2,
       "area?": 1
     },
     "complexity_distribution": {
-      "medium": 1
+      "medium": 2
     },
     "location_frequency": {
-      "location_specific": 1
+      "location_specific": 2
     },
     "language_frequency": {
-      "en": 1
+      "en": 2
     }
   },
   "crop_recommendation": {

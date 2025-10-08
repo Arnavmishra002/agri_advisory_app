@@ -264,8 +264,12 @@ class SelfLearningAI:
         # Update word frequency
         words = query.lower().split()
         for word in words:
-            if len(word) > 3:  # Only meaningful words
-                pattern_data["common_words"][word] += 1
+            # Clean the word (remove punctuation)
+            clean_word = ''.join(c for c in word if c.isalnum())
+            if len(clean_word) > 3:  # Only meaningful words
+                if clean_word not in pattern_data["common_words"]:
+                    pattern_data["common_words"][clean_word] = 0
+                pattern_data["common_words"][clean_word] += 1
         
         # Update complexity distribution
         pattern_data["complexity_distribution"][insights['complexity']] += 1

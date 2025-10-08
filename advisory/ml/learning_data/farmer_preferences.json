@@ -1,17 +1,17 @@
 {
   "Delhi": {
     "query_types": {
-      "market_price": 1
+      "market_price": 2
     },
     "languages": {
-      "en": 1
+      "en": 2
     },
     "topics": {
-      "crops": 1,
-      "markets": 1
+      "crops": 2,
+      "markets": 2
     },
     "complexity_preference": {
-      "medium": 1
+      "medium": 2
     }
   },
   "Test Location": {

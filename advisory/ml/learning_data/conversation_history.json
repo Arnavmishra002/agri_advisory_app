@@ -147,5 +147,43 @@
       "response_length": 205,
       "query_length": 38
     }
+  },
+  {
+    "timestamp": "2025-10-08T21:06:27.020053",
+    "query": "What is the price of wheat?",
+    "response": "Wheat price is ₹2,450/quintal",
+    "feedback": "Very helpful!",
+    "location": "Delhi",
+    "language": "en",
+    "insights": {
+      "query_type": "market_price",
+      "complexity": "medium",
+      "response_quality": {
+        "score": 5.0,
+        "metrics": {
+          "length": 29,
+          "has_specifics": true,
+          "has_emojis": false,
+          "has_recommendations": false,
+          "has_sources": false,
+          "structured": false
+        },
+        "level": "high"
+      },
+      "feedback_sentiment": {
+        "sentiment": "positive",
+        "positive_score": 1,
+        "negative_score": 0,
+        "confidence": 1.0
+      },
+      "location_specific": true,
+      "language_preference": "en",
+      "key_topics": [
+        "crops",
+        "markets"
+      ],
+      "response_length": 29,
+      "query_length": 27
+    }
   }
 ]

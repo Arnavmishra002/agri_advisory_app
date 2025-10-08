@@ -1388,6 +1388,36 @@ class EnhancedGovernmentAPI:
             ]
         }
 
+    def get_village_location_data(self, latitude: float, longitude: float, language: str = 'en') -> Dict[str, Any]:
+        """Get village-level location data from government APIs"""
+        cache_key = f"village_{latitude}_{longitude}_{language}"
+        
+        # Check cache first
+        if cache_key in self.cache:
+            cached_time, data = self.cache[cache_key]
+            if time.time() - cached_time < self.cache_duration:
+                return data
+        
+        try:
+            # Try to get real data from government APIs
+            village_data = self._fetch_real_village_data(latitude, longitude, language)
+            if village_data:
+                self.cache[cache_key] = (time.time(), village_data)
+                return village_data
+        except Exception as e:
+            logger.error(f"Error fetching village data: {e}")
+        
+        # Fallback to generated data
+        village_data = self._generate_village_data(latitude, longitude)
+        self.cache[cache_key] = (time.time(), village_data)
+        return village_data
+    
+    def _fetch_real_village_data(self, latitude: float, longitude: float, language: str) -> Dict[str, Any]:
+        """Fetch real village data from government APIs"""
+        # This would connect to real government APIs like Census India, Data.gov.in
+        # For now, return None to use fallback
+        return None
+
     def _get_fallback_schemes_data(self) -> List[Dict[str, Any]]:
         """Fallback schemes data when API fails"""
         return [
