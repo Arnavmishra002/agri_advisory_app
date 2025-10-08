@@ -1,0 +1,1190 @@
+{
+  "market_prices": {
+    "passed": 0,
+    "failed": 40,
+    "details": [
+      {
+        "location": "Raebareli",
+        "crop": "wheat",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Raebareli में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Raebareli Mandi\n🌾 Wheat कीमत: ₹2500/quintal\n📈 बदलाव: -1.5%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, F..."
+      },
+      {
+        "location": "Raebareli",
+        "crop": "rice",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Raebareli में Rice की बाजार स्थिति:\n\n🏪 मंडी: APMC Lucknow\n🌾 Rice कीमत: ₹3619/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, S..."
+      },
+      {
+        "location": "Raebareli",
+        "crop": "potato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Raebareli में Potato की बाजार स्थिति:\n\n🏪 मंडी: APMC Lucknow\n🌾 Potato कीमत: ₹1293/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FC..."
+      },
+      {
+        "location": "Raebareli",
+        "crop": "onion",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Raebareli में Onion की बाजार स्थिति:\n\n🏪 मंडी: Raebareli Mandi\n🌾 Onion कीमत: ₹2000/quintal\n📈 बदलाव: -5.1%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, F..."
+      },
+      {
+        "location": "Raebareli",
+        "crop": "tomato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Raebareli में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Raebareli Mandi\n🌾 Tomato कीमत: ₹3000/quintal\n📈 बदलाव: +1.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM,..."
+      },
+      {
+        "location": "Mumbai",
+        "crop": "wheat",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Mumbai में Wheat की बाजार स्थिति:\n\n🏪 मंडी: APMC Mumbai\n🌾 Wheat कीमत: ₹2144/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, Sta..."
+      },
+      {
+        "location": "Mumbai",
+        "crop": "rice",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Mumbai में Rice की बाजार स्थिति:\n\n🏪 मंडी: Mumbai Mandi\n🌾 Rice कीमत: ₹3334/quintal\n📈 बदलाव: +1.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, Stat..."
+      },
+      {
+        "location": "Mumbai",
+        "crop": "potato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Mumbai में Potato की बाजार स्थिति:\n\n🏪 मंडी: Mumbai Mandi\n🌾 Potato कीमत: ₹1088/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+      },
+      {
+        "location": "Mumbai",
+        "crop": "onion",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Mumbai में Onion की बाजार स्थिति:\n\n🏪 मंडी: Vashi APMC\n🌾 Onion कीमत: ₹2200/quintal\n📈 बदलाव: -1.8%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, Stat..."
+      },
+      {
+        "location": "Mumbai",
+        "crop": "tomato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Mumbai में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Mumbai Mandi\n🌾 Tomato कीमत: ₹2887/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+      },
+      {
+        "location": "Bangalore",
+        "crop": "wheat",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Bangalore में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Bangalore Mandi\n🌾 Wheat कीमत: ₹2136/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, F..."
+      },
+      {
+        "location": "Bangalore",
+        "crop": "rice",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Bangalore में Rice की बाजार स्थिति:\n\n🏪 मंडी: Bangalore Mandi\n🌾 Rice कीमत: ₹3562/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI..."
+      },
+      {
+        "location": "Bangalore",
+        "crop": "potato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Bangalore में Potato की बाजार स्थिति:\n\n🏪 मंडी: APMC Bangalore\n🌾 Potato कीमत: ₹1122/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, ..."
+      },
+      {
+        "location": "Bangalore",
+        "crop": "onion",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Bangalore में Onion की बाजार स्थिति:\n\n🏪 मंडी: Yeshwanthpur APMC\n🌾 Onion कीमत: ₹2100/quintal\n📈 बदलाव: +0.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM,..."
+      },
+      {
+        "location": "Bangalore",
+        "crop": "tomato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Bangalore में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Bangalore Mandi\n🌾 Tomato कीमत: ₹3059/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM,..."
+      },
+      {
+        "location": "Chennai",
+        "crop": "wheat",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Chennai में Wheat की बाजार स्थिति:\n\n🏪 मंडी: APMC Chennai\n🌾 Wheat कीमत: ₹2146/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, S..."
+      },
+      {
+        "location": "Chennai",
+        "crop": "rice",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Chennai में Rice की बाजार स्थिति:\n\n🏪 मंडी: Koyambedu Mandi\n🌾 Rice कीमत: ₹3040/quintal\n📈 बदलाव: +0.2%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+      },
+      {
+        "location": "Chennai",
+        "crop": "potato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Chennai में Potato की बाजार स्थिति:\n\n🏪 मंडी: APMC Chennai\n🌾 Potato कीमत: ₹1087/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI,..."
+      },
+      {
+        "location": "Chennai",
+        "crop": "onion",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Chennai में Onion की बाजार स्थिति:\n\n🏪 मंडी: Koyambedu Mandi\n🌾 Onion कीमत: ₹1900/quintal\n📈 बदलाव: -0.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI..."
+      },
+      {
+        "location": "Chennai",
+        "crop": "tomato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Chennai में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Koyambedu Mandi\n🌾 Tomato कीमत: ₹2850/quintal\n📈 बदलाव: +0.8%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, F..."
+      },
+      {
+        "location": "Lucknow",
+        "crop": "wheat",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Lucknow में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Wheat कीमत: ₹2397/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+      },
+      {
+        "location": "Lucknow",
+        "crop": "rice",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Lucknow में Rice की बाजार स्थिति:\n\n🏪 मंडी: APMC Lucknow\n🌾 Rice कीमत: ₹3863/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, Sta..."
+      },
+      {
+        "location": "Lucknow",
+        "crop": "potato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Lucknow में Potato की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Potato कीमत: ₹1080/quintal\n📈 बदलाव: +2.5%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI..."
+      },
+      {
+        "location": "Lucknow",
+        "crop": "onion",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Lucknow में Onion की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Onion कीमत: ₹2759/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+      },
+      {
+        "location": "Lucknow",
+        "crop": "tomato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Lucknow में Tomato की बाजार स्थिति:\n\n🏪 मंडी: APMC Lucknow\n🌾 Tomato कीमत: ₹3303/quintal\n📈 बदलाव: +1.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI,..."
+      },
+      {
+        "location": "Hyderabad",
+        "crop": "wheat",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Hyderabad में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Hyderabad Mandi\n🌾 Wheat कीमत: ₹2184/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, F..."
+      },
+      {
+        "location": "Hyderabad",
+        "crop": "rice",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Hyderabad में Rice की बाजार स्थिति:\n\n🏪 मंडी: Hyderabad Krishi Mandi\n🌾 Rice कीमत: ₹3384/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-N..."
+      },
+      {
+        "location": "Hyderabad",
+        "crop": "potato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Hyderabad में Potato की बाजार स्थिति:\n\n🏪 मंडी: Hyderabad Krishi Mandi\n🌾 Potato कीमत: ₹1072/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet,..."
+      },
+      {
+        "location": "Hyderabad",
+        "crop": "onion",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Hyderabad में Onion की बाजार स्थिति:\n\n🏪 मंडी: Hyderabad Krishi Mandi\n🌾 Onion कीमत: ₹2347/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e..."
+      },
+      {
+        "location": "Hyderabad",
+        "crop": "tomato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Hyderabad में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Secunderabad Mandi\n🌾 Tomato कीमत: ₹3000/quintal\n📈 बदलाव: +7.6%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-N..."
+      },
+      {
+        "location": "Kolkata",
+        "crop": "wheat",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Kolkata में Wheat की बाजार स्थिति:\n\n🏪 मंडी: APMC Kolkata\n🌾 Wheat कीमत: ₹2544/quintal\n📈 बदलाव: +1.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, S..."
+      },
+      {
+        "location": "Kolkata",
+        "crop": "rice",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Kolkata में Rice की बाजार स्थिति:\n\n🏪 मंडी: Kolkata Krishi Mandi\n🌾 Rice कीमत: ₹4051/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, ..."
+      },
+      {
+        "location": "Kolkata",
+        "crop": "potato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Kolkata में Potato की बाजार स्थिति:\n\n🏪 मंडी: Kolkata Krishi Mandi\n🌾 Potato कीमत: ₹1363/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-N..."
+      },
+      {
+        "location": "Kolkata",
+        "crop": "onion",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Kolkata में Onion की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Onion कीमत: ₹1900/quintal\n📈 बदलाव: -2.6%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+      },
+      {
+        "location": "Kolkata",
+        "crop": "tomato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Kolkata में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Tomato कीमत: ₹2850/quintal\n📈 बदलाव: +2.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI..."
+      },
+      {
+        "location": "Pune",
+        "crop": "wheat",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Pune में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Pune APMC\n🌾 Wheat कीमत: ₹2625/quintal\n📈 बदलाव: +0.1%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State A..."
+      },
+      {
+        "location": "Pune",
+        "crop": "rice",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Pune में Rice की बाजार स्थिति:\n\n🏪 मंडी: Pune APMC\n🌾 Rice कीमत: ₹3360/quintal\n📈 बदलाव: +0.6%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State APM..."
+      },
+      {
+        "location": "Pune",
+        "crop": "potato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Pune में Potato की बाजार स्थिति:\n\n🏪 मंडी: Pune APMC\n🌾 Potato कीमत: ₹1260/quintal\n📈 बदलाव: +2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State..."
+      },
+      {
+        "location": "Pune",
+        "crop": "onion",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Pune में Onion की बाजार स्थिति:\n\n🏪 मंडी: Pune APMC\n🌾 Onion कीमत: ₹2100/quintal\n📈 बदलाव: -6.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State A..."
+      },
+      {
+        "location": "Pune",
+        "crop": "tomato",
+        "checks": {
+          "has_location": true,
+          "has_crop": true,
+          "has_price": true,
+          "has_mandi": true,
+          "has_government_source": true,
+          "has_change": true,
+          "has_state": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "💰 Pune में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Pune APMC\n🌾 Tomato कीमत: ₹3150/quintal\n📈 बदलाव: +5.2%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State..."
+      }
+    ]
+  },
+  "crop_recommendations": {
+    "passed": 8,
+    "failed": 0,
+    "details": [
+      {
+        "location": "Raebareli",
+        "checks": {
+          "has_location": true,
+          "has_highly_accurate": true,
+          "has_suitability_percentages": true,
+          "has_msp_prices": true,
+          "has_yield_data": true,
+          "has_soil_type": true,
+          "has_climate": true,
+          "has_coordinates": true,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": true,
+        "response": "🌱 Raebareli के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Rice - 95% उपयुक्तता\n   💰 MSP: ₹2040/quintal\n   📊 उत्पादन: 4-5 tons/hectare\n   🌾 मिट्टी: Alluvial\n   🌤️ जलवायु: Sub-tropical\n\n2. Sugarcane - 90% उपयुक्तता\n   💰 MSP: ₹315/quintal\n   📊 उत्पादन:..."
+      },
+      {
+        "location": "Mumbai",
+        "checks": {
+          "has_location": true,
+          "has_highly_accurate": true,
+          "has_suitability_percentages": true,
+          "has_msp_prices": true,
+          "has_yield_data": true,
+          "has_soil_type": true,
+          "has_climate": true,
+          "has_coordinates": true,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": true,
+        "response": "🌱 Mumbai के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Sugarcane - 95% उपयुक्तता\n   💰 MSP: ₹315/quintal\n   📊 उत्पादन: 70-90 tons/hectare\n   🌾 मिट्टी: Coastal\n   🌤️ जलवायु: Tropical\n\n2. Rice - 90% उपयुक्तता\n   💰 MSP: ₹2040/quintal\n   📊 उत्पादन: 4-5 t..."
+      },
+      {
+        "location": "Bangalore",
+        "checks": {
+          "has_location": true,
+          "has_highly_accurate": true,
+          "has_suitability_percentages": true,
+          "has_msp_prices": true,
+          "has_yield_data": true,
+          "has_soil_type": true,
+          "has_climate": true,
+          "has_coordinates": true,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": true,
+        "response": "🌱 Bangalore के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Groundnut - 95% उपयुक्तता\n   💰 MSP: ₹5850/quintal\n   📊 उत्पादन: 1.5-2 tons/hectare\n   🌾 मिट्टी: Red\n   🌤️ जलवायु: Tropical\n\n2. Maize - 90% उपयुक्तता\n   💰 MSP: ₹2090/quintal\n   📊 उत्पादन: 3-4 ..."
+      },
+      {
+        "location": "Chennai",
+        "checks": {
+          "has_location": true,
+          "has_highly_accurate": true,
+          "has_suitability_percentages": true,
+          "has_msp_prices": true,
+          "has_yield_data": true,
+          "has_soil_type": true,
+          "has_climate": true,
+          "has_coordinates": true,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": true,
+        "response": "🌱 Chennai के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Rice - 95% उपयुक्तता\n   💰 MSP: ₹2040/quintal\n   📊 उत्पादन: 5-6 tons/hectare\n   🌾 मिट्टी: Coastal\n   🌤️ जलवायु: Tropical\n\n2. Sugarcane - 90% उपयुक्तता\n   💰 MSP: ₹315/quintal\n   📊 उत्पादन: 70-90 ..."
+      },
+      {
+        "location": "Lucknow",
+        "checks": {
+          "has_location": true,
+          "has_highly_accurate": true,
+          "has_suitability_percentages": true,
+          "has_msp_prices": true,
+          "has_yield_data": true,
+          "has_soil_type": true,
+          "has_climate": true,
+          "has_coordinates": true,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": true,
+        "response": "🌱 Lucknow के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Sugarcane - 95% उपयुक्तता\n   💰 MSP: ₹315/quintal\n   📊 उत्पादन: 70-90 tons/hectare\n   🌾 मिट्टी: Alluvial\n   🌤️ जलवायु: Sub-tropical\n\n2. Rice - 90% उपयुक्तता\n   💰 MSP: ₹2040/quintal\n   📊 उत्पादन:..."
+      },
+      {
+        "location": "Hyderabad",
+        "checks": {
+          "has_location": true,
+          "has_highly_accurate": true,
+          "has_suitability_percentages": true,
+          "has_msp_prices": true,
+          "has_yield_data": true,
+          "has_soil_type": true,
+          "has_climate": true,
+          "has_coordinates": true,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": true,
+        "response": "🌱 Hyderabad के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Maize - 90% उपयुक्तता\n   💰 MSP: ₹2090/quintal\n   📊 उत्पादन: 3-4 tons/hectare\n   🌾 मिट्टी: Alluvial\n   🌤️ जलवायु: Sub-tropical\n\n2. Rice - 85% उपयुक्तता\n   💰 MSP: ₹2040/quintal\n   📊 उत्पादन: 4-..."
+      },
+      {
+        "location": "Kolkata",
+        "checks": {
+          "has_location": true,
+          "has_highly_accurate": true,
+          "has_suitability_percentages": true,
+          "has_msp_prices": true,
+          "has_yield_data": true,
+          "has_soil_type": true,
+          "has_climate": true,
+          "has_coordinates": true,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": true,
+        "response": "🌱 Kolkata के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Maize - 90% उपयुक्तता\n   💰 MSP: ₹2090/quintal\n   📊 उत्पादन: 3-4 tons/hectare\n   🌾 मिट्टी: Alluvial\n   🌤️ जलवायु: Sub-tropical\n\n2. Rice - 85% उपयुक्तता\n   💰 MSP: ₹2040/quintal\n   📊 उत्पादन: 4-5 ..."
+      },
+      {
+        "location": "Pune",
+        "checks": {
+          "has_location": true,
+          "has_highly_accurate": true,
+          "has_suitability_percentages": true,
+          "has_msp_prices": true,
+          "has_yield_data": true,
+          "has_soil_type": true,
+          "has_climate": true,
+          "has_coordinates": true,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": true,
+        "response": "🌱 Pune के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Maize - 90% उपयुक्तता\n   💰 MSP: ₹2090/quintal\n   📊 उत्पादन: 3-4 tons/hectare\n   🌾 मिट्टी: Alluvial\n   🌤️ जलवायु: Sub-tropical\n\n2. Rice - 85% उपयुक्तता\n   💰 MSP: ₹2040/quintal\n   📊 उत्पादन: 4-5 ton..."
+      }
+    ]
+  },
+  "weather_data": {
+    "passed": 0,
+    "failed": 8,
+    "details": [
+      {
+        "location": "Raebareli",
+        "checks": {
+          "has_location": true,
+          "has_temperature": true,
+          "has_humidity": true,
+          "has_wind_speed": true,
+          "has_weather_condition": true,
+          "has_agricultural_advice": false,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌤️ Raebareli का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 42.0°C\n💧 नमी: 76.49352%\n💨 हवा की गति: 18.9 km/h\n☁️ मौसम की स्थिति: Clear\n\n⚠️ उच्च तापमान चेतावनी:\n• सुबह-शाम खेती करें\n• पानी की बचत करें\n• ..."
+      },
+      {
+        "location": "Mumbai",
+        "checks": {
+          "has_location": true,
+          "has_temperature": true,
+          "has_humidity": true,
+          "has_wind_speed": true,
+          "has_weather_condition": true,
+          "has_agricultural_advice": false,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌤️ Mumbai का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 35.6°C\n💧 नमी: 77.43885%\n💨 हवा की गति: 9.2 km/h\n☁️ मौसम की स्थिति: Clear\n\n⚠️ उच्च तापमान चेतावनी:\n• सुबह-शाम खेती करें\n• पानी की बचत करें\n• छाया..."
+      },
+      {
+        "location": "Bangalore",
+        "checks": {
+          "has_location": true,
+          "has_temperature": true,
+          "has_humidity": true,
+          "has_wind_speed": true,
+          "has_weather_condition": true,
+          "has_agricultural_advice": false,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌤️ Bangalore का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 41.0°C\n💧 नमी: 77.7973%\n💨 हवा की गति: 11.0 km/h\n☁️ मौसम की स्थिति: Clear\n\n⚠️ उच्च तापमान चेतावनी:\n• सुबह-शाम खेती करें\n• पानी की बचत करें\n• छ..."
+      },
+      {
+        "location": "Chennai",
+        "checks": {
+          "has_location": true,
+          "has_temperature": true,
+          "has_humidity": true,
+          "has_wind_speed": true,
+          "has_weather_condition": true,
+          "has_agricultural_advice": false,
+          "has_government_source": true,
+          "response_length": false
+        },
+        "passed": false,
+        "response": "🌤️ Chennai का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 20.3°C\n💧 नमी: 64.02707%\n💨 हवा की गति: 9.7 km/h\n☁️ मौसम की स्थिति: Clear\n\n📊 डेटा स्रोत: भारतीय मौसम विभाग (IMD)..."
+      },
+      {
+        "location": "Lucknow",
+        "checks": {
+          "has_location": true,
+          "has_temperature": true,
+          "has_humidity": true,
+          "has_wind_speed": true,
+          "has_weather_condition": true,
+          "has_agricultural_advice": false,
+          "has_government_source": true,
+          "response_length": false
+        },
+        "passed": false,
+        "response": "🌤️ Lucknow का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 30.5°C\n💧 नमी: 44.37848%\n💨 हवा की गति: 17.1 km/h\n☁️ मौसम की स्थिति: Clear\n\n📊 डेटा स्रोत: भारतीय मौसम विभाग (IMD)..."
+      },
+      {
+        "location": "Hyderabad",
+        "checks": {
+          "has_location": true,
+          "has_temperature": true,
+          "has_humidity": true,
+          "has_wind_speed": true,
+          "has_weather_condition": true,
+          "has_agricultural_advice": false,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌤️ Hyderabad का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 42.6°C\n💧 नमी: 68.24334999999999%\n💨 हवा की गति: 16.9 km/h\n☁️ मौसम की स्थिति: Clear\n\n⚠️ उच्च तापमान चेतावनी:\n• सुबह-शाम खेती करें\n• पानी की बच..."
+      },
+      {
+        "location": "Kolkata",
+        "checks": {
+          "has_location": true,
+          "has_temperature": true,
+          "has_humidity": true,
+          "has_wind_speed": true,
+          "has_weather_condition": true,
+          "has_agricultural_advice": false,
+          "has_government_source": true,
+          "response_length": false
+        },
+        "passed": false,
+        "response": "🌤️ Kolkata का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 24.3°C\n💧 नमी: 79.07278%\n💨 हवा की गति: 10.1 km/h\n☁️ मौसम की स्थिति: Clear\n\n📊 डेटा स्रोत: भारतीय मौसम विभाग (IMD)..."
+      },
+      {
+        "location": "Pune",
+        "checks": {
+          "has_location": true,
+          "has_temperature": true,
+          "has_humidity": true,
+          "has_wind_speed": true,
+          "has_weather_condition": true,
+          "has_agricultural_advice": false,
+          "has_government_source": true,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌤️ Pune का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 35.3°C\n💧 नमी: 61.92835%\n💨 हवा की गति: 13.1 km/h\n☁️ मौसम की स्थिति: Clear\n\n⚠️ उच्च तापमान चेतावनी:\n• सुबह-शाम खेती करें\n• पानी की बचत करें\n• छायाद..."
+      }
+    ]
+  },
+  "ai_responsiveness": {
+    "passed": 0,
+    "failed": 8,
+    "details": [
+      {
+        "query": "wheat price and crop recommendation for raebareli",
+        "checks": {
+          "has_response": true,
+          "has_agricultural_content": false,
+          "has_structured_format": true,
+          "has_actionable_info": true,
+          "has_government_source": true,
+          "response_time": true,
+          "has_confidence": true
+        },
+        "passed": false,
+        "response": "🌾 **समग्र जानकारी:**\n\n🌱 Raebareli के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Rice - 95% उपयुक्तता\n   💰 MSP: ₹2040/quintal\n   📊 उत्पादन: 4-5 tons/h..."
+      },
+      {
+        "query": "weather and market prices in mumbai",
+        "checks": {
+          "has_response": true,
+          "has_agricultural_content": false,
+          "has_structured_format": true,
+          "has_actionable_info": true,
+          "has_government_source": true,
+          "response_time": true,
+          "has_confidence": true
+        },
+        "passed": false,
+        "response": "🌾 **समग्र जानकारी:**\n\n🌤️ Mumbai का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 35.6°C\n💧 नमी: 77.43885%\n💨 हवा की गति: 9.2 km/h\n☁️ मौसम की स्थिति: Clear\n\n⚠️ उच्च तापमान चेतावनी:\n• सुबह-शाम खेती करें\n• प..."
+      },
+      {
+        "query": "best crops for bangalore with prices",
+        "checks": {
+          "has_response": true,
+          "has_agricultural_content": false,
+          "has_structured_format": true,
+          "has_actionable_info": true,
+          "has_government_source": true,
+          "response_time": true,
+          "has_confidence": true
+        },
+        "passed": false,
+        "response": "💰 Bangalore में Rice की बाजार स्थिति:\n\n🏪 मंडी: Bangalore Krishi Mandi\n🌾 Rice कीमत: ₹3592/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-N..."
+      },
+      {
+        "query": "agricultural advice for chennai farmers",
+        "checks": {
+          "has_response": true,
+          "has_agricultural_content": false,
+          "has_structured_format": true,
+          "has_actionable_info": false,
+          "has_government_source": false,
+          "response_time": true,
+          "has_confidence": true
+        },
+        "passed": false,
+        "response": "🌾 **कृषिमित्र AI सहायता:**\n\nमैं आपकी कृषि समस्याओं में मदद कर सकता हूँ। मैं निम्नलिखित सेवाएं प्रदान करता हूँ:\n\n💰 **बाजार कीमतें** - रियल-टाइम मंडी कीमतें\n🌤️ **मौसम जानकारी** - सटीक मौसम पूर्वानुमान\n🌱..."
+      },
+      {
+        "query": "complete farming guide for lucknow",
+        "checks": {
+          "has_response": true,
+          "has_agricultural_content": false,
+          "has_structured_format": true,
+          "has_actionable_info": true,
+          "has_government_source": true,
+          "response_time": true,
+          "has_confidence": true
+        },
+        "passed": false,
+        "response": "🌱 Lucknow के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Sugarcane - 95% उपयुक्तता\n   💰 MSP: ₹315/quintal\n   📊 उत्पादन: 70-90 tons/hectare\n   🌾 मिट्टी..."
+      },
+      {
+        "query": "weather forecast and crop suggestions for hyderabad",
+        "checks": {
+          "has_response": true,
+          "has_agricultural_content": false,
+          "has_structured_format": true,
+          "has_actionable_info": true,
+          "has_government_source": true,
+          "response_time": true,
+          "has_confidence": true
+        },
+        "passed": false,
+        "response": "🌾 **समग्र जानकारी:**\n\n🌤️ Hyderabad का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 42.6°C\n💧 नमी: 68.24334999999999%\n💨 हवा की गति: 16.9 km/h\n☁️ मौसम की स्थिति: Clear\n\n⚠️ उच्च तापमान चेतावनी:\n• सुबह-शाम ..."
+      },
+      {
+        "query": "market analysis and weather for kolkata",
+        "checks": {
+          "has_response": true,
+          "has_agricultural_content": false,
+          "has_structured_format": true,
+          "has_actionable_info": true,
+          "has_government_source": true,
+          "response_time": true,
+          "has_confidence": true
+        },
+        "passed": false,
+        "response": "🌾 **समग्र जानकारी:**\n\n🌤️ Kolkata का मौसम (सरकारी IMD डेटा):\n\n🌡️ वर्तमान तापमान: 24.3°C\n💧 नमी: 79.07278%\n💨 हवा की गति: 10.1 km/h\n☁️ मौसम की स्थिति: Clear\n\n📊 डेटा स्रोत: भारतीय मौसम विभाग (IMD)..."
+      },
+      {
+        "query": "farming recommendations for pune region",
+        "checks": {
+          "has_response": true,
+          "has_agricultural_content": false,
+          "has_structured_format": true,
+          "has_actionable_info": true,
+          "has_government_source": true,
+          "response_time": true,
+          "has_confidence": true
+        },
+        "passed": false,
+        "response": "🌱 Pune के लिए Kharif सीजन के HIGHLY ACCURATE फसल सुझाव:\n\n🏆 शीर्ष अनुशंसित फसलें (सटीकता के आधार पर):\n1. Maize - 90% उपयुक्तता\n   💰 MSP: ₹2090/quintal\n   📊 उत्पादन: 3-4 tons/hectare\n   🌾 मिट्टी: Alluvi..."
+      }
+    ]
+  },
+  "location_accuracy": {
+    "passed": 0,
+    "failed": 8,
+    "details": [
+      {
+        "location": "Raebareli",
+        "checks": {
+          "has_correct_location": false,
+          "has_state": false,
+          "has_coordinates": false,
+          "has_location_context": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌾 **Comprehensive Information:**\n\n🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weathe..."
+      },
+      {
+        "location": "Mumbai",
+        "checks": {
+          "has_correct_location": false,
+          "has_state": false,
+          "has_coordinates": false,
+          "has_location_context": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌾 **Comprehensive Information:**\n\n🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weathe..."
+      },
+      {
+        "location": "Bangalore",
+        "checks": {
+          "has_correct_location": false,
+          "has_state": false,
+          "has_coordinates": false,
+          "has_location_context": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌾 **Comprehensive Information:**\n\n🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weathe..."
+      },
+      {
+        "location": "Chennai",
+        "checks": {
+          "has_correct_location": false,
+          "has_state": false,
+          "has_coordinates": false,
+          "has_location_context": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌾 **Comprehensive Information:**\n\n🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weathe..."
+      },
+      {
+        "location": "Lucknow",
+        "checks": {
+          "has_correct_location": false,
+          "has_state": false,
+          "has_coordinates": false,
+          "has_location_context": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌾 **Comprehensive Information:**\n\n🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weathe..."
+      },
+      {
+        "location": "Hyderabad",
+        "checks": {
+          "has_correct_location": false,
+          "has_state": false,
+          "has_coordinates": false,
+          "has_location_context": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌾 **Comprehensive Information:**\n\n🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weathe..."
+      },
+      {
+        "location": "Kolkata",
+        "checks": {
+          "has_correct_location": false,
+          "has_state": false,
+          "has_coordinates": false,
+          "has_location_context": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌾 **Comprehensive Information:**\n\n🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weathe..."
+      },
+      {
+        "location": "Pune",
+        "checks": {
+          "has_correct_location": false,
+          "has_state": false,
+          "has_coordinates": false,
+          "has_location_context": false,
+          "response_length": true
+        },
+        "passed": false,
+        "response": "🌾 **Comprehensive Information:**\n\n🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weathe..."
+      }
+    ]
+  },
+  "government_data_sources": {
+    "passed": 0,
+    "failed": 0,
+    "details": []
+  },
+  "dynamic_behavior": {
+    "passed": 0,
+    "failed": 1,
+    "details": [
+      {
+        "test": "same_query_different_locations",
+        "responses": [
+          {
+            "location": "Raebareli",
+            "response": "क्षमा करें, मुझे आपकी बात समझ नहीं आई। कृपया फिर से प्रयास करें।",
+            "coordinates": [
+              26.2309,
+              81.2338
+            ]
+          },
+          {
+            "location": "Mumbai",
+            "response": "क्षमा करें, मुझे आपकी बात समझ नहीं आई। कृपया फिर से प्रयास करें।",
+            "coordinates": [
+              19.076,
+              72.8777
+            ]
+          },
+          {
+            "location": "Bangalore",
+            "response": "क्षमा करें, मुझे आपकी बात समझ नहीं आई। कृपया फिर से प्रयास करें।",
+            "coordinates": [
+              12.9716,
+              77.5946
+            ]
+          },
+          {
+            "location": "Chennai",
+            "response": "क्षमा करें, मुझे आपकी बात समझ नहीं आई। कृपया फिर से प्रयास करें।",
+            "coordinates": [
+              13.0827,
+              80.2707
+            ]
+          }
+        ],
+        "unique_count": 1
+      }
+    ]
+  },
+  "api_integration": {
+    "passed": 2,
+    "failed": 1,
+    "details": []
+  }
+}
