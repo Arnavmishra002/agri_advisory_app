@@ -3464,6 +3464,50 @@ class MarketPricesViewSet(viewsets.ViewSet):
         except Exception as e:
             print(f"MarketPricesViewSet: Error fetching village data: {e}")
             return Response({"error": "Could not retrieve village data"}, status=500)
+    
+    @action(detail=False, methods=['get'])
+    def all_mandis(self, request):
+        """
+        Get ALL mandis from government APIs
+        """
+        try:
+            all_mandis = self.government_api.get_all_mandis()
+            
+            if all_mandis:
+                return Response({
+                    'mandis': all_mandis,
+                    'total_count': len(all_mandis),
+                    'data_source': 'Government APIs + Comprehensive Database',
+                    'timestamp': time.time()
+                })
+            else:
+                return Response({"error": "Could not retrieve mandi data"}, status=500)
+                
+        except Exception as e:
+            print(f"MarketPricesViewSet: Error fetching all mandis: {e}")
+            return Response({"error": "Could not retrieve mandi data"}, status=500)
+    
+    @action(detail=False, methods=['get'])
+    def all_commodities(self, request):
+        """
+        Get ALL commodities/crops from government APIs
+        """
+        try:
+            all_commodities = self.government_api.get_all_commodities()
+            
+            if all_commodities:
+                return Response({
+                    'commodities': all_commodities,
+                    'total_count': len(all_commodities),
+                    'data_source': 'Government APIs + Comprehensive Database',
+                    'timestamp': time.time()
+                })
+            else:
+                return Response({"error": "Could not retrieve commodity data"}, status=500)
+                
+        except Exception as e:
+            print(f"MarketPricesViewSet: Error fetching all commodities: {e}")
+            return Response({"error": "Could not retrieve commodity data"}, status=500)
 
 class TrendingCropsViewSet(viewsets.ViewSet):
     """

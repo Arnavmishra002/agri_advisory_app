@@ -42,25 +42,53 @@ class EnhancedGovernmentAPI:
             'Content-Type': 'application/json'
         })
         
-        # Real government API endpoints - Enhanced with village and mandi support
+        # Real government API endpoints - Enhanced with comprehensive mandi and crop data
         self.apis = {
             'imd_weather': 'https://mausam.imd.gov.in/api',
             'imd_forecast': 'https://mausam.imd.gov.in/api/forecast',
             'imd_alerts': 'https://mausam.imd.gov.in/api/alerts',
+            
+            # Agmarknet APIs - Primary source for mandi and commodity data
             'agmarknet_prices': 'https://agmarknet.gov.in/api',
             'agmarknet_mandis': 'https://agmarknet.gov.in/api/mandis',
             'agmarknet_commodities': 'https://agmarknet.gov.in/api/commodities',
+            'agmarknet_states': 'https://agmarknet.gov.in/api/states',
+            'agmarknet_districts': 'https://agmarknet.gov.in/api/districts',
+            'agmarknet_market_wise': 'https://agmarknet.gov.in/api/market-wise',
+            'agmarknet_commodity_wise': 'https://agmarknet.gov.in/api/commodity-wise',
+            
+            # e-NAM APIs - Electronic National Agricultural Market
             'enam_markets': 'https://www.enam.gov.in/api',
             'enam_mandis': 'https://www.enam.gov.in/api/mandis',
             'enam_commodities': 'https://www.enam.gov.in/api/commodities',
+            'enam_states': 'https://www.enam.gov.in/api/states',
+            'enam_districts': 'https://www.enam.gov.in/api/districts',
+            'enam_prices': 'https://www.enam.gov.in/api/prices',
+            
+            # ICAR APIs - Indian Council of Agricultural Research
             'icar_crops': 'https://icar.org.in/api',
+            'icar_varieties': 'https://icar.org.in/api/varieties',
+            'icar_crop_recommendations': 'https://icar.org.in/api/recommendations',
+            
+            # Government schemes and support
             'pm_kisan': 'https://pmkisan.gov.in/api',
             'soil_health': 'https://soilhealth.dac.gov.in/api',
+            
+            # Census and geographical data
             'data_gov_villages': 'https://data.gov.in/api/village-data',
             'data_gov_districts': 'https://data.gov.in/api/district-data',
             'data_gov_states': 'https://data.gov.in/api/state-data',
             'census_villages': 'https://censusindia.gov.in/api/villages',
-            'census_districts': 'https://censusindia.gov.in/api/districts'
+            'census_districts': 'https://censusindia.gov.in/api/districts',
+            'census_mandis': 'https://censusindia.gov.in/api/agricultural-markets',
+            
+            # Additional agricultural data sources
+            'nfsm_crops': 'https://nfsm.gov.in/api/crops',  # National Food Security Mission
+            'horticulture_board': 'https://nhb.gov.in/api/crops',
+            'spices_board': 'https://indianspices.com/api/crops',
+            'tea_board': 'https://teaboard.gov.in/api',
+            'coffee_board': 'https://coffeeboard.gov.in/api',
+            'rubber_board': 'https://rubberboard.org.in/api'
         }
         
         # Enhanced cache for better performance - reduced cache duration for dynamic updates
@@ -214,6 +242,7 @@ class EnhancedGovernmentAPI:
         """
         Search for mandis using government APIs
         Users can search manually for different mandis
+        Enhanced to fetch ALL mandis from government sources
         """
         cache_key = f"mandi_search_{query}_{state}_{district}_{commodity}"
         
@@ -224,13 +253,23 @@ class EnhancedGovernmentAPI:
                 return data
         
         try:
-            # Try Agmarknet mandi search first
+            # Try to get ALL mandis from government APIs first
+            all_mandis = self._fetch_all_mandis_from_government()
+            
+            if all_mandis:
+                # Filter based on search criteria
+                filtered_mandis = self._filter_mandis(all_mandis, query, state, district, commodity)
+                if filtered_mandis:
+                    self.cache[cache_key] = (time.time(), filtered_mandis)
+                    return filtered_mandis
+            
+            # Try Agmarknet mandi search as fallback
             agmarknet_mandis = self._search_agmarknet_mandis(query, state, district, commodity)
             if agmarknet_mandis:
                 self.cache[cache_key] = (time.time(), agmarknet_mandis)
                 return agmarknet_mandis
             
-            # Fallback to e-NAM mandi search
+            # Try e-NAM mandi search as fallback
             enam_mandis = self._search_enam_mandis(query, state, district, commodity)
             if enam_mandis:
                 self.cache[cache_key] = (time.time(), enam_mandis)
@@ -244,6 +283,87 @@ class EnhancedGovernmentAPI:
         except Exception as e:
             logger.error(f"Error searching mandis: {e}")
             return self._generate_mandi_search_results(query, state, district, commodity)
+    
+    def get_all_commodities(self) -> List[Dict[str, Any]]:
+        """
+        Get ALL commodities/crops from government APIs
+        """
+        cache_key = "all_commodities"
+        
+        # Check cache first
+        if cache_key in self.cache:
+            cached_time, data = self.cache[cache_key]
+            if time.time() - cached_time < 3600:  # 1 hour cache
+                return data
+        
+        try:
+            # Try to fetch from multiple government sources
+            all_commodities = []
+            
+            # Try Agmarknet commodities
+            agmarknet_commodities = self._fetch_agmarknet_commodities()
+            if agmarknet_commodities:
+                all_commodities.extend(agmarknet_commodities)
+            
+            # Try e-NAM commodities
+            enam_commodities = self._fetch_enam_commodities()
+            if enam_commodities:
+                all_commodities.extend(enam_commodities)
+            
+            # Try ICAR crops
+            icar_crops = self._fetch_icar_crops()
+            if icar_crops:
+                all_commodities.extend(icar_crops)
+            
+            # Try other agricultural boards
+            spice_crops = self._fetch_spice_board_crops()
+            if spice_crops:
+                all_commodities.extend(spice_crops)
+            
+            # Remove duplicates and return
+            unique_commodities = self._remove_duplicate_commodities(all_commodities)
+            
+            if unique_commodities:
+                self.cache[cache_key] = (time.time(), unique_commodities)
+                return unique_commodities
+            else:
+                # Fallback to comprehensive list
+                fallback_commodities = self._get_comprehensive_commodity_list()
+                self.cache[cache_key] = (time.time(), fallback_commodities)
+                return fallback_commodities
+                
+        except Exception as e:
+            logger.error(f"Error fetching commodities: {e}")
+            return self._get_comprehensive_commodity_list()
+    
+    def get_all_mandis(self) -> List[Dict[str, Any]]:
+        """
+        Get ALL mandis from government APIs
+        """
+        cache_key = "all_mandis"
+        
+        # Check cache first
+        if cache_key in self.cache:
+            cached_time, data = self.cache[cache_key]
+            if time.time() - cached_time < 3600:  # 1 hour cache
+                return data
+        
+        try:
+            # Fetch from multiple government sources
+            all_mandis = self._fetch_all_mandis_from_government()
+            
+            if all_mandis:
+                self.cache[cache_key] = (time.time(), all_mandis)
+                return all_mandis
+            else:
+                # Fallback to comprehensive list
+                fallback_mandis = self._get_comprehensive_mandi_list()
+                self.cache[cache_key] = (time.time(), fallback_mandis)
+                return fallback_mandis
+                
+        except Exception as e:
+            logger.error(f"Error fetching all mandis: {e}")
+            return self._get_comprehensive_mandi_list()
     
     def get_village_location_data(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """
@@ -854,6 +974,484 @@ class EnhancedGovernmentAPI:
         }
         
         return state_coords.get(state_name, (20.5937, 78.9629))  # Default to India center
+    
+    def _filter_mandis(self, mandis: List[Dict[str, Any]], query: str, state: str, district: str, commodity: str) -> List[Dict[str, Any]]:
+        """Filter mandis based on search criteria"""
+        filtered = mandis
+        
+        if query:
+            query_lower = query.lower()
+            filtered = [m for m in filtered if 
+                       query_lower in m.get('mandi_name', '').lower() or 
+                       query_lower in m.get('state', '').lower() or
+                       query_lower in m.get('district', '').lower()]
+        
+        if state:
+            state_lower = state.lower()
+            filtered = [m for m in filtered if state_lower in m.get('state', '').lower()]
+        
+        if district:
+            district_lower = district.lower()
+            filtered = [m for m in filtered if district_lower in m.get('district', '').lower()]
+        
+        if commodity:
+            commodity_lower = commodity.lower()
+            filtered = [m for m in filtered if 
+                       any(commodity_lower in comm.lower() for comm in m.get('commodities', []))]
+        
+        return filtered
+    
+    def _remove_duplicate_mandis(self, mandis: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Remove duplicate mandis based on mandi_id"""
+        seen = set()
+        unique_mandis = []
+        
+        for mandi in mandis:
+            mandi_id = mandi.get('mandi_id', '')
+            if mandi_id and mandi_id not in seen:
+                seen.add(mandi_id)
+                unique_mandis.append(mandi)
+        
+        return unique_mandis
+    
+    def _remove_duplicate_commodities(self, commodities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Remove duplicate commodities based on name"""
+        seen = set()
+        unique_commodities = []
+        
+        for commodity in commodities:
+            name = commodity.get('name', '').lower()
+            if name and name not in seen:
+                seen.add(name)
+                unique_commodities.append(commodity)
+        
+        return unique_commodities
+    
+    def _parse_agmarknet_mandis(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Parse Agmarknet mandi data"""
+        mandis = []
+        for item in data:
+            mandi = {
+                'mandi_id': item.get('market_id', ''),
+                'mandi_name': item.get('market_name', ''),
+                'state': item.get('state_name', ''),
+                'district': item.get('district_name', ''),
+                'commodities': item.get('commodities', []),
+                'market_type': 'APMC',
+                'contact': item.get('contact', ''),
+                'address': item.get('address', ''),
+                'operating_days': item.get('operating_days', 'Monday-Saturday'),
+                'timings': item.get('timings', '6:00 AM - 2:00 PM'),
+                'latitude': item.get('latitude', 0.0),
+                'longitude': item.get('longitude', 0.0)
+            }
+            mandis.append(mandi)
+        return mandis
+    
+    def _parse_enam_mandis(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Parse e-NAM mandi data"""
+        mandis = []
+        for item in data:
+            mandi = {
+                'mandi_id': item.get('market_id', ''),
+                'mandi_name': item.get('market_name', ''),
+                'state': item.get('state_name', ''),
+                'district': item.get('district_name', ''),
+                'commodities': item.get('commodities', []),
+                'market_type': 'e-NAM',
+                'contact': item.get('contact', ''),
+                'address': item.get('address', ''),
+                'operating_days': item.get('operating_days', 'Monday-Saturday'),
+                'timings': item.get('timings', '6:00 AM - 2:00 PM'),
+                'latitude': item.get('latitude', 0.0),
+                'longitude': item.get('longitude', 0.0)
+            }
+            mandis.append(mandi)
+        return mandis
+    
+    def _parse_census_mandis(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Parse Census mandi data"""
+        mandis = []
+        for item in data:
+            mandi = {
+                'mandi_id': item.get('market_id', ''),
+                'mandi_name': item.get('market_name', ''),
+                'state': item.get('state_name', ''),
+                'district': item.get('district_name', ''),
+                'commodities': item.get('commodities', []),
+                'market_type': 'Census Market',
+                'contact': item.get('contact', ''),
+                'address': item.get('address', ''),
+                'operating_days': item.get('operating_days', 'Monday-Saturday'),
+                'timings': item.get('timings', '6:00 AM - 2:00 PM'),
+                'latitude': item.get('latitude', 0.0),
+                'longitude': item.get('longitude', 0.0)
+            }
+            mandis.append(mandi)
+        return mandis
+    
+    def _parse_agmarknet_commodities(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Parse Agmarknet commodity data"""
+        commodities = []
+        if 'data' in data:
+            for item in data['data']:
+                commodity = {
+                    'name': item.get('commodity_name', ''),
+                    'hindi': item.get('commodity_name_hindi', ''),
+                    'category': item.get('category', ''),
+                    'api_name': item.get('api_name', ''),
+                    'source': 'Agmarknet'
+                }
+                commodities.append(commodity)
+        return commodities
+    
+    def _parse_enam_commodities(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Parse e-NAM commodity data"""
+        commodities = []
+        if 'data' in data:
+            for item in data['data']:
+                commodity = {
+                    'name': item.get('commodity_name', ''),
+                    'hindi': item.get('commodity_name_hindi', ''),
+                    'category': item.get('category', ''),
+                    'api_name': item.get('api_name', ''),
+                    'source': 'e-NAM'
+                }
+                commodities.append(commodity)
+        return commodities
+    
+    def _parse_icar_crops(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Parse ICAR crop data"""
+        commodities = []
+        if 'data' in data:
+            for item in data['data']:
+                commodity = {
+                    'name': item.get('crop_name', ''),
+                    'hindi': item.get('crop_name_hindi', ''),
+                    'category': item.get('category', ''),
+                    'api_name': item.get('api_name', ''),
+                    'source': 'ICAR'
+                }
+                commodities.append(commodity)
+        return commodities
+    
+    def _parse_spice_board_crops(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Parse Spices Board crop data"""
+        commodities = []
+        if 'data' in data:
+            for item in data['data']:
+                commodity = {
+                    'name': item.get('spice_name', ''),
+                    'hindi': item.get('spice_name_hindi', ''),
+                    'category': 'Spices',
+                    'api_name': item.get('api_name', ''),
+                    'source': 'Spices Board'
+                }
+                commodities.append(commodity)
+        return commodities
+    
+    def _fetch_all_mandis_from_government(self) -> List[Dict[str, Any]]:
+        """Fetch all mandis from government APIs"""
+        try:
+            all_mandis = []
+            
+            # Try Agmarknet API
+            try:
+                response = requests.get(self.apis['agmarknet_mandis'], 
+                                      headers=self.headers, timeout=30)
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'data' in data and data['data']:
+                        agmarknet_mandis = self._parse_agmarknet_mandis(data['data'])
+                        all_mandis.extend(agmarknet_mandis)
+            except Exception as e:
+                logger.warning(f"Agmarknet mandi API failed: {e}")
+            
+            # Try e-NAM API
+            try:
+                response = requests.get(self.apis['enam_mandis'], 
+                                      headers=self.headers, timeout=30)
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'data' in data and data['data']:
+                        enam_mandis = self._parse_enam_mandis(data['data'])
+                        all_mandis.extend(enam_mandis)
+            except Exception as e:
+                logger.warning(f"e-NAM mandi API failed: {e}")
+            
+            # Try Census API for agricultural markets
+            try:
+                response = requests.get(self.apis['census_mandis'], 
+                                      headers=self.headers, timeout=30)
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'data' in data and data['data']:
+                        census_mandis = self._parse_census_mandis(data['data'])
+                        all_mandis.extend(census_mandis)
+            except Exception as e:
+                logger.warning(f"Census mandi API failed: {e}")
+            
+            return self._remove_duplicate_mandis(all_mandis) if all_mandis else []
+            
+        except Exception as e:
+            logger.error(f"Error fetching mandis from government APIs: {e}")
+            return []
+    
+    def _fetch_agmarknet_commodities(self) -> List[Dict[str, Any]]:
+        """Fetch commodities from Agmarknet API"""
+        try:
+            response = requests.get(self.apis['agmarknet_commodities'], 
+                                  headers=self.headers, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                return self._parse_agmarknet_commodities(data)
+            return []
+        except Exception as e:
+            logger.warning(f"Agmarknet commodities API failed: {e}")
+            return []
+    
+    def _fetch_enam_commodities(self) -> List[Dict[str, Any]]:
+        """Fetch commodities from e-NAM API"""
+        try:
+            response = requests.get(self.apis['enam_commodities'], 
+                                  headers=self.headers, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                return self._parse_enam_commodities(data)
+            return []
+        except Exception as e:
+            logger.warning(f"e-NAM commodities API failed: {e}")
+            return []
+    
+    def _fetch_icar_crops(self) -> List[Dict[str, Any]]:
+        """Fetch crops from ICAR API"""
+        try:
+            response = requests.get(self.apis['icar_crops'], 
+                                  headers=self.headers, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                return self._parse_icar_crops(data)
+            return []
+        except Exception as e:
+            logger.warning(f"ICAR crops API failed: {e}")
+            return []
+    
+    def _fetch_spice_board_crops(self) -> List[Dict[str, Any]]:
+        """Fetch spice crops from Spices Board API"""
+        try:
+            response = requests.get(self.apis['spices_board'], 
+                                  headers=self.headers, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                return self._parse_spice_board_crops(data)
+            return []
+        except Exception as e:
+            logger.warning(f"Spices Board API failed: {e}")
+            return []
+    
+    def _get_comprehensive_commodity_list(self) -> List[Dict[str, Any]]:
+        """Get comprehensive list of all Indian agricultural commodities"""
+        return [
+            # Cereals
+            {'name': 'Wheat', 'hindi': 'गेहूं', 'category': 'Cereals', 'api_name': 'wheat'},
+            {'name': 'Rice', 'hindi': 'चावल', 'category': 'Cereals', 'api_name': 'rice'},
+            {'name': 'Maize', 'hindi': 'मक्का', 'category': 'Cereals', 'api_name': 'maize'},
+            {'name': 'Barley', 'hindi': 'जौ', 'category': 'Cereals', 'api_name': 'barley'},
+            {'name': 'Sorghum', 'hindi': 'ज्वार', 'category': 'Cereals', 'api_name': 'sorghum'},
+            {'name': 'Pearl Millet', 'hindi': 'बाजरा', 'category': 'Cereals', 'api_name': 'pearl_millet'},
+            {'name': 'Finger Millet', 'hindi': 'रागी', 'category': 'Cereals', 'api_name': 'finger_millet'},
+            
+            # Pulses
+            {'name': 'Chickpea', 'hindi': 'चना', 'category': 'Pulses', 'api_name': 'chickpea'},
+            {'name': 'Lentil', 'hindi': 'मसूर', 'category': 'Pulses', 'api_name': 'lentil'},
+            {'name': 'Mung Bean', 'hindi': 'मूंग', 'category': 'Pulses', 'api_name': 'mung_bean'},
+            {'name': 'Pigeon Pea', 'hindi': 'अरहर', 'category': 'Pulses', 'api_name': 'pigeon_pea'},
+            {'name': 'Black Gram', 'hindi': 'उड़द', 'category': 'Pulses', 'api_name': 'black_gram'},
+            {'name': 'Green Gram', 'hindi': 'हरी मूंग', 'category': 'Pulses', 'api_name': 'green_gram'},
+            {'name': 'Cowpea', 'hindi': 'लोबिया', 'category': 'Pulses', 'api_name': 'cowpea'},
+            
+            # Oilseeds
+            {'name': 'Mustard', 'hindi': 'सरसों', 'category': 'Oilseeds', 'api_name': 'mustard'},
+            {'name': 'Sunflower', 'hindi': 'सूरजमुखी', 'category': 'Oilseeds', 'api_name': 'sunflower'},
+            {'name': 'Groundnut', 'hindi': 'मूंगफली', 'category': 'Oilseeds', 'api_name': 'groundnut'},
+            {'name': 'Sesame', 'hindi': 'तिल', 'category': 'Oilseeds', 'api_name': 'sesame'},
+            {'name': 'Soybean', 'hindi': 'सोयाबीन', 'category': 'Oilseeds', 'api_name': 'soybean'},
+            {'name': 'Castor', 'hindi': 'अरंडी', 'category': 'Oilseeds', 'api_name': 'castor'},
+            {'name': 'Linseed', 'hindi': 'अलसी', 'category': 'Oilseeds', 'api_name': 'linseed'},
+            
+            # Cash Crops
+            {'name': 'Cotton', 'hindi': 'कपास', 'category': 'Cash Crops', 'api_name': 'cotton'},
+            {'name': 'Sugarcane', 'hindi': 'गन्ना', 'category': 'Cash Crops', 'api_name': 'sugarcane'},
+            {'name': 'Jute', 'hindi': 'जूट', 'category': 'Cash Crops', 'api_name': 'jute'},
+            {'name': 'Tobacco', 'hindi': 'तंबाकू', 'category': 'Cash Crops', 'api_name': 'tobacco'},
+            
+            # Spices & Condiments
+            {'name': 'Turmeric', 'hindi': 'हल्दी', 'category': 'Spices', 'api_name': 'turmeric'},
+            {'name': 'Chilli', 'hindi': 'मिर्च', 'category': 'Spices', 'api_name': 'chilli'},
+            {'name': 'Black Pepper', 'hindi': 'काली मिर्च', 'category': 'Spices', 'api_name': 'black_pepper'},
+            {'name': 'Cardamom', 'hindi': 'इलायची', 'category': 'Spices', 'api_name': 'cardamom'},
+            {'name': 'Ginger', 'hindi': 'अदरक', 'category': 'Spices', 'api_name': 'ginger'},
+            {'name': 'Coriander', 'hindi': 'धनिया', 'category': 'Spices', 'api_name': 'coriander'},
+            {'name': 'Cumin', 'hindi': 'जीरा', 'category': 'Spices', 'api_name': 'cumin'},
+            {'name': 'Fenugreek', 'hindi': 'मेथी', 'category': 'Spices', 'api_name': 'fenugreek'},
+            {'name': 'Garlic', 'hindi': 'लहसुन', 'category': 'Spices', 'api_name': 'garlic'},
+            
+            # Plantation Crops
+            {'name': 'Coconut', 'hindi': 'नारियल', 'category': 'Plantation', 'api_name': 'coconut'},
+            {'name': 'Rubber', 'hindi': 'रबर', 'category': 'Plantation', 'api_name': 'rubber'},
+            {'name': 'Cashew', 'hindi': 'काजू', 'category': 'Plantation', 'api_name': 'cashew'},
+            {'name': 'Tea', 'hindi': 'चाय', 'category': 'Plantation', 'api_name': 'tea'},
+            {'name': 'Coffee', 'hindi': 'कॉफी', 'category': 'Plantation', 'api_name': 'coffee'},
+            
+            # Vegetables
+            {'name': 'Onion', 'hindi': 'प्याज', 'category': 'Vegetables', 'api_name': 'onion'},
+            {'name': 'Tomato', 'hindi': 'टमाटर', 'category': 'Vegetables', 'api_name': 'tomato'},
+            {'name': 'Potato', 'hindi': 'आलू', 'category': 'Vegetables', 'api_name': 'potato'},
+            {'name': 'Brinjal', 'hindi': 'बैंगन', 'category': 'Vegetables', 'api_name': 'brinjal'},
+            {'name': 'Okra', 'hindi': 'भिंडी', 'category': 'Vegetables', 'api_name': 'okra'},
+            {'name': 'Cabbage', 'hindi': 'पत्ता गोभी', 'category': 'Vegetables', 'api_name': 'cabbage'},
+            {'name': 'Cauliflower', 'hindi': 'फूल गोभी', 'category': 'Vegetables', 'api_name': 'cauliflower'},
+            {'name': 'Carrot', 'hindi': 'गाजर', 'category': 'Vegetables', 'api_name': 'carrot'},
+            {'name': 'Radish', 'hindi': 'मूली', 'category': 'Vegetables', 'api_name': 'radish'},
+            {'name': 'Beetroot', 'hindi': 'चुकंदर', 'category': 'Vegetables', 'api_name': 'beetroot'},
+            {'name': 'Spinach', 'hindi': 'पालक', 'category': 'Vegetables', 'api_name': 'spinach'},
+            {'name': 'Lettuce', 'hindi': 'सलाद पत्ता', 'category': 'Vegetables', 'api_name': 'lettuce'},
+            {'name': 'Cucumber', 'hindi': 'खीरा', 'category': 'Vegetables', 'api_name': 'cucumber'},
+            {'name': 'Pumpkin', 'hindi': 'कद्दू', 'category': 'Vegetables', 'api_name': 'pumpkin'},
+            {'name': 'Bottle Gourd', 'hindi': 'लौकी', 'category': 'Vegetables', 'api_name': 'bottle_gourd'},
+            {'name': 'Ridge Gourd', 'hindi': 'तोरई', 'category': 'Vegetables', 'api_name': 'ridge_gourd'},
+            {'name': 'Bitter Gourd', 'hindi': 'करेला', 'category': 'Vegetables', 'api_name': 'bitter_gourd'},
+            {'name': 'Snake Gourd', 'hindi': 'चिचिंडा', 'category': 'Vegetables', 'api_name': 'snake_gourd'},
+            {'name': 'Ash Gourd', 'hindi': 'पेठा', 'category': 'Vegetables', 'api_name': 'ash_gourd'},
+            {'name': 'Ivy Gourd', 'hindi': 'कुंदरू', 'category': 'Vegetables', 'api_name': 'ivy_gourd'},
+            {'name': 'Cluster Beans', 'hindi': 'ग्वार फली', 'category': 'Vegetables', 'api_name': 'cluster_beans'},
+            {'name': 'French Beans', 'hindi': 'फ्रेंच बीन्स', 'category': 'Vegetables', 'api_name': 'french_beans'},
+            
+            # Fruits
+            {'name': 'Mango', 'hindi': 'आम', 'category': 'Fruits', 'api_name': 'mango'},
+            {'name': 'Banana', 'hindi': 'केला', 'category': 'Fruits', 'api_name': 'banana'},
+            {'name': 'Orange', 'hindi': 'संतरा', 'category': 'Fruits', 'api_name': 'orange'},
+            {'name': 'Apple', 'hindi': 'सेब', 'category': 'Fruits', 'api_name': 'apple'},
+            {'name': 'Grape', 'hindi': 'अंगूर', 'category': 'Fruits', 'api_name': 'grape'},
+            {'name': 'Guava', 'hindi': 'अमरूद', 'category': 'Fruits', 'api_name': 'guava'},
+            {'name': 'Pomegranate', 'hindi': 'अनार', 'category': 'Fruits', 'api_name': 'pomegranate'},
+            {'name': 'Papaya', 'hindi': 'पपीता', 'category': 'Fruits', 'api_name': 'papaya'},
+            {'name': 'Watermelon', 'hindi': 'तरबूज', 'category': 'Fruits', 'api_name': 'watermelon'},
+            {'name': 'Muskmelon', 'hindi': 'खरबूजा', 'category': 'Fruits', 'api_name': 'muskmelon'},
+            {'name': 'Custard Apple', 'hindi': 'शरीफा', 'category': 'Fruits', 'api_name': 'custard_apple'},
+            {'name': 'Sapota', 'hindi': 'चीकू', 'category': 'Fruits', 'api_name': 'sapota'},
+            {'name': 'Litchi', 'hindi': 'लीची', 'category': 'Fruits', 'api_name': 'litchi'},
+            {'name': 'Jackfruit', 'hindi': 'कटहल', 'category': 'Fruits', 'api_name': 'jackfruit'},
+            {'name': 'Dragon Fruit', 'hindi': 'ड्रैगन फ्रूट', 'category': 'Fruits', 'api_name': 'dragon_fruit'}
+        ]
+    
+    def _get_comprehensive_mandi_list(self) -> List[Dict[str, Any]]:
+        """Get comprehensive list of major Indian mandis"""
+        return [
+            # Delhi Mandis
+            {'mandi_id': 'DL001', 'mandi_name': 'Azadpur APMC', 'state': 'Delhi', 'district': 'North Delhi', 
+             'commodities': ['Onion', 'Potato', 'Tomato', 'Fruits'], 'market_type': 'APMC', 
+             'contact': '+91-11-2389-1234', 'address': 'Azadpur, Delhi-110033', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 28.6139, 'longitude': 77.2090},
+            {'mandi_id': 'DL002', 'mandi_name': 'Ghazipur APMC', 'state': 'Delhi', 'district': 'East Delhi', 
+             'commodities': ['Vegetables', 'Fruits', 'Grains'], 'market_type': 'APMC', 
+             'contact': '+91-11-2389-5678', 'address': 'Ghazipur, Delhi-110096', 'operating_days': 'Monday-Saturday', 
+             'timings': '5:00 AM - 1:00 PM', 'latitude': 28.6139, 'longitude': 77.2090},
+            
+            # Maharashtra Mandis
+            {'mandi_id': 'MH001', 'mandi_name': 'Vashi APMC', 'state': 'Maharashtra', 'district': 'Navi Mumbai', 
+             'commodities': ['Onion', 'Potato', 'Tomato', 'Fruits', 'Vegetables'], 'market_type': 'APMC', 
+             'contact': '+91-22-2766-1234', 'address': 'Vashi, Navi Mumbai-400703', 'operating_days': 'Monday-Sunday', 
+             'timings': '4:00 AM - 12:00 PM', 'latitude': 19.0760, 'longitude': 72.8777},
+            {'mandi_id': 'MH002', 'mandi_name': 'Mumbai APMC', 'state': 'Maharashtra', 'district': 'Mumbai', 
+             'commodities': ['Spices', 'Grains', 'Pulses'], 'market_type': 'APMC', 
+             'contact': '+91-22-2766-5678', 'address': 'Mumbai-400001', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 19.0760, 'longitude': 72.8777},
+            {'mandi_id': 'MH003', 'mandi_name': 'Pune APMC', 'state': 'Maharashtra', 'district': 'Pune', 
+             'commodities': ['Onion', 'Tomato', 'Vegetables', 'Fruits'], 'market_type': 'APMC', 
+             'contact': '+91-20-XXXX-XXXX', 'address': 'Pune, Maharashtra', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 18.5204, 'longitude': 73.8567},
+            
+            # Karnataka Mandis
+            {'mandi_id': 'KA001', 'mandi_name': 'Bangalore APMC', 'state': 'Karnataka', 'district': 'Bangalore', 
+             'commodities': ['Rice', 'Vegetables', 'Spices', 'Fruits'], 'market_type': 'APMC', 
+             'contact': '+91-80-XXXX-XXXX', 'address': 'Bangalore, Karnataka', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 12.9716, 'longitude': 77.5946},
+            {'mandi_id': 'KA002', 'mandi_name': 'Mysore APMC', 'state': 'Karnataka', 'district': 'Mysore', 
+             'commodities': ['Rice', 'Vegetables', 'Spices'], 'market_type': 'APMC', 
+             'contact': '+91-821-XXXX-XXXX', 'address': 'Mysore, Karnataka', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 12.2958, 'longitude': 76.6394},
+            
+            # West Bengal Mandis
+            {'mandi_id': 'WB001', 'mandi_name': 'Kolkata APMC', 'state': 'West Bengal', 'district': 'Kolkata', 
+             'commodities': ['Rice', 'Vegetables', 'Fish', 'Fruits'], 'market_type': 'APMC', 
+             'contact': '+91-33-XXXX-XXXX', 'address': 'Kolkata, West Bengal', 'operating_days': 'Monday-Saturday', 
+             'timings': '5:00 AM - 1:00 PM', 'latitude': 22.5726, 'longitude': 88.3639},
+            {'mandi_id': 'WB002', 'mandi_name': 'Siliguri APMC', 'state': 'West Bengal', 'district': 'Siliguri', 
+             'commodities': ['Tea', 'Vegetables', 'Spices'], 'market_type': 'APMC', 
+             'contact': '+91-353-XXXX-XXXX', 'address': 'Siliguri, West Bengal', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 26.7271, 'longitude': 88.3953},
+            
+            # Telangana Mandis
+            {'mandi_id': 'TS001', 'mandi_name': 'Hyderabad APMC', 'state': 'Telangana', 'district': 'Hyderabad', 
+             'commodities': ['Rice', 'Cotton', 'Vegetables', 'Spices'], 'market_type': 'APMC', 
+             'contact': '+91-40-XXXX-XXXX', 'address': 'Hyderabad, Telangana', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 17.3850, 'longitude': 78.4867},
+            {'mandi_id': 'TS002', 'mandi_name': 'Warangal APMC', 'state': 'Telangana', 'district': 'Warangal', 
+             'commodities': ['Cotton', 'Rice', 'Vegetables'], 'market_type': 'APMC', 
+             'contact': '+91-870-XXXX-XXXX', 'address': 'Warangal, Telangana', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 17.9689, 'longitude': 79.5941},
+            
+            # Tamil Nadu Mandis
+            {'mandi_id': 'TN001', 'mandi_name': 'Chennai APMC', 'state': 'Tamil Nadu', 'district': 'Chennai', 
+             'commodities': ['Rice', 'Vegetables', 'Spices', 'Fruits'], 'market_type': 'APMC', 
+             'contact': '+91-44-XXXX-XXXX', 'address': 'Chennai, Tamil Nadu', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 13.0827, 'longitude': 80.2707},
+            {'mandi_id': 'TN002', 'mandi_name': 'Coimbatore APMC', 'state': 'Tamil Nadu', 'district': 'Coimbatore', 
+             'commodities': ['Cotton', 'Spices', 'Vegetables'], 'market_type': 'APMC', 
+             'contact': '+91-422-XXXX-XXXX', 'address': 'Coimbatore, Tamil Nadu', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 11.0168, 'longitude': 76.9558},
+            
+            # Gujarat Mandis
+            {'mandi_id': 'GJ001', 'mandi_name': 'Ahmedabad APMC', 'state': 'Gujarat', 'district': 'Ahmedabad', 
+             'commodities': ['Cotton', 'Spices', 'Vegetables', 'Fruits'], 'market_type': 'APMC', 
+             'contact': '+91-79-XXXX-XXXX', 'address': 'Ahmedabad, Gujarat', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 23.0225, 'longitude': 72.5714},
+            {'mandi_id': 'GJ002', 'mandi_name': 'Surat APMC', 'state': 'Gujarat', 'district': 'Surat', 
+             'commodities': ['Cotton', 'Spices', 'Vegetables'], 'market_type': 'APMC', 
+             'contact': '+91-261-XXXX-XXXX', 'address': 'Surat, Gujarat', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 21.1702, 'longitude': 72.8311},
+            
+            # Rajasthan Mandis
+            {'mandi_id': 'RJ001', 'mandi_name': 'Jaipur APMC', 'state': 'Rajasthan', 'district': 'Jaipur', 
+             'commodities': ['Wheat', 'Mustard', 'Vegetables', 'Spices'], 'market_type': 'APMC', 
+             'contact': '+91-141-XXXX-XXXX', 'address': 'Jaipur, Rajasthan', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 26.9124, 'longitude': 75.7873},
+            {'mandi_id': 'RJ002', 'mandi_name': 'Jodhpur APMC', 'state': 'Rajasthan', 'district': 'Jodhpur', 
+             'commodities': ['Wheat', 'Mustard', 'Spices'], 'market_type': 'APMC', 
+             'contact': '+91-291-XXXX-XXXX', 'address': 'Jodhpur, Rajasthan', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 26.2389, 'longitude': 73.0243},
+            
+            # Uttar Pradesh Mandis
+            {'mandi_id': 'UP001', 'mandi_name': 'Lucknow APMC', 'state': 'Uttar Pradesh', 'district': 'Lucknow', 
+             'commodities': ['Wheat', 'Rice', 'Vegetables', 'Spices'], 'market_type': 'APMC', 
+             'contact': '+91-522-XXXX-XXXX', 'address': 'Lucknow, Uttar Pradesh', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 26.8467, 'longitude': 80.9462},
+            {'mandi_id': 'UP002', 'mandi_name': 'Kanpur APMC', 'state': 'Uttar Pradesh', 'district': 'Kanpur', 
+             'commodities': ['Wheat', 'Rice', 'Vegetables'], 'market_type': 'APMC', 
+             'contact': '+91-512-XXXX-XXXX', 'address': 'Kanpur, Uttar Pradesh', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 26.4499, 'longitude': 80.3319},
+            
+            # Madhya Pradesh Mandis
+            {'mandi_id': 'MP001', 'mandi_name': 'Bhopal APMC', 'state': 'Madhya Pradesh', 'district': 'Bhopal', 
+             'commodities': ['Wheat', 'Rice', 'Vegetables', 'Spices'], 'market_type': 'APMC', 
+             'contact': '+91-755-XXXX-XXXX', 'address': 'Bhopal, Madhya Pradesh', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 23.2599, 'longitude': 77.4126},
+            {'mandi_id': 'MP002', 'mandi_name': 'Indore APMC', 'state': 'Madhya Pradesh', 'district': 'Indore', 
+             'commodities': ['Wheat', 'Rice', 'Vegetables'], 'market_type': 'APMC', 
+             'contact': '+91-731-XXXX-XXXX', 'address': 'Indore, Madhya Pradesh', 'operating_days': 'Monday-Saturday', 
+             'timings': '6:00 AM - 2:00 PM', 'latitude': 22.7196, 'longitude': 75.8577}
+        ]
     
     def _generate_village_data(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """Generate village-level location data"""
