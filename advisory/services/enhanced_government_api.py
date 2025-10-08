@@ -1257,12 +1257,19 @@ class EnhancedGovernmentAPI:
     def _get_fallback_market_data(self, latitude: float = None, longitude: float = None, commodity: str = None) -> List[Dict[str, Any]]:
         """Fallback market data when API fails - LOCATION-BASED DYNAMIC PRICING"""
         
-        # Base prices for different commodities
+        # Base prices for different commodities - COMPREHENSIVE COVERAGE
         base_prices = {
             'wheat': 2200, 'rice': 3500, 'maize': 1900, 'cotton': 6500,
             'sugarcane': 320, 'turmeric': 10000, 'chilli': 20000,
             'onion': 2500, 'tomato': 3000, 'potato': 1200,
-            'peanut': 5500, 'mustard': 4500
+            'peanut': 5500, 'mustard': 4500, 'soybean': 3800,
+            'groundnut': 5500, 'ginger': 12000, 'cardamom': 15000,
+            'black pepper': 18000, 'coconut': 8000, 'banana': 2500,
+            'mango': 4000, 'grapes': 6000, 'apple': 8000,
+            'orange': 3000, 'pomegranate': 5000, 'brinjal': 2000,
+            'cabbage': 1500, 'cauliflower': 1800, 'spinach': 1000,
+            'carrot': 1200, 'pulses': 4000, 'oilseeds': 5000,
+            'corn': 1900  # Alias for maize
         }
         
         # Location-based pricing factors
@@ -1299,52 +1306,68 @@ class EnhancedGovernmentAPI:
             mandi_names = ["APMC Delhi", "Delhi Mandi", "Delhi Krishi Mandi"]
         
         prices = []
-        # Map corn to maize for consistency
-        if commodity and commodity.lower() == 'corn':
-            commodity = 'maize'
+        # Map corn to maize for consistency and handle commodity variations
+        if commodity:
+            commodity_lower = commodity.lower()
+            # Handle variations and synonyms
+            commodity_mapping = {
+                'soyabean': 'soybean', 'ground nut': 'groundnut',
+                'green chilli': 'chilli', 'red chilli': 'chilli',
+                'dry ginger': 'ginger', 'fresh ginger': 'ginger',
+                'small cardamom': 'cardamom', 'large cardamom': 'cardamom',
+                'corn': 'maize'
+            }
+            commodity_lower = commodity_mapping.get(commodity_lower, commodity_lower)
+        else:
+            commodity_lower = 'wheat'  # Default commodity
         
-        commodities_to_process = [commodity] if commodity else ['wheat', 'rice', 'maize', 'peanut']
+        # Get base price with fallback
+        base_price = base_prices.get(commodity_lower, 3000)  # Default price if not found
         
-        for crop in commodities_to_process:
-            if crop.lower() in base_prices:
-                base_price = base_prices[crop.lower()]
-                
-                # Generate location-specific price
-                crop_seed = hash(f"{latitude}_{longitude}_{crop}") % 1000
-                price_variation = (crop_seed % 200) - 100  # -100 to +100 variation
-                final_price = int(base_price * region_factor + price_variation)
-                
-                # Generate mandi-specific data
-                mandi_seed = hash(f"{latitude}_{longitude}_{crop}_mandi") % 1000
-                mandi_name = mandi_names[mandi_seed % len(mandi_names)]
-                
-                # Generate change percentage
-                change_seed = hash(f"{latitude}_{longitude}_{crop}_change") % 1000
-                change_percent = 1 + (change_seed % 4)  # 1-5%
-                change_sign = '+' if (change_seed % 2) == 0 else '-'
-                
-                # Generate quality and arrival
-                quality_seed = hash(f"{latitude}_{longitude}_{crop}_quality") % 1000
-                quality_options = ['Grade A', 'Grade B', 'Standard']
-                quality = quality_options[quality_seed % len(quality_options)]
-                
-                arrival_seed = hash(f"{latitude}_{longitude}_{crop}_arrival") % 1000
-                arrival = 100 + (arrival_seed % 900)  # 100-1000 quintals
-                
-                prices.append({
-                    'commodity': crop.title(),
-                    'mandi': mandi_name,
-                    'price': f'₹{final_price}',
-                    'change': f"{change_sign}{change_percent:.1f}%",
-                    'change_percent': f"{change_sign}{change_percent:.1f}%",
-                    'unit': 'INR/quintal',
-                    'date': datetime.now().strftime('%Y-%m-%d'),
-                    'state': self._get_state_from_coordinates(latitude, longitude) if latitude and longitude else 'Unknown',
-                    'district': self._get_city_name(latitude, longitude) if latitude and longitude else 'Unknown',
-                    'market_type': 'APMC',
-                    'quality': quality,
-                    'arrival': f"{arrival} quintals"
-                })
+        # Generate location-specific price
+        if latitude and longitude:
+            crop_seed = hash(f"{latitude}_{longitude}_{commodity_lower}") % 1000
+            price_variation = (crop_seed % 200) - 100  # -100 to +100 variation
+            final_price = int(base_price * region_factor + price_variation)
+        else:
+            final_price = base_price
+        
+        # Generate mandi-specific data
+        mandi_seed = hash(f"{latitude}_{longitude}_{commodity_lower}_mandi") % 1000
+        mandi_name = mandi_names[mandi_seed % len(mandi_names)]
+        
+        # Generate change percentage
+        change_seed = hash(f"{latitude}_{longitude}_{commodity_lower}_change") % 1000
+        change_percent = 1 + (change_seed % 4)  # 1-5%
+        change_sign = '+' if (change_seed % 2) == 0 else '-'
+        
+        # Generate quality and arrival
+        quality_seed = hash(f"{latitude}_{longitude}_{commodity_lower}_quality") % 1000
+        quality_options = ['Grade A', 'Grade B', 'Standard']
+        quality = quality_options[quality_seed % len(quality_options)]
+        
+        arrival_seed = hash(f"{latitude}_{longitude}_{commodity_lower}_arrival") % 1000
+        arrival = 100 + (arrival_seed % 900)  # 100-1000 quintals
+        
+        prices.append({
+            'commodity': commodity_lower.title(),
+            'mandi_name': mandi_name,  # Add mandi_name field
+            'mandi': mandi_name,  # Keep for backward compatibility
+            'price': f'₹{final_price}',
+            'change': f"{change_sign}{change_percent:.1f}%",
+            'change_percent': f"{change_sign}{change_percent:.1f}%",
+            'unit': 'INR/quintal',
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'state': self._get_state_from_coordinates(latitude, longitude) if latitude and longitude else 'Unknown',
+            'district': self._get_city_name(latitude, longitude) if latitude and longitude else 'Unknown',
+            'market_type': 'APMC',
+            'quality': quality,
+            'arrival': f"{arrival} quintals",
+            'contact': '+91-XXX-XXXX-XXXX',  # Add contact info
+            'address': f"{self._get_city_name(latitude, longitude) if latitude and longitude else 'Unknown'}, India",
+            'operating_days': 'Monday-Saturday',
+            'timings': '6:00 AM - 2:00 PM'
+        })
         
         return prices
     

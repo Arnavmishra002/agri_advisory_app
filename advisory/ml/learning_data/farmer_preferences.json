@@ -1,0 +1,34 @@
+{
+  "Delhi": {
+    "query_types": {
+      "market_price": 1
+    },
+    "languages": {
+      "en": 1
+    },
+    "topics": {
+      "crops": 1,
+      "markets": 1
+    },
+    "complexity_preference": {
+      "medium": 1
+    }
+  },
+  "Test Location": {
+    "query_types": {
+      "crop_recommendation": 2,
+      "general": 1
+    },
+    "languages": {
+      "en": 3
+    },
+    "topics": {
+      "crops": 2,
+      "farming": 1
+    },
+    "complexity_preference": {
+      "simple": 1,
+      "medium": 2
+    }
+  }
+}

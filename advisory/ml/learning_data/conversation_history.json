@@ -1,0 +1,151 @@
+[
+  {
+    "timestamp": "2025-10-08T20:25:53.348406",
+    "query": "What is the price of wheat in my area?",
+    "response": "💰 Market Analysis for Wheat in Delhi:\n\n🏪 Mandi: New Delhi Krishi Mandi\n🌾 Wheat Price: ₹2318/quintal\n📈 Change: -4.0%\n📍 State: Delhi\n\n📊 Data Source: Government APIs (Agmarknet, e-NAM, FCI, State APMC)\n\n💡 Recommendations:\n• Check multiple mandis for best prices\n• Consider government procurement schemes\n• Monitor weather forecasts for price impact\n• Maintain quality standards for better prices\n\n📞 Contact: Local APMC offices for detailed information\n🌐 Data Sources: Agmarknet, e-NAM, FCI, State APMC databases",
+    "feedback": "Very helpful information! The price details are accurate.",
+    "location": "Delhi",
+    "language": "en",
+    "insights": {
+      "query_type": "market_price",
+      "complexity": "medium",
+      "response_quality": {
+        "score": 85.5,
+        "metrics": {
+          "length": 508,
+          "has_specifics": true,
+          "has_emojis": true,
+          "has_recommendations": true,
+          "has_sources": true,
+          "structured": true
+        },
+        "level": "high"
+      },
+      "feedback_sentiment": {
+        "sentiment": "positive",
+        "positive_score": 2,
+        "negative_score": 0,
+        "confidence": 1.0
+      },
+      "location_specific": true,
+      "language_preference": "en",
+      "key_topics": [
+        "crops",
+        "markets"
+      ],
+      "response_length": 508,
+      "query_length": 38
+    }
+  },
+  {
+    "timestamp": "2025-10-08T20:25:59.510745",
+    "query": "How to grow rice?",
+    "response": "🌾 Crop Recommendation for Delhi:\n\n✅ Suitable Crop: Rice\n🌱 Best Time: Kharif/Rabi season\n💧 Irrigation: Regular watering required\n🌿 Fertilizer: NPK balanced\n\n📊 Based on agricultural data and soil conditions",
+    "feedback": "Good information for query 1!",
+    "location": "Test Location",
+    "language": "en",
+    "insights": {
+      "query_type": "crop_recommendation",
+      "complexity": "simple",
+      "response_quality": {
+        "score": 34.666666666666664,
+        "metrics": {
+          "length": 204,
+          "has_specifics": false,
+          "has_emojis": true,
+          "has_recommendations": true,
+          "has_sources": true,
+          "structured": true
+        },
+        "level": "high"
+      },
+      "feedback_sentiment": {
+        "sentiment": "positive",
+        "positive_score": 1,
+        "negative_score": 0,
+        "confidence": 1.0
+      },
+      "location_specific": true,
+      "language_preference": "en",
+      "key_topics": [
+        "crops"
+      ],
+      "response_length": 204,
+      "query_length": 17
+    }
+  },
+  {
+    "timestamp": "2025-10-08T20:26:03.645592",
+    "query": "What are the best crops for black soil?",
+    "response": "🌾 Crop Recommendation for Delhi:\n\n✅ Suitable Crop: Wheat\n🌱 Best Time: Kharif/Rabi season\n💧 Irrigation: Regular watering required\n🌿 Fertilizer: NPK balanced\n\n📊 Based on agricultural data and soil conditions",
+    "feedback": "Good information for query 2!",
+    "location": "Test Location",
+    "language": "en",
+    "insights": {
+      "query_type": "crop_recommendation",
+      "complexity": "medium",
+      "response_quality": {
+        "score": 34.833333333333336,
+        "metrics": {
+          "length": 205,
+          "has_specifics": false,
+          "has_emojis": true,
+          "has_recommendations": true,
+          "has_sources": true,
+          "structured": true
+        },
+        "level": "high"
+      },
+      "feedback_sentiment": {
+        "sentiment": "positive",
+        "positive_score": 1,
+        "negative_score": 0,
+        "confidence": 1.0
+      },
+      "location_specific": true,
+      "language_preference": "en",
+      "key_topics": [
+        "farming"
+      ],
+      "response_length": 205,
+      "query_length": 39
+    }
+  },
+  {
+    "timestamp": "2025-10-08T20:26:07.760886",
+    "query": "Tell me about wheat farming techniques",
+    "response": "🌾 Crop Recommendation for Delhi:\n\n✅ Suitable Crop: Wheat\n🌱 Best Time: Kharif/Rabi season\n💧 Irrigation: Regular watering required\n🌿 Fertilizer: NPK balanced\n\n📊 Based on agricultural data and soil conditions",
+    "feedback": "Good information for query 3!",
+    "location": "Test Location",
+    "language": "en",
+    "insights": {
+      "query_type": "general",
+      "complexity": "medium",
+      "response_quality": {
+        "score": 34.833333333333336,
+        "metrics": {
+          "length": 205,
+          "has_specifics": false,
+          "has_emojis": true,
+          "has_recommendations": true,
+          "has_sources": true,
+          "structured": true
+        },
+        "level": "high"
+      },
+      "feedback_sentiment": {
+        "sentiment": "positive",
+        "positive_score": 1,
+        "negative_score": 0,
+        "confidence": 1.0
+      },
+      "location_specific": true,
+      "language_preference": "en",
+      "key_topics": [
+        "crops"
+      ],
+      "response_length": 205,
+      "query_length": 38
+    }
+  }
+]

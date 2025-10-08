@@ -126,7 +126,8 @@ class ChatbotViewSet(viewsets.ViewSet):
                     'intent': 'agricultural_query',
                     'entities': [],
                     'language': language,
-                    'timestamp': time.time()
+                    'timestamp': time.time(),
+                    'learning_enabled': True
                 })
             except Exception as e:
                 return Response({
@@ -138,6 +139,61 @@ class ChatbotViewSet(viewsets.ViewSet):
                 }, status=500)
         else:
             return Response(serializer.errors, status=400)
+
+    @action(detail=False, methods=['post'])
+    def feedback(self, request):
+        """Collect farmer feedback for AI learning"""
+        try:
+            query = request.data.get('query', '')
+            response = request.data.get('response', '')
+            feedback = request.data.get('feedback', '')
+            location = request.data.get('location', '')
+            language = request.data.get('language', 'en')
+            
+            if not query or not response:
+                return Response({
+                    'error': 'Query and response are required'
+                }, status=400)
+            
+            # Learn from the feedback
+            from ..ml.self_learning_ai import self_learning_ai
+            learning_result = self_learning_ai.learn_from_query(
+                query=query,
+                response=response,
+                user_feedback=feedback,
+                location=location,
+                language=language
+            )
+            
+            return Response({
+                'message': 'Thank you for your feedback! The AI will learn from your input.',
+                'learning_result': learning_result,
+                'timestamp': time.time()
+            })
+            
+        except Exception as e:
+            return Response({
+                'error': 'Failed to process feedback',
+                'details': str(e)
+            }, status=500)
+
+    @action(detail=False, methods=['get'])
+    def learning_insights(self, request):
+        """Get AI learning insights and statistics"""
+        try:
+            from ..ml.self_learning_ai import self_learning_ai
+            insights = self_learning_ai.get_learning_insights()
+            
+            return Response({
+                'learning_insights': insights,
+                'timestamp': time.time()
+            })
+            
+        except Exception as e:
+            return Response({
+                'error': 'Failed to get learning insights',
+                'details': str(e)
+            }, status=500)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()

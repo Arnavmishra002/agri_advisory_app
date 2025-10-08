@@ -1,0 +1,23 @@
+{
+  "7943946868": {
+    "response": "💰 Market Analysis for Wheat in Delhi:\n\n🏪 Mandi: New Delhi Krishi Mandi\n🌾 Wheat Price: ₹2318/quintal\n📈 Change: -4.0%\n📍 State: Delhi\n\n📊 Data Source: Government APIs (Agmarknet, e-NAM, FCI, State APMC)\n\n💡 Recommendations:\n• Check multiple mandis for best prices\n• Consider government procurement schemes\n• Monitor weather forecasts for price impact\n• Maintain quality standards for better prices\n\n📞 Contact: Local APMC offices for detailed information\n🌐 Data Sources: Agmarknet, e-NAM, FCI, State APMC databases",
+    "total_feedback": 1,
+    "positive_feedback": 1,
+    "negative_feedback": 0,
+    "effectiveness_score": 1.0
+  },
+  "-175552406": {
+    "response": "🌾 Crop Recommendation for Delhi:\n\n✅ Suitable Crop: Rice\n🌱 Best Time: Kharif/Rabi season\n💧 Irrigation: Regular watering required\n🌿 Fertilizer: NPK balanced\n\n📊 Based on agricultural data and soil conditions",
+    "total_feedback": 1,
+    "positive_feedback": 1,
+    "negative_feedback": 0,
+    "effectiveness_score": 1.0
+  },
+  "-540856761": {
+    "response": "🌾 Crop Recommendation for Delhi:\n\n✅ Suitable Crop: Wheat\n🌱 Best Time: Kharif/Rabi season\n💧 Irrigation: Regular watering required\n🌿 Fertilizer: NPK balanced\n\n📊 Based on agricultural data and soil conditions",
+    "total_feedback": 2,
+    "positive_feedback": 2,
+    "negative_feedback": 0,
+    "effectiveness_score": 1.0
+  }
+}

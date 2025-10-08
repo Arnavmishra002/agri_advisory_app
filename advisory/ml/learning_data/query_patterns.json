@@ -1,0 +1,61 @@
+{
+  "market_price": {
+    "count": 1,
+    "common_words": {
+      "what": 1,
+      "price": 1,
+      "wheat": 1,
+      "area?": 1
+    },
+    "complexity_distribution": {
+      "medium": 1
+    },
+    "location_frequency": {
+      "location_specific": 1
+    },
+    "language_frequency": {
+      "en": 1
+    }
+  },
+  "crop_recommendation": {
+    "count": 2,
+    "common_words": {
+      "grow": 1,
+      "rice?": 1,
+      "what": 1,
+      "best": 1,
+      "crops": 1,
+      "black": 1,
+      "soil?": 1
+    },
+    "complexity_distribution": {
+      "simple": 1,
+      "medium": 1
+    },
+    "location_frequency": {
+      "location_specific": 2
+    },
+    "language_frequency": {
+      "en": 2
+    }
+  },
+  "general": {
+    "count": 1,
+    "common_words": {
+      "tell": 1,
+      "about": 1,
+      "wheat": 1,
+      "farming": 1,
+      "techniques": 1
+    },
+    "complexity_distribution": {
+      "medium": 1
+    },
+    "location_frequency": {
+      "location_specific": 1
+    },
+    "language_frequency": {
+      "en": 1
+    }
+  }
+}
