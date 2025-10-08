@@ -58,7 +58,7 @@ class ChatbotViewSet(viewsets.ViewSet):
         if request.method == 'POST':
             serializer = ChatbotSerializer(data=request.data)
             if serializer.is_valid():
-                message = serializer.validated_data['message']
+                message = serializer.validated_data['query']
                 language = serializer.validated_data.get('language', 'en')
                 
                 try:
@@ -102,7 +102,7 @@ class ChatbotViewSet(viewsets.ViewSet):
         """Handle chatbot conversations"""
         serializer = ChatbotSerializer(data=request.data)
         if serializer.is_valid():
-            message = serializer.validated_data['message']
+            message = serializer.validated_data['query']
             language = serializer.validated_data.get('language', 'en')
             
             try:
