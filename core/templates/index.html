@@ -1989,9 +1989,10 @@
                         loadCropData();
                         // Also load the data sections immediately
                         setTimeout(function() {
-                            if (window.updateCropHistoryData) updateCropHistoryData();
-                            if (window.updateSoilAnalysisData) updateSoilAnalysisData();
-                            if (window.updateTrendAnalysisData) updateTrendAnalysisData();
+                            console.log('Loading crop history and soil analysis data...');
+                            loadCropHistoryData();
+                            loadSoilAnalysisData();
+                            loadTrendAnalysisData();
                         }, 500);
                         break;
                     case 'pest':
@@ -2637,6 +2638,10 @@
             if (potashEl) potashEl.textContent = potashLevel;
         }
         
+        // Make functions globally available
+        window.loadCropHistoryData = loadCropHistoryData;
+        window.loadSoilAnalysisData = loadSoilAnalysisData;
+        
         function loadTrendAnalysisData() {
             // Ensure currentLocation is defined
             if (!currentLocation || !currentLocation.lat || !currentLocation.lon) {
@@ -2667,6 +2672,9 @@
             if (demandTrendEl) demandTrendEl.textContent = demandTrend;
             if (profitabilityTrendEl) profitabilityTrendEl.textContent = profitabilityTrend;
         }
+        
+        // Make trend analysis function globally available
+        window.loadTrendAnalysisData = loadTrendAnalysisData;
         
         function getCurrentSeason() {
             const month = new Date().getMonth() + 1;
@@ -3314,18 +3322,12 @@
             loadCropData();
             
             // Also update dynamic data sections
-            if (window.updateCropHistoryData) {
-                console.log('Calling updateCropHistoryData...');
-                window.updateCropHistoryData();
-            }
-            if (window.updateSoilAnalysisData) {
-                console.log('Calling updateSoilAnalysisData...');
-                window.updateSoilAnalysisData();
-            }
-            if (window.updateTrendAnalysisData) {
-                console.log('Calling updateTrendAnalysisData...');
-                window.updateTrendAnalysisData();
-            }
+            console.log('Calling loadCropHistoryData...');
+            loadCropHistoryData();
+            console.log('Calling loadSoilAnalysisData...');
+            loadSoilAnalysisData();
+            console.log('Calling loadTrendAnalysisData...');
+            loadTrendAnalysisData();
         }
 
         // Pest detection
