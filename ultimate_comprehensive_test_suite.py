@@ -232,7 +232,7 @@ class UltimateTestSuite:
         
         for query in complex_queries:
             try:
-                response = ultimate_ai.get_response(query)
+                response = ultimate_ai.get_response(query, language='en')
                 response_text = response['response']
                 
                 # STRICT CHECKS - NO LENIENCY
@@ -279,6 +279,7 @@ class UltimateTestSuite:
                 query = f"tell me about {location['name']}"
                 response = ultimate_ai.get_response(
                     query, 
+                    language='en',
                     latitude=location['coords'][0], 
                     longitude=location['coords'][1], 
                     location_name=location['name']
@@ -331,6 +332,7 @@ class UltimateTestSuite:
             try:
                 response = ultimate_ai.get_response(
                     test_query, 
+                    language='en',
                     latitude=location['coords'][0], 
                     longitude=location['coords'][1], 
                     location_name=location['name']

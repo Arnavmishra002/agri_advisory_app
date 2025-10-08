@@ -384,14 +384,41 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         try:
             # Use comprehensive crop recommendation system with real-time government data
             try:
-                from ..services.comprehensive_crop_system import comprehensive_crop_system
-                result = comprehensive_crop_system.get_comprehensive_recommendations(
-                    latitude=latitude,
-                    longitude=longitude,
-                    soil_type=soil_type,
-                    season=season
-                )
-                return Response(result, status=status.HTTP_200_OK)
+                import threading
+                import time
+                
+                result = {}
+                exception = None
+                
+                def fetch_crop_data():
+                    nonlocal result, exception
+                    try:
+                        from ..services.comprehensive_crop_system import comprehensive_crop_system
+                        result = comprehensive_crop_system.get_comprehensive_recommendations(
+                            latitude=latitude,
+                            longitude=longitude,
+                            soil_type=soil_type,
+                            season=season
+                        )
+                    except Exception as e:
+                        exception = e
+                
+                # Start the data fetch in a separate thread
+                thread = threading.Thread(target=fetch_crop_data)
+                thread.daemon = True
+                thread.start()
+                thread.join(timeout=5)  # 5-second timeout
+                
+                if thread.is_alive():
+                    raise TimeoutError("Crop recommendation fetch timeout")
+                
+                if exception:
+                    raise exception
+                
+                if result:
+                    return Response(result, status=status.HTTP_200_OK)
+                else:
+                    raise Exception("No crop data returned")
             except ImportError:
                 # Fallback to basic crop recommendation
                 logger.warning("Comprehensive crop system not available, using fallback")
@@ -3048,8 +3075,8 @@ class WeatherViewSet(viewsets.ViewSet):
             else:
                 weather_data = real_time_weather_data['current_weather']
                 data_source = real_time_weather_data.get('source', 'Real-Time Government API')
-
-            if weather_data:
+        
+        if weather_data:
                 # Ensure proper response format
                 if isinstance(weather_data, dict) and 'current' in weather_data:
                     # Convert nested structure to flat structure for API compatibility
@@ -3070,7 +3097,7 @@ class WeatherViewSet(viewsets.ViewSet):
                     }
                     return Response(formatted_response)
                 else:
-                    return Response(weather_data)
+            return Response(weather_data)
             else:
                 return Response({"error": "Could not retrieve weather data"}, status=500)
                 
@@ -3253,8 +3280,8 @@ class MarketPricesViewSet(viewsets.ViewSet):
             else:
                 market_data = real_time_market_data['prices']
                 data_source = real_time_market_data.get('source', 'Real-Time Government API')
-
-            if market_data:
+        
+        if market_data:
                 print(f"MarketPricesViewSet: Returning REAL-TIME market_data = {market_data}")
                 return Response({
                     'market_data': market_data,
@@ -3294,7 +3321,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
                     'timestamp': time.time()
                 })
             else:
-                return Response({"error": "Could not retrieve market data"}, status=500)
+        return Response({"error": "Could not retrieve market data"}, status=500)
 
 class TrendingCropsViewSet(viewsets.ViewSet):
     """
