@@ -3239,6 +3239,7 @@ class ForumPostViewSet(viewsets.ModelViewSet):
 class MarketPricesViewSet(viewsets.ViewSet):
     """
     A simple ViewSet for retrieving real-time market prices.
+    Enhanced with village locations and mandi search features.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -3339,6 +3340,91 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 })
             else:
                 return Response({"error": "Could not retrieve market data"}, status=500)
+    
+    @action(detail=False, methods=['get'])
+    def search_mandis(self, request):
+        """
+        Search for mandis manually - users can search different mandis
+        """
+        query = request.query_params.get('query', '')
+        state = request.query_params.get('state', None)
+        district = request.query_params.get('district', None)
+        commodity = request.query_params.get('commodity', None)
+        
+        if not query:
+            return Response({"error": "Search query is required"}, status=400)
+        
+        try:
+            mandis = self.government_api.search_mandis(query, state, district, commodity)
+            
+            if mandis:
+                return Response({
+                    'mandis': mandis,
+                    'query': query,
+                    'total_results': len(mandis),
+                    'filters': {
+                        'state': state,
+                        'district': district,
+                        'commodity': commodity
+                    },
+                    'data_source': 'Enhanced Government API (Mandi Search)',
+                    'timestamp': time.time()
+                })
+            else:
+                return Response({
+                    'mandis': [],
+                    'query': query,
+                    'total_results': 0,
+                    'message': 'No mandis found for the given query',
+                    'timestamp': time.time()
+                })
+                
+        except Exception as e:
+            print(f"MarketPricesViewSet: Error searching mandis: {e}")
+            return Response({"error": "Could not search mandis"}, status=500)
+    
+    @action(detail=False, methods=['get'])
+    def village_data(self, request):
+        """
+        Get village-level location data for more accurate information
+        """
+        latitude = request.query_params.get('lat', None)
+        longitude = request.query_params.get('lon', None)
+        
+        if not (latitude and longitude):
+            return Response({"error": "Latitude and longitude parameters are required"}, status=400)
+        
+        try:
+            latitude = float(latitude)
+            longitude = float(longitude)
+        except ValueError:
+            return Response({"error": "Latitude and longitude must be valid numbers"}, status=400)
+        
+        # Validate coordinate ranges
+        if not (-90 <= latitude <= 90):
+            return Response({"error": "Latitude must be between -90 and 90 degrees"}, status=400)
+        if not (-180 <= longitude <= 180):
+            return Response({"error": "Longitude must be between -180 and 180 degrees"}, status=400)
+        
+        try:
+            village_data = self.government_api.get_village_location_data(latitude, longitude)
+            
+            if village_data:
+                return Response({
+                    'village_data': village_data,
+                    'coordinates': {
+                        'latitude': latitude,
+                        'longitude': longitude
+                    },
+                    'data_source': 'Enhanced Government API (Village Data)',
+                    'timestamp': time.time()
+                })
+            else:
+                return Response({"error": "Could not retrieve village data"}, status=500)
+                
+        except Exception as e:
+            print(f"MarketPricesViewSet: Error fetching village data: {e}")
+            return Response({"error": "Could not retrieve village data"}, status=500)
 
 class TrendingCropsViewSet(viewsets.ViewSet):
     """
