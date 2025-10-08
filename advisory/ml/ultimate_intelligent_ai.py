@@ -184,18 +184,18 @@ class UltimateIntelligentAI:
     def generate_response(self, query: str, analysis: Dict[str, Any], language: str = 'en', 
                          latitude: float = None, longitude: float = None, location_name: str = None) -> str:
         """Generate intelligent response"""
-            intent = analysis.get("intent", "general")
-            entities = analysis.get("entities", {})
-            
-            if intent == "greeting":
-                return self._generate_greeting_response(language)
+        intent = analysis.get("intent", "general")
+        entities = analysis.get("entities", {})
+        
+        if intent == "greeting":
+            return self._generate_greeting_response(language)
         elif intent == "market_price":
-                return self._generate_market_response(entities, language, query, latitude, longitude)
-            elif intent == "weather":
-                return self._generate_weather_response(entities, language, query, latitude, longitude, location_name)
-            elif intent == "crop_recommendation":
-                return self._generate_crop_response(entities, language, query)
-            else:
+            return self._generate_market_response(entities, language, query, latitude, longitude)
+        elif intent == "weather":
+            return self._generate_weather_response(entities, language, query, latitude, longitude, location_name)
+        elif intent == "crop_recommendation":
+            return self._generate_crop_response(entities, language, query)
+        else:
             return self._generate_general_response(query, language)
     
     def _generate_greeting_response(self, language: str) -> str:
