@@ -1,7 +1,7 @@
 {
   "market_prices": {
-    "passed": 0,
-    "failed": 40,
+    "passed": 40,
+    "failed": 0,
     "details": [
       {
         "location": "Raebareli",
@@ -13,11 +13,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Raebareli में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Raebareli Mandi\n🌾 Wheat कीमत: ₹2500/quintal\n📈 बदलाव: +0.6%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, F..."
+        "passed": true,
+        "response": "💰 Raebareli में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Wheat कीमत: ₹2322/quintal\n📈 बदलाव: +3.0%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी ..."
       },
       {
         "location": "Raebareli",
@@ -29,11 +29,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Raebareli में Rice की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Rice कीमत: ₹3727/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+        "passed": true,
+        "response": "💰 Raebareli में Rice की बाजार स्थिति:\n\n🏪 मंडी: Raebareli Mandi\n🌾 Rice कीमत: ₹3200/quintal\n📈 बदलाव: +0.8%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्र..."
       },
       {
         "location": "Raebareli",
@@ -45,11 +45,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Raebareli में Potato की बाजार स्थिति:\n\n🏪 मंडी: Raebareli Mandi\n🌾 Potato कीमत: ₹1200/quintal\n📈 बदलाव: -3.4%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM,..."
+        "passed": true,
+        "response": "💰 Raebareli में Potato की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Krishi Mandi\n🌾 Potato कीमत: ₹1344/quintal\n📈 बदलाव: -2.0%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत..."
       },
       {
         "location": "Raebareli",
@@ -61,11 +61,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Raebareli में Onion की बाजार स्थिति:\n\n🏪 मंडी: Raebareli Mandi\n🌾 Onion कीमत: ₹2000/quintal\n📈 बदलाव: +6.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, F..."
+        "passed": true,
+        "response": "💰 Raebareli में Onion की बाजार स्थिति:\n\n🏪 मंडी: Raebareli Mandi\n🌾 Onion कीमत: ₹2000/quintal\n📈 बदलाव: -5.9%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स..."
       },
       {
         "location": "Raebareli",
@@ -77,11 +77,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Raebareli में Tomato की बाजार स्थिति:\n\n🏪 मंडी: APMC Lucknow\n🌾 Tomato कीमत: ₹3135/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FC..."
+        "passed": true,
+        "response": "💰 Raebareli में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Tomato कीमत: ₹3094/quintal\n📈 बदलाव: -4.0%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकार..."
       },
       {
         "location": "Mumbai",
@@ -93,11 +93,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Mumbai में Wheat की बाजार स्थिति:\n\n🏪 मंडी: APMC Mumbai\n🌾 Wheat कीमत: ₹2119/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, Sta..."
+        "passed": true,
+        "response": "💰 Mumbai में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Vashi APMC\n🌾 Wheat कीमत: ₹2750/quintal\n📈 बदलाव: -1.0%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत: सरका..."
       },
       {
         "location": "Mumbai",
@@ -109,11 +109,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Mumbai में Rice की बाजार स्थिति:\n\n🏪 मंडी: APMC Mumbai\n🌾 Rice कीमत: ₹3307/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State..."
+        "passed": true,
+        "response": "💰 Mumbai में Rice की बाजार स्थिति:\n\n🏪 मंडी: Mumbai Krishi Mandi\n🌾 Rice कीमत: ₹3303/quintal\n📈 बदलाव: +1.0%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी ए..."
       },
       {
         "location": "Mumbai",
@@ -125,11 +125,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Mumbai में Potato की बाजार स्थिति:\n\n🏪 मंडी: Mumbai Mandi\n🌾 Potato कीमत: ₹1050/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+        "passed": true,
+        "response": "💰 Mumbai में Potato की बाजार स्थिति:\n\n🏪 मंडी: Vashi APMC\n🌾 Potato कीमत: ₹1320/quintal\n📈 बदलाव: -0.2%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत: सर..."
       },
       {
         "location": "Mumbai",
@@ -141,11 +141,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Mumbai में Onion की बाजार स्थिति:\n\n🏪 मंडी: Mumbai Krishi Mandi\n🌾 Onion कीमत: ₹2342/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, ..."
+        "passed": true,
+        "response": "💰 Mumbai में Onion की बाजार स्थिति:\n\n🏪 मंडी: Vashi APMC\n🌾 Onion कीमत: ₹2200/quintal\n📈 बदलाव: +4.9%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत: सरका..."
       },
       {
         "location": "Mumbai",
@@ -157,11 +157,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Mumbai में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Vashi APMC\n🌾 Tomato कीमत: ₹3300/quintal\n📈 बदलाव: +3.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, St..."
+        "passed": true,
+        "response": "💰 Mumbai में Tomato की बाजार स्थिति:\n\n🏪 मंडी: APMC Mumbai\n🌾 Tomato कीमत: ₹2767/quintal\n📈 बदलाव: +1.0%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी एपीआई..."
       },
       {
         "location": "Bangalore",
@@ -173,11 +173,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Bangalore में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Yeshwanthpur APMC\n🌾 Wheat कीमत: ₹2625/quintal\n📈 बदलाव: +1.5%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM,..."
+        "passed": true,
+        "response": "💰 Bangalore में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Yeshwanthpur APMC\n🌾 Wheat कीमत: ₹2625/quintal\n📈 बदलाव: +1.4%\n📍 राज्य: Karnataka\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्र..."
       },
       {
         "location": "Bangalore",
@@ -189,11 +189,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Bangalore में Rice की बाजार स्थिति:\n\n🏪 मंडी: APMC Bangalore\n🌾 Rice कीमत: ₹3617/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI,..."
+        "passed": true,
+        "response": "💰 Bangalore में Rice की बाजार स्थिति:\n\n🏪 मंडी: Yeshwanthpur APMC\n🌾 Rice कीमत: ₹3360/quintal\n📈 बदलाव: +0.1%\n📍 राज्य: Karnataka\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत..."
       },
       {
         "location": "Bangalore",
@@ -205,11 +205,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Bangalore में Potato की बाजार स्थिति:\n\n🏪 मंडी: Bangalore Mandi\n🌾 Potato कीमत: ₹1167/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM,..."
+        "passed": true,
+        "response": "💰 Bangalore में Potato की बाजार स्थिति:\n\n🏪 मंडी: Yeshwanthpur APMC\n🌾 Potato कीमत: ₹1260/quintal\n📈 बदलाव: +0.6%\n📍 राज्य: Karnataka\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स..."
       },
       {
         "location": "Bangalore",
@@ -221,11 +221,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Bangalore में Onion की बाजार स्थिति:\n\n🏪 मंडी: Yeshwanthpur APMC\n🌾 Onion कीमत: ₹2100/quintal\n📈 बदलाव: +1.7%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM,..."
+        "passed": true,
+        "response": "💰 Bangalore में Onion की बाजार स्थिति:\n\n🏪 मंडी: Bangalore Mandi\n🌾 Onion कीमत: ₹2615/quintal\n📈 बदलाव: +1.0%\n📍 राज्य: Karnataka\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी एप..."
       },
       {
         "location": "Bangalore",
@@ -237,11 +237,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Bangalore में Tomato की बाजार स्थिति:\n\n🏪 मंडी: APMC Bangalore\n🌾 Tomato कीमत: ₹2974/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, ..."
+        "passed": true,
+        "response": "💰 Bangalore में Tomato की बाजार स्थिति:\n\n🏪 मंडी: APMC Bangalore\n🌾 Tomato कीमत: ₹3004/quintal\n📈 बदलाव: -4.0%\n📍 राज्य: Karnataka\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी ए..."
       },
       {
         "location": "Chennai",
@@ -253,11 +253,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Chennai में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Koyambedu Mandi\n🌾 Wheat कीमत: ₹2375/quintal\n📈 बदलाव: -1.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI..."
+        "passed": true,
+        "response": "💰 Chennai में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Chennai Krishi Mandi\n🌾 Wheat कीमत: ₹2222/quintal\n📈 बदलाव: -2.0%\n📍 राज्य: Tamil Nadu\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकार..."
       },
       {
         "location": "Chennai",
@@ -269,11 +269,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Chennai में Rice की बाजार स्थिति:\n\n🏪 मंडी: APMC Chennai\n🌾 Rice कीमत: ₹3453/quintal\n📈 बदलाव: +1.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, Sta..."
+        "passed": true,
+        "response": "💰 Chennai में Rice की बाजार स्थिति:\n\n🏪 मंडी: Chennai Krishi Mandi\n🌾 Rice कीमत: ₹3392/quintal\n📈 बदलाव: +3.0%\n📍 राज्य: Tamil Nadu\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी ..."
       },
       {
         "location": "Chennai",
@@ -285,11 +285,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Chennai में Potato की बाजार स्थिति:\n\n🏪 मंडी: Koyambedu Mandi\n🌾 Potato कीमत: ₹1140/quintal\n📈 बदलाव: -0.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, F..."
+        "passed": true,
+        "response": "💰 Chennai में Potato की बाजार स्थिति:\n\n🏪 मंडी: Chennai Mandi\n🌾 Potato कीमत: ₹1190/quintal\n📈 बदलाव: -2.0%\n📍 राज्य: Tamil Nadu\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी एपी..."
       },
       {
         "location": "Chennai",
@@ -301,11 +301,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Chennai में Onion की बाजार स्थिति:\n\n🏪 मंडी: APMC Chennai\n🌾 Onion कीमत: ₹2413/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, S..."
+        "passed": true,
+        "response": "💰 Chennai में Onion की बाजार स्थिति:\n\n🏪 मंडी: Koyambedu Mandi\n🌾 Onion कीमत: ₹1900/quintal\n📈 बदलाव: -6.3%\n📍 राज्य: Tamil Nadu\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत:..."
       },
       {
         "location": "Chennai",
@@ -317,11 +317,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Chennai में Tomato की बाजार स्थिति:\n\n🏪 मंडी: APMC Chennai\n🌾 Tomato कीमत: ₹2937/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI,..."
+        "passed": true,
+        "response": "💰 Chennai में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Koyambedu Mandi\n🌾 Tomato कीमत: ₹2850/quintal\n📈 बदलाव: +1.1%\n📍 राज्य: Tamil Nadu\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रो..."
       },
       {
         "location": "Lucknow",
@@ -333,11 +333,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Lucknow में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Wheat कीमत: ₹2250/quintal\n📈 बदलाव: +1.5%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+        "passed": true,
+        "response": "💰 Lucknow में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Krishi Mandi\n🌾 Wheat कीमत: ₹2440/quintal\n📈 बदलाव: -4.0%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सर..."
       },
       {
         "location": "Lucknow",
@@ -349,11 +349,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Lucknow में Rice की बाजार स्थिति:\n\n🏪 मंडी: APMC Lucknow\n🌾 Rice कीमत: ₹3947/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, Sta..."
+        "passed": true,
+        "response": "💰 Lucknow में Rice की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Rice कीमत: ₹3835/quintal\n📈 बदलाव: +1.0%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी एपीआ..."
       },
       {
         "location": "Lucknow",
@@ -365,11 +365,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Lucknow में Potato की बाजार स्थिति:\n\n🏪 मंडी: APMC Lucknow\n🌾 Potato कीमत: ₹1437/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI,..."
+        "passed": true,
+        "response": "💰 Lucknow में Potato की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Potato कीमत: ₹1080/quintal\n📈 बदलाव: -3.4%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्र..."
       },
       {
         "location": "Lucknow",
@@ -381,11 +381,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Lucknow में Onion की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Onion कीमत: ₹1800/quintal\n📈 बदलाव: +4.8%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+        "passed": true,
+        "response": "💰 Lucknow में Onion की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Onion कीमत: ₹1800/quintal\n📈 बदलाव: +1.3%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत..."
       },
       {
         "location": "Lucknow",
@@ -397,11 +397,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Lucknow में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Tomato कीमत: ₹2700/quintal\n📈 बदलाव: -8.2%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI..."
+        "passed": true,
+        "response": "💰 Lucknow में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Lucknow Mandi\n🌾 Tomato कीमत: ₹3405/quintal\n📈 बदलाव: -2.0%\n📍 राज्य: Uttar Pradesh\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी ..."
       },
       {
         "location": "Hyderabad",
@@ -413,11 +413,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Hyderabad में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Hyderabad Krishi Mandi\n🌾 Wheat कीमत: ₹2209/quintal\n📈 बदलाव: -2.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e..."
+        "passed": true,
+        "response": "💰 Hyderabad में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Secunderabad Mandi\n🌾 Wheat कीमत: ₹2500/quintal\n📈 बदलाव: -0.2%\n📍 राज्य: Telangana\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्..."
       },
       {
         "location": "Hyderabad",
@@ -429,11 +429,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Hyderabad में Rice की बाजार स्थिति:\n\n🏪 मंडी: Secunderabad Mandi\n🌾 Rice कीमत: ₹3200/quintal\n📈 बदलाव: +0.2%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, ..."
+        "passed": true,
+        "response": "💰 Hyderabad में Rice की बाजार स्थिति:\n\n🏪 मंडी: Hyderabad Mandi\n🌾 Rice कीमत: ₹3292/quintal\n📈 बदलाव: +1.0%\n📍 राज्य: Telangana\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी एपीआ..."
       },
       {
         "location": "Hyderabad",
@@ -445,11 +445,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Hyderabad में Potato की बाजार स्थिति:\n\n🏪 मंडी: APMC Hyderabad\n🌾 Potato कीमत: ₹1089/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, ..."
+        "passed": true,
+        "response": "💰 Hyderabad में Potato की बाजार स्थिति:\n\n🏪 मंडी: Secunderabad Mandi\n🌾 Potato कीमत: ₹1200/quintal\n📈 बदलाव: -4.6%\n📍 राज्य: Telangana\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा ..."
       },
       {
         "location": "Hyderabad",
@@ -461,11 +461,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Hyderabad में Onion की बाजार स्थिति:\n\n🏪 मंडी: Secunderabad Mandi\n🌾 Onion कीमत: ₹2000/quintal\n📈 बदलाव: -4.8%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM..."
+        "passed": true,
+        "response": "💰 Hyderabad में Onion की बाजार स्थिति:\n\n🏪 मंडी: Hyderabad Krishi Mandi\n🌾 Onion कीमत: ₹2453/quintal\n📈 बदलाव: +3.0%\n📍 राज्य: Telangana\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सर..."
       },
       {
         "location": "Hyderabad",
@@ -477,11 +477,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Hyderabad में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Secunderabad Mandi\n🌾 Tomato कीमत: ₹3000/quintal\n📈 बदलाव: -6.8%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-N..."
+        "passed": true,
+        "response": "💰 Hyderabad में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Hyderabad Mandi\n🌾 Tomato कीमत: ₹2789/quintal\n📈 बदलाव: +1.0%\n📍 राज्य: Telangana\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी ..."
       },
       {
         "location": "Kolkata",
@@ -493,11 +493,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Kolkata में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Wheat कीमत: ₹2375/quintal\n📈 बदलाव: -1.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+        "passed": true,
+        "response": "💰 Kolkata में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Wheat कीमत: ₹2375/quintal\n📈 बदलाव: -0.9%\n📍 राज्य: West Bengal\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत: ..."
       },
       {
         "location": "Kolkata",
@@ -509,11 +509,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Kolkata में Rice की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Rice कीमत: ₹3040/quintal\n📈 बदलाव: +0.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, St..."
+        "passed": true,
+        "response": "💰 Kolkata में Rice की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Rice कीमत: ₹3040/quintal\n📈 बदलाव: +0.8%\n📍 राज्य: West Bengal\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत: सर..."
       },
       {
         "location": "Kolkata",
@@ -525,11 +525,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Kolkata में Potato की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Potato कीमत: ₹1140/quintal\n📈 बदलाव: +3.1%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI..."
+        "passed": true,
+        "response": "💰 Kolkata में Potato की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Potato कीमत: ₹1140/quintal\n📈 बदलाव: -3.6%\n📍 राज्य: West Bengal\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत..."
       },
       {
         "location": "Kolkata",
@@ -541,11 +541,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Kolkata में Onion की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Onion कीमत: ₹1900/quintal\n📈 बदलाव: -4.9%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, ..."
+        "passed": true,
+        "response": "💰 Kolkata में Onion की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Onion कीमत: ₹1900/quintal\n📈 बदलाव: -2.4%\n📍 राज्य: West Bengal\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत: ..."
       },
       {
         "location": "Kolkata",
@@ -557,11 +557,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Kolkata में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Sealdah Mandi\n🌾 Tomato कीमत: ₹2850/quintal\n📈 बदलाव: -5.1%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI..."
+        "passed": true,
+        "response": "💰 Kolkata में Tomato की बाजार स्थिति:\n\n🏪 मंडी: Kolkata Mandi\n🌾 Tomato कीमत: ₹3419/quintal\n📈 बदलाव: -2.0%\n📍 राज्य: West Bengal\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी एप..."
       },
       {
         "location": "Pune",
@@ -573,11 +573,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Pune में Wheat की बाजार स्थिति:\n\n🏪 मंडी: APMC Pune\n🌾 Wheat कीमत: ₹2192/quintal\n📈 बदलाव: +1.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State A..."
+        "passed": true,
+        "response": "💰 Pune में Wheat की बाजार स्थिति:\n\n🏪 मंडी: Pune APMC\n🌾 Wheat कीमत: ₹2625/quintal\n📈 बदलाव: -0.2%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत: सरकारी ..."
       },
       {
         "location": "Pune",
@@ -589,11 +589,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Pune में Rice की बाजार स्थिति:\n\n🏪 मंडी: Pune APMC\n🌾 Rice कीमत: ₹3360/quintal\n📈 बदलाव: +0.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State APM..."
+        "passed": true,
+        "response": "💰 Pune में Rice की बाजार स्थिति:\n\n🏪 मंडी: Pune Mandi\n🌾 Rice कीमत: ₹3381/quintal\n📈 बदलाव: -4.0%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmar..."
       },
       {
         "location": "Pune",
@@ -605,11 +605,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Pune में Potato की बाजार स्थिति:\n\n🏪 मंडी: Pune APMC\n🌾 Potato कीमत: ₹1260/quintal\n📈 बदलाव: -2.3%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State..."
+        "passed": true,
+        "response": "💰 Pune में Potato की बाजार स्थिति:\n\n🏪 मंडी: APMC Pune\n🌾 Potato कीमत: ₹1234/quintal\n📈 बदलाव: +1.0%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Ag..."
       },
       {
         "location": "Pune",
@@ -621,11 +621,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Pune में Onion की बाजार स्थिति:\n\n🏪 मंडी: Pune Krishi Mandi\n🌾 Onion कीमत: ₹2406/quintal\n📈 बदलाव: +1.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI,..."
+        "passed": true,
+        "response": "💰 Pune में Onion की बाजार स्थिति:\n\n🏪 मंडी: Pune APMC\n🌾 Onion कीमत: ₹2100/quintal\n📈 बदलाव: +4.1%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत: सरकारी ..."
       },
       {
         "location": "Pune",
@@ -637,11 +637,11 @@
           "has_mandi": true,
           "has_government_source": true,
           "has_change": true,
-          "has_state": false,
+          "has_state": true,
           "response_length": true
         },
-        "passed": false,
-        "response": "💰 Pune में Tomato की बाजार स्थिति:\n\n🏪 मंडी: APMC Pune\n🌾 Tomato कीमत: ₹2818/quintal\n📈 बदलाव: +3.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-NAM, FCI, State..."
+        "passed": true,
+        "response": "💰 Pune में Tomato की बाजार स्थिति:\n\n🏪 मंडी: APMC Pune\n🌾 Tomato कीमत: ₹2868/quintal\n📈 बदलाव: +1.0%\n📍 राज्य: Maharashtra\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Ag..."
       }
     ]
   },
@@ -957,7 +957,7 @@
           "has_confidence": true
         },
         "passed": false,
-        "response": "💰 Bangalore में Rice की बाजार स्थिति:\n\n🏪 मंडी: Bangalore Krishi Mandi\n🌾 Rice कीमत: ₹3605/quintal\n📈 बदलाव: -4.0%\n📊 सरकारी डेटा से प्राप्त जानकारी (Agmarknet)\n\n📊 डेटा स्रोत: सरकारी एपीआई (Agmarknet, e-N..."
+        "response": "💰 Bangalore में Rice की बाजार स्थिति:\n\n🏪 मंडी: Yeshwanthpur APMC\n🌾 Rice कीमत: ₹3360/quintal\n📈 बदलाव: +1.4%\n📍 राज्य: Karnataka\n📊 सरकारी डेटा से प्राप्त जानकारी (Government API (Fallback))\n\n📊 डेटा स्रोत..."
       },
       {
         "query": "agricultural advice for chennai farmers",
@@ -1183,8 +1183,8 @@
     ]
   },
   "api_integration": {
-    "passed": 2,
-    "failed": 1,
+    "passed": 0,
+    "failed": 3,
     "details": []
   }
 }

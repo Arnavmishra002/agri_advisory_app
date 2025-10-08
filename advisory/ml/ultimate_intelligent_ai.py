@@ -159,7 +159,25 @@ class UltimateIntelligentAI:
                     "Hello bro! Main yahan hun aapki agricultural problems ke liye. Batao kya chahiye?",
                     "Hey yaar! Main aapka personal agricultural advisor hun. Aaj kya help chahiye?",
                     "Hi dost! Main aapka AI assistant hun. Main aapki har agricultural need handle kar sakta hun.",
-                    "Hello bhai! Main yahan hun aapki madad ke liye. Batao kya problem hai?"
+                    "Hello bhai! Main yahan hun aapki madad ke liye. Batao kya problem hai?",
+                    "Vanakkam anna! Naan Krishimitra AI, ungalukku agricultural advice kodukka varugiren.",
+                    "Namaskaram! Nenu Krishimitra AI, meeru agricultural problems ki solution isthaanu.",
+                    "Namaskar dada! Ami Krishimitra AI, apnar agricultural problem gulo solve korte pari."
+                ],
+                'tamil': [
+                    "வணக்கம்! நான் கிருஷிமித்ரா AI, உங்களுக்கு விவசாய ஆலோசனை தருகிறேன்.",
+                    "வணக்கம் அண்ணா! நான் உங்கள் விவசாய பிரச்சினைகளை தீர்க்க உதவுகிறேன்.",
+                    "வணக்கம் அக்கா! நான் உங்களுக்கு விவசாய ஆலோசனை தருகிறேன்."
+                ],
+                'telugu': [
+                    "నమస్కారం! నేను కృషిమిత్రా AI, మీకు వ్యవసాయ సలహాలు ఇస్తాను.",
+                    "నమస్కారం అన్నా! నేను మీ వ్యవసాయ సమస్యలను పరిష్కరించడానికి సహాయపడతాను.",
+                    "నమస్కారం అక్క! నేను మీకు వ్యవసాయ సలహాలు ఇస్తాను."
+                ],
+                'bengali': [
+                    "নমস্কার! আমি কৃষিমিত্রা AI, আপনাকে কৃষি পরামর্শ দিই।",
+                    "নমস্কার দাদা! আমি আপনার কৃষি সমস্যা সমাধানে সাহায্য করি।",
+                    "নমস্কার দিদি! আমি আপনাকে কৃষি পরামর্শ দিই।"
                 ]
             }
         }
@@ -168,25 +186,34 @@ class UltimateIntelligentAI:
         """Ultimate language detection with enhanced Hinglish support"""
         query_lower = query.lower()
         
-        # Enhanced Hinglish patterns
+        # Enhanced multilingual patterns - Hindi, English, Hinglish, Tamil, Telugu, Bengali, etc.
         hinglish_patterns = [
+            r'\b(hi|hello|hey)\s+(bhai|bro|yaar|dost|anna|akka|dada|didi)\b',
+            r'\b(bhai|bro|yaar|dost|anna|akka|dada|didi)\s+(hi|hello|hey)\b',
+            r'\b(hi|hello|hey)\s+(bhai|bro)\b',
+            r'\b(bhai|bro)\s+(hi|hello|hey)\b',
+            r'\b(hi|hello|hey)\s+(bhai|bro|yaar)\b',
+            r'\b(bhai|bro|yaar)\s+(hi|hello|hey)\b',
             r'\b(hi|hello|hey)\s+(bhai|bro|yaar|dost)\b',
             r'\b(bhai|bro|yaar|dost)\s+(hi|hello|hey)\b',
-            r'\b(hi|hello)\s+(bhai|bro)\b',
-            r'\b(bhai|bro)\s+(hi|hello)\b',
-            r'\b(hi|hello)\s+(bhai|bro|yaar)\b',
-            r'\b(bhai|bro|yaar)\s+(hi|hello)\b',
-            r'\b(hi|hello|hey)\s+(bhai|bro|yaar|dost)\b',
-            r'\b(bhai|bro|yaar|dost)\s+(hi|hello|hey)\b',
-            r'\b(hi|hello|hey)\s+(bhai|bro|yaar|dost)\s+(kya|what|how)\b',
-            r'\b(bhai|bro|yaar|dost)\s+(kya|what|how)\s+(hi|hello|hey)\b',
-            r'\b(hi|hello|hey)\s+(bhai|bro|yaar|dost)\s+(help|madad)\b',
-            r'\b(bhai|bro|yaar|dost)\s+(help|madad)\s+(hi|hello|hey)\b',
+            r'\b(hi|hello|hey)\s+(bhai|bro|yaar|dost)\s+(kya|what|how|enna|entha)\b',
+            r'\b(bhai|bro|yaar|dost)\s+(kya|what|how|enna|entha)\s+(hi|hello|hey)\b',
+            r'\b(hi|hello|hey)\s+(bhai|bro|yaar|dost)\s+(help|madad|sahayam|sahayata)\b',
+            r'\b(bhai|bro|yaar|dost)\s+(help|madad|sahayam|sahayata)\s+(hi|hello|hey)\b',
             # Mixed language patterns
             r'\b(hello|hi|hey)\s*,\s*[अ-ह]',  # English greeting + Hindi
             r'[अ-ह].*?\b(hello|hi|hey)\b',  # Hindi + English greeting
-            r'\b(hello|hi|hey)\s*,\s*\w+\s+(kya|kaise|kaun)\b',  # English + Hinglish question
-            r'\b(kya|kaise|kaun)\s+\w+\s+(hello|hi|hey)\b'  # Hinglish question + English greeting
+            r'\b(hello|hi|hey)\s*,\s*\w+\s+(kya|kaise|kaun|enna|entha|ki|kemon)\b',  # English + multilingual question
+            r'\b(kya|kaise|kaun|enna|entha|ki|kemon)\s+\w+\s+(hello|hi|hey)\b',  # multilingual question + English greeting
+            # Tamil patterns
+            r'\b(vanakkam|namaste|hello)\s+(anna|akka|thambi|thangai)\b',
+            r'\b(anna|akka|thambi|thangai)\s+(vanakkam|namaste|hello)\b',
+            # Telugu patterns  
+            r'\b(namaskaram|hello)\s+(anna|akka|bava|chelli)\b',
+            r'\b(anna|akka|bava|chelli)\s+(namaskaram|hello)\b',
+            # Bengali patterns
+            r'\b(namaskar|hello)\s+(dada|didi|bhai|bon)\b',
+            r'\b(dada|didi|bhai|bon)\s+(namaskar|hello)\b'
         ]
         
         # Check for Hinglish patterns first
@@ -202,11 +229,51 @@ class UltimateIntelligentAI:
             r'\b(है|हैं|था|थे|थी|थीं|होगा|होगी|होंगे|होंगी|हो|होते|होती|होता)\b'
         ]
         
-        # Check for Hindi patterns
+        # Tamil patterns
+        tamil_patterns = [
+            r'[\u0B80-\u0BFF]',  # Tamil Unicode range
+            r'\b(வணக்கம்|வணங்குகிறேன்|எப்படி|என்ன|எங்கே|எப்போது|ஏன்|எப்படி)\b',
+            r'\b(நான்|நீ|நீங்கள்|நாங்கள்|அவர்கள்|இது|அது|இவை|அவை)\b',
+            r'\b(ஆகும்|ஆகிறது|இருந்தது|இருக்கும்|இருக்கிறது)\b'
+        ]
+        
+        # Telugu patterns
+        telugu_patterns = [
+            r'[\u0C00-\u0C7F]',  # Telugu Unicode range
+            r'\b(నమస్కారం|ఎలా|ఏమి|ఎక్కడ|ఎప్పుడు|ఎందుకు|ఎలా)\b',
+            r'\b(నేను|నువ్వు|మీరు|మేము|వారు|ఇది|అది|ఇవి|అవి)\b',
+            r'\b(అవుతుంది|అవుతోంది|ఉంది|ఉంటుంది|ఉంటోంది)\b'
+        ]
+        
+        # Bengali patterns
+        bengali_patterns = [
+            r'[\u0980-\u09FF]',  # Bengali Unicode range
+            r'\b(নমস্কার|কেমন|কী|কোথায়|কখন|কেন|কেমন)\b',
+            r'\b(আমি|তুমি|আপনি|আমরা|তারা|এটা|সেটা|এগুলো|সেগুলো)\b',
+            r'\b(হয়|হচ্ছে|ছিল|থাকবে|থাকছে)\b'
+        ]
+        
+        # Check for language patterns and calculate scores
         hindi_score = 0
+        tamil_score = 0
+        telugu_score = 0
+        bengali_score = 0
+        
         for pattern in hindi_patterns:
             if re.search(pattern, query_lower):
                 hindi_score += 1
+        
+        for pattern in tamil_patterns:
+            if re.search(pattern, query_lower):
+                tamil_score += 1
+        
+        for pattern in telugu_patterns:
+            if re.search(pattern, query_lower):
+                telugu_score += 1
+        
+        for pattern in bengali_patterns:
+            if re.search(pattern, query_lower):
+                bengali_score += 1
         
         # English patterns
         english_patterns = [
@@ -221,13 +288,20 @@ class UltimateIntelligentAI:
             if re.search(pattern, query_lower):
                 english_score += 1
         
-        # Determine language based on scores
-        if hindi_score > english_score:
-            return 'hi'
-        elif english_score > hindi_score:
-            return 'en'
+        # Determine language based on highest score
+        scores = {
+            'hi': hindi_score,
+            'tamil': tamil_score,
+            'telugu': telugu_score,
+            'bengali': bengali_score,
+            'en': english_score
+        }
+        
+        max_score = max(scores.values())
+        if max_score > 0:
+            return max(scores, key=scores.get)
         else:
-            return 'hi'  # Default to Hindi
+            return 'en'  # Default to English
     
     def _extract_entities_intelligently(self, query: str, language: str) -> Dict[str, Any]:
         """Extract entities with SUPER INTELLIGENCE - understands ANY query"""
@@ -1229,6 +1303,12 @@ class UltimateIntelligentAI:
                 response += f"• हवा का प्रवाह बढ़ाएं\n"
                 response += f"• जल निकासी सुनिश्चित करें\n\n"
             
+            # Always add general agricultural advice
+            response += f"🌾 कृषि सुझाव:\n"
+            response += f"• मौसम अनुकूल फसलें लगाएं\n"
+            response += f"• सिंचाई का समय निर्धारित करें\n"
+            response += f"• कीट नियंत्रण के उपाय करें\n\n"
+            
             response += f"📊 डेटा स्रोत: भारतीय मौसम विभाग (IMD)"
             
         else:
@@ -1255,6 +1335,12 @@ class UltimateIntelligentAI:
                 response += f"• Prevent fungal diseases\n"
                 response += f"• Increase air circulation\n"
                 response += f"• Ensure proper drainage\n\n"
+            
+            # Always add general agricultural advice
+            response += f"🌾 Agricultural Advice:\n"
+            response += f"• Plant weather-suitable crops\n"
+            response += f"• Schedule irrigation timing\n"
+            response += f"• Take pest control measures\n\n"
             
             response += f"📊 Data Source: India Meteorological Department (IMD)"
         
