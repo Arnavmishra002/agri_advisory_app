@@ -3068,16 +3068,15 @@ class WeatherViewSet(viewsets.ViewSet):
             real_time_weather_data = self.real_time_api.get_real_time_weather_data(latitude, longitude)
             
             # Fallback to enhanced API if real-time fails
-            if not real_time_weather_data or not real_time_weather_data.get('current_weather'):
-                weather_api = EnhancedGovernmentAPI()
-                weather_data = weather_api.get_real_weather_data(latitude, longitude, language)
-                data_source = 'Enhanced Government API (Fallback)'
+            if not real_time_weather_data or not real_time_weather_data.get('temperature'):
+                weather_data = self.weather_api.get_real_weather_data(latitude, longitude, language)
+                data_source = 'Enhanced Government API (Dynamic Location-based)'
             else:
-                weather_data = real_time_weather_data['current_weather']
+                weather_data = real_time_weather_data
                 data_source = real_time_weather_data.get('source', 'Real-Time Government API')
         
             if weather_data:
-                # Ensure proper response format
+                # Enhanced response format with dynamic location data
                 if isinstance(weather_data, dict) and 'current' in weather_data:
                     # Convert nested structure to flat structure for API compatibility
                     current = weather_data['current']
@@ -3093,11 +3092,29 @@ class WeatherViewSet(viewsets.ViewSet):
                         'feels_like': current.get('feelslike_c', 0),
                         'location': weather_data.get('location', {}),
                         'data_source': data_source,
-                        'timestamp': time.time()
+                        'timestamp': time.time(),
+                        'is_dynamic': weather_data.get('is_dynamic', False),
+                        'latitude': latitude,
+                        'longitude': longitude
                     }
                     return Response(formatted_response)
                 else:
-                    return Response(weather_data)
+                    # Direct response for enhanced API format
+                    enhanced_response = {
+                        'temperature': weather_data.get('temperature', 0),
+                        'humidity': weather_data.get('humidity', 0),
+                        'weather_condition': weather_data.get('condition', 'Clear'),
+                        'wind_speed': weather_data.get('wind_speed', 0),
+                        'rainfall': weather_data.get('rainfall', 0),
+                        'location': weather_data.get('location', 'Unknown'),
+                        'data_source': data_source,
+                        'timestamp': weather_data.get('timestamp', time.time()),
+                        'is_dynamic': weather_data.get('is_dynamic', True),
+                        'latitude': latitude,
+                        'longitude': longitude,
+                        'is_cached_nearby': weather_data.get('is_cached_nearby', False)
+                    }
+                    return Response(enhanced_response)
             else:
                 return Response({"error": "Could not retrieve weather data"}, status=500)
                 

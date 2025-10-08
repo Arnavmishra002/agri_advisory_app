@@ -52,15 +52,29 @@ class EnhancedGovernmentAPI:
             'soil_health': 'https://soilhealth.dac.gov.in/api'
         }
         
-        # Enhanced cache for better performance
+        # Enhanced cache for better performance - reduced cache duration for dynamic updates
         self.cache = {}
-        self.cache_duration = 60  # 1 minute for faster updates
+        self.cache_duration = 10  # 10 seconds for more dynamic updates
     
     def get_real_weather_data(self, latitude: float, longitude: float, language: str = 'en') -> Dict[str, Any]:
         """
         Get real-time weather data from IMD (India Meteorological Department)
+        Enhanced with smart location caching to reduce update requests
         """
+        # Smart caching - only update if location changed significantly or cache expired
         cache_key = f"weather_{latitude}_{longitude}_{language}"
+        
+        # Check if we have recent data for nearby location (within 0.1 degrees)
+        nearby_cache_key = self._find_nearby_weather_cache(latitude, longitude, language)
+        if nearby_cache_key:
+            cached_time, data = self.cache[nearby_cache_key]
+            if time.time() - cached_time < self.cache_duration:
+                # Update coordinates in response to match current location
+                data['latitude'] = latitude
+                data['longitude'] = longitude
+                data['location'] = self._get_location_name(latitude, longitude)
+                data['is_cached_nearby'] = True
+                return data
         
         # Check cache first
         if cache_key in self.cache:
@@ -524,6 +538,28 @@ class EnhancedGovernmentAPI:
             logger.error(f"Error fetching government schemes: {e}")
             return self._get_fallback_schemes_data()
     
+    def _find_nearby_weather_cache(self, latitude: float, longitude: float, language: str) -> str:
+        """
+        Find cached weather data for nearby location (within 0.1 degrees)
+        This reduces unnecessary API calls for small location changes
+        """
+        for cache_key in self.cache.keys():
+            if cache_key.startswith(f"weather_") and cache_key.endswith(f"_{language}"):
+                try:
+                    # Extract coordinates from cache key
+                    parts = cache_key.split('_')
+                    if len(parts) >= 3:
+                        cached_lat = float(parts[1])
+                        cached_lon = float(parts[2])
+                        
+                        # Check if within 0.1 degrees (about 11km)
+                        if (abs(latitude - cached_lat) <= 0.1 and 
+                            abs(longitude - cached_lon) <= 0.1):
+                            return cache_key
+                except (ValueError, IndexError):
+                    continue
+        return None
+    
     # Helper methods
     def _generate_dynamic_mandis(self, location_name: str) -> Dict[str, List[str]]:
         """Generate mandi data for ANY location dynamically"""
@@ -728,9 +764,9 @@ class EnhancedGovernmentAPI:
         import random
         import time
         
-        # Create location-specific seed for consistent data
+        # Create location-specific seed for consistent data - MORE DYNAMIC
         location_seed = int((latitude * 1000 + longitude * 1000) % 1000)
-        time_variation = int(time.time() / 3600) % 24  # Changes every hour
+        time_variation = int(time.time() / 300) % 12  # Changes every 5 minutes for more dynamic updates
         unique_seed = (location_seed + time_variation) % 1000
         
         # Get location name based on coordinates
