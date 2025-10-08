@@ -3397,15 +3397,15 @@ class MarketPricesViewSet(viewsets.ViewSet):
             else:
                 return Response({"error": "Could not retrieve market data"}, status=500)
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['post'])
     def search_mandis(self, request):
         """
         Search for mandis manually - users can search different mandis
         """
-        query = request.query_params.get('query', '')
-        state = request.query_params.get('state', None)
-        district = request.query_params.get('district', None)
-        commodity = request.query_params.get('commodity', None)
+        query = request.data.get('query', '')
+        state = request.data.get('state', None)
+        district = request.data.get('district', None)
+        commodity = request.data.get('commodity', None)
         
         if not query:
             return Response({"error": "Search query is required"}, status=400)
@@ -3414,26 +3414,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
             mandis = self.government_api.search_mandis(query, state, district, commodity)
             
             if mandis:
-                return Response({
-                    'mandis': mandis,
-                    'query': query,
-                    'total_results': len(mandis),
-                    'filters': {
-                        'state': state,
-                        'district': district,
-                        'commodity': commodity
-                    },
-                    'data_source': 'Enhanced Government API (Mandi Search)',
-                    'timestamp': time.time()
-                })
+                return Response(mandis)  # Return mandis directly for frontend compatibility
             else:
-                return Response({
-                    'mandis': [],
-                    'query': query,
-                    'total_results': 0,
-                    'message': 'No mandis found for the given query',
-                    'timestamp': time.time()
-                })
+                return Response([])  # Return empty array for frontend compatibility
                 
         except Exception as e:
             print(f"MarketPricesViewSet: Error searching mandis: {e}")
