@@ -1110,6 +1110,16 @@
                     <p class="mt-3">AI आपके क्षेत्र के लिए सर्वोत्तम फसलों का विश्लेषण कर रहा है...</p>
                     </div>
                 
+                <!-- Error State -->
+                <div id="crop-error" class="text-center" style="display: none;">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h6>त्रुटि</h6>
+                        <p>फसल सुझाव लोड करने में समस्या हुई। कृपया पुनः प्रयास करें।</p>
+                        <button class="btn btn-primary" onclick="loadCropData()">पुनः प्रयास करें</button>
+                    </div>
+                </div>
+                
                 <!-- Crop Recommendations -->
                 <div id="crop-recommendations" style="display: none;">
                     <div class="row">
@@ -2510,20 +2520,21 @@
             document.getElementById('crop-recommendations').style.display = 'none';
             document.getElementById('crop-error').style.display = 'none';
             
-            // Get crop recommendations from ML API
-            fetch('/api/advisories/ml_crop_recommendation/', {
+            // Get crop recommendations from AI Chatbot API
+            fetch('/api/chatbot/chat/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: JSON.stringify({
-                    soil_type: 'loamy', // Default soil type
+                    query: `Which crop should I grow in ${currentLocation.name}?`,
+                    language: currentLanguage,
                     latitude: currentLocation.lat,
                     longitude: currentLocation.lon,
-                    season: getCurrentSeason(),
                     user_id: 'frontend_user',
-                    forecast_days: 7
+                    session_id: 'crop_recommendation_session',
+                    location_name: currentLocation.name
                 })
             })
             .then(response => response.json())
@@ -2533,18 +2544,15 @@
                 // Hide loading state
                 document.getElementById('crop-loading').style.display = 'none';
                 
-                if (data && data.recommendations) {
+                if (data && data.response) {
                     // Show recommendations
                     document.getElementById('crop-recommendations').style.display = 'block';
                     
                     // Update region info
                     document.getElementById('current-region').textContent = currentLocation.name || 'Unknown Region';
                     
-                    // Update the top 3 crop recommendations
-                    updateCropRecommendations(data.recommendations);
-                    
-                    // Update analysis factors
-                    updateAnalysisFactors(data);
+                    // Parse the structured crop response from AI
+                    parseStructuredCropResponse(data.response);
                     
                     // Load historical and trend data
                     loadCropHistoryData();
@@ -2700,6 +2708,137 @@
         
         // Make it available globally
         window.testDataLoading = testDataLoading;
+        
+        function parseStructuredCropResponse(responseText) {
+            // Parse the structured crop response from AI
+            console.log('Parsing crop response:', responseText);
+            
+            // Extract crop information from the structured response
+            const lines = responseText.split('\n');
+            const crops = [];
+            let currentCrop = null;
+            
+            for (let line of lines) {
+                line = line.trim();
+                
+                // Match crop entries like "#1", "#2", etc.
+                if (line.match(/^#\d+$/)) {
+                    if (currentCrop) {
+                        crops.push(currentCrop);
+                    }
+                    currentCrop = {
+                        index: line.substring(1),
+                        crop: '',
+                        score: 0,
+                        weather_suitability: 0,
+                        soil_suitability: 0,
+                        current_price: '',
+                        future_price: '',
+                        profitability: 0
+                    };
+                }
+                // Match crop name with emoji
+                else if (line.includes('🍚') || line.includes('🌽') || line.includes('🌿')) {
+                    if (currentCrop) {
+                        const cropMatch = line.match(/🍚|🌽|🌿|🌾|🥜|🧅|🍅|🥔|🎋|🟡|🌶️|🟨/);
+                        if (cropMatch) {
+                            const cropName = line.split('(')[1]?.split(')')[0] || '';
+                            currentCrop.crop = cropName;
+                        }
+                    }
+                }
+                // Match score
+                else if (line.includes('स्कोर:') || line.includes('Score:')) {
+                    if (currentCrop) {
+                        const scoreMatch = line.match(/(\d+)\/100/);
+                        if (scoreMatch) {
+                            currentCrop.score = parseInt(scoreMatch[1]);
+                        }
+                    }
+                }
+                // Match weather suitability
+                else if (line.includes('मौसम अनुकूलता') || line.includes('Weather Suitability')) {
+                    if (currentCrop) {
+                        const nextLine = lines[lines.indexOf(line) + 1];
+                        const weatherMatch = nextLine.match(/(\d+)%/);
+                        if (weatherMatch) {
+                            currentCrop.weather_suitability = parseInt(weatherMatch[1]);
+                        }
+                    }
+                }
+                // Match soil suitability
+                else if (line.includes('मिट्टी अनुकूलता') || line.includes('Soil Suitability')) {
+                    if (currentCrop) {
+                        const nextLine = lines[lines.indexOf(line) + 1];
+                        const soilMatch = nextLine.match(/(\d+)%/);
+                        if (soilMatch) {
+                            currentCrop.soil_suitability = parseInt(soilMatch[1]);
+                        }
+                    }
+                }
+                // Match current price
+                else if (line.includes('वर्तमान कीमत') || line.includes('Current Price')) {
+                    if (currentCrop) {
+                        const nextLine = lines[lines.indexOf(line) + 1];
+                        if (nextLine && !nextLine.includes('भविष्य') && !nextLine.includes('Future')) {
+                            currentCrop.current_price = nextLine;
+                        }
+                    }
+                }
+                // Match future price
+                else if (line.includes('भविष्य कीमत') || line.includes('Future Price')) {
+                    if (currentCrop) {
+                        const nextLine = lines[lines.indexOf(line) + 1];
+                        if (nextLine) {
+                            currentCrop.future_price = nextLine;
+                        }
+                    }
+                }
+                // Match profitability
+                else if (line.includes('लाभप्रदता') || line.includes('Profitability')) {
+                    if (currentCrop) {
+                        const nextLine = lines[lines.indexOf(line) + 1];
+                        const profitMatch = nextLine.match(/(\d+)%/);
+                        if (profitMatch) {
+                            currentCrop.profitability = parseInt(profitMatch[1]);
+                        }
+                    }
+                }
+            }
+            
+            // Add the last crop
+            if (currentCrop) {
+                crops.push(currentCrop);
+            }
+            
+            console.log('Parsed crops:', crops);
+            
+            // Update the UI with parsed crop data
+            updateCropRecommendationsFromParsed(crops);
+        }
+        
+        function updateCropRecommendationsFromParsed(crops) {
+            // Update top 3 crop recommendations with parsed data
+            for (let i = 0; i < Math.min(3, crops.length); i++) {
+                const crop = crops[i];
+                const cropIndex = i + 1;
+                
+                // Update crop name
+                document.getElementById(`crop${cropIndex}-name`).textContent = `${getCropEmoji(crop.crop)} ${getCropHindi(crop.crop)} (${crop.crop})`;
+                
+                // Update crop score
+                document.getElementById(`crop${cropIndex}-score`).textContent = `स्कोर: ${crop.score}/100`;
+                
+                // Update crop details
+                document.getElementById(`crop${cropIndex}-weather`).textContent = `${crop.weather_suitability}%`;
+                document.getElementById(`crop${cropIndex}-soil`).textContent = `${crop.soil_suitability}%`;
+                document.getElementById(`crop${cropIndex}-profit`).textContent = `${crop.profitability}%`;
+                
+                // Update prices
+                document.getElementById(`crop${cropIndex}-current-price`).textContent = crop.current_price || '₹2,500/quintal';
+                document.getElementById(`crop${cropIndex}-future-price`).textContent = crop.future_price || '₹2,700/quintal';
+            }
+        }
         
         function updateCropRecommendations(recommendations) {
             // Update top 3 crop recommendations
