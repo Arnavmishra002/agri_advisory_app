@@ -1,96 +1,278 @@
 {
   "market_price": {
-    "count": 3,
+    "count": 17,
     "common_words": {
-      "what": 3,
-      "price": 3,
-      "wheat": 3,
-      "area?": 1
+      "what": 15,
+      "price": 6,
+      "wheat": 4,
+      "area?": 1,
+      "todays": 8,
+      "market": 8,
+      "prices": 8,
+      "which": 2,
+      "crop": 2,
+      "selling": 2,
+      "high": 2,
+      "will": 3,
+      "cost": 3
     },
     "complexity_distribution": {
-      "medium": 3
+      "medium": 6,
+      "simple": 11
     },
     "location_frequency": {
-      "location_specific": 3
+      "location_specific": 17
     },
     "language_frequency": {
-      "en": 2,
+      "en": 16,
       "hi": 1
     }
   },
   "crop_recommendation": {
-    "count": 3,
+    "count": 58,
     "common_words": {
-      "grow": 2,
+      "grow": 20,
       "rice?": 1,
-      "what": 1,
-      "best": 1,
-      "crops": 1,
+      "what": 12,
+      "best": 4,
+      "crops": 21,
       "black": 1,
       "soil?": 1,
-      "rice": 1
+      "rice": 1,
+      "which": 11,
+      "crop": 15,
+      "should": 3,
+      "area": 3,
+      "most": 1,
+      "profitable": 1,
+      "soil": 3,
+      "type": 3,
+      "vegetables": 3,
+      "summer": 3,
+      "needs": 2,
+      "less": 2,
+      "water": 2,
+      "insurance": 3,
+      "when": 2,
+      "harvest": 2,
+      "store": 5,
+      "kharif": 3,
+      "season": 5,
+      "rabi": 2,
+      "winter": 2,
+      "expensive": 3,
+      "wheat": 4,
+      "cotton": 2,
+      "sugarcane": 3,
+      "turning": 4,
+      "yellow": 4,
+      "fruits": 5,
+      "growing": 5,
+      "drying": 2
     },
     "complexity_distribution": {
-      "simple": 2,
-      "medium": 1
+      "simple": 44,
+      "medium": 14
     },
     "location_frequency": {
-      "location_specific": 3
+      "location_specific": 58
     },
     "language_frequency": {
-      "en": 2,
+      "en": 57,
       "hi": 1
     }
   },
   "general": {
-    "count": 133,
+    "count": 760,
     "common_words": {
       "tell": 1,
       "about": 1,
       "wheat": 1,
-      "farming": 1,
+      "farming": 19,
       "techniques": 1,
       "test": 2,
       "query": 2,
-      "उरवरक": 30,
-      "टमटर": 17,
+      "उरवरक": 51,
+      "टमटर": 26,
       "दखभल": 2,
-      "सरकर": 3,
-      "यजनए": 2,
+      "सरकर": 6,
+      "यजनए": 4,
       "जनकर": 2,
-      "करडट": 2,
-      "बनवए": 2,
-      "सबसड": 1,
-      "सहयत": 1,
-      "भडरण": 2
+      "करडट": 8,
+      "बनवए": 4,
+      "सबसड": 3,
+      "सहयत": 2,
+      "भडरण": 3,
+      "कषतर": 4,
+      "सबजय": 17,
+      "बहतर": 2,
+      "तपमन": 2,
+      "will": 2,
+      "there": 4,
+      "drought": 2,
+      "flood": 2,
+      "risk": 2,
+      "much": 10,
+      "rice": 6,
+      "selling": 3,
+      "खरपतवर": 2,
+      "when": 2,
+      "seeds": 8,
+      "water": 6,
+      "give": 3,
+      "कपसट": 3,
+      "उरवरत": 4,
+      "make": 2,
+      "compost": 1,
+      "save": 3,
+      "नयतरण": 4,
+      "वयरस": 15,
+      "बकटरय": 15,
+      "कटनशक": 2,
+      "which": 6,
+      "medicine": 2,
+      "remove": 3,
+      "fungus": 3,
+      "apply": 2,
+      "farmer": 2,
+      "credit": 6,
+      "card": 2,
+      "harvesting": 3,
+      "extract": 5,
+      "परमणन": 2,
+      "organic": 10,
+      "manure": 1,
+      "certification": 4,
+      "what": 13,
+      "benefits": 2,
+      "बरसत": 2,
+      "vegetables": 6,
+      "summer": 6,
+      "profit": 4,
+      "bank": 1,
+      "loan": 1,
+      "टकनलज": 2,
+      "इसतमल": 10,
+      "मबइल": 2,
+      "सटलइट": 2,
+      "परवनमन": 1,
+      "technology": 5,
+      "drones": 3,
+      "install": 4,
+      "sensors": 4,
+      "mobile": 4,
+      "view": 2,
+      "satellite": 2,
+      "images": 2,
+      "मगफल": 3,
+      "cultivate": 3,
+      "leaves": 1,
+      "falling": 1,
+      "sprouting": 1
     },
     "complexity_distribution": {
-      "medium": 74,
-      "simple": 59
+      "medium": 130,
+      "simple": 630
     },
     "location_frequency": {
-      "location_specific": 133
+      "location_specific": 760
     },
     "language_frequency": {
-      "en": 1,
-      "hi": 132
+      "en": 84,
+      "hi": 676
     }
   },
   "weather": {
-    "count": 1,
+    "count": 9,
     "common_words": {
-      "weather": 1,
-      "forecast": 1,
-      "please": 1
+      "weather": 5,
+      "forecast": 5,
+      "please": 1,
+      "what": 7,
+      "when": 1,
+      "will": 1,
+      "rain": 1,
+      "temperature": 3,
+      "today": 3
     },
     "complexity_distribution": {
-      "simple": 1
+      "simple": 9
     },
     "location_frequency": {
-      "location_specific": 1
+      "location_specific": 9
     },
     "language_frequency": {
-      "hi": 1
+      "hi": 1,
+      "en": 8
+    }
+  },
+  "farming_practices": {
+    "count": 28,
+    "common_words": {
+      "when": 4,
+      "apply": 4,
+      "fertilizer": 4,
+      "test": 6,
+      "soil": 19,
+      "improve": 3,
+      "quality": 3,
+      "what": 8,
+      "type": 8,
+      "good": 8,
+      "increase": 2,
+      "fertility": 2,
+      "irrigation": 5
+    },
+    "complexity_distribution": {
+      "simple": 20,
+      "medium": 8
+    },
+    "location_frequency": {
+      "location_specific": 28
+    },
+    "language_frequency": {
+      "en": 28
+    }
+  },
+  "pest_disease": {
+    "count": 17,
+    "common_words": {
+      "control": 12,
+      "pests": 6,
+      "treat": 5,
+      "diseases": 5,
+      "organic": 6,
+      "pest": 6
+    },
+    "complexity_distribution": {
+      "simple": 11,
+      "medium": 6
+    },
+    "location_frequency": {
+      "location_specific": 17
+    },
+    "language_frequency": {
+      "en": 17
+    }
+  },
+  "government_schemes": {
+    "count": 11,
+    "common_words": {
+      "what": 4,
+      "government": 7,
+      "schemes": 4,
+      "available": 4,
+      "subsidy": 4,
+      "help": 3
+    },
+    "complexity_distribution": {
+      "simple": 11
+    },
+    "location_frequency": {
+      "location_specific": 11
+    },
+    "language_frequency": {
+      "en": 11
     }
   }
 }

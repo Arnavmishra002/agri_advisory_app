@@ -45,14 +45,14 @@ class UltimateIntelligentAI:
         # Enhanced keyword mappings for advanced capabilities
         self.intelligent_keywords = {
             'greeting': {
-                'en': ['hello', 'hi', 'hey', 'good morning', 'good evening', 'good afternoon', 'good night', 'greetings', 'howdy', 'whats up', 'how are you', 'how do you do'],
-                'hi': ['नमस्ते', 'नमस्कार', 'हैलो', 'हाय', 'सुप्रभात', 'शुभ संध्या', 'शुभ दोपहर', 'शुभ रात्रि', 'अभिवादन', 'कैसे हैं', 'कैसी हैं', 'कैसे हो'],
-                'hinglish': ['hi bhai', 'hello bro', 'hey yaar', 'hi dost', 'hello friend', 'namaste bhai', 'hi buddy', 'hey mate']
+                'en': ['hello', 'hi', 'hii', 'hey', 'good morning', 'good evening', 'good afternoon', 'good night', 'greetings', 'howdy', 'whats up', 'how are you', 'how do you do', 'hey there', 'hi there', 'greetings'],
+                'hi': ['नमस्ते', 'नमस्कार', 'हैलो', 'हाय', 'हायी', 'सुप्रभात', 'शुभ संध्या', 'शुभ दोपहर', 'शुभ रात्रि', 'अभिवादन', 'कैसे हैं', 'कैसी हैं', 'कैसे हो', 'अदाब', 'सलाम'],
+                'hinglish': ['hi bhai', 'hello bro', 'hey yaar', 'hi dost', 'hello friend', 'namaste bhai', 'hi buddy', 'hey mate', 'hii bhai', 'hello yaar']
             },
             'market_price': {
-                'en': ['price', 'cost', 'rate', 'market', 'value', 'worth', 'expensive', 'cheap', 'affordable', 'budget', 'money', 'rupees', 'rs', '₹', 'quintal', 'kg', 'kilogram', 'ton', 'tonne', 'buy', 'sell', 'purchase', 'costly', 'inexpensive', 'msp', 'minimum support price', 'prediction', 'forecast', 'trends'],
-                'hi': ['कीमत', 'दाम', 'दर', 'बाजार', 'मूल्य', 'लागत', 'महंगा', 'सस्ता', 'किफायती', 'बजट', 'पैसा', 'रुपये', '₹', 'क्विंटल', 'किलो', 'टन', 'खरीद', 'बेच', 'महंगाई', 'सस्ताई', 'एमएसपी', 'न्यूनतम समर्थन मूल्य', 'भविष्यवाणी', 'पूर्वानुमान', 'रुझान'],
-                'hinglish': ['price kya hai', 'kitna hai', 'cost kya hai', 'rate kya hai', 'market mein kitna', 'kitne ka hai', 'kitne mein milta hai', 'price prediction', 'market trends']
+                'en': ['price', 'cost', 'rate', 'market', 'value', 'worth', 'expensive', 'cheap', 'affordable', 'budget', 'money', 'rupees', 'rs', '₹', 'quintal', 'kg', 'kilogram', 'ton', 'tonne', 'buy', 'sell', 'purchase', 'costly', 'inexpensive', 'msp', 'minimum support price', 'prediction', 'forecast', 'trends', 'wheat price', 'rice price', 'corn price', 'maize price'],
+                'hi': ['कीमत', 'दाम', 'दर', 'बाजार', 'मूल्य', 'लागत', 'महंगा', 'सस्ता', 'किफायती', 'बजट', 'पैसा', 'रुपये', '₹', 'क्विंटल', 'किलो', 'टन', 'खरीद', 'बेच', 'महंगाई', 'सस्ताई', 'एमएसपी', 'न्यूनतम समर्थन मूल्य', 'भविष्यवाणी', 'पूर्वानुमान', 'रुझान', 'गेहूं की कीमत', 'चावल की कीमत', 'मक्का की कीमत'],
+                'hinglish': ['price kya hai', 'kitna hai', 'cost kya hai', 'rate kya hai', 'market mein kitna', 'kitne ka hai', 'kitne mein milta hai', 'price prediction', 'market trends', 'wheat price kya hai', 'rice price kitna hai']
             },
             'weather': {
                 'en': ['weather', 'temperature', 'temp', 'hot', 'cold', 'warm', 'cool', 'rain', 'rainfall', 'precipitation', 'humidity', 'moist', 'dry', 'wind', 'breeze', 'storm', 'sunny', 'cloudy', 'foggy', 'misty', 'forecast', 'prediction', 'climate', 'season', 'monsoon', 'winter', 'summer', 'spring', 'autumn', 'drought', 'flood', 'cyclone'],
@@ -451,6 +451,8 @@ class UltimateIntelligentAI:
             if len(word) >= 4 and word.isalpha():
                 return word.title()
         
+        return None
+        
     def _geocode_location(self, location_name: str) -> tuple:
         """Convert location name to coordinates using geocoding API"""
         try:
@@ -611,8 +613,8 @@ class UltimateIntelligentAI:
             'market': [
                 'price', 'कीमत', 'rate', 'दर', 'cost', 'लागत', 'mandi', 'मंडी',
                 'market price', 'bazaar', 'बाजार', 'mandi price', 'मंडी कीमत',
-                'crop price', 'फसल कीमत', 'wheat price', 'गेहूं कीमत',
-                'rice price', 'चावल कीमत', 'potato price', 'आलू कीमत',
+                'crop price', 'फसल कीमत', 'wheat price', 'गेहूं कीमत', 'गेहूं की कीमत',
+                'rice price', 'चावल कीमत', 'चावल की कीमत', 'potato price', 'आलू कीमत',
                 'onion price', 'प्याज कीमत', 'tomato price', 'टमाटर कीमत',
                 'cotton price', 'कपास कीमत', 'sugarcane price', 'गन्ना कीमत',
                 'turmeric price', 'हल्दी कीमत', 'chilli price', 'मिर्च कीमत',
@@ -698,10 +700,11 @@ class UltimateIntelligentAI:
             
             # Greeting patterns
             'greeting': [
-                'hello', 'hi', 'hey', 'namaste', 'नमस्ते', 'namaskar', 'नमस्कार',
+                'hello', 'hi', 'hii', 'hey', 'namaste', 'नमस्ते', 'namaskar', 'नमस्कार',
                 'good morning', 'सुप्रभात', 'good afternoon', 'नमस्कार',
                 'good evening', 'शुभ संध्या', 'how are you', 'कैसे हैं',
-                'thanks', 'धन्यवाद', 'thank you', 'शुक्रिया', 'bye', 'अलविदा'
+                'thanks', 'धन्यवाद', 'thank you', 'शुक्रिया', 'bye', 'अलविदा',
+                'hii', 'हाय', 'हायी', 'greetings', 'अभिवादन'
             ]
         }
         
@@ -741,124 +744,6 @@ class UltimateIntelligentAI:
         # Default to general if no specific intent detected
         return 'general'
     
-    def _extract_dynamic_location(self, query_lower: str) -> str:
-        """Dynamically extract ANY location/mandi from query - UNIVERSAL VERSION"""
-        
-        # First check predefined locations
-        for location, variations in self.location_mappings.items():
-            for variation in variations:
-                if variation in query_lower:
-                    return location.title()
-        
-        # Enhanced pattern matching for ANY Indian location
-        import re
-        
-        # Pattern 1: Look for "in [location]" or "at [location]"
-        context_patterns = [
-            r'\bin\s+([a-z\s]+?)(?:\s+mandi|\s+market|\s+mein|\s+में|$)',
-            r'\bat\s+([a-z\s]+?)(?:\s+mandi|\s+market|\s+mein|\s+में|$)',
-            r'\bmein\s+([a-z\s]+?)(?:\s+mandi|\s+market|$)',
-            r'\bमें\s+([a-z\s]+?)(?:\s+mandi|\s+market|$)'
-        ]
-        
-        for pattern in context_patterns:
-            matches = re.findall(pattern, query_lower)
-            if matches:
-                location = matches[0].strip().title()
-                if location and len(location) > 2 and location not in ['Price', 'Crop', 'Weather', 'Market']:
-                    return location
-        
-        # Pattern 2: Look for city/district names with common Indian suffixes
-        city_patterns = [
-            r'\b([a-z]+(?:bareli|pur|nagar|abad|garh|ganj|pura|pore|ore|li|garh|nagar|bad|ganj|pura|pore|ore))\b',
-            r'\b([a-z]+(?:mandi|market))\b',
-            r'\b([a-z]{4,}(?:li|pur|garh|nagar|bad|ganj|pura|pore|ore))\b',
-            r'\b([a-z]{3,}(?:mandi|market))\b'
-        ]
-        
-        for pattern in city_patterns:
-            matches = re.findall(pattern, query_lower)
-            if matches:
-                location = matches[0].title()
-                if location and len(location) > 2 and location not in ['Price', 'Crop', 'Weather', 'Market']:
-                    return location
-        
-        # Pattern 3: Look for any word that could be a location (fallback)
-        
-        # Enhanced complex query detection with comprehensive patterns
-        complex_indicators = ['aur', 'and', 'भी', 'also', 'bhi', 'batao', 'बताओ', 'tell me', 'मुझे बताओ', 'help me', 'मेरी मदद करो']
-        complex_patterns = [
-            # Price + Weather patterns
-            r'\b(price|कीमत|market|बाजार).*(weather|मौसम|temperature|तापमान)',
-            r'\b(weather|मौसम|temperature|तापमान).*(price|कीमत|market|बाजार)',
-            r'\b(wheat|गेहूं|rice|चावल).*(price|कीमत).*(weather|मौसम)',
-            r'\b(weather|मौसम).*(wheat|गेहूं|rice|चावल).*(price|कीमत)',
-            
-            # Crop + Market patterns
-            r'\b(crop|फसल|suggest|सुझाव).*(market|बाजार|rate|दर)',
-            r'\b(market|बाजार|rate|दर).*(crop|फसल|suggest|सुझाव)',
-            r'\b(fasal|फसल).*(suggest|सुझाव).*(market|बाजार|rate|दर)',
-            r'\b(market|बाजार|rate|दर).*(fasal|फसल).*(suggest|सुझाव)',
-            
-            # Help + Multiple topics patterns
-            r'\b(help me|मेरी मदद).*(crop|फसल|selection|चयन).*(market|बाजार|rate|दर)',
-            r'\b(help me|मेरी मदद).*(weather|मौसम).*(crop|फसल)',
-            r'\b(help me|मेरी मदद).*(crop|फसल).*(weather|मौसम)',
-            
-            # Decision patterns
-            r'\b(decide|तय).*(between|के बीच).*(wheat|गेहूं|rice|चावल)',
-            r'\b(wheat|गेहूं|rice|चावल).*(better|बेहतर|best|सबसे अच्छा)',
-            r'\b(wheat|गेहूं).*(aur|and|और).*(rice|चावल)',
-            r'\b(rice|चावल).*(aur|and|और).*(wheat|गेहूं)',
-            
-            # Multi-intent patterns
-            r'\b(tell me|बताओ|batao).*(about|के बारे में).*(wheat|गेहूं).*(price|कीमत).*(weather|मौसम)',
-            r'\b(tell me|बताओ|batao).*(about|के बारे में).*(weather|मौसम).*(price|कीमत)',
-            r'\b(wheat|गेहूं).*(price|कीमत).*(aur|and|और).*(weather|मौसम).*(batao|बताओ)',
-            r'\b(fasal|फसल).*(suggest|सुझाव).*(aur|and|और).*(market|बाजार).*(rate|दर)',
-            
-            # Hinglish complex patterns
-            r'\b(wheat|गेहूं).*(price|कीमत).*(aur|and).*(weather|मौसम).*(batao|बताओ)',
-            r'\b(crop|फसल).*(suggest|सुझाव).*(aur|and).*(market|बाजार).*(rate|दर)',
-            r'\b(help me|मेरी मदद).*(crop|फसल).*(selection|चयन).*(aur|and).*(market|बाजार)',
-            
-            # Long query patterns
-            r'\b(very long|बहुत लंबा).*(query|प्रश्न).*(test|परीक्षण).*(performance|प्रदर्शन)'
-        ]
-        
-        # Check for complex patterns first
-        for pattern in complex_patterns:
-            if re.search(pattern, query_lower):
-                return 'complex_query'
-        
-        # Check for complex indicators with enhanced logic
-        if any(indicator in query_lower for indicator in complex_indicators):
-            # Check if multiple intents are present
-            active_intents = [intent for intent, score in intent_scores.items() if score > 0]
-            if len(active_intents) >= 2:
-                return 'complex_query'
-            
-            # Additional check for specific complex patterns
-            if any(word in query_lower for word in ['price', 'weather', 'crop', 'market']) and len(active_intents) >= 1:
-                return 'complex_query'
-        
-        # Enhanced multi-language query handling
-        if language == 'hinglish':
-            # Check for mixed language patterns that should be treated as specific intents
-            if any(word in query_lower for word in ['price', 'कीमत', 'cost', 'लागत']) and any(word in query_lower for word in ['kya', 'kitna', 'क्या', 'कितना']):
-                return 'market_price'
-            elif any(word in query_lower for word in ['weather', 'मौसम', 'temperature', 'तापमान']) and any(word in query_lower for word in ['kaisa', 'kya', 'कैसा', 'क्या']):
-                return 'weather'
-            elif any(word in query_lower for word in ['crop', 'फसल', 'suggest', 'सुझाव']) and any(word in query_lower for word in ['karo', 'kya', 'करो', 'क्या']):
-                return 'crop_recommendation'
-        
-        # Return the intent with highest score
-        if intent_scores:
-            best_intent = max(intent_scores, key=intent_scores.get)
-            if intent_scores[best_intent] > 0:
-                return best_intent
-        
-        return 'general'
     
     def analyze_query(self, query: str, language: str = 'en') -> Dict[str, Any]:
         """Analyze query with ultimate intelligence"""
@@ -2653,19 +2538,6 @@ class UltimateIntelligentAI:
                 "error": str(e)
             }
 
-    def _generate_fertilizer_response(self, entities: Dict[str, Any], language: str, latitude: float = None, longitude: float = None) -> str:
-        """Generate fertilizer response using government API"""
-        try:
-            # Get fertilizer data from government API
-            fertilizer_data = self.government_api.get_real_fertilizer_prices()
-            
-            if language == 'hi':
-                return f"🌱 **उर्वरक जानकारी (सरकारी डेटा):**\n\n💰 वर्तमान कीमतें:\n• यूरिया: ₹266/bag (45kg)\n• DAP: ₹1,350/bag (50kg)\n• MOP: ₹1,200/bag (50kg)\n• NPK: ₹1,100/bag (50kg)\n\n📊 सरकारी सब्सिडी:\n• यूरिया: ₹2,500/bag\n• DAP: ₹1,350/bag\n• MOP: ₹1,200/bag\n\n🌾 अनुशंसित उर्वरक:\n• खरीफ फसलों के लिए: NPK 20:20:20\n• रबी फसलों के लिए: NPK 15:15:15\n• सब्जियों के लिए: NPK 19:19:19\n\n📋 उपयोग सुझाव:\n• मिट्टी परीक्षण के बाद उपयोग करें\n• संतुलित मात्रा में डालें\n• सिंचाई के साथ मिलाकर डालें\n\n📞 हेल्पलाइन: 1800-180-1551"
-            else:
-                return f"🌱 **Fertilizer Information (Government Data):**\n\n💰 Current Prices:\n• Urea: ₹266/bag (45kg)\n• DAP: ₹1,350/bag (50kg)\n• MOP: ₹1,200/bag (50kg)\n• NPK: ₹1,100/bag (50kg)\n\n📊 Government Subsidies:\n• Urea: ₹2,500/bag\n• DAP: ₹1,350/bag\n• MOP: ₹1,200/bag\n\n🌾 Recommended Fertilizers:\n• For Kharif crops: NPK 20:20:20\n• For Rabi crops: NPK 15:15:15\n• For Vegetables: NPK 19:19:19\n\n📋 Usage Tips:\n• Use after soil testing\n• Apply in balanced quantities\n• Mix with irrigation water\n\n📞 Helpline: 1800-180-1551"
-        except Exception as e:
-            logger.error(f"Error generating fertilizer response: {e}")
-            return "Fertilizer information temporarily unavailable. Please try again later."
 
     def _generate_irrigation_response(self, entities: Dict[str, Any], language: str, latitude: float = None, longitude: float = None) -> str:
         """Generate irrigation response"""
