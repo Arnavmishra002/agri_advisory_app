@@ -185,5 +185,75 @@
       "response_length": 29,
       "query_length": 27
     }
+  },
+  {
+    "timestamp": "2025-10-08T21:46:31.361912",
+    "query": "Test query",
+    "response": "Test response",
+    "feedback": "Good response",
+    "location": "Delhi",
+    "language": "hi",
+    "insights": {
+      "query_type": "general",
+      "complexity": "simple",
+      "response_quality": {
+        "score": 2.1666666666666665,
+        "metrics": {
+          "length": 13,
+          "has_specifics": false,
+          "has_emojis": false,
+          "has_recommendations": false,
+          "has_sources": false,
+          "structured": false
+        },
+        "level": "high"
+      },
+      "feedback_sentiment": {
+        "sentiment": "positive",
+        "positive_score": 1,
+        "negative_score": 0,
+        "confidence": 1.0
+      },
+      "location_specific": true,
+      "language_preference": "hi",
+      "key_topics": [],
+      "response_length": 13,
+      "query_length": 10
+    }
+  },
+  {
+    "timestamp": "2025-10-08T21:46:45.625434",
+    "query": "Test query",
+    "response": "Test response",
+    "feedback": "Good response",
+    "location": "Delhi",
+    "language": "hi",
+    "insights": {
+      "query_type": "general",
+      "complexity": "simple",
+      "response_quality": {
+        "score": 2.1666666666666665,
+        "metrics": {
+          "length": 13,
+          "has_specifics": false,
+          "has_emojis": false,
+          "has_recommendations": false,
+          "has_sources": false,
+          "structured": false
+        },
+        "level": "high"
+      },
+      "feedback_sentiment": {
+        "sentiment": "positive",
+        "positive_score": 1,
+        "negative_score": 0,
+        "confidence": 1.0
+      },
+      "location_specific": true,
+      "language_preference": "hi",
+      "key_topics": [],
+      "response_length": 13,
+      "query_length": 10
+    }
   }
 ]

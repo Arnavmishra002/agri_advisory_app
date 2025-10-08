@@ -26,5 +26,12 @@
     "positive_feedback": 1,
     "negative_feedback": 0,
     "effectiveness_score": 1.0
+  },
+  "-370361693": {
+    "response": "Test response",
+    "total_feedback": 2,
+    "positive_feedback": 2,
+    "negative_feedback": 0,
+    "effectiveness_score": 1.0
   }
 }

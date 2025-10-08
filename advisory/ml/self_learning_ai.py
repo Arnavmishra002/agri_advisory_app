@@ -252,10 +252,10 @@ class SelfLearningAI:
         if query_type not in self.query_patterns:
             self.query_patterns[query_type] = {
                 "count": 0,
-                "common_words": Counter(),
-                "complexity_distribution": Counter(),
-                "location_frequency": Counter(),
-                "language_frequency": Counter()
+                "common_words": {},
+                "complexity_distribution": {},
+                "location_frequency": {},
+                "language_frequency": {}
             }
         
         pattern_data = self.query_patterns[query_type]
@@ -272,12 +272,21 @@ class SelfLearningAI:
                 pattern_data["common_words"][clean_word] += 1
         
         # Update complexity distribution
-        pattern_data["complexity_distribution"][insights['complexity']] += 1
+        complexity = insights.get('complexity', 'simple')
+        if complexity not in pattern_data["complexity_distribution"]:
+            pattern_data["complexity_distribution"][complexity] = 0
+        pattern_data["complexity_distribution"][complexity] += 1
         
         # Update location and language frequency
-        if insights['location_specific']:
+        if insights.get('location_specific', False):
+            if "location_specific" not in pattern_data["location_frequency"]:
+                pattern_data["location_frequency"]["location_specific"] = 0
             pattern_data["location_frequency"]["location_specific"] += 1
-        pattern_data["language_frequency"][insights['language_preference']] += 1
+        
+        language_pref = insights.get('language_preference', 'en')
+        if language_pref not in pattern_data["language_frequency"]:
+            pattern_data["language_frequency"][language_pref] = 0
+        pattern_data["language_frequency"][language_pref] += 1
         
         self.learning_stats["patterns_learned"] += 1
     
@@ -318,18 +327,35 @@ class SelfLearningAI:
         if location:
             if location not in self.farmer_preferences:
                 self.farmer_preferences[location] = {
-                    "query_types": Counter(),
-                    "languages": Counter(),
-                    "topics": Counter(),
-                    "complexity_preference": Counter()
+                    "query_types": {},
+                    "languages": {},
+                    "topics": {},
+                    "complexity_preference": {}
                 }
             
             location_prefs = self.farmer_preferences[location]
-            location_prefs["query_types"][insights['query_type']] += 1
-            location_prefs["languages"][language] += 1
-            location_prefs["complexity_preference"][insights['complexity']] += 1
             
-            for topic in insights['key_topics']:
+            # Update query types
+            query_type = insights.get('query_type', 'general')
+            if query_type not in location_prefs["query_types"]:
+                location_prefs["query_types"][query_type] = 0
+            location_prefs["query_types"][query_type] += 1
+            
+            # Update languages
+            if language not in location_prefs["languages"]:
+                location_prefs["languages"][language] = 0
+            location_prefs["languages"][language] += 1
+            
+            # Update complexity preference
+            complexity = insights.get('complexity', 'simple')
+            if complexity not in location_prefs["complexity_preference"]:
+                location_prefs["complexity_preference"][complexity] = 0
+            location_prefs["complexity_preference"][complexity] += 1
+            
+            # Update topics
+            for topic in insights.get('key_topics', []):
+                if topic not in location_prefs["topics"]:
+                    location_prefs["topics"][topic] = 0
                 location_prefs["topics"][topic] += 1
     
     def _update_knowledge_base(self, query: str, response: str, insights: Dict[str, Any]):

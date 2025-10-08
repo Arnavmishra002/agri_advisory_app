@@ -61,6 +61,20 @@
           "crops"
         ],
         "timestamp": "2025-10-08T20:26:07.760869"
+      },
+      {
+        "query": "Test query",
+        "response": "Test response",
+        "quality_score": 2.1666666666666665,
+        "topics": [],
+        "timestamp": "2025-10-08T21:46:31.361901"
+      },
+      {
+        "query": "Test query",
+        "response": "Test response",
+        "quality_score": 2.1666666666666665,
+        "topics": [],
+        "timestamp": "2025-10-08T21:46:45.625407"
       }
     ],
     "responses": [],

@@ -40,22 +40,26 @@
     }
   },
   "general": {
-    "count": 1,
+    "count": 3,
     "common_words": {
       "tell": 1,
       "about": 1,
       "wheat": 1,
       "farming": 1,
-      "techniques": 1
+      "techniques": 1,
+      "test": 2,
+      "query": 2
     },
     "complexity_distribution": {
-      "medium": 1
+      "medium": 1,
+      "simple": 2
     },
     "location_frequency": {
-      "location_specific": 1
+      "location_specific": 3
     },
     "language_frequency": {
-      "en": 1
+      "en": 1,
+      "hi": 2
     }
   }
 }
