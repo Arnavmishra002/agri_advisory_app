@@ -265,6 +265,48 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
+        .global-location-box {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid #f39c12;
+        }
+        
+        .location-update-section h5 {
+            color: #2d5016;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .location-update-section p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .current-location-info {
+            text-align: center;
+        }
+        
+        .location-status {
+            background: white;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-weight: 600;
+            color: #2d5016;
+        }
+        
+        .location-search-section {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #4a7c59;
+        }
+        
         .mandi-dropdown {
             background: white;
             border-radius: 10px;
@@ -336,6 +378,35 @@
         <div class="hero-section">
             <h1 class="hero-title">🌾 कृषिमित्र AI</h1>
             <p class="hero-subtitle">किसानों का सबसे अच्छा दोस्त - AI से स्मार्ट खेती करें</p>
+        </div>
+
+        <!-- Global Location Update Box -->
+        <div class="global-location-box">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="location-update-section">
+                        <h5><i class="fas fa-map-marker-alt me-2"></i>अपनी लोकेशन अपडेट करें</h5>
+                        <p class="mb-2">सभी सेवाएं आपकी लोकेशन के अनुसार काम करेंगी</p>
+                        <div class="input-group">
+                            <input type="text" id="globalLocationSearch" class="form-control" placeholder="शहर या गांव का नाम टाइप करें (जैसे: दिल्ली, मुंबई, पुणे, कानपुर...)" onkeypress="handleGlobalLocationSearchKeyPress(event)">
+                            <button class="btn btn-primary" onclick="updateGlobalLocation()">
+                                <i class="fas fa-search me-1"></i>लोकेशन अपडेट करें
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="current-location-info">
+                        <div class="location-status">
+                            <i class="fas fa-location-dot me-2"></i>
+                            <span id="globalCurrentLocation">डिटेक्ट हो रहा है...</span>
+                        </div>
+                        <button class="btn btn-success btn-sm mt-2" onclick="useCurrentLocationGlobal()">
+                            <i class="fas fa-crosshairs me-1"></i>वर्तमान लोकेशन
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Services Section -->
@@ -513,15 +584,46 @@
         <!-- Market Prices Content -->
         <div id="market-prices-content" class="service-content">
             <h3><i class="fas fa-chart-line me-2"></i>बाजार कीमतें</h3>
+            
+            <!-- Location Search Section -->
+            <div class="location-search-section">
+                <h5>📍 अपनी लोकेशन अपडेट करें</h5>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <input type="text" id="locationSearchInput" class="form-control" placeholder="शहर या गांव का नाम टाइप करें (जैसे: दिल्ली, मुंबई, पुणे, कानपुर...)" onkeypress="handleLocationSearchKeyPress(event)">
+                            <button class="btn btn-outline-primary" onclick="searchAndUpdateLocation()">
+                                <i class="fas fa-search me-1"></i>खोजें
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success w-100" onclick="useCurrentLocation()">
+                            <i class="fas fa-map-marker-alt me-1"></i>वर्तमान लोकेशन
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        वर्तमान लोकेशन: <span id="currentLocationDisplay">डिटेक्ट हो रहा है...</span>
+                    </small>
+                </div>
+            </div>
+
+            <!-- Mandi Selection Section -->
             <div class="mandi-dropdown">
-                <h5>🏪 निकटतम मंडी</h5>
+                <h5>🏪 निकटतम मंडी चुनें</h5>
                 <div class="row">
                     <div class="col-md-6">
+                        <label class="form-label">मंडी का नाम:</label>
                         <select id="nearestMandisDropdown" class="form-select" onchange="handleMandiSelection(this.value)">
                             <option value="">निकटतम मंडी चुनें...</option>
                         </select>
+                        <small class="text-muted">आपकी लोकेशन के नजदीक की मंडियां</small>
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label">फसल का प्रकार:</label>
                         <select id="cropForPrice" class="form-select">
                             <option value="">फसल चुनें...</option>
                             <option value="rice">चावल (Rice)</option>
@@ -532,16 +634,29 @@
                             <option value="potato">आलू (Potato)</option>
                             <option value="tomato">टमाटर (Tomato)</option>
                             <option value="onion">प्याज (Onion)</option>
+                            <option value="mustard">सरसों (Mustard)</option>
+                            <option value="soybean">सोयाबीन (Soybean)</option>
+                            <option value="groundnut">मूंगफली (Groundnut)</option>
                         </select>
                     </div>
                 </div>
             </div>
+
+            <!-- Market Prices Display -->
             <div id="marketPricesData">
-                <p>मंडी की जानकारी लोड हो रही है...</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    मंडी और फसल चुनने के बाद कीमतें दिखाई जाएंगी
+                </div>
             </div>
+
+            <!-- Action Buttons -->
             <div class="mt-3">
-                <button class="btn btn-primary" onclick="loadMarketPrices()">
+                <button class="btn btn-primary me-2" onclick="loadMarketPrices()">
                     <i class="fas fa-chart-line me-2"></i>कीमतें अपडेट करें
+                </button>
+                <button class="btn btn-outline-primary" onclick="refreshMandiList()">
+                    <i class="fas fa-sync-alt me-2"></i>मंडी लिस्ट रिफ्रेश करें
                 </button>
             </div>
         </div>
@@ -613,6 +728,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             detectLocation();
             loadNearestMandis();
+            updateGlobalLocationDisplay();
         });
 
         // Location detection
@@ -788,23 +904,405 @@
             container.innerHTML = html;
         }
 
-        // Load nearest mandis
+        // Comprehensive mandi database
+        const mandiDatabase = {
+            'दिल्ली': [
+                { name: 'दिल्ली मंडी', location: 'दिल्ली', distance: '5 किमी', lat: 28.6139, lon: 77.2090 },
+                { name: 'आजादपुर मंडी', location: 'दिल्ली', distance: '8 किमी', lat: 28.6500, lon: 77.2000 },
+                { name: 'गाजीपुर मंडी', location: 'दिल्ली', distance: '12 किमी', lat: 28.7000, lon: 77.2500 },
+                { name: 'नोएडा मंडी', location: 'नोएडा', distance: '15 किमी', lat: 28.5355, lon: 77.3910 },
+                { name: 'गुड़गांव मंडी', location: 'गुड़गांव', distance: '20 किमी', lat: 28.4595, lon: 77.0266 }
+            ],
+            'मुंबई': [
+                { name: 'वाशी मंडी', location: 'मुंबई', distance: '8 किमी', lat: 19.0760, lon: 72.8777 },
+                { name: 'कल्याण मंडी', location: 'कल्याण', distance: '12 किमी', lat: 19.2437, lon: 73.1355 },
+                { name: 'थाणे मंडी', location: 'थाणे', distance: '15 किमी', lat: 19.2183, lon: 72.9781 },
+                { name: 'नवी मुंबई मंडी', location: 'नवी मुंबई', distance: '18 किमी', lat: 19.0330, lon: 73.0297 },
+                { name: 'पुणे मंडी', location: 'पुणे', distance: '25 किमी', lat: 18.5204, lon: 73.8567 }
+            ],
+            'पुणे': [
+                { name: 'पुणे मंडी', location: 'पुणे', distance: '5 किमी', lat: 18.5204, lon: 73.8567 },
+                { name: 'हडपसर मंडी', location: 'पुणे', distance: '8 किमी', lat: 18.5000, lon: 73.8000 },
+                { name: 'शिवाजीनगर मंडी', location: 'पुणे', distance: '10 किमी', lat: 18.5500, lon: 73.9000 },
+                { name: 'अहमदनगर मंडी', location: 'अहमदनगर', distance: '15 किमी', lat: 19.0952, lon: 74.7496 },
+                { name: 'नासिक मंडी', location: 'नासिक', distance: '20 किमी', lat: 19.9975, lon: 73.7898 }
+            ],
+            'कानपुर': [
+                { name: 'कानपुर मंडी', location: 'कानपुर', distance: '5 किमी', lat: 26.4499, lon: 80.3319 },
+                { name: 'अकबरपुर मंडी', location: 'कानपुर', distance: '8 किमी', lat: 26.4000, lon: 80.3000 },
+                { name: 'लखनऊ मंडी', location: 'लखनऊ', distance: '15 किमी', lat: 26.8467, lon: 80.9462 },
+                { name: 'आगरा मंडी', location: 'आगरा', distance: '20 किमी', lat: 27.1767, lon: 78.0081 },
+                { name: 'मेरठ मंडी', location: 'मेरठ', distance: '25 किमी', lat: 28.9845, lon: 77.7064 }
+            ],
+            'बैंगलोर': [
+                { name: 'बैंगलोर मंडी', location: 'बैंगलोर', distance: '5 किमी', lat: 12.9716, lon: 77.5946 },
+                { name: 'मैसूर मंडी', location: 'मैसूर', distance: '12 किमी', lat: 12.2958, lon: 76.6394 },
+                { name: 'हुबली मंडी', location: 'हुबली', distance: '15 किमी', lat: 15.3173, lon: 75.7139 },
+                { name: 'मंगलोर मंडी', location: 'मंगलोर', distance: '18 किमी', lat: 12.9141, lon: 74.8560 },
+                { name: 'बेलगाम मंडी', location: 'बेलगाम', distance: '22 किमी', lat: 15.8497, lon: 74.4977 }
+            ],
+            'चेन्नई': [
+                { name: 'चेन्नई मंडी', location: 'चेन्नई', distance: '5 किमी', lat: 13.0827, lon: 80.2707 },
+                { name: 'कोयंबटूर मंडी', location: 'कोयंबटूर', distance: '10 किमी', lat: 11.0168, lon: 76.9558 },
+                { name: 'मदुरै मंडी', location: 'मदुरै', distance: '12 किमी', lat: 9.9252, lon: 78.1198 },
+                { name: 'तिरुचिरापल्ली मंडी', location: 'तिरुचिरापल्ली', distance: '15 किमी', lat: 10.7905, lon: 78.7047 },
+                { name: 'सलेम मंडी', location: 'सलेम', distance: '18 किमी', lat: 11.6643, lon: 78.1460 }
+            ]
+        };
+
+        // Load nearest mandis based on current location
         function loadNearestMandis() {
-            const mandis = [
-                { name: 'दिल्ली मंडी', location: 'दिल्ली', distance: '5 किमी' },
-                { name: 'आजादपुर मंडी', location: 'दिल्ली', distance: '8 किमी' },
-                { name: 'गाजीपुर मंडी', location: 'दिल्ली', distance: '12 किमी' },
-                { name: 'नोएडा मंडी', location: 'नोएडा', distance: '15 किमी' },
-                { name: 'गुड़गांव मंडी', location: 'गुड़गांव', distance: '20 किमी' }
-            ];
-            
             const dropdown = document.getElementById('nearestMandisDropdown');
+            dropdown.innerHTML = '<option value="">निकटतम मंडी चुनें...</option>';
+            
+            if (!currentLocation) {
+                // Load default Delhi mandis
+                loadMandisForLocation('दिल्ली');
+                return;
+            }
+            
+            // Find closest city based on coordinates
+            const closestCity = findClosestCity(currentLocation.lat, currentLocation.lon);
+            loadMandisForLocation(closestCity);
+        }
+
+        // Find closest city based on coordinates
+        function findClosestCity(lat, lon) {
+            const cities = {
+                'दिल्ली': { lat: 28.6139, lon: 77.2090 },
+                'मुंबई': { lat: 19.0760, lon: 72.8777 },
+                'पुणे': { lat: 18.5204, lon: 73.8567 },
+                'कानपुर': { lat: 26.4499, lon: 80.3319 },
+                'बैंगलोर': { lat: 12.9716, lon: 77.5946 },
+                'चेन्नई': { lat: 13.0827, lon: 80.2707 }
+            };
+            
+            let closestCity = 'दिल्ली';
+            let minDistance = Infinity;
+            
+            for (const [city, coords] of Object.entries(cities)) {
+                const distance = Math.sqrt(
+                    Math.pow(lat - coords.lat, 2) + Math.pow(lon - coords.lon, 2)
+                );
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestCity = city;
+                }
+            }
+            
+            return closestCity;
+        }
+
+        // Load mandis for specific location
+        function loadMandisForLocation(location) {
+            const dropdown = document.getElementById('nearestMandisDropdown');
+            dropdown.innerHTML = '<option value="">निकटतम मंडी चुनें...</option>';
+            
+            const mandis = mandiDatabase[location] || mandiDatabase['दिल्ली'];
+            
             mandis.forEach(mandi => {
                 const option = document.createElement('option');
                 option.value = JSON.stringify(mandi);
                 option.textContent = `${mandi.name} (${mandi.distance})`;
                 dropdown.appendChild(option);
             });
+            
+            // Update location display
+            updateLocationDisplay(location);
+        }
+
+        // Update location display
+        function updateLocationDisplay(location) {
+            const display = document.getElementById('currentLocationDisplay');
+            if (display) {
+                display.textContent = location || 'अज्ञात';
+            }
+        }
+
+        // Location search functions
+        function handleLocationSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchAndUpdateLocation();
+            }
+        }
+
+        function searchAndUpdateLocation() {
+            const searchInput = document.getElementById('locationSearchInput');
+            const location = searchInput.value.trim();
+            
+            if (!location) {
+                showNotification('कृपया लोकेशन टाइप करें', 'error');
+                return;
+            }
+            
+            // Show loading
+            showNotification('लोकेशन खोज रहे हैं...', 'info');
+            
+            // Simulate location search (in real app, you'd use geocoding API)
+            const foundLocation = searchLocationInDatabase(location);
+            
+            if (foundLocation) {
+                // Update current location
+                currentLocation = {
+                    lat: foundLocation.lat,
+                    lon: foundLocation.lon,
+                    name: foundLocation.name
+                };
+                
+                // Update mandis for new location
+                loadMandisForLocation(foundLocation.name);
+                
+                showNotification(`लोकेशन अपडेट हो गई: ${foundLocation.name}`, 'success');
+                
+                // Clear search input
+                searchInput.value = '';
+            } else {
+                showNotification('लोकेशन नहीं मिली। कृपया दूसरा नाम ट्राई करें', 'error');
+            }
+        }
+
+        function searchLocationInDatabase(searchTerm) {
+            const locations = {
+                'दिल्ली': { lat: 28.6139, lon: 77.2090, name: 'दिल्ली' },
+                'delhi': { lat: 28.6139, lon: 77.2090, name: 'दिल्ली' },
+                'मुंबई': { lat: 19.0760, lon: 72.8777, name: 'मुंबई' },
+                'mumbai': { lat: 19.0760, lon: 72.8777, name: 'मुंबई' },
+                'पुणे': { lat: 18.5204, lon: 73.8567, name: 'पुणे' },
+                'pune': { lat: 18.5204, lon: 73.8567, name: 'पुणे' },
+                'कानपुर': { lat: 26.4499, lon: 80.3319, name: 'कानपुर' },
+                'kanpur': { lat: 26.4499, lon: 80.3319, name: 'कानपुर' },
+                'बैंगलोर': { lat: 12.9716, lon: 77.5946, name: 'बैंगलोर' },
+                'bangalore': { lat: 12.9716, lon: 77.5946, name: 'बैंगलोर' },
+                'चेन्नई': { lat: 13.0827, lon: 80.2707, name: 'चेन्नई' },
+                'chennai': { lat: 13.0827, lon: 80.2707, name: 'चेन्नई' },
+                'लखनऊ': { lat: 26.8467, lon: 80.9462, name: 'लखनऊ' },
+                'lucknow': { lat: 26.8467, lon: 80.9462, name: 'लखनऊ' },
+                'आगरा': { lat: 27.1767, lon: 78.0081, name: 'आगरा' },
+                'agra': { lat: 27.1767, lon: 78.0081, name: 'आगरा' },
+                'जयपुर': { lat: 26.9124, lon: 75.7873, name: 'जयपुर' },
+                'jaipur': { lat: 26.9124, lon: 75.7873, name: 'जयपुर' },
+                'अहमदाबाद': { lat: 23.0225, lon: 72.5714, name: 'अहमदाबाद' },
+                'ahmedabad': { lat: 23.0225, lon: 72.5714, name: 'अहमदाबाद' }
+            };
+            
+            // Search for exact match first
+            if (locations[searchTerm]) {
+                return locations[searchTerm];
+            }
+            
+            // Search for partial match
+            for (const [key, value] of Object.entries(locations)) {
+                if (key.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    searchTerm.toLowerCase().includes(key.toLowerCase())) {
+                    return value;
+                }
+            }
+            
+            return null;
+        }
+
+        function useCurrentLocation() {
+            showNotification('वर्तमान लोकेशन डिटेक्ट कर रहे हैं...', 'info');
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        };
+                        
+                        const closestCity = findClosestCity(currentLocation.lat, currentLocation.lon);
+                        loadMandisForLocation(closestCity);
+                        
+                        showNotification(`लोकेशन अपडेट हो गई: ${closestCity}`, 'success');
+                    },
+                    function(error) {
+                        console.log('Location detection failed:', error);
+                        showNotification('लोकेशन डिटेक्ट नहीं हो सकी। मैन्युअल खोज करें', 'error');
+                    }
+                );
+            } else {
+                showNotification('जियोलोकेशन सपोर्ट नहीं है', 'error');
+            }
+        }
+
+        function refreshMandiList() {
+            showNotification('मंडी लिस्ट रिफ्रेश हो रही है...', 'info');
+            loadNearestMandis();
+            showNotification('मंडी लिस्ट अपडेट हो गई', 'success');
+        }
+
+        // Global location functions
+        function handleGlobalLocationSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                updateGlobalLocation();
+            }
+        }
+
+        function updateGlobalLocation() {
+            const searchInput = document.getElementById('globalLocationSearch');
+            const location = searchInput.value.trim();
+            
+            if (!location) {
+                showNotification('कृपया लोकेशन टाइप करें', 'error');
+                return;
+            }
+            
+            // Show loading
+            showNotification('लोकेशन अपडेट हो रही है...', 'info');
+            
+            // Search for location
+            const foundLocation = searchLocationInDatabase(location);
+            
+            if (foundLocation) {
+                // Update current location globally
+                currentLocation = {
+                    lat: foundLocation.lat,
+                    lon: foundLocation.lon,
+                    name: foundLocation.name
+                };
+                
+                // Update all services with new location
+                updateAllServicesWithNewLocation(foundLocation.name);
+                
+                showNotification(`सभी सेवाएं अपडेट हो गईं: ${foundLocation.name}`, 'success');
+                
+                // Clear search input
+                searchInput.value = '';
+            } else {
+                showNotification('लोकेशन नहीं मिली। कृपया दूसरा नाम ट्राई करें', 'error');
+            }
+        }
+
+        function useCurrentLocationGlobal() {
+            showNotification('वर्तमान लोकेशन डिटेक्ट कर रहे हैं...', 'info');
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        };
+                        
+                        const closestCity = findClosestCity(currentLocation.lat, currentLocation.lon);
+                        updateAllServicesWithNewLocation(closestCity);
+                        
+                        showNotification(`सभी सेवाएं अपडेट हो गईं: ${closestCity}`, 'success');
+                    },
+                    function(error) {
+                        console.log('Location detection failed:', error);
+                        showNotification('लोकेशन डिटेक्ट नहीं हो सकी। मैन्युअल खोज करें', 'error');
+                    }
+                );
+            } else {
+                showNotification('जियोलोकेशन सपोर्ट नहीं है', 'error');
+            }
+        }
+
+        function updateAllServicesWithNewLocation(locationName) {
+            // Update global location display
+            updateGlobalLocationDisplay(locationName);
+            
+            // Update mandis for new location
+            loadMandisForLocation(locationName);
+            
+            // Update crop recommendations
+            loadCropDataForLocation(locationName);
+            
+            // Update weather data
+            loadWeatherDataForLocation(locationName);
+            
+            // Update market prices
+            refreshMarketPricesForLocation(locationName);
+        }
+
+        function updateGlobalLocationDisplay(location) {
+            const display = document.getElementById('globalCurrentLocation');
+            if (display) {
+                display.textContent = location || 'अज्ञात';
+            }
+        }
+
+        function loadCropDataForLocation(locationName) {
+            if (!currentLocation) return;
+            
+            const query = `मुझे ${locationName} के लिए फसल सुझाव चाहिए। मेरी लोकेशन: ${currentLocation.lat}, ${currentLocation.lon}`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: locationName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    updateCropRecommendations(data.response);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading crop data for location:', error);
+            });
+        }
+
+        function loadWeatherDataForLocation(locationName) {
+            const query = `मुझे ${locationName} का मौसम बताएं`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: locationName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    const container = document.getElementById('currentWeather');
+                    if (container) {
+                        container.innerHTML = `<div class="alert alert-info">${data.response}</div>`;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading weather for location:', error);
+            });
+        }
+
+        function refreshMarketPricesForLocation(locationName) {
+            // Clear current market prices data
+            const container = document.getElementById('marketPricesData');
+            if (container) {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        ${locationName} के लिए मंडी और फसल चुनने के बाद कीमतें दिखाई जाएंगी
+                    </div>
+                `;
+            }
+            
+            // Reset mandi dropdown
+            const dropdown = document.getElementById('nearestMandisDropdown');
+            if (dropdown) {
+                dropdown.selectedIndex = 0;
+            }
         }
 
         // Handle mandi selection
@@ -823,11 +1321,12 @@
             }
         }
 
-        // Load market prices for specific mandi
+        // Load market prices for specific mandi using Government APIs
         function loadMarketPricesForMandi(mandi, crop) {
             const container = document.getElementById('marketPricesData');
-            container.innerHTML = '<p>कीमतें लोड हो रही हैं...</p>';
+            container.innerHTML = '<p>सरकारी API से कीमतें लोड हो रही हैं...</p>';
             
+            // Use government API for market prices
             fetch(`/api/advisories/market-prices/?product_type=${crop}&latitude=${currentLocation.lat}&longitude=${currentLocation.lon}`)
             .then(response => response.json())
             .then(data => {
@@ -840,6 +1339,54 @@
                             <p><strong>कीमत:</strong> ₹${price.price || 'N/A'} प्रति क्विंटल</p>
                             <p><strong>स्थान:</strong> ${mandi.location}</p>
                             <p><strong>दूरी:</strong> ${mandi.distance}</p>
+                            <p><strong>स्रोत:</strong> सरकारी API (Agmarknet/e-NAM)</p>
+                            <small class="text-muted">अंतिम अपडेट: ${new Date().toLocaleString('hi-IN')}</small>
+                        </div>
+                    `;
+                } else {
+                    // Fallback to AI response if government API fails
+                    loadMarketPricesViaAI(mandi, crop);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading market prices from government API:', error);
+                // Fallback to AI response
+                loadMarketPricesViaAI(mandi, crop);
+            });
+        }
+
+        // Fallback function to get market prices via AI
+        function loadMarketPricesViaAI(mandi, crop) {
+            const container = document.getElementById('marketPricesData');
+            container.innerHTML = '<p>AI के माध्यम से कीमतें प्राप्त कर रहे हैं...</p>';
+            
+            const query = `${mandi.name} में ${crop} की कीमत बताएं`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: currentLocation.name
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    container.innerHTML = `
+                        <div class="mandi-item">
+                            <h6>🏪 ${mandi.name}</h6>
+                            <p><strong>फसल:</strong> ${crop}</p>
+                            <div class="alert alert-info">${data.response}</div>
+                            <p><strong>स्थान:</strong> ${mandi.location}</p>
+                            <p><strong>दूरी:</strong> ${mandi.distance}</p>
+                            <p><strong>स्रोत:</strong> AI सहायक</p>
                         </div>
                     `;
                 } else {
@@ -847,7 +1394,7 @@
                 }
             })
             .catch(error => {
-                console.error('Error loading market prices:', error);
+                console.error('Error loading market prices via AI:', error);
                 container.innerHTML = '<div class="alert alert-danger">कीमत लोड करने में त्रुटि हुई।</div>';
             });
         }
