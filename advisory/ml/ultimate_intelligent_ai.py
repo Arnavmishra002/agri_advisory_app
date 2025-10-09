@@ -1720,7 +1720,15 @@ class UltimateIntelligentAI:
     
     def _generate_crop_response(self, entities: Dict[str, Any], language: str, query: str = "", latitude: float = None, longitude: float = None) -> str:
         """Generate SUPER INTELLIGENT crop recommendation response with real government data"""
-        location = entities.get("location", "Delhi")
+        # Improved location detection
+        location = entities.get("location", "")
+        if not location and latitude and longitude:
+            # Try to get location name from coordinates
+            location = self._get_location_name_from_coordinates(latitude, longitude)
+        
+        if not location:
+            location = "Delhi"  # Default fallback
+        
         season = entities.get("season", "kharif")
         crop = entities.get("crop", "")
         
@@ -1735,7 +1743,7 @@ class UltimateIntelligentAI:
         try:
             # Force use of HIGHLY ACCURATE fallback for now to ensure accuracy
             logger.info(f"Using HIGHLY ACCURATE fallback for crop recommendations in {location}")
-            return self._generate_structured_crop_response(location, season, lat, lon, language)
+            return self._generate_enhanced_crop_response_with_schemes(location, season, lat, lon, language)
             
             # Use threading timeout for Windows compatibility
             import threading
@@ -1997,6 +2005,226 @@ class UltimateIntelligentAI:
             response += f"📊 Data Source: ICAR, IMD, Government Agriculture Database"
         
         return response
+    
+    def _get_location_name_from_coordinates(self, latitude: float, longitude: float) -> str:
+        """Get location name from coordinates"""
+        # Simple coordinate-based location mapping
+        if 28.4 <= latitude <= 28.8 and 77.0 <= longitude <= 77.4:
+            return "Delhi"
+        elif 19.0 <= latitude <= 19.3 and 72.7 <= longitude <= 73.0:
+            return "Mumbai"
+        elif 12.8 <= latitude <= 13.2 and 77.4 <= longitude <= 77.8:
+            return "Bangalore"
+        elif 13.0 <= latitude <= 13.2 and 80.2 <= longitude <= 80.4:
+            return "Chennai"
+        elif 26.7 <= latitude <= 27.0 and 80.8 <= longitude <= 81.2:
+            return "Lucknow"
+        elif 22.4 <= latitude <= 22.7 and 88.2 <= longitude <= 88.6:
+            return "Kolkata"
+        elif 31.5 <= latitude <= 31.8 and 74.7 <= longitude <= 75.0:
+            return "Amritsar"
+        elif 23.0 <= latitude <= 23.2 and 72.4 <= longitude <= 72.7:
+            return "Ahmedabad"
+        else:
+            return "Delhi"  # Default fallback
+    
+    def _generate_enhanced_crop_response(self, location: str, season: str, lat: float, lon: float, language: str) -> str:
+        """Generate enhanced crop response with government schemes integration"""
+        
+        # Get government schemes data
+        schemes_data = self._get_government_schemes_data(location, language)
+        
+        # Get crop recommendations based on location and season
+        crop_recommendations = self._get_location_based_crops(location, season)
+        
+        # Generate response based on language
+        if language == 'hi':
+            response = f"🌾 {location} के लिए {season.title()} सीजन फसल सुझाव:\n\n"
+            
+            for i, crop in enumerate(crop_recommendations[:3], 1):
+                response += f"{i}. 🌱 {crop['name']} (सुझाव: {crop['score']}%)\n"
+                response += f"   💰 MSP: ₹{crop['msp']} per quintal\n"
+                response += f"   📈 उत्पादन: {crop['yield']}\n"
+                response += f"   🌍 मिट्टी: {crop['soil']}\n"
+                response += f"   🌤️ जलवायु: {crop['climate']}\n\n"
+            
+            # Add government schemes section
+            response += f"🏛️ सरकारी योजनाएं:\n"
+            for scheme in schemes_data[:3]:
+                response += f"• {scheme['name']}: {scheme['benefit']}\n"
+            
+            response += f"\n💡 सुझाव: स्थानीय कृषि विभाग से संपर्क करें\n"
+            response += f"📊 डेटा स्रोत: ICAR, IMD, सरकारी कृषि डेटाबेस"
+            
+        else:  # English
+            response = f"🌾 {season.title()} Season Crop Recommendations for {location}:\n\n"
+            
+            for i, crop in enumerate(crop_recommendations[:3], 1):
+                response += f"{i}. 🌱 {crop['name']} (Recommendation: {crop['score']}%)\n"
+                response += f"   💰 MSP: ₹{crop['msp']} per quintal\n"
+                response += f"   📈 Yield: {crop['yield']}\n"
+                response += f"   🌍 Soil: {crop['soil']}\n"
+                response += f"   🌤️ Climate: {crop['climate']}\n\n"
+            
+            # Add government schemes section
+            response += f"🏛️ Government Schemes:\n"
+            for scheme in schemes_data[:3]:
+                response += f"• {scheme['name']}: {scheme['benefit']}\n"
+            
+            response += f"\n💡 Suggestion: Contact local agriculture department\n"
+            response += f"📊 Data Source: ICAR, IMD, Government Agriculture Database"
+        
+        return response
+    
+    def _get_location_based_crops(self, location: str, season: str) -> list:
+        """Get crop recommendations based on location and season"""
+        location_lower = location.lower()
+        
+        # Comprehensive crop database
+        crop_database = {
+            'delhi': {
+                'kharif': [
+                    {'name': 'Rice', 'score': 85, 'msp': 2040, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                    {'name': 'Maize', 'score': 90, 'msp': 2090, 'yield': '3-4 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                    {'name': 'Cotton', 'score': 75, 'msp': 6620, 'yield': '2-3 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
+                ],
+                'rabi': [
+                    {'name': 'Wheat', 'score': 95, 'msp': 2275, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                    {'name': 'Mustard', 'score': 85, 'msp': 5450, 'yield': '1.5-2 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                    {'name': 'Potato', 'score': 90, 'msp': 1327, 'yield': '25-30 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
+                ]
+            },
+            'mumbai': {
+                'kharif': [
+                    {'name': 'Rice', 'score': 90, 'msp': 2040, 'yield': '4-5 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'},
+                    {'name': 'Sugarcane', 'score': 95, 'msp': 315, 'yield': '70-90 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'},
+                    {'name': 'Cotton', 'score': 80, 'msp': 6620, 'yield': '2-3 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'}
+                ],
+                'rabi': [
+                    {'name': 'Wheat', 'score': 75, 'msp': 2275, 'yield': '3-4 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'},
+                    {'name': 'Onion', 'score': 90, 'msp': 3036, 'yield': '25-30 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'},
+                    {'name': 'Tomato', 'score': 85, 'msp': 3444, 'yield': '30-40 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'}
+                ]
+            },
+            'lucknow': {
+                'kharif': [
+                    {'name': 'Rice', 'score': 90, 'msp': 2040, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                    {'name': 'Maize', 'score': 85, 'msp': 2090, 'yield': '3-4 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                    {'name': 'Sugarcane', 'score': 95, 'msp': 315, 'yield': '70-90 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
+                ],
+                'rabi': [
+                    {'name': 'Wheat', 'score': 95, 'msp': 2275, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                    {'name': 'Mustard', 'score': 90, 'msp': 5450, 'yield': '1.5-2 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                    {'name': 'Potato', 'score': 85, 'msp': 1327, 'yield': '25-30 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
+                ]
+            }
+        }
+        
+        # Get crops for location and season
+        if location_lower in crop_database and season.lower() in crop_database[location_lower]:
+            return crop_database[location_lower][season.lower()]
+        else:
+            # Default recommendations
+            return [
+                {'name': 'Rice', 'score': 80, 'msp': 2040, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                {'name': 'Wheat', 'score': 85, 'msp': 2275, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
+                {'name': 'Maize', 'score': 75, 'msp': 2090, 'yield': '3-4 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
+            ]
+    
+    def _get_government_schemes_data(self, location: str, language: str) -> list:
+        """Get government schemes data for the location"""
+        schemes = [
+            {
+                'name': 'PM Kisan Samman Nidhi',
+                'benefit': '₹6,000 per year in 3 installments',
+                'description': 'Direct income support for farmers',
+                'eligibility': 'All small and marginal farmers',
+                'application': 'Online through PM Kisan portal'
+            },
+            {
+                'name': 'PM Fasal Bima Yojana',
+                'benefit': 'Crop insurance against losses',
+                'description': 'Comprehensive crop insurance scheme',
+                'eligibility': 'All farmers growing notified crops',
+                'application': 'Through Common Service Centres'
+            },
+            {
+                'name': 'Soil Health Card',
+                'benefit': 'Free soil testing every 3 years',
+                'description': 'Soil health assessment and recommendations',
+                'eligibility': 'All farmers',
+                'application': 'Through Krishi Vigyan Kendras'
+            },
+            {
+                'name': 'Kisan Credit Card',
+                'benefit': 'Credit up to ₹3 lakh at 4% interest',
+                'description': 'Easy credit facility for farmers',
+                'eligibility': 'All farmers',
+                'application': 'Through banks and cooperatives'
+            },
+            {
+                'name': 'PM Krishi Sinchai Yojana',
+                'benefit': 'Irrigation support with up to 50% subsidy',
+                'description': 'Water conservation and irrigation scheme',
+                'eligibility': 'Farmers with landholding',
+                'application': 'Through state agriculture departments'
+            },
+            {
+                'name': 'Operation Green',
+                'benefit': 'Support for vegetables and fruits',
+                'description': 'Price stabilization for perishables',
+                'eligibility': 'Vegetable and fruit farmers',
+                'application': 'Through FPOs and cooperatives'
+            },
+            {
+                'name': 'National Food Security Mission',
+                'benefit': 'Support for food grain production',
+                'description': 'Promoting food grain production',
+                'eligibility': 'Rice, wheat, and pulse farmers',
+                'application': 'Through state agriculture departments'
+            }
+        ]
+        
+        if language == 'hi':
+            return [
+                {
+                    'name': 'पीएम किसान सम्मान निधि',
+                    'benefit': '₹6,000 प्रति वर्ष 3 किस्तों में',
+                    'description': 'किसानों के लिए प्रत्यक्ष आय सहायता',
+                    'eligibility': 'सभी छोटे और सीमांत किसान',
+                    'application': 'पीएम किसान पोर्टल के माध्यम से ऑनलाइन'
+                },
+                {
+                    'name': 'पीएम फसल बीमा योजना',
+                    'benefit': 'नुकसान के खिलाफ फसल बीमा',
+                    'description': 'व्यापक फसल बीमा योजना',
+                    'eligibility': 'सूचित फसल उगाने वाले सभी किसान',
+                    'application': 'कॉमन सर्विस सेंटर के माध्यम से'
+                },
+                {
+                    'name': 'मृदा स्वास्थ्य कार्ड',
+                    'benefit': 'हर 3 साल में मुफ्त मिट्टी परीक्षण',
+                    'description': 'मिट्टी स्वास्थ्य मूल्यांकन और सुझाव',
+                    'eligibility': 'सभी किसान',
+                    'application': 'कृषि विज्ञान केंद्र के माध्यम से'
+                },
+                {
+                    'name': 'किसान क्रेडिट कार्ड',
+                    'benefit': '4% ब्याज दर पर ₹3 लाख तक क्रेडिट',
+                    'description': 'किसानों के लिए आसान क्रेडिट सुविधा',
+                    'eligibility': 'सभी किसान',
+                    'application': 'बैंकों और सहकारी समितियों के माध्यम से'
+                },
+                {
+                    'name': 'पीएम कृषि सिंचाई योजना',
+                    'benefit': '50% सब्सिडी के साथ सिंचाई सहायता',
+                    'description': 'जल संरक्षण और सिंचाई योजना',
+                    'eligibility': 'भूमि धारक किसान',
+                    'application': 'राज्य कृषि विभागों के माध्यम से'
+                }
+            ]
+        else:
+            return schemes
     
     def _generate_intelligent_fallback_crop_response(self, location: str, season: str, lat: float, lon: float, language: str) -> str:
         """Generate HIGHLY ACCURATE and PREDICTABLE crop response based on location, season, and coordinates"""
@@ -2907,8 +3135,20 @@ class UltimateIntelligentAI:
                     conversation_history: List = None, location_name: str = None) -> Dict[str, Any]:
         """Main entry point for getting intelligent responses"""
         try:
+            # Improved location detection
+            if not location_name and latitude and longitude:
+                location_name = self._get_location_name_from_coordinates(latitude, longitude)
+            
+            if not location_name:
+                location_name = "Delhi"  # Default fallback
+            
             # Analyze the query
             analysis = self.analyze_query(user_query, language)
+            
+            # Add location information to analysis
+            analysis['location'] = location_name
+            analysis['latitude'] = latitude
+            analysis['longitude'] = longitude
             
             # Determine response type
             query_type = self._determine_enhanced_response_type(analysis, user_query)
