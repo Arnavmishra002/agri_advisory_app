@@ -1,0 +1,46 @@
+[33mcommit a7d386563b681ee96afeecd1e9919ba9c4bd8262[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Arnavmishra002 <mishraarnav67@gmail.com>
+Date:   Wed Oct 8 23:49:41 2025 +0530
+
+    🤖 Fix AI Chatbot Responsiveness - Complete Overhaul
+    
+    ✅ MAJOR FIXES:
+    - Fixed chatbot not responding to user queries
+    - Resolved intent detection issues for greetings (hii, hello, नमस्ते)
+    - Fixed market price query recognition (गेहूं की कीमत क्या है?)
+    - Removed duplicate methods causing language variable errors
+    - Enhanced greeting and market price pattern recognition
+    
+    ✅ AI TRAINING COMPLETED:
+    - 2,930 training samples across 15 categories
+    - 195 unique queries covering all farmer needs
+    - 15 locations used for comprehensive training
+    - 100% success rate in training responses
+    
+    ✅ TECHNICAL IMPROVEMENTS:
+    - Fixed duplicate _generate_fertilizer_response methods
+    - Fixed duplicate _extract_dynamic_location methods
+    - Enhanced pattern matching for better intent detection
+    - Improved error handling and fallback responses
+    - Optimized government API integration
+    
+    ✅ FUNCTIONALITY VERIFIED:
+    - Greetings: hii, hello, नमस्ते, नमस्कार ✅
+    - Weather: मौसम कैसा है? ✅
+    - Market Prices: गेहूं की कीमत क्या है? ✅
+    - Multilingual support: Hindi, English, Hinglish ✅
+    - Government API integration with fallbacks ✅
+    
+    🎯 RESULT: AI chatbot now fully responsive and intelligent!
+
+advisory/ml/learning_data/conversation_history.json
+advisory/ml/learning_data/farmer_preferences.json
+advisory/ml/learning_data/knowledge_base.json
+advisory/ml/learning_data/learning_stats.json
+advisory/ml/learning_data/query_clusters.pkl
+advisory/ml/learning_data/query_patterns.json
+advisory/ml/learning_data/response_clusters.pkl
+advisory/ml/learning_data/response_effectiveness.json
+advisory/ml/ultimate_intelligent_ai.py
+comprehensive_ai_training_data.json
+core/templates/index.html

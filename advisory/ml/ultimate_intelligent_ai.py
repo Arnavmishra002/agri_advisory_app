@@ -9,6 +9,9 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, List
 from ..services.enhanced_government_api import EnhancedGovernmentAPI
+from ..services.enhanced_classifier import enhanced_classifier
+from ..services.enhanced_multilingual import enhanced_multilingual
+from ..services.general_apis import general_apis_service
 from .self_learning_ai import self_learning_ai
 
 logger = logging.getLogger(__name__)
@@ -19,6 +22,9 @@ class UltimateIntelligentAI:
     def __init__(self):
         self.response_templates = self._load_response_templates()
         self.government_api = EnhancedGovernmentAPI()  # Initialize government API
+        self.enhanced_classifier = enhanced_classifier  # Enhanced query classifier
+        self.enhanced_multilingual = enhanced_multilingual  # Enhanced multilingual support
+        self.general_apis = general_apis_service  # General APIs service
         self.crop_prices = {
             'wheat': '2,450',
             'rice': '3,200', 
@@ -2497,22 +2503,42 @@ class UltimateIntelligentAI:
     def get_response(self, user_query: str, language: str = 'en', user_id: str = None, 
                     session_id: str = None, latitude: float = None, longitude: float = None,
                     conversation_history: List = None, location_name: str = None) -> Dict[str, Any]:
-        """Get ultimate intelligent response"""
+        """Get ultimate intelligent response with enhanced features"""
         try:
+            # Enhanced query classification using new classifier
+            classification = self.enhanced_classifier.classify_query(user_query)
+            
+            # Detect language using enhanced multilingual support
+            detected_language = self.enhanced_multilingual.detect_language(user_query)
+            if detected_language != language:
+                language = detected_language
+            
             # Analyze query with ultimate intelligence
             analysis = self.analyze_query(user_query, language)
             
-            # Get the actual detected language from analysis
-            detected_language = analysis.get("language", language)
+            # Merge classification with analysis
+            analysis.update(classification)
             
-            # Generate response with detected language and location data
-            response = self.generate_response(user_query, analysis, detected_language, latitude, longitude, location_name)
+            # Determine response type based on enhanced classification
+            response_type = self._determine_enhanced_response_type(classification)
+            
+            # Generate response with enhanced features
+            response = self._generate_enhanced_response(
+                user_query, analysis, response_type, language, 
+                latitude, longitude, location_name
+            )
+            
+            # Add intelligence metrics
+            intelligence_score = self._calculate_intelligence_score(response, analysis)
             
             return {
                 "response": response,
-                "source": "ultimate_intelligent_ai",
-                "confidence": analysis.get("confidence", 0.95),
-                "language": detected_language,  # Use detected language instead of input language
+                "source": analysis.get('source', 'enhanced_ai'),
+                "confidence": classification.get('confidence', analysis.get("confidence", 0.95)),
+                "language": detected_language,
+                "intelligence_score": intelligence_score,
+                "query_type": classification.get('query_type', 'general'),
+                "subcategory": classification.get('subcategory', 'general'),
                 "timestamp": datetime.now().isoformat(),
                 "session_id": session_id,
                 "context_aware": True,
@@ -2522,6 +2548,7 @@ class UltimateIntelligentAI:
                     "location_based": bool(latitude and longitude),
                     "processed_query": analysis.get("processed_query", user_query),
                     "original_query": analysis.get("original_query", user_query),
+                    "classification_details": classification.get('classification_details', {}),
                     "reasoning_context": {
                         "conversation_flow": "new_conversation"
                     }
@@ -2537,6 +2564,284 @@ class UltimateIntelligentAI:
                 "language": language,
                 "error": str(e)
             }
+
+    def _determine_enhanced_response_type(self, classification: Dict[str, Any]) -> str:
+        """Determine response type based on enhanced classification"""
+        query_type = classification.get('query_type', 'general')
+        subcategory = classification.get('subcategory', 'general')
+        
+        if query_type == 'farming':
+            return subcategory
+        elif query_type == 'general':
+            return 'general'
+        elif query_type == 'mixed':
+            return 'mixed'
+        else:
+            return 'general'
+    
+    def _generate_enhanced_response(self, user_query: str, analysis: Dict[str, Any], 
+                                  response_type: str, language: str, latitude: float = None, 
+                                  longitude: float = None, location_name: str = None) -> str:
+        """Generate enhanced response using new services"""
+        
+        # Use enhanced multilingual formatting
+        if response_type == 'farming':
+            # Use enhanced government API for farming queries
+            if 'crop' in response_type or 'crop' in analysis.get('entities', {}):
+                return self._generate_enhanced_crop_response(analysis, language, latitude, longitude, location_name)
+            elif 'market' in response_type or 'price' in analysis.get('entities', {}):
+                return self._generate_enhanced_market_response(analysis, language, latitude, longitude, location_name)
+            elif 'weather' in response_type:
+                return self._generate_enhanced_weather_response(analysis, language, latitude, longitude, location_name)
+            else:
+                return self.generate_response(user_query, analysis, language, latitude, longitude, location_name)
+        
+        elif response_type == 'general':
+            # Use general APIs service for general queries
+            try:
+                general_response = self.general_apis.handle_general_question(user_query, language)
+                if general_response.get('confidence', 0) > 0.5:
+                    return general_response.get('response', '')
+                else:
+                    # Fallback to agricultural redirect
+                    return self._generate_agricultural_redirect(language)
+            except Exception as e:
+                logger.warning(f"General APIs failed: {e}")
+                return self._generate_agricultural_redirect(language)
+        
+        elif response_type == 'mixed':
+            # Handle mixed queries with both farming and general elements
+            return self._generate_mixed_response(analysis, language, latitude, longitude, location_name)
+        
+        else:
+            return self.generate_response(user_query, analysis, language, latitude, longitude, location_name)
+    
+    def _generate_enhanced_crop_response(self, analysis: Dict[str, Any], language: str, 
+                                       latitude: float = None, longitude: float = None, 
+                                       location_name: str = None) -> str:
+        """Generate enhanced crop response using new government API"""
+        
+        location = location_name or 'Delhi'
+        
+        try:
+            # Use enhanced government API
+            crop_data = self.government_api.get_enhanced_crop_recommendations(location, None, language)
+            
+            if crop_data and crop_data.get('recommendations'):
+                recommendations = crop_data['recommendations']
+                
+                # Format using enhanced multilingual support
+                response_data = {
+                    'type': 'crop_recommendation',
+                    'location': location,
+                    'crops': recommendations
+                }
+                
+                return self.enhanced_multilingual.format_response(response_data, language)
+            else:
+                # Fallback to original method
+                return self.generate_response("crop recommendation", analysis, language, latitude, longitude, location_name)
+                
+        except Exception as e:
+            logger.warning(f"Enhanced crop response failed: {e}")
+            return self.generate_response("crop recommendation", analysis, language, latitude, longitude, location_name)
+    
+    def _generate_enhanced_market_response(self, analysis: Dict[str, Any], language: str, 
+                                         latitude: float = None, longitude: float = None, 
+                                         location_name: str = None) -> str:
+        """Generate enhanced market response using new government API"""
+        
+        entities = analysis.get('entities', {})
+        crops = entities.get('crops', [])
+        locations = entities.get('locations', [])
+        
+        crop = crops[0] if crops else 'wheat'
+        location = locations[0] if locations else (location_name or 'Delhi')
+        
+        try:
+            # Use enhanced government API
+            market_data = self.government_api.get_enhanced_market_prices(crop, location, language)
+            
+            if market_data:
+                # Format using enhanced multilingual support
+                response_data = {
+                    'type': 'market_price',
+                    'crop': crop,
+                    'location': location,
+                    'price': market_data.get('price', 'N/A'),
+                    'msp': market_data.get('msp', 'N/A'),
+                    'trend': market_data.get('change', 'stable')
+                }
+                
+                return self.enhanced_multilingual.format_response(response_data, language)
+            else:
+                # Fallback to original method
+                return self.generate_response("market price", analysis, language, latitude, longitude, location_name)
+                
+        except Exception as e:
+            logger.warning(f"Enhanced market response failed: {e}")
+            return self.generate_response("market price", analysis, language, latitude, longitude, location_name)
+    
+    def _generate_enhanced_weather_response(self, analysis: Dict[str, Any], language: str, 
+                                          latitude: float = None, longitude: float = None, 
+                                          location_name: str = None) -> str:
+        """Generate enhanced weather response using new government API"""
+        
+        entities = analysis.get('entities', {})
+        locations = entities.get('locations', [])
+        
+        location = locations[0] if locations else (location_name or 'Delhi')
+        
+        try:
+            # Use enhanced government API
+            weather_data = self.government_api.get_enhanced_weather_data(location, language)
+            
+            if weather_data:
+                # Format using enhanced multilingual support
+                response_data = {
+                    'type': 'weather',
+                    'location': location,
+                    'temperature': weather_data.get('temperature', 'N/A'),
+                    'humidity': weather_data.get('humidity', 'N/A'),
+                    'condition': weather_data.get('condition', 'Clear')
+                }
+                
+                return self.enhanced_multilingual.format_response(response_data, language)
+            else:
+                # Fallback to original method
+                return self.generate_response("weather", analysis, language, latitude, longitude, location_name)
+                
+        except Exception as e:
+            logger.warning(f"Enhanced weather response failed: {e}")
+            return self.generate_response("weather", analysis, language, latitude, longitude, location_name)
+    
+    def _generate_mixed_response(self, analysis: Dict[str, Any], language: str, 
+                               latitude: float = None, longitude: float = None, 
+                               location_name: str = None) -> str:
+        """Generate response for mixed queries"""
+        
+        # Extract both farming and general elements
+        entities = analysis.get('entities', {})
+        
+        # Generate farming part
+        farming_response = ""
+        if entities.get('crops') or 'crop' in analysis.get('intent', ''):
+            farming_response = self._generate_enhanced_crop_response(analysis, language, latitude, longitude, location_name)
+        elif entities.get('locations') and ('weather' in analysis.get('intent', '') or 'price' in analysis.get('intent', '')):
+            if 'weather' in analysis.get('intent', ''):
+                farming_response = self._generate_enhanced_weather_response(analysis, language, latitude, longitude, location_name)
+            elif 'price' in analysis.get('intent', ''):
+                farming_response = self._generate_enhanced_market_response(analysis, language, latitude, longitude, location_name)
+        
+        # Generate general part
+        general_response = ""
+        try:
+            general_data = self.general_apis.handle_general_question(analysis.get('original_query', ''), language)
+            if general_data.get('confidence', 0) > 0.5:
+                general_response = general_data.get('response', '')
+        except Exception as e:
+            logger.warning(f"General part failed: {e}")
+        
+        # Combine responses
+        if farming_response and general_response:
+            if language == 'hi':
+                return f"{farming_response}\n\n---\n\n{general_response}"
+            else:
+                return f"{farming_response}\n\n---\n\n{general_response}"
+        elif farming_response:
+            return farming_response
+        elif general_response:
+            return general_response
+        else:
+            return self._generate_agricultural_redirect(language)
+    
+    def _generate_agricultural_redirect(self, language: str) -> str:
+        """Generate agricultural redirect message"""
+        return self.enhanced_multilingual.get_localized_template('help', language)
+    
+    def _determine_enhanced_response_type(self, analysis: Dict[str, Any], query: str) -> str:
+        """Determine enhanced response type"""
+        intent = analysis.get('intent', 'general')
+        entities = analysis.get('entities', {})
+        
+        # Check for farming-related queries
+        farming_keywords = ['crop', 'फसल', 'price', 'कीमत', 'weather', 'मौसम', 'pest', 'कीट', 
+                           'government', 'सरकार', 'scheme', 'योजना', 'fertilizer', 'उर्वरक']
+        
+        if any(keyword in query.lower() for keyword in farming_keywords):
+            return 'farming'
+        
+        # Check for general queries
+        general_keywords = ['trivia', 'question', 'fact', 'number', 'activity', 'bored']
+        if any(keyword in query.lower() for keyword in general_keywords):
+            return 'general'
+        
+        # Check for mixed queries
+        mixed_indicators = ['aur', 'and', 'भी', 'also', 'batao', 'बताओ', 'tell me', 'मुझे बताओ']
+        if any(indicator in query.lower() for indicator in mixed_indicators):
+            return 'mixed'
+        
+        return intent
+    
+    def _generate_enhanced_response(self, analysis: Dict[str, Any], query_type: str, language: str,
+                                   latitude: float = None, longitude: float = None, 
+                                   location_name: str = None) -> str:
+        """Generate enhanced response based on query type"""
+        
+        if query_type == 'farming':
+            return self._generate_enhanced_farming_response(analysis, language, latitude, longitude, location_name)
+        elif query_type == 'general':
+            return self._generate_enhanced_general_response(analysis, language)
+        elif query_type == 'mixed':
+            return self._generate_mixed_response(analysis, language, latitude, longitude, location_name)
+        else:
+            return self.generate_response(analysis.get('original_query', ''), analysis, language, latitude, longitude, location_name)
+    
+    def _generate_enhanced_farming_response(self, analysis: Dict[str, Any], language: str,
+                                           latitude: float = None, longitude: float = None,
+                                           location_name: str = None) -> str:
+        """Generate enhanced farming response"""
+        intent = analysis.get('intent', 'general')
+        entities = analysis.get('entities', {})
+        
+        if intent == 'market' or intent == 'market_price':
+            return self._generate_enhanced_market_response(analysis, language, latitude, longitude, location_name)
+        elif intent == 'weather':
+            return self._generate_enhanced_weather_response(analysis, language, latitude, longitude, location_name)
+        elif intent == 'crop_recommendation':
+            return self._generate_enhanced_crop_response(analysis, language, latitude, longitude, location_name)
+        else:
+            return self.generate_response(analysis.get('original_query', ''), analysis, language, latitude, longitude, location_name)
+    
+    def _generate_enhanced_general_response(self, analysis: Dict[str, Any], language: str) -> str:
+        """Generate enhanced general response"""
+        try:
+            query = analysis.get('original_query', '')
+            general_data = self.general_apis.handle_general_question(query, language)
+            return general_data.get('response', 'I can help you with agricultural problems....')
+        except Exception as e:
+            logger.warning(f"Enhanced general response failed: {e}")
+            return self._generate_general_intelligent_response(query, {}, language)
+    
+    def _calculate_intelligence_score(self, response: str, analysis: Dict[str, Any]) -> float:
+        """Calculate intelligence score for the response"""
+        
+        score = 0.5  # Base score
+        
+        # Increase score based on response quality
+        if len(response) > 100:
+            score += 0.1
+        
+        if any(keyword in response.lower() for keyword in ['government', 'msp', 'mandi', 'सरकार', 'मंडी']):
+            score += 0.2
+        
+        if any(keyword in response.lower() for keyword in ['recommendation', 'suggestion', 'सुझाव', 'सलाह']):
+            score += 0.1
+        
+        if analysis.get('confidence', 0) > 0.8:
+            score += 0.1
+        
+        return min(score, 1.0)
 
 
     def _generate_irrigation_response(self, entities: Dict[str, Any], language: str, latitude: float = None, longitude: float = None) -> str:
@@ -2562,11 +2867,80 @@ class UltimateIntelligentAI:
 
     def _generate_general_intelligent_response(self, query: str, entities: Dict[str, Any], language: str, 
                                              latitude: float = None, longitude: float = None, location_name: str = None) -> str:
-        """Generate general intelligent response for any query"""
-        if language == 'hi':
-            return f"🌾 **कृषिमित्र AI सहायता:**\n\nमैं आपकी कृषि समस्याओं में मदद कर सकता हूँ। मैं निम्नलिखित सेवाएं प्रदान करता हूँ:\n\n💰 **बाजार कीमतें** - रियल-टाइम मंडी कीमतें\n🌤️ **मौसम जानकारी** - सटीक मौसम पूर्वानुमान\n🌱 **फसल सुझाव** - AI द्वारा सर्वोत्तम फसल सुझाव\n🐛 **कीट नियंत्रण** - कीट और रोग की पहचान\n🏛️ **सरकारी योजनाएं** - कृषि योजनाओं की जानकारी\n🌱 **उर्वरक सुझाव** - मिट्टी अनुसार उर्वरक\n💧 **सिंचाई सुझाव** - पानी की बचत के लिए\n🌾 **कटाई सुझाव** - सही समय पर कटाई\n\nकृपया अपना सवाल पूछें!"
-        else:
-            return f"🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weather Information** - Accurate weather forecasts\n🌱 **Crop Recommendations** - AI-powered best crop suggestions\n🐛 **Pest Control** - Pest and disease identification\n🏛️ **Government Schemes** - Agricultural scheme information\n🌱 **Fertilizer Advice** - Soil-based fertilizer recommendations\n💧 **Irrigation Tips** - Water-saving irrigation\n🌾 **Harvest Guidance** - Right time harvesting\n\nPlease ask your question!"
+        """Generate general intelligent response for any query using free APIs"""
+        
+        # Import the general APIs service
+        try:
+            from ..services.general_apis import general_apis_service
+            
+            # Try to handle with general APIs first
+            api_response = general_apis_service.handle_general_question(query, language)
+            
+            # If API provided a good response, return it
+            if api_response.get('confidence', 0) > 0.5:
+                return api_response.get('response', '')
+            
+            # If API response is low confidence, fall back to agricultural redirect
+            else:
+                if language == 'hi':
+                    return f"🌾 **कृषिमित्र AI सहायता:**\n\nमैं आपकी कृषि समस्याओं में मदद कर सकता हूँ। मैं निम्नलिखित सेवाएं प्रदान करता हूँ:\n\n💰 **बाजार कीमतें** - रियल-टाइम मंडी कीमतें\n🌤️ **मौसम जानकारी** - सटीक मौसम पूर्वानुमान\n🌱 **फसल सुझाव** - AI द्वारा सर्वोत्तम फसल सुझाव\n🐛 **कीट नियंत्रण** - कीट और रोग की पहचान\n🏛️ **सरकारी योजनाएं** - कृषि योजनाओं की जानकारी\n🌱 **उर्वरक सुझाव** - मिट्टी अनुसार उर्वरक\n💧 **सिंचाई सुझाव** - पानी की बचत के लिए\n🌾 **कटाई सुझाव** - सही समय पर कटाई\n\nकृपया अपना सवाल पूछें!"
+                else:
+                    return f"🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weather Information** - Accurate weather forecasts\n🌱 **Crop Recommendations** - AI-powered best crop suggestions\n🐛 **Pest Control** - Pest and disease identification\n🏛️ **Government Schemes** - Agricultural scheme information\n🌱 **Fertilizer Advice** - Soil-based fertilizer recommendations\n💧 **Irrigation Tips** - Water-saving irrigation\n🌾 **Harvest Guidance** - Right time harvesting\n\nPlease ask your question!"
+        
+        except ImportError:
+            # Fallback if general APIs service is not available
+            if language == 'hi':
+                return f"🌾 **कृषिमित्र AI सहायता:**\n\nमैं आपकी कृषि समस्याओं में मदद कर सकता हूँ। मैं निम्नलिखित सेवाएं प्रदान करता हूँ:\n\n💰 **बाजार कीमतें** - रियल-टाइम मंडी कीमतें\n🌤️ **मौसम जानकारी** - सटीक मौसम पूर्वानुमान\n🌱 **फसल सुझाव** - AI द्वारा सर्वोत्तम फसल सुझाव\n🐛 **कीट नियंत्रण** - कीट और रोग की पहचान\n🏛️ **सरकारी योजनाएं** - कृषि योजनाओं की जानकारी\n🌱 **उर्वरक सुझाव** - मिट्टी अनुसार उर्वरक\n💧 **सिंचाई सुझाव** - पानी की बचत के लिए\n🌾 **कटाई सुझाव** - सही समय पर कटाई\n\nकृपया अपना सवाल पूछें!"
+            else:
+                return f"🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weather Information** - Accurate weather forecasts\n🌱 **Crop Recommendations** - AI-powered best crop suggestions\n🐛 **Pest Control** - Pest and disease identification\n🏛️ **Government Schemes** - Agricultural scheme information\n🌱 **Fertilizer Advice** - Soil-based fertilizer recommendations\n💧 **Irrigation Tips** - Water-saving irrigation\n🌾 **Harvest Guidance** - Right time harvesting\n\nPlease ask your question!"
+
+    def get_response(self, user_query: str, language: str = 'en', user_id: str = None, 
+                    session_id: str = None, latitude: float = None, longitude: float = None,
+                    conversation_history: List = None, location_name: str = None) -> Dict[str, Any]:
+        """Main entry point for getting intelligent responses"""
+        try:
+            # Analyze the query
+            analysis = self.analyze_query(user_query, language)
+            
+            # Determine response type
+            query_type = self._determine_enhanced_response_type(analysis, user_query)
+            
+            # Generate response
+            response = self._generate_enhanced_response(
+                analysis, query_type, language, latitude, longitude, location_name
+            )
+            
+            # Calculate intelligence score
+            intelligence_score = self._calculate_intelligence_score(response, analysis)
+            
+            # Determine if government data was used
+            has_government_data = any(keyword in response.lower() for keyword in [
+                'government', 'सरकार', 'mandi', 'मंडी', '₹', 'rupee', 'रुपये', 
+                'msp', 'scheme', 'योजना', 'pm kisan', 'फसल बीमा'
+            ])
+            
+            return {
+                "response": response,
+                "query_type": query_type,
+                "confidence": analysis.get('confidence', 0.8),
+                "intelligence_score": intelligence_score,
+                "source": "enhanced_ai",
+                "language": language,
+                "has_government_data": has_government_data,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in get_response: {e}")
+            return {
+                "response": "I can help you with agricultural problems...." if language != 'hi' else "मैं आपकी कृषि समस्याओं में मदद कर सकता हूं....",
+                "query_type": "general",
+                "confidence": 0.5,
+                "intelligence_score": 0.5,
+                "source": "fallback",
+                "language": language,
+                "error": str(e)
+            }
 
 # Create global instance
 ultimate_ai = UltimateIntelligentAI()
