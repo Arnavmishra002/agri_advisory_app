@@ -42,6 +42,3 @@ gtts>=2.3.0
 pyttsx3>=2.90
 # Additional dependencies
 geopy>=2.3.0
-
-# Additional dependencies
-threading>=1.0.0
