@@ -48,7 +48,7 @@ class GeneralAPIsService:
                 return self._handle_ai_response(query, language)
         except Exception as e:
             logger.error(f"General APIs service error: {e}")
-            return self._handle_ai_response(query, language)
+            return self._get_fallback_response(query, language)
     
     def _handle_ai_response(self, query: str, language: str) -> Dict[str, Any]:
         """Handle general AI response fallback"""

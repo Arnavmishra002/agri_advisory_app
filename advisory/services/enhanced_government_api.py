@@ -521,15 +521,13 @@ class EnhancedGovernmentAPI:
         # Implementation for parsing weather response
         return None
     
-    def get_real_market_prices(self, crop: str, location: str = None, **kwargs) -> List[Dict[str, Any]]:
+    def get_real_market_prices(self, crop: str, location: str = None, commodity: str = None, latitude: float = None, longitude: float = None, language: str = 'en', **kwargs) -> List[Dict[str, Any]]:
         """Get real market prices (compatibility method)"""
         try:
-            # Extract parameters from kwargs if provided
-            commodity = kwargs.get('commodity', crop)
-            state = kwargs.get('state', location)
+            # Use provided parameters or defaults
+            commodity = commodity or crop
+            state = location
             mandi = kwargs.get('mandi')
-            latitude = kwargs.get('latitude')
-            longitude = kwargs.get('longitude')
             
             # Use the provided parameters or defaults
             crop_name = commodity or crop
@@ -543,7 +541,7 @@ class EnhancedGovernmentAPI:
             logger.warning(f"Error getting real market prices: {e}")
             return []
     
-    def get_real_weather_data(self, location: str, **kwargs) -> Dict[str, Any]:
+    def get_real_weather_data(self, location: str, language: str = 'en', **kwargs) -> Dict[str, Any]:
         """Get real weather data (compatibility method)"""
         try:
             return self.get_enhanced_weather_data(location)
