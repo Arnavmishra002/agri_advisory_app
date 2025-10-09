@@ -43,7 +43,7 @@ class EnhancedGovernmentAPI:
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         })
-    
+        
     def _load_fallback_data(self) -> Dict[str, Any]:
         """Load comprehensive fallback data"""
         return {
@@ -134,7 +134,7 @@ class EnhancedGovernmentAPI:
                 market_data = self._fetch_from_api(source, crop, location)
                 if market_data:
                     break
-            except Exception as e:
+        except Exception as e:
                 logger.warning(f"API {source} failed: {e}")
                 continue
         
@@ -180,7 +180,7 @@ class EnhancedGovernmentAPI:
         schemes_data = self.fallback_data['government_schemes'].copy()
         
         # Add state-specific schemes if available
-        if state:
+            if state:
             state_schemes = self._get_state_specific_schemes(state)
             schemes_data.update(state_schemes)
         
@@ -238,11 +238,11 @@ class EnhancedGovernmentAPI:
             return None
         
         url = self.api_endpoints[source]
-        params = {
+            params = {
             'commodity': crop,
             'state': location or 'Delhi',
-            'format': 'json'
-        }
+                'format': 'json'
+            }
         
         try:
             response = self.session.get(url, params=params, timeout=5)
@@ -252,17 +252,17 @@ class EnhancedGovernmentAPI:
         except Exception as e:
             logger.error(f"Error fetching from {source}: {e}")
         
-        return None
-    
+                return None
+                
     def _fetch_weather_from_imd(self, location: str) -> Optional[Dict[str, Any]]:
         """Fetch weather data from IMD"""
         
         url = self.api_endpoints['imd']
-        params = {
+            params = {
             'location': location,
-            'format': 'json'
-        }
-        
+                'format': 'json'
+            }
+            
         try:
             response = self.session.get(url, params=params, timeout=5)
             if response.status_code == 200:
@@ -271,7 +271,7 @@ class EnhancedGovernmentAPI:
         except Exception as e:
             logger.error(f"Error fetching weather from IMD: {e}")
         
-        return None
+            return None
     
     def _get_enhanced_fallback_price(self, crop: str, location: str, language: str) -> Dict[str, Any]:
         """Get enhanced fallback price with location adjustments"""
@@ -466,7 +466,7 @@ class EnhancedGovernmentAPI:
                 score += 10
             
             # Add some randomness for realism
-            import random
+        import random
             score += random.randint(-5, 5)
             score = max(60, min(95, score))  # Keep score between 60-95
             
