@@ -701,7 +701,7 @@
                             <p><strong>राशि:</strong> ₹6,000 प्रति वर्ष प्रति किसान परिवार</p>
                             <p><strong>किस्तें:</strong> तीन किस्तों में (₹2,000 प्रति किस्त)</p>
                             <p><strong>पात्रता:</strong> सभी किसान परिवार</p>
-                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Kisan Samman Nidhi')">और जानें</button>
+                            <button class="btn btn-primary btn-sm" onclick="openGovernmentScheme('pmkisan')" title="सरकारी वेबसाइट पर जाएं">और जानें</button>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
@@ -710,7 +710,7 @@
                             <p><strong>उद्देश्य:</strong> सिंचाई सुविधाओं को बेहतर बनाना</p>
                             <p><strong>सहायता:</strong> वित्तीय सहायता और तकनीकी सहायता</p>
                             <p><strong>लाभ:</strong> पानी की बचत और उत्पादकता बढ़ाना</p>
-                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Krishi Sinchai Yojana')">और जानें</button>
+                            <button class="btn btn-primary btn-sm" onclick="openGovernmentScheme('pmksy')" title="सरकारी वेबसाइट पर जाएं">और जानें</button>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
@@ -719,7 +719,7 @@
                             <p><strong>उद्देश्य:</strong> कृषि और संबद्ध क्षेत्रों का विकास</p>
                             <p><strong>सहायता:</strong> केंद्रीय सहायता और अनुदान</p>
                             <p><strong>क्षेत्र:</strong> फसल, पशुपालन, मत्स्य पालन</p>
-                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('RKVY')">और जानें</button>
+                            <button class="btn btn-primary btn-sm" onclick="openGovernmentScheme('rkvy')" title="सरकारी वेबसाइट पर जाएं">और जानें</button>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
@@ -728,7 +728,7 @@
                             <p><strong>उद्देश्य:</strong> फसल नुकसान से सुरक्षा</p>
                             <p><strong>प्रीमियम:</strong> किसानों के लिए कम दर</p>
                             <p><strong>कवरेज:</strong> प्राकृतिक आपदाओं से सुरक्षा</p>
-                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Fasal Bima Yojana')">और जानें</button>
+                            <button class="btn btn-primary btn-sm" onclick="openGovernmentScheme('pmfby')" title="सरकारी वेबसाइट पर जाएं">और जानें</button>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
@@ -737,7 +737,7 @@
                             <p><strong>उद्देश्य:</strong> ड्रोन तकनीक का उपयोग</p>
                             <p><strong>सहायता:</strong> ड्रोन खरीद पर सब्सिडी</p>
                             <p><strong>लाभ:</strong> फसल निगरानी और स्प्रे</p>
-                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('Kisan Drone Yojana')">और जानें</button>
+                            <button class="btn btn-primary btn-sm" onclick="openGovernmentScheme('drone')" title="सरकारी वेबसाइट पर जाएं">और जानें</button>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
@@ -746,7 +746,7 @@
                             <p><strong>उद्देश्य:</strong> जैविक खेती को बढ़ावा</p>
                             <p><strong>सहायता:</strong> प्रमाणन और विपणन सहायता</p>
                             <p><strong>लाभ:</strong> पर्यावरण अनुकूल खेती</p>
-                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('Organic Farming Scheme')">और जानें</button>
+                            <button class="btn btn-primary btn-sm" onclick="openGovernmentScheme('organic')" title="सरकारी वेबसाइट पर जाएं">और जानें</button>
                         </div>
                     </div>
                 </div>
@@ -2783,7 +2783,7 @@
                             <h5>🏛️ ${scheme.name}</h5>
                             <p><strong>राशि:</strong> ${scheme.amount}</p>
                             <p><strong>विवरण:</strong> ${scheme.description}</p>
-                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('${scheme.name}')">और जानें</button>
+                            <button class="btn btn-primary btn-sm" onclick="openGovernmentScheme('all_schemes')" title="सरकारी वेबसाइट पर जाएं">और जानें</button>
                         </div>
                     </div>
                 `;
@@ -3139,17 +3139,37 @@
         // Open scheme application
         function openSchemeApplication(schemeName) {
             const applicationUrls = {
+                'प्रधानमंत्री किसान सम्मान निधि': 'https://pmkisan.gov.in/',
                 'PM किसान सम्मान निधि': 'https://pmkisan.gov.in/',
                 'प्रधानमंत्री कृषि सिंचाई योजना': 'https://pmksy.gov.in/',
                 'राष्ट्रीय कृषि विकास योजना': 'https://rkvy.nic.in/',
                 'प्रधानमंत्री फसल बीमा योजना': 'https://pmfby.gov.in/',
-                'किसान ड्रोन योजना': 'https://agricoop.gov.in/',
-                'जैविक खेती योजना': 'https://www.organic-india.com/'
+                'किसान ड्रोन योजना': 'https://agricoop.gov.in/en/schemes',
+                'जैविक खेती योजना': 'https://www.agricoop.gov.in/en/schemes',
+                'केंद्रीय कृषि योजनाएं': 'https://www.agricoop.gov.in/en/schemes',
+                'राज्य कृषि योजनाएं': 'https://www.agricoop.gov.in/en/schemes'
             };
             
-            const url = applicationUrls[schemeName] || 'https://agricoop.gov.in/';
+            const url = applicationUrls[schemeName] || 'https://www.agricoop.gov.in/';
             window.open(url, '_blank');
-            showNotification('सरकारी वेबसाइट खुल गई है', 'success');
+            showNotification(`${schemeName} की सरकारी वेबसाइट खुल गई है`, 'success');
+        }
+        
+        // Direct government scheme links
+        function openGovernmentScheme(schemeType) {
+            const schemeUrls = {
+                'pmkisan': 'https://pmkisan.gov.in/',
+                'pmksy': 'https://pmksy.gov.in/',
+                'rkvy': 'https://rkvy.nic.in/',
+                'pmfby': 'https://pmfby.gov.in/',
+                'drone': 'https://agricoop.gov.in/en/schemes',
+                'organic': 'https://www.agricoop.gov.in/en/schemes',
+                'all_schemes': 'https://www.agricoop.gov.in/en/schemes'
+            };
+            
+            const url = schemeUrls[schemeType] || 'https://www.agricoop.gov.in/';
+            window.open(url, '_blank');
+            showNotification('सरकारी योजना की वेबसाइट खुल गई है', 'success');
         }
 
         // Send message function
