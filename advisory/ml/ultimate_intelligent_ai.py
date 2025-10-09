@@ -9,6 +9,10 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, List
 from ..services.enhanced_government_api import EnhancedGovernmentAPI
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+from comprehensive_government_location_system import ComprehensiveGovernmentLocationSystem
 from ..services.enhanced_classifier import enhanced_classifier
 from ..services.enhanced_multilingual import enhanced_multilingual
 from ..services.general_apis import general_apis_service
@@ -23,6 +27,7 @@ class UltimateIntelligentAI:
     def __init__(self):
         self.response_templates = self._load_response_templates()
         self.government_api = EnhancedGovernmentAPI()  # Initialize government API
+        self.location_system = ComprehensiveGovernmentLocationSystem()  # Comprehensive location system
         self.enhanced_classifier = enhanced_classifier  # Enhanced query classifier
         self.enhanced_multilingual = enhanced_multilingual  # Enhanced multilingual support
         self.general_apis = general_apis_service  # General APIs service
@@ -3299,6 +3304,44 @@ class UltimateIntelligentAI:
                 "language": language,
                 "error": str(e)
             }
+
+    def get_location_recommendations(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get location recommendations like Google Maps with detailed information"""
+        try:
+            # Use comprehensive location system to search
+            results = self.location_system.search_location(query, limit=limit)
+            
+            # Enhance results with additional information
+            enhanced_results = []
+            for result in results:
+                enhanced_result = {
+                    'name': result['name'],
+                    'type': result['type'],
+                    'state': result['state'],
+                    'details': result['details'],
+                    'coordinates': result['coordinates'],
+                    'major_crops': result.get('major_crops', []),
+                    'mandis': result.get('mandis', []),
+                    'rainfall': result.get('rainfall', 'N/A'),
+                    'relevance_score': result['relevance_score'],
+                    'display_name': f"{result['name']} ({result['state']})",
+                    'full_address': f"{result['name']}, {result.get('district', '')}, {result['state']}"
+                }
+                enhanced_results.append(enhanced_result)
+            
+            return enhanced_results
+            
+        except Exception as e:
+            logger.error(f"Error getting location recommendations: {e}")
+            return []
+    
+    def get_comprehensive_location_data(self, location_name: str, state: str = None) -> Dict[str, Any]:
+        """Get comprehensive location data from government APIs"""
+        try:
+            return self.location_system.get_comprehensive_location_data(location_name, state)
+        except Exception as e:
+            logger.error(f"Error getting comprehensive location data: {e}")
+            return {}
 
 # Create global instance
 ultimate_ai = UltimateIntelligentAI()

@@ -426,14 +426,17 @@ class ProductionTestSuite:
         
         total_time = time.time() - start_time
         
+        # Filter valid response times
+        valid_response_times = [r['response_time'] for r in results if r['response_time'] > 0]
+        
         concurrent_tests = {
             'total_requests': len(concurrent_requests),
             'successful_requests': sum(1 for r in results if r['success']),
             'failed_requests': sum(1 for r in results if not r['success']),
             'total_time': total_time,
-            'average_response_time': statistics.mean([r['response_time'] for r in results if r['response_time'] > 0]),
-            'max_response_time': max([r['response_time'] for r in results if r['response_time'] > 0], default=0),
-            'min_response_time': min([r['response_time'] for r in results if r['response_time'] > 0], default=0)
+            'average_response_time': statistics.mean(valid_response_times) if valid_response_times else 0,
+            'max_response_time': max(valid_response_times, default=0),
+            'min_response_time': min(valid_response_times, default=0)
         }
         
         logger.info(f"✅ Concurrent test: {concurrent_tests['successful_requests']}/{concurrent_tests['total_requests']} successful")

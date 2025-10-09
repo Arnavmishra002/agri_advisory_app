@@ -58,14 +58,25 @@ class EnhancedGovernmentAPI:
                 'soybean': 3950, 'tur': 6600, 'masoor': 6100, 'barley': 1850
             },
             'market_prices': {
-                'wheat': {'min': 2200, 'max': 2500, 'avg': 2350},
-                'rice': {'min': 2100, 'max': 2800, 'avg': 2450},
-                'maize': {'min': 1900, 'max': 2200, 'avg': 2050},
-                'cotton': {'min': 6000, 'max': 7200, 'avg': 6600},
-                'groundnut': {'min': 5500, 'max': 7500, 'avg': 6500},
-                'moong': {'min': 7000, 'max': 8500, 'avg': 7750},
-                'jowar': {'min': 2500, 'max': 3200, 'avg': 2850},
-                'bajra': {'min': 2200, 'max': 2800, 'avg': 2500}
+                'wheat': {'min': 2200, 'max': 2500, 'avg': 2350, 'msp': 2275, 'trend': '+2.5%'},
+                'rice': {'min': 2100, 'max': 2800, 'avg': 2450, 'msp': 2183, 'trend': '+1.8%'},
+                'maize': {'min': 1900, 'max': 2200, 'avg': 2050, 'msp': 2090, 'trend': '+3.2%'},
+                'cotton': {'min': 6000, 'max': 7200, 'avg': 6600, 'msp': 6620, 'trend': '-1.5%'},
+                'groundnut': {'min': 5500, 'max': 7500, 'avg': 6500, 'msp': 6377, 'trend': '+4.1%'},
+                'moong': {'min': 7000, 'max': 8500, 'avg': 7750, 'msp': 7755, 'trend': '+2.8%'},
+                'jowar': {'min': 2500, 'max': 3200, 'avg': 2850, 'msp': 2977, 'trend': '+1.2%'},
+                'bajra': {'min': 2200, 'max': 2800, 'avg': 2500, 'msp': 2500, 'trend': '+0.8%'},
+                'mustard': {'min': 5200, 'max': 6200, 'avg': 5700, 'msp': 5650, 'trend': '+3.5%'},
+                'sugarcane': {'min': 300, 'max': 350, 'avg': 325, 'msp': 315, 'trend': '+2.1%'},
+                'potato': {'min': 800, 'max': 1200, 'avg': 1000, 'msp': 0, 'trend': '+5.2%'},
+                'onion': {'min': 1200, 'max': 1800, 'avg': 1500, 'msp': 0, 'trend': '+7.8%'}
+            },
+            'location_multipliers': {
+                'delhi': 1.0, 'mumbai': 1.15, 'bangalore': 1.05, 'chennai': 0.95,
+                'kolkata': 0.98, 'hyderabad': 1.02, 'pune': 1.08, 'ahmedabad': 1.03,
+                'punjab': 0.92, 'haryana': 0.95, 'uttar_pradesh': 0.88, 'bihar': 0.85,
+                'west_bengal': 0.90, 'tamil_nadu': 0.93, 'karnataka': 1.00, 'maharashtra': 1.05,
+                'gujarat': 1.02, 'rajasthan': 0.89, 'madhya_pradesh': 0.87, 'odisha': 0.91
             },
             'weather_data': {
                 'delhi': {'temp': 28, 'humidity': 65, 'rainfall': 25},
@@ -257,15 +268,41 @@ class EnhancedGovernmentAPI:
         }
         
         try:
-            response = self.session.get(url, params=params, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                return self._parse_api_response(data, source)
-            else:
-                logger.warning(f"API {source} returned status {response.status_code}")
-                return None
+            # Add retry mechanism with exponential backoff
+            for attempt in range(3):
+                try:
+                    response = self.session.get(url, params=params, timeout=10)
+                    if response.status_code == 200:
+                        # Handle UTF-8 BOM encoding issues
+                        try:
+                            data = response.json()
+                        except ValueError:
+                            # Try to decode with UTF-8-sig to handle BOM
+                            response.encoding = 'utf-8-sig'
+                            data = response.json()
+                        
+                        # Validate data structure
+                        if isinstance(data, dict) and data:
+                            return self._parse_api_response(data, source)
+                        else:
+                            logger.warning(f"API {source} returned empty or invalid data")
+                            if attempt < 2:
+                                time.sleep(1 * (attempt + 1))  # Exponential backoff
+                                continue
+                    else:
+                        logger.warning(f"API {source} returned status {response.status_code} (attempt {attempt + 1})")
+                        if attempt < 2:
+                            time.sleep(1 * (attempt + 1))
+                            continue
+                except requests.exceptions.RequestException as e:
+                    logger.warning(f"API {source} request failed (attempt {attempt + 1}): {e}")
+                    if attempt < 2:
+                        time.sleep(1 * (attempt + 1))
+                        continue
+                    
+            return None
         except Exception as e:
-            logger.warning(f"API {source} request failed: {e}")
+            logger.warning(f"API {source} unexpected error: {e}")
             return None
     
     def _fetch_weather_from_imd(self, location: str) -> Dict[str, Any]:
@@ -340,10 +377,11 @@ class EnhancedGovernmentAPI:
             'market': f"{location} Mandi",
             'state': location,
             'source': 'Enhanced Fallback',
-            'msp': price_data['avg'],
+            'msp': price_data.get('msp', price_data['avg']),
+            'trend': price_data.get('trend', '+2.0%'),
+            'change': price_data.get('trend', '+2.0%'),
             'min_price': price_data['min'],
             'max_price': price_data['max'],
-            'change': '+2.5%',
             'timestamp': datetime.now().isoformat()
         }
     
@@ -459,19 +497,9 @@ class EnhancedGovernmentAPI:
     
     def _get_location_multiplier(self, location: str) -> float:
         """Get price multiplier based on location"""
-        location_multipliers = {
-            'delhi': 1.0,
-            'mumbai': 1.1,
-            'bangalore': 1.05,
-            'chennai': 0.95,
-            'kolkata': 0.95,
-            'hyderabad': 1.0,
-            'pune': 1.05,
-            'ahmedabad': 0.95
-        }
-        
-        location_key = location.lower()
-        return location_multipliers.get(location_key, 1.0)
+        location_key = location.lower().replace(' ', '').replace('city', '')
+        multipliers = self.fallback_data['location_multipliers']
+        return multipliers.get(location_key, 1.0)
     
     def _estimate_temperature(self, location: str) -> float:
         """Estimate temperature based on location"""
@@ -524,3 +552,39 @@ class EnhancedGovernmentAPI:
         
         for expired_key in expired_keys:
             del self.cache[expired_key]
+    
+    def _estimate_rainfall(self, location: str, month: int = None) -> Dict[str, Any]:
+        """Estimate rainfall for a location based on regional patterns"""
+        if month is None:
+            month = datetime.now().month
+        
+        # Regional rainfall patterns in India (mm)
+        rainfall_patterns = {
+            'delhi': {1: 20, 2: 20, 3: 15, 4: 10, 5: 25, 6: 70, 7: 180, 8: 170, 9: 120, 10: 15, 11: 5, 12: 15},
+            'mumbai': {1: 5, 2: 2, 3: 2, 4: 5, 5: 50, 6: 350, 7: 700, 8: 450, 9: 300, 10: 100, 11: 25, 12: 10},
+            'bangalore': {1: 10, 2: 10, 3: 25, 4: 50, 5: 120, 6: 80, 7: 100, 8: 120, 9: 180, 10: 180, 11: 60, 12: 20},
+            'chennai': {1: 25, 2: 10, 3: 10, 4: 20, 5: 50, 6: 50, 7: 80, 8: 120, 9: 150, 10: 200, 11: 300, 12: 150},
+            'kolkata': {1: 15, 2: 20, 3: 30, 4: 50, 5: 120, 6: 250, 7: 300, 8: 300, 9: 250, 10: 100, 11: 30, 12: 15},
+            'hyderabad': {1: 5, 2: 5, 3: 10, 4: 20, 5: 40, 6: 100, 7: 150, 8: 150, 9: 180, 10: 100, 11: 25, 12: 10},
+            'pune': {1: 5, 2: 5, 3: 10, 4: 15, 5: 40, 6: 150, 7: 200, 8: 150, 9: 120, 10: 80, 11: 20, 12: 10},
+            'ahmedabad': {1: 5, 2: 2, 3: 2, 4: 5, 5: 20, 6: 100, 7: 250, 8: 200, 9: 120, 10: 30, 11: 10, 12: 5}
+        }
+        
+        location_key = location.lower()
+        if location_key not in rainfall_patterns:
+            # Default to Delhi pattern for unknown locations
+            location_key = 'delhi'
+        
+        base_rainfall = rainfall_patterns[location_key].get(month, 50)
+        
+        # Add some variation (±20%)
+        import random
+        variation = random.uniform(-0.2, 0.2)
+        estimated_rainfall = base_rainfall * (1 + variation)
+        
+        return {
+            'rainfall_mm': round(estimated_rainfall, 1),
+            'month': month,
+            'location': location,
+            'pattern': 'estimated'
+        }

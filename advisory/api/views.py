@@ -8,6 +8,7 @@ from ..ml.fertilizer_recommendations import FertilizerRecommendationEngine
 from ..ml.ml_models import AgriculturalMLSystem
 from ..feedback_system import FeedbackAnalytics
 from ..ml.intelligent_chatbot import IntelligentAgriculturalChatbot
+from ..ml.ultimate_intelligent_ai import ultimate_ai
 import uuid
 from ..services.enhanced_government_api import EnhancedGovernmentAPI
 from ..services.real_time_government_api import RealTimeGovernmentAPI
@@ -3651,3 +3652,64 @@ class GovernmentSchemesViewSet(viewsets.ViewSet):
         ]
         
         return Response(schemes_data, status=status.HTTP_200_OK)
+
+class LocationRecommendationViewSet(viewsets.ViewSet):
+    """Location recommendation system like Google Maps"""
+    
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Search for locations with detailed information"""
+        try:
+            query = request.query_params.get('q', '')
+            limit = int(request.query_params.get('limit', 5))
+            
+            if not query:
+                return Response({
+                    'error': 'Query parameter "q" is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get location recommendations from AI system
+            recommendations = ultimate_ai.get_location_recommendations(query, limit=limit)
+            
+            return Response({
+                'query': query,
+                'results': recommendations,
+                'total': len(recommendations),
+                'source': 'Government APIs & Comprehensive Database'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Location search error: {e}")
+            return Response({
+                'error': 'Location search failed',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def comprehensive_data(self, request):
+        """Get comprehensive location data from government APIs"""
+        try:
+            location = request.query_params.get('location', '')
+            state = request.query_params.get('state', None)
+            
+            if not location:
+                return Response({
+                    'error': 'Location parameter is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get comprehensive data from AI system
+            data = ultimate_ai.get_comprehensive_location_data(location, state)
+            
+            return Response({
+                'location': location,
+                'state': state,
+                'data': data,
+                'source': 'Government APIs (IMD, Agmarknet, ICAR, etc.)'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Comprehensive data error: {e}")
+            return Response({
+                'error': 'Failed to get comprehensive data',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
