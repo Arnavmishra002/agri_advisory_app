@@ -2891,54 +2891,65 @@ class UltimateIntelligentAI:
             return self.generate_response("crop recommendation", analysis, language, latitude, longitude, location_name)
     
     def _format_ai_ml_crop_response(self, recommendations: List[Dict[str, Any]], location: str, language: str) -> str:
-        """Format AI/ML crop recommendations response in structured box format"""
+        """Format AI/ML crop recommendations response as structured data for frontend parsing"""
         if language == 'hi':
-            response = f"🤖 {location} के लिए AI/ML संचालित फसल सुझाव:\n\n"
-            response += f"📍 सरकारी API + AI/ML द्वारा विश्लेषण\n\n"
+            # Return structured data that can be parsed by frontend
+            structured_data = {
+                'type': 'ai_ml_crop_recommendations',
+                'location': location,
+                'source': 'सरकारी API + AI/ML द्वारा विश्लेषण',
+                'accuracy': recommendations[0].get('confidence', 95),
+                'crops': []
+            }
             
-            # Display top 4 crops in detailed box format
-            for i, crop in enumerate(recommendations[:4], 1):
-                response += f"🌾 {crop['name']}\n"
-                response += f"सुझाव: {crop['score']}%\n"
-                response += f"बुवाई अवधि: {crop['duration']}\n"
-                response += f"कुल लागत: {crop['total_cost']}\n"
-                response += f"वर्तमान बाजार भाव: {crop['current_price']}\n"
-                response += f"भविष्य की कीमत: {crop['future_price']}\n"
-                response += f"अनुमानित आय: {crop['expected_income']}\n"
-                response += f"उत्पादन: {crop['expected_yield']}\n"
-                response += f"पानी की आवश्यकता: {crop['water_requirement']}\n"
-                response += f"रोग प्रतिरोध: {crop['disease_resistance']}\n"
-                if i < 4:  # Add separator between crops except for the last one
-                    response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            # Add each crop as structured data
+            for crop in recommendations[:4]:
+                crop_data = {
+                    'name': crop['name'],
+                    'score': crop['score'],
+                    'duration': crop['duration'],
+                    'total_cost': crop['total_cost'],
+                    'current_price': crop['current_price'],
+                    'future_price': crop['future_price'],
+                    'expected_income': crop['expected_income'],
+                    'expected_yield': crop.get('expected_yield', 'N/A'),
+                    'water_requirement': crop.get('water_requirement', 'N/A'),
+                    'disease_resistance': crop.get('disease_resistance', 'N/A')
+                }
+                structured_data['crops'].append(crop_data)
             
-            response += f"\n📊 डेटा स्रोत: सरकारी API + AI/ML एल्गोरिदम\n"
-            response += f"🎯 सटीकता: {recommendations[0].get('confidence', 95)}%\n"
-            response += f"🔄 रियल-टाइम अपडेट: हाँ"
+            # Return as JSON string for frontend parsing
+            import json
+            return json.dumps(structured_data, ensure_ascii=False)
             
         else:  # English
-            response = f"🤖 AI/ML-Powered Crop Recommendations for {location}:\n\n"
-            response += f"📍 Analysis by Government APIs + AI/ML\n\n"
+            structured_data = {
+                'type': 'ai_ml_crop_recommendations',
+                'location': location,
+                'source': 'Government APIs + AI/ML Analysis',
+                'accuracy': recommendations[0].get('confidence', 95),
+                'crops': []
+            }
             
-            # Display top 4 crops in detailed box format
-            for i, crop in enumerate(recommendations[:4], 1):
-                response += f"🌾 {crop['name']}\n"
-                response += f"Recommendation: {crop['score']}%\n"
-                response += f"Sowing Duration: {crop['duration']}\n"
-                response += f"Total Cost: {crop['total_cost']}\n"
-                response += f"Current Market Price: {crop['current_price']}\n"
-                response += f"Future Price: {crop['future_price']}\n"
-                response += f"Expected Income: {crop['expected_income']}\n"
-                response += f"Expected Yield: {crop['expected_yield']}\n"
-                response += f"Water Requirement: {crop['water_requirement']}\n"
-                response += f"Disease Resistance: {crop['disease_resistance']}\n"
-                if i < 4:  # Add separator between crops except for the last one
-                    response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            # Add each crop as structured data
+            for crop in recommendations[:4]:
+                crop_data = {
+                    'name': crop['name'],
+                    'score': crop['score'],
+                    'duration': crop['duration'],
+                    'total_cost': crop['total_cost'],
+                    'current_price': crop['current_price'],
+                    'future_price': crop['future_price'],
+                    'expected_income': crop['expected_income'],
+                    'expected_yield': crop.get('expected_yield', 'N/A'),
+                    'water_requirement': crop.get('water_requirement', 'N/A'),
+                    'disease_resistance': crop.get('disease_resistance', 'N/A')
+                }
+                structured_data['crops'].append(crop_data)
             
-            response += f"\n📊 Data Source: Government APIs + AI/ML Algorithms\n"
-            response += f"🎯 Accuracy: {recommendations[0].get('confidence', 95)}%\n"
-            response += f"🔄 Real-time Updates: Yes"
-        
-        return response
+            # Return as JSON string for frontend parsing
+            import json
+            return json.dumps(structured_data, ensure_ascii=False)
     
     def _generate_enhanced_market_response(self, analysis: Dict[str, Any], language: str, 
                                          latitude: float = None, longitude: float = None, 

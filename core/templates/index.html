@@ -2157,6 +2157,29 @@
         }
 
         function parseCropRecommendations(response) {
+            try {
+                // Try to parse as JSON first (new structured format)
+                const jsonData = JSON.parse(response);
+                if (jsonData.type === 'ai_ml_crop_recommendations' && jsonData.crops) {
+                    return jsonData.crops.map(crop => ({
+                        name: crop.name,
+                        score: crop.score,
+                        duration: crop.duration,
+                        total_cost: crop.total_cost,
+                        current_price: crop.current_price,
+                        future_price: crop.future_price,
+                        expected_income: crop.expected_income,
+                        expected_yield: crop.expected_yield,
+                        water_requirement: crop.water_requirement,
+                        disease_resistance: crop.disease_resistance
+                    }));
+                }
+            } catch (e) {
+                // If not JSON, try to parse old text format
+                console.log('Response is not JSON, trying text parsing...');
+            }
+            
+            // Fallback to old text parsing
             const crops = [];
             const lines = response.split('\n');
             
@@ -2207,8 +2230,14 @@
             let html = '<div class="crop-recommendations-grid">';
             
             crops.forEach((crop, index) => {
-                const cropDetails = getCropDetailedInfo(crop.name);
                 const scoreColor = crop.score >= 90 ? 'success' : crop.score >= 80 ? 'primary' : 'warning';
+                
+                // Use structured data if available, otherwise fallback to static data
+                const duration = crop.duration || getCropDetailedInfo(crop.name).duration;
+                const totalCost = crop.total_cost || getCropDetailedInfo(crop.name).totalCost;
+                const currentPrice = crop.current_price || getCropDetailedInfo(crop.name).currentPrice;
+                const futurePrice = crop.future_price || getCropDetailedInfo(crop.name).futurePrice;
+                const expectedIncome = crop.expected_income || getCropDetailedInfo(crop.name).expectedIncome;
                 
                 html += `
                     <div class="crop-recommendation-box">
@@ -2222,23 +2251,23 @@
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">बुवाई अवधि:</span>
-                                <span class="detail-value">${cropDetails.duration}</span>
+                                <span class="detail-value">${duration}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">कुल लागत:</span>
-                                <span class="detail-value">${cropDetails.totalCost}</span>
+                                <span class="detail-value">${totalCost}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">वर्तमान बाजार भाव:</span>
-                                <span class="detail-value">${cropDetails.currentPrice}</span>
+                                <span class="detail-value">${currentPrice}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">भविष्य की कीमत:</span>
-                                <span class="detail-value">${cropDetails.futurePrice}</span>
+                                <span class="detail-value">${futurePrice}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">अनुमानित आय:</span>
-                                <span class="detail-value">${cropDetails.expectedIncome}</span>
+                                <span class="detail-value">${expectedIncome}</span>
                             </div>
                         </div>
                     </div>
