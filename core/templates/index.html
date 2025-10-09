@@ -1571,13 +1571,16 @@
 
         // Update crop recommendations display
         function updateCropRecommendations(response) {
-            const container = document.getElementById('cropRecommendations');
+            console.log('Raw AI response:', response);
             
-            // Try to parse structured response
-            const crops = parseStructuredCropResponse(response);
+            // Try to parse structured response using the correct function
+            const crops = parseCropRecommendations(response);
             if (crops && crops.length > 0) {
-                updateCropRecommendationsFromParsed(crops);
+                console.log('Parsed crops:', crops);
+                displayBestCropRecommendations(crops);
             } else {
+                console.log('Failed to parse crops, showing raw response');
+                const container = document.getElementById('cropRecommendations');
                 container.innerHTML = `<div class="alert alert-info">${response}</div>`;
             }
         }

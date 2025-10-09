@@ -21,7 +21,10 @@ class EnhancedQueryClassifier:
                 'crop', 'फसल', 'crops', 'cultivation', 'खेती', 'farming', 'agriculture', 'कृषि',
                 'wheat', 'गेहूं', 'rice', 'चावल', 'maize', 'मक्का', 'cotton', 'कपास',
                 'sugarcane', 'गन्ना', 'potato', 'आलू', 'tomato', 'टमाटर', 'onion', 'प्याज',
-                'vegetable', 'सब्जी', 'fruits', 'फल', 'pulses', 'दाल', 'oilseeds', 'तिलहन'
+                'vegetable', 'सब्जी', 'fruits', 'फल', 'pulses', 'दाल', 'oilseeds', 'तिलहन',
+                'lagayein', 'लगाएं', 'lagana', 'लगाना', 'suggest', 'सुझाव', 'recommend', 'अनुशंसा',
+                'kya', 'क्या', 'kaun si', 'कौन सी', 'which', 'best', 'बेस्ट', 'suitable', 'उपयुक्त',
+                'mein', 'में', 'in', 'for', 'के लिए', 'grow', 'उगाना', 'plant', 'पौधा'
             ],
             'market': [
                 'price', 'कीमत', 'rate', 'दर', 'market', 'बाजार', 'mandi', 'मंडी',
@@ -61,6 +64,10 @@ class EnhancedQueryClassifier:
         }
         
         self.general_patterns = {
+            'greeting': [
+                'hello', 'hi', 'hey', 'namaste', 'नमस्ते', 'good morning', 'good afternoon',
+                'good evening', 'how are you', 'आप कैसे हैं', 'kaise ho', 'kaise hain'
+            ],
             'trivia': [
                 'trivia', 'quiz', 'question', 'प्रश्न', 'fact', 'तथ्य', 'knowledge', 'ज्ञान',
                 'random', 'यादृच्छिक', 'general', 'सामान्य', 'interesting', 'रोचक'
@@ -111,7 +118,7 @@ class EnhancedQueryClassifier:
         # Check for mixed queries first
         is_mixed = self._is_mixed_query(query_lower)
         
-        # Classify query type
+        # Classify query type with enhanced priority for farming queries
         if is_mixed:
             query_type = 'mixed'
             confidence = self._calculate_mixed_confidence(query_lower)
@@ -119,7 +126,15 @@ class EnhancedQueryClassifier:
             farming_score = self._calculate_farming_score(query_lower)
             general_score = self._calculate_general_score(query_lower)
             
-            if farming_score > general_score:
+            # Check for specific crop recommendation patterns
+            crop_recommendation_patterns = ['fasal', 'फसल', 'lagayein', 'लगाएं', 'suggest', 'सुझाव', 'recommend', 'कौन सी', 'kya']
+            has_crop_keywords = any(pattern in query_lower for pattern in crop_recommendation_patterns)
+            
+            # Prioritize farming if crop-related keywords are found
+            if has_crop_keywords and farming_score > 0:
+                query_type = 'farming'
+                confidence = max(farming_score, 0.8)  # Boost confidence for crop queries
+            elif farming_score > general_score:
                 query_type = 'farming'
                 confidence = farming_score
             else:

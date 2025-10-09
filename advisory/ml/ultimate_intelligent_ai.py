@@ -2736,13 +2736,23 @@ class UltimateIntelligentAI:
                 "error": str(e)
             }
 
-    def _determine_enhanced_response_type(self, classification: Dict[str, Any]) -> str:
+    def _determine_enhanced_response_type(self, analysis: Dict[str, Any], query: str = None) -> str:
         """Determine response type based on enhanced classification"""
-        query_type = classification.get('query_type', 'general')
-        subcategory = classification.get('subcategory', 'general')
+        query_type = analysis.get('query_type', 'general')
+        subcategory = analysis.get('subcategory', 'general')
         
+        # If query is provided, use enhanced logic
+        if query:
+            farming_keywords = ['crop', 'फसल', 'price', 'कीमत', 'weather', 'मौसम', 'pest', 'कीट', 
+                               'government', 'सरकार', 'scheme', 'योजना', 'fertilizer', 'उर्वरक',
+                               'lagayein', 'लगाएं', 'suggest', 'सुझाव', 'recommend', 'कौन सी', 'kya']
+            
+            if any(keyword in query.lower() for keyword in farming_keywords):
+                return 'farming'
+        
+        # Use classification result
         if query_type == 'farming':
-            return subcategory
+            return 'farming'
         elif query_type == 'general':
             return 'general'
         elif query_type == 'mixed':
@@ -3092,75 +3102,6 @@ class UltimateIntelligentAI:
         """Generate agricultural redirect message"""
         return self.enhanced_multilingual.get_localized_template('help', language)
     
-    def _determine_enhanced_response_type(self, analysis: Dict[str, Any], query: str) -> str:
-        """Determine enhanced response type"""
-        intent = analysis.get('intent', 'general')
-        entities = analysis.get('entities', {})
-        
-        # Check for farming-related queries
-        farming_keywords = ['crop', 'फसल', 'price', 'कीमत', 'weather', 'मौसम', 'pest', 'कीट', 
-                           'government', 'सरकार', 'scheme', 'योजना', 'fertilizer', 'उर्वरक']
-        
-        if any(keyword in query.lower() for keyword in farming_keywords):
-            return 'farming'
-        
-        # Check for general queries
-        general_keywords = ['trivia', 'question', 'fact', 'number', 'activity', 'bored']
-        if any(keyword in query.lower() for keyword in general_keywords):
-            return 'general'
-        
-        # Check for mixed queries
-        mixed_indicators = ['aur', 'and', 'भी', 'also', 'batao', 'बताओ', 'tell me', 'मुझे बताओ']
-        if any(indicator in query.lower() for indicator in mixed_indicators):
-            return 'mixed'
-        
-        return intent
-    
-    def _generate_enhanced_response(self, analysis: Dict[str, Any], query_type: str, language: str,
-                                   latitude: float = None, longitude: float = None, 
-                                   location_name: str = None) -> str:
-        """Generate enhanced response based on query type"""
-        
-        if query_type == 'farming':
-            return self._generate_enhanced_farming_response(analysis, language, latitude, longitude, location_name)
-        elif query_type == 'general':
-            return self._generate_enhanced_general_response(analysis, language)
-        elif query_type == 'mixed':
-            return self._generate_mixed_response(analysis, language, latitude, longitude, location_name)
-        else:
-            return self.generate_response(analysis.get('original_query', ''), analysis, language, latitude, longitude, location_name)
-    
-    def _generate_enhanced_farming_response(self, analysis: Dict[str, Any], language: str,
-                                           latitude: float = None, longitude: float = None,
-                                           location_name: str = None) -> str:
-        """Generate enhanced farming response"""
-        intent = analysis.get('intent', 'general')
-        entities = analysis.get('entities', {})
-        
-        if intent == 'market' or intent == 'market_price':
-            return self._generate_enhanced_market_response(analysis, language, latitude, longitude, location_name)
-        elif intent == 'weather':
-            return self._generate_enhanced_weather_response(analysis, language, latitude, longitude, location_name)
-        elif intent == 'crop_recommendation':
-            return self._generate_enhanced_crop_response(analysis, language, latitude, longitude, location_name)
-        else:
-            return self.generate_response(analysis.get('original_query', ''), analysis, language, latitude, longitude, location_name)
-    
-    def _generate_enhanced_general_response(self, analysis: Dict[str, Any], language: str) -> str:
-        """Generate enhanced general response"""
-        try:
-            query = analysis.get('original_query', '')
-            general_data = self.general_apis.handle_general_question(query, language)
-            
-            # Check if general_data is not None and has response
-            if general_data and isinstance(general_data, dict):
-                return general_data.get('response', 'I can help you with agricultural problems....')
-            else:
-                # Fallback to agricultural response
-                return self._generate_general_intelligent_response(query, {}, language)
-        except Exception as e:
-            logger.warning(f"Enhanced general response failed: {e}")
-            return self._generate_general_intelligent_response(query, {}, language)
     
     def _calculate_intelligence_score(self, response: str, analysis: Dict[str, Any]) -> float:
         """Calculate intelligence score for the response"""
@@ -3258,7 +3199,7 @@ class UltimateIntelligentAI:
             
             # Generate response
             response = self._generate_enhanced_response(
-                analysis, query_type, language, latitude, longitude, location_name
+                user_query, analysis, query_type, language, latitude, longitude, location_name
             )
             
             # Calculate intelligence score

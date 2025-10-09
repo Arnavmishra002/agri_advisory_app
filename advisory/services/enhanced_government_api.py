@@ -17,16 +17,20 @@ class EnhancedGovernmentAPI:
     """Enhanced government API integration with better reliability"""
     
     def __init__(self):
-        # Government API endpoints
+        # Government API endpoints - Updated with working URLs
         self.api_endpoints = {
-            'agmarknet': 'https://agmarknet.gov.in/api/market-prices',
-            'enam': 'https://enam.gov.in/api/market-data',
-            'fci': 'https://fci.gov.in/api/procurement-prices',
-            'apmc': 'https://apmc.gov.in/api/state-market-data',
-            'imd': 'https://mausam.imd.gov.in/api/weather',
-            'soil_health': 'https://soilhealth.dac.gov.in/api/soil-data',
-            'pm_kisan': 'https://pmkisan.gov.in/api/schemes',
-            'nabard': 'https://nabard.org/api/rural-data'
+            'agmarknet': 'https://agmarknet.gov.in/PriceAndArrivals/CommodityDailyPriceAndArrivals.aspx',
+            'enam': 'https://enam.gov.in/',
+            'fci': 'https://fci.gov.in/',
+            'apmc': 'https://agmarknet.gov.in/',
+            'imd': 'https://mausam.imd.gov.in/',
+            'soil_health': 'https://soilhealth.dac.gov.in/',
+            'pm_kisan': 'https://pmkisan.gov.in/',
+            'nabard': 'https://nabard.org/',
+            # Working alternative APIs
+            'openweather': 'https://api.openweathermap.org/data/2.5/weather',
+            'worldbank': 'https://api.worldbank.org/v2/country/IN/indicator',
+            'data_gov': 'https://data.gov.in/api/3/action/datastore_search'
         }
         
         # Fallback data for when APIs are unavailable
@@ -45,34 +49,61 @@ class EnhancedGovernmentAPI:
         })
         
     def _load_fallback_data(self) -> Dict[str, Any]:
-        """Load comprehensive fallback data"""
+        """Load comprehensive fallback data with realistic prices and schemes"""
         return {
             'msp_prices': {
-                'wheat': 2275,
-                'rice': 2183,
-                'maize': 2090,
-                'cotton': 6620,
-                'sugarcane': 315,
-                'groundnut': 6377,
-                'bajra': 2500,
-                'jowar': 2977,
-                'moong': 7755
+                'wheat': 2275, 'rice': 2183, 'maize': 2090, 'cotton': 6620,
+                'sugarcane': 315, 'groundnut': 6377, 'bajra': 2500, 'jowar': 2977,
+                'moong': 7755, 'urad': 6600, 'chana': 5440, 'mustard': 5650,
+                'soybean': 3950, 'tur': 6600, 'masoor': 6100, 'barley': 1850
+            },
+            'market_prices': {
+                'wheat': {'min': 2200, 'max': 2500, 'avg': 2350},
+                'rice': {'min': 2100, 'max': 2800, 'avg': 2450},
+                'maize': {'min': 1900, 'max': 2200, 'avg': 2050},
+                'cotton': {'min': 6000, 'max': 7200, 'avg': 6600},
+                'groundnut': {'min': 5500, 'max': 7500, 'avg': 6500},
+                'moong': {'min': 7000, 'max': 8500, 'avg': 7750},
+                'jowar': {'min': 2500, 'max': 3200, 'avg': 2850},
+                'bajra': {'min': 2200, 'max': 2800, 'avg': 2500}
+            },
+            'weather_data': {
+                'delhi': {'temp': 28, 'humidity': 65, 'rainfall': 25},
+                'mumbai': {'temp': 30, 'humidity': 80, 'rainfall': 45},
+                'kolkata': {'temp': 32, 'humidity': 75, 'rainfall': 35},
+                'chennai': {'temp': 33, 'humidity': 70, 'rainfall': 30},
+                'bangalore': {'temp': 26, 'humidity': 60, 'rainfall': 20}
             },
             'government_schemes': {
                 'pm_kisan': {
-                    'name': 'PM Kisan Samman Nidhi',
-                    'benefit': '₹6,000 per year',
-                    'eligibility': 'All farmer families'
+                    'name': 'प्रधानमंत्री किसान सम्मान निधि',
+                    'benefit': '₹6,000 प्रति वर्ष',
+                    'eligibility': 'सभी किसान परिवार'
                 },
                 'fasal_bima': {
-                    'name': 'PM Fasal Bima Yojana',
-                    'benefit': '90% subsidy on premium',
-                    'eligibility': 'All farmers'
+                    'name': 'प्रधानमंत्री फसल बीमा योजना',
+                    'benefit': 'प्रीमियम पर 90% सब्सिडी',
+                    'eligibility': 'सभी किसान'
                 },
                 'kisan_credit_card': {
-                    'name': 'Kisan Credit Card',
-                    'benefit': 'Up to ₹3 lakh loan',
-                    'eligibility': 'Farmers with land'
+                    'name': 'किसान क्रेडिट कार्ड',
+                    'benefit': '₹3 लाख तक का ऋण',
+                    'eligibility': 'जमीन वाले किसान'
+                },
+                'soil_health_card': {
+                    'name': 'मृदा स्वास्थ्य कार्ड',
+                    'benefit': 'मिट्टी परीक्षण और सुझाव',
+                    'eligibility': 'सभी किसान'
+                },
+                'neem_coated_urea': {
+                    'name': 'नीम कोटेड यूरिया',
+                    'benefit': '₹268/बैग सब्सिडी',
+                    'eligibility': 'सभी किसान'
+                },
+                'kisan_drone': {
+                    'name': 'किसान ड्रोन योजना',
+                    'benefit': 'ड्रोन खरीद पर 75% सब्सिडी',
+                    'eligibility': 'FPO, सहकारी समितियां'
                 }
             }
         }
@@ -290,12 +321,15 @@ class EnhancedGovernmentAPI:
             return None
     
     def _get_enhanced_fallback_price(self, crop: str, location: str, language: str) -> Dict[str, Any]:
-        """Get enhanced fallback price data"""
-        base_prices = self.fallback_data['msp_prices']
+        """Get enhanced fallback price data with realistic market prices"""
+        market_prices = self.fallback_data['market_prices']
         
-        # Get base price for crop
+        # Get realistic price range for crop
         crop_key = crop.lower()
-        base_price = base_prices.get(crop_key, base_prices.get('wheat', 2500))
+        price_data = market_prices.get(crop_key, market_prices.get('wheat', {'min': 2200, 'max': 2500, 'avg': 2350}))
+        
+        # Use average price as base
+        base_price = price_data['avg']
         
         # Add location-based variation
         location_multiplier = self._get_location_multiplier(location)
@@ -306,16 +340,28 @@ class EnhancedGovernmentAPI:
             'market': f"{location} Mandi",
             'state': location,
             'source': 'Enhanced Fallback',
-            'msp': base_price,
+            'msp': price_data['avg'],
+            'min_price': price_data['min'],
+            'max_price': price_data['max'],
             'change': '+2.5%',
             'timestamp': datetime.now().isoformat()
         }
     
     def _get_fallback_weather_data(self, location: str, language: str) -> Dict[str, Any]:
-        """Get fallback weather data"""
-        # Generate realistic weather data based on location
-        temperature = self._estimate_temperature(location)
-        humidity = self._estimate_humidity(location)
+        """Get fallback weather data with realistic location-based data"""
+        # Use pre-defined weather data for major cities
+        location_key = location.lower().replace(' ', '').replace('city', '')
+        weather_data = self.fallback_data['weather_data'].get(location_key)
+        
+        if weather_data:
+            temperature = weather_data['temp']
+            humidity = weather_data['humidity']
+            rainfall = weather_data['rainfall']
+        else:
+            # Generate realistic weather data based on location
+            temperature = self._estimate_temperature(location)
+            humidity = self._estimate_humidity(location)
+            rainfall = self._estimate_rainfall(location)
         
         return {
             'temperature': temperature,
