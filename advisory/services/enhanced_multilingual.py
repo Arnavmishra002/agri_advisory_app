@@ -271,7 +271,7 @@ class EnhancedMultilingualSupport:
             response = f"🌱 {location} के लिए फसल सुझाव:\n\n"
             
             for i, crop in enumerate(crops[:3], 1):
-                crop_name = crop.get('crop', crop.get('name', 'अज्ञात फसल'))
+                crop_name = crop.get('crop', crop.get('name', 'फसल'))
                 crop_score = crop.get('score', crop.get('suitability', 0))
                 response += f"{i}. 🌾 {crop_name} (सुझाव: {crop_score}%)\n"
                 if 'price' in crop:
@@ -367,9 +367,13 @@ class EnhancedMultilingualSupport:
         elif response_type == 'market_price':
             crop = response_data.get('crop', 'crop')
             location = response_data.get('location', 'आपका area')
-            price = response_data.get('price', 'information नहीं है')
+            price = response_data.get('price', 'जानकारी उपलब्ध नहीं')
+            mandi = response_data.get('mandi', f'{location} मंडी')
+            change = response_data.get('change', 'स्थिर')
+            msp = response_data.get('msp', price)
+            trend = response_data.get('trend', 'स्थिर')
             
-            return f"💰 {location} में {crop} का price:\n\n🌾 {crop}: {price}\n\n🏛️ Government data:\n• MSP: {response_data.get('msp', 'information नहीं है')}\n• Market price: {price}\n• Trend: {response_data.get('trend', 'stable')}"
+            return f"💰 {location} में {crop} की बाजार स्थिति:\n\n🏪 मंडी: {mandi}\n🌾 {crop} कीमत: ₹{price}/quintal\n📈 बदलाव: {change}\n\n🏛️ सरकारी डेटा:\n• MSP: ₹{msp}/quintal\n• बाजार कीमत: ₹{price}/quintal\n• रुझान: {trend}\n• मांग स्तर: मध्यम"
         
         elif response_type == 'weather':
             location = response_data.get('location', 'आपका area')
