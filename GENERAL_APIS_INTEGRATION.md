@@ -299,3 +299,4 @@ Your agricultural AI assistant is now **enhanced with general knowledge capabili
 - **🎯 Focused**: Maintains agricultural expertise
 
 **Your AI assistant can now handle both farming questions AND general queries, making it more versatile and engaging for users!** 🌾🤖
+
