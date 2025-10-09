@@ -7,14 +7,61 @@ Uses real government API data and machine learning algorithms for highly accurat
 import requests
 import json
 import logging
-import numpy as np
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timedelta
 import math
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
 import pickle
 import os
+import random
+
+# Try to import numpy, fallback to basic implementation if not available
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    logger.warning("numpy not available, using fallback implementation")
+    NUMPY_AVAILABLE = False
+    
+    # Fallback numpy functions
+    class np:
+        @staticmethod
+        def random():
+            return type('random', (), {
+                'uniform': lambda a, b, size=None: [random.uniform(a, b) for _ in range(size or 1)],
+                'normal': lambda mean, std, size=None: [random.gauss(mean, std) for _ in range(size or 1)],
+                'array': lambda x: x if isinstance(x, list) else [x],
+                'reshape': lambda x, shape: x
+            })()
+
+# Try to import sklearn, fallback to basic implementation if not available
+try:
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.preprocessing import StandardScaler
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    logger.warning("scikit-learn not available, using fallback implementation")
+    SKLEARN_AVAILABLE = False
+    
+    # Fallback classes
+    class RandomForestRegressor:
+        def __init__(self, **kwargs):
+            self.trained = False
+        
+        def fit(self, X, y):
+            self.trained = True
+        
+        def predict(self, X):
+            return np.random.uniform(0.5, 1.0, len(X))
+    
+    class StandardScaler:
+        def __init__(self):
+            pass
+        
+        def fit(self, X):
+            pass
+        
+        def transform(self, X):
+            return X
 
 logger = logging.getLogger(__name__)
 
@@ -192,17 +239,20 @@ class AIMLCropRecommendationSystem:
                 logger.info("Loaded pre-trained crop recommendation model")
             else:
                 # Create new model
-                self.crop_model = RandomForestRegressor(
-                    n_estimators=100,
-                    random_state=42,
-                    max_depth=10,
-                    min_samples_split=5
-                )
+                if SKLEARN_AVAILABLE:
+                    self.crop_model = RandomForestRegressor(
+                        n_estimators=100,
+                        random_state=42,
+                        max_depth=10,
+                        min_samples_split=5
+                    )
+                else:
+                    self.crop_model = RandomForestRegressor()
                 self.model_trained = False
                 logger.info("Created new crop recommendation model")
         except Exception as e:
             logger.error(f"Error initializing ML model: {e}")
-            self.crop_model = RandomForestRegressor(n_estimators=50, random_state=42)
+            self.crop_model = RandomForestRegressor()
             self.model_trained = False
     
     def get_dynamic_crop_recommendations(self, latitude: float, longitude: float, 
@@ -342,7 +392,7 @@ class AIMLCropRecommendationSystem:
             # Calculate base score using ML model
             features = self._extract_features(crop_info, location_factors, weather_data, soil_data, market_data)
             
-            if self.model_trained:
+            if self.model_trained and SKLEARN_AVAILABLE:
                 # Use trained ML model
                 features_array = np.array(list(features.values())).reshape(1, -1)
                 features_scaled = self.scaler.transform(features_array)

@@ -134,7 +134,7 @@ class EnhancedGovernmentAPI:
                 market_data = self._fetch_from_api(source, crop, location)
                 if market_data:
                     break
-        except Exception as e:
+            except Exception as e:
                 logger.warning(f"API {source} failed: {e}")
                 continue
         
