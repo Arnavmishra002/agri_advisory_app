@@ -29,12 +29,16 @@ class EnhancedQueryClassifier:
             'market': [
                 'price', 'कीमत', 'rate', 'दर', 'market', 'बाजार', 'mandi', 'मंडी',
                 'selling', 'बेचना', 'buying', 'खरीदना', 'profit', 'लाभ', 'loss', 'नुकसान',
-                'msp', 'minimum support price', 'procurement', 'खरीद', 'trading', 'व्यापार'
+                'msp', 'minimum support price', 'procurement', 'खरीद', 'trading', 'व्यापार',
+                'भाव', 'bazaar', 'cotton', 'कपास', 'cotton market', 'cotton price',
+                'cotton ka', 'कपास का', 'cotton का', 'msp', 'एमएसपी', 'minimum support'
             ],
             'weather': [
                 'weather', 'मौसम', 'rain', 'बारिश', 'rainfall', 'वर्षा', 'temperature', 'तापमान',
                 'humidity', 'नमी', 'wind', 'हवा', 'forecast', 'पूर्वानुमान', 'climate', 'जलवायु',
-                'drought', 'सूखा', 'flood', 'बाढ़', 'storm', 'तूफान', 'season', 'मौसम'
+                'drought', 'सूखा', 'flood', 'बाढ़', 'storm', 'तूफान', 'season', 'मौसम',
+                'बारिश का', 'rain forecast', 'temperature in', 'मुंबई', 'mumbai', 'बेंगलुरु',
+                'bangalore', 'delhi', 'दिल्ली', 'weather in', 'मौसम में', 'today', 'आज'
             ],
             'pest_disease': [
                 'pest', 'कीट', 'disease', 'रोग', 'insect', 'कीड़ा', 'fungus', 'फफूंद',
@@ -49,7 +53,9 @@ class EnhancedQueryClassifier:
             'government': [
                 'scheme', 'योजना', 'subsidy', 'सब्सिडी', 'government', 'सरकार', 'pm kisan',
                 'pmfby', 'soil health card', 'kisan credit card', 'pmksy', 'loan', 'कर्ज',
-                'benefit', 'लाभ', 'support', 'सहायता', 'assistance', 'मदद', 'help', 'सहायता'
+                'benefit', 'लाभ', 'support', 'सहायता', 'assistance', 'मदद', 'help', 'सहायता',
+                'कृषि सब्सिडी', 'agriculture subsidy', 'सब्सिडी की जानकारी', 'subsidy information',
+                'सरकारी मदद', 'government help', 'मदद कैसे', 'help how', 'सहायता कैसे'
             ],
             'irrigation': [
                 'irrigation', 'सिंचाई', 'water', 'पानी', 'watering', 'सिंचाई करना', 'drip', 'ड्रिप',
@@ -59,7 +65,16 @@ class EnhancedQueryClassifier:
             'soil': [
                 'soil', 'मिट्टी', 'land', 'जमीन', 'earth', 'भूमि', 'fertile', 'उपजाऊ',
                 'sandy', 'रेतली', 'clayey', 'चिकनी', 'loamy', 'दोमट', 'ph', 'पीएच',
-                'testing', 'जांच', 'health', 'स्वास्थ्य', 'nutrient', 'पोषक तत्व'
+                'testing', 'जांच', 'health', 'स्वास्थ्य', 'nutrient', 'पोषक तत्व',
+                'दोमट मिट्टी', 'loamy soil', 'मिट्टी में', 'soil mein', 'क्या उगाएं', 'kya ugayein'
+            ],
+            'general_agriculture': [
+                'agricultural', 'कृषि', 'farming', 'खेती', 'advice', 'सलाह', 'counsel', 'परामर्श',
+                'agricultural advice', 'कृषि सलाह', 'farming advice', 'खेती सलाह', 'कृषि परामर्श',
+                'agricultural counsel', 'मुझे कृषि', 'i need agricultural', 'मुझे farming', 'i need farming',
+                'सलाह चाहिए', 'advice chahiye', 'need advice', 'चाहिए', 'chahiye', 'need',
+                'real-time', 'रियल टाइम', 'market data', 'मार्केट डेटा', 'location', 'लोकेशन',
+                'location based', 'लोकेशन के अनुसार', 'data', 'डेटा', 'api', 'एपीआई'
             ]
         }
         

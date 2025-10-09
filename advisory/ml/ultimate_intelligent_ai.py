@@ -2745,7 +2745,12 @@ class UltimateIntelligentAI:
         if query:
             farming_keywords = ['crop', 'फसल', 'price', 'कीमत', 'weather', 'मौसम', 'pest', 'कीट', 
                                'government', 'सरकार', 'scheme', 'योजना', 'fertilizer', 'उर्वरक',
-                               'lagayein', 'लगाएं', 'suggest', 'सुझाव', 'recommend', 'कौन सी', 'kya']
+                               'lagayein', 'लगाएं', 'suggest', 'सुझाव', 'recommend', 'कौन सी', 'kya',
+                               'agricultural', 'कृषि', 'farming', 'खेती', 'advice', 'सलाह',
+                               'soil', 'मिट्टी', 'market', 'बाजार', 'mandi', 'मंडी',
+                               'cotton', 'कपास', 'msp', 'एमएसपी', 'subsidy', 'सब्सिडी',
+                               'temperature', 'तापमान', 'rain', 'बारिश', 'forecast', 'पूर्वानुमान',
+                               'agricultural advice', 'कृषि सलाह', 'i need agricultural', 'मुझे कृषि']
             
             if any(keyword in query.lower() for keyword in farming_keywords):
                 return 'farming'

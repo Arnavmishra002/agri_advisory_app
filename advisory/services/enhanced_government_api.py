@@ -114,7 +114,7 @@ class EnhancedGovernmentAPI:
         
         if self._is_cached(cache_key):
             _, data = self.cache[cache_key]
-            return data
+                return data
         
         # Try multiple API sources
         api_sources = ['agmarknet', 'enam', 'fci', 'apmc']
@@ -125,7 +125,7 @@ class EnhancedGovernmentAPI:
                 market_data = self._fetch_from_api(source, crop, location)
                 if market_data:
                     break
-            except Exception as e:
+        except Exception as e:
                 logger.warning(f"API {source} failed: {e}")
                 continue
         
@@ -166,7 +166,7 @@ class EnhancedGovernmentAPI:
         
         if self._is_cached(cache_key):
             _, data = self.cache[cache_key]
-            return data
+                return data
         
         weather_data = None
         
@@ -250,11 +250,11 @@ class EnhancedGovernmentAPI:
             return None
         
         url = self.api_endpoints[source]
-        params = {
+            params = {
             'commodity': crop,
             'state': location or 'Delhi',
-            'format': 'json'
-        }
+                'format': 'json'
+            }
         
         try:
             response = self.session.get(url, params=params, timeout=5)
@@ -309,7 +309,7 @@ class EnhancedGovernmentAPI:
                     'state': data.get('state', 'Unknown'),
                     'source': 'e-NAM'
                 }
-            else:
+        else:
                 return {
                     'price': data.get('price', 0),
                     'market': data.get('market', 'Unknown'),
@@ -318,7 +318,7 @@ class EnhancedGovernmentAPI:
                 }
         except Exception as e:
             logger.warning(f"Error parsing {source} response: {e}")
-            return None
+        return None
     
     def _get_enhanced_fallback_price(self, crop: str, location: str, language: str) -> Dict[str, Any]:
         """Get enhanced fallback price data with realistic market prices"""
