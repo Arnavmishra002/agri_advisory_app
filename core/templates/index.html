@@ -546,8 +546,10 @@
         .crop-recommendations-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 20px;
             margin-top: 20px;
+            justify-content: center;
+            align-items: stretch;
         }
         
         .crop-recommendation-item {
@@ -654,6 +656,43 @@
             padding: 8px 12px;
             background: #f8f9fa;
             border-radius: 8px;
+        }
+        
+        /* New crop recommendation box styles */
+        .crop-recommendation-box {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            border: 2px solid #4a7c59;
+            margin: 15px 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 300px;
+            max-width: 350px;
+        }
+        
+        .crop-recommendation-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-color: #2d5016;
+        }
+        
+        .crop-header {
+            background: linear-gradient(135deg, #4a7c59 0%, #2d5016 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin: 0;
+        }
+        
+        .crop-title {
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+            margin: 0;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
         
         .score-label {
@@ -2172,35 +2211,34 @@
                 const scoreColor = crop.score >= 90 ? 'success' : crop.score >= 80 ? 'primary' : 'warning';
                 
                 html += `
-                    <div class="crop-recommendation-item">
-                        <div class="crop-number">${index + 1}</div>
-                        <div class="crop-info">
-                            <h6 class="crop-name">🌾 ${crop.name}</h6>
-                            <div class="crop-details-box">
-                                <div class="detail-item">
-                                    <span class="detail-label">सुझाव:</span>
-                                    <span class="detail-value ${scoreColor}">${crop.score}%</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">बुवाई अवधि:</span>
-                                    <span class="detail-value">${cropDetails.duration}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">कुल लागत:</span>
-                                    <span class="detail-value">${cropDetails.totalCost}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">वर्तमान बाजार भाव:</span>
-                                    <span class="detail-value">${cropDetails.currentPrice}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">भविष्य की कीमत:</span>
-                                    <span class="detail-value">${cropDetails.futurePrice}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">अनुमानित आय:</span>
-                                    <span class="detail-value">${cropDetails.expectedIncome}</span>
-                                </div>
+                    <div class="crop-recommendation-box">
+                        <div class="crop-header">
+                            <h5 class="crop-title">🌾 ${crop.name}</h5>
+                        </div>
+                        <div class="crop-details-box">
+                            <div class="detail-item">
+                                <span class="detail-label">सुझाव:</span>
+                                <span class="detail-value ${scoreColor}">${crop.score}%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">बुवाई अवधि:</span>
+                                <span class="detail-value">${cropDetails.duration}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">कुल लागत:</span>
+                                <span class="detail-value">${cropDetails.totalCost}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">वर्तमान बाजार भाव:</span>
+                                <span class="detail-value">${cropDetails.currentPrice}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">भविष्य की कीमत:</span>
+                                <span class="detail-value">${cropDetails.futurePrice}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">अनुमानित आय:</span>
+                                <span class="detail-value">${cropDetails.expectedIncome}</span>
                             </div>
                         </div>
                     </div>
