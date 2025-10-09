@@ -271,7 +271,9 @@ class EnhancedMultilingualSupport:
             response = f"🌱 {location} के लिए फसल सुझाव:\n\n"
             
             for i, crop in enumerate(crops[:3], 1):
-                response += f"{i}. 🌾 {crop['name']} (सुझाव: {crop['score']}%)\n"
+                crop_name = crop.get('crop', crop.get('name', 'अज्ञात फसल'))
+                crop_score = crop.get('score', crop.get('suitability', 0))
+                response += f"{i}. 🌾 {crop_name} (सुझाव: {crop_score}%)\n"
                 if 'price' in crop:
                     response += f"   💰 MSP: {crop['price']}\n"
                 if 'subsidy' in crop:
@@ -310,7 +312,9 @@ class EnhancedMultilingualSupport:
             response = f"🌱 Crop recommendations for {location}:\n\n"
             
             for i, crop in enumerate(crops[:3], 1):
-                response += f"{i}. 🌾 {crop['name']} (Recommendation: {crop['score']}%)\n"
+                crop_name = crop.get('crop', crop.get('name', 'Unknown Crop'))
+                crop_score = crop.get('score', crop.get('suitability', 0))
+                response += f"{i}. 🌾 {crop_name} (Recommendation: {crop_score}%)\n"
                 if 'price' in crop:
                     response += f"   💰 MSP: {crop['price']}\n"
                 if 'subsidy' in crop:
@@ -349,7 +353,9 @@ class EnhancedMultilingualSupport:
             response = f"🌱 {location} के लिए crop suggestions:\n\n"
             
             for i, crop in enumerate(crops[:3], 1):
-                response += f"{i}. 🌾 {crop['name']} (suggestion: {crop['score']}%)\n"
+                crop_name = crop.get('crop', crop.get('name', 'Unknown Crop'))
+                crop_score = crop.get('score', crop.get('suitability', 0))
+                response += f"{i}. 🌾 {crop_name} (suggestion: {crop_score}%)\n"
                 if 'price' in crop:
                     response += f"   💰 MSP: {crop['price']}\n"
                 if 'subsidy' in crop:

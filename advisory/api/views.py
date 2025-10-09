@@ -3340,8 +3340,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
             if not real_time_market_data or not real_time_market_data.get('prices'):
                 try:
                     market_data = self.government_api.get_real_market_prices(
+                        crop=product_type,
+                        location=None,
                         commodity=product_type,
-                        language=language,
                         latitude=latitude,
                         longitude=longitude
                     )
