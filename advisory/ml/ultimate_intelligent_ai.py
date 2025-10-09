@@ -993,6 +993,8 @@ class UltimateIntelligentAI:
                     else:
                         # Fallback to existing government API
                         market_data = self.government_api.get_real_market_prices(
+                            crop=crop.lower(),
+                            location=location,
                             commodity=crop.lower(),
                             latitude=latitude or 28.6139,
                             longitude=longitude or 77.2090,
@@ -1186,7 +1188,7 @@ class UltimateIntelligentAI:
             def fetch_weather():
                 nonlocal result, exception
                 try:
-                    weather_data = self.government_api.get_real_weather_data(lat, lon, language)
+                    weather_data = self.government_api.get_real_weather_data(location, language=language)
                     
                     if weather_data and 'current' in weather_data:
                         result = {
@@ -2818,7 +2820,13 @@ class UltimateIntelligentAI:
         try:
             query = analysis.get('original_query', '')
             general_data = self.general_apis.handle_general_question(query, language)
-            return general_data.get('response', 'I can help you with agricultural problems....')
+            
+            # Check if general_data is not None and has response
+            if general_data and isinstance(general_data, dict):
+                return general_data.get('response', 'I can help you with agricultural problems....')
+            else:
+                # Fallback to agricultural response
+                return self._generate_general_intelligent_response(query, {}, language)
         except Exception as e:
             logger.warning(f"Enhanced general response failed: {e}")
             return self._generate_general_intelligent_response(query, {}, language)
