@@ -2891,23 +2891,27 @@ class UltimateIntelligentAI:
             return self.generate_response("crop recommendation", analysis, language, latitude, longitude, location_name)
     
     def _format_ai_ml_crop_response(self, recommendations: List[Dict[str, Any]], location: str, language: str) -> str:
-        """Format AI/ML crop recommendations response"""
+        """Format AI/ML crop recommendations response in structured box format"""
         if language == 'hi':
             response = f"🤖 {location} के लिए AI/ML संचालित फसल सुझाव:\n\n"
             response += f"📍 सरकारी API + AI/ML द्वारा विश्लेषण\n\n"
             
+            # Display top 4 crops in detailed box format
             for i, crop in enumerate(recommendations[:4], 1):
-                response += f"{i}. 🌾 {crop['name']} (AI सुझाव: {crop['score']}%)\n"
-                response += f"   ⏱️ अवधि: {crop['duration']}\n"
-                response += f"   💰 लागत: {crop['total_cost']}\n"
-                response += f"   📈 वर्तमान भाव: {crop['current_price']}\n"
-                response += f"   🔮 भविष्य भाव: {crop['future_price']}\n"
-                response += f"   💵 अनुमानित आय: {crop['expected_income']}\n"
-                response += f"   📊 उत्पादन: {crop['expected_yield']}\n"
-                response += f"   🌊 पानी की आवश्यकता: {crop['water_requirement']}\n"
-                response += f"   🛡️ रोग प्रतिरोध: {crop['disease_resistance']}\n\n"
+                response += f"🌾 {crop['name']}\n"
+                response += f"सुझाव: {crop['score']}%\n"
+                response += f"बुवाई अवधि: {crop['duration']}\n"
+                response += f"कुल लागत: {crop['total_cost']}\n"
+                response += f"वर्तमान बाजार भाव: {crop['current_price']}\n"
+                response += f"भविष्य की कीमत: {crop['future_price']}\n"
+                response += f"अनुमानित आय: {crop['expected_income']}\n"
+                response += f"उत्पादन: {crop['expected_yield']}\n"
+                response += f"पानी की आवश्यकता: {crop['water_requirement']}\n"
+                response += f"रोग प्रतिरोध: {crop['disease_resistance']}\n"
+                if i < 4:  # Add separator between crops except for the last one
+                    response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             
-            response += f"📊 डेटा स्रोत: सरकारी API + AI/ML एल्गोरिदम\n"
+            response += f"\n📊 डेटा स्रोत: सरकारी API + AI/ML एल्गोरिदम\n"
             response += f"🎯 सटीकता: {recommendations[0].get('confidence', 95)}%\n"
             response += f"🔄 रियल-टाइम अपडेट: हाँ"
             
@@ -2915,18 +2919,22 @@ class UltimateIntelligentAI:
             response = f"🤖 AI/ML-Powered Crop Recommendations for {location}:\n\n"
             response += f"📍 Analysis by Government APIs + AI/ML\n\n"
             
+            # Display top 4 crops in detailed box format
             for i, crop in enumerate(recommendations[:4], 1):
-                response += f"{i}. 🌾 {crop['name']} (AI Score: {crop['score']}%)\n"
-                response += f"   ⏱️ Duration: {crop['duration']}\n"
-                response += f"   💰 Cost: {crop['total_cost']}\n"
-                response += f"   📈 Current Price: {crop['current_price']}\n"
-                response += f"   🔮 Future Price: {crop['future_price']}\n"
-                response += f"   💵 Expected Income: {crop['expected_income']}\n"
-                response += f"   📊 Yield: {crop['expected_yield']}\n"
-                response += f"   🌊 Water Requirement: {crop['water_requirement']}\n"
-                response += f"   🛡️ Disease Resistance: {crop['disease_resistance']}\n\n"
+                response += f"🌾 {crop['name']}\n"
+                response += f"Recommendation: {crop['score']}%\n"
+                response += f"Sowing Duration: {crop['duration']}\n"
+                response += f"Total Cost: {crop['total_cost']}\n"
+                response += f"Current Market Price: {crop['current_price']}\n"
+                response += f"Future Price: {crop['future_price']}\n"
+                response += f"Expected Income: {crop['expected_income']}\n"
+                response += f"Expected Yield: {crop['expected_yield']}\n"
+                response += f"Water Requirement: {crop['water_requirement']}\n"
+                response += f"Disease Resistance: {crop['disease_resistance']}\n"
+                if i < 4:  # Add separator between crops except for the last one
+                    response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             
-            response += f"📊 Data Source: Government APIs + AI/ML Algorithms\n"
+            response += f"\n📊 Data Source: Government APIs + AI/ML Algorithms\n"
             response += f"🎯 Accuracy: {recommendations[0].get('confidence', 95)}%\n"
             response += f"🔄 Real-time Updates: Yes"
         

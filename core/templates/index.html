@@ -601,6 +601,56 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+        }
+        
+        .crop-details-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #495057;
+            flex: 1;
+            font-size: 14px;
+        }
+        
+        .detail-value {
+            font-weight: 500;
+            color: #212529;
+            text-align: right;
+            flex: 1;
+            font-size: 14px;
+        }
+        
+        .detail-value.success {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .detail-value.warning {
+            color: #ffc107;
+            font-weight: 600;
+        }
+        
+        .detail-value.primary {
+            color: #007bff;
+            font-weight: 600;
             padding: 8px 12px;
             background: #f8f9fa;
             border-radius: 8px;
@@ -2125,29 +2175,29 @@
                     <div class="crop-recommendation-item">
                         <div class="crop-number">${index + 1}</div>
                         <div class="crop-info">
-                            <h6 class="crop-name">${crop.name}</h6>
-                            <div class="crop-score">
-                                <span class="score-label">सुझाव:</span>
-                                <span class="score-value ${scoreColor}">${crop.score}%</span>
-                            </div>
-                            <div class="crop-details">
-                                <div class="detail-row">
+                            <h6 class="crop-name">🌾 ${crop.name}</h6>
+                            <div class="crop-details-box">
+                                <div class="detail-item">
+                                    <span class="detail-label">सुझाव:</span>
+                                    <span class="detail-value ${scoreColor}">${crop.score}%</span>
+                                </div>
+                                <div class="detail-item">
                                     <span class="detail-label">बुवाई अवधि:</span>
                                     <span class="detail-value">${cropDetails.duration}</span>
                                 </div>
-                                <div class="detail-row">
+                                <div class="detail-item">
                                     <span class="detail-label">कुल लागत:</span>
                                     <span class="detail-value">${cropDetails.totalCost}</span>
                                 </div>
-                                <div class="detail-row">
+                                <div class="detail-item">
                                     <span class="detail-label">वर्तमान बाजार भाव:</span>
                                     <span class="detail-value">${cropDetails.currentPrice}</span>
                                 </div>
-                                <div class="detail-row">
+                                <div class="detail-item">
                                     <span class="detail-label">भविष्य की कीमत:</span>
                                     <span class="detail-value">${cropDetails.futurePrice}</span>
                                 </div>
-                                <div class="detail-row">
+                                <div class="detail-item">
                                     <span class="detail-label">अनुमानित आय:</span>
                                     <span class="detail-value">${cropDetails.expectedIncome}</span>
                                 </div>
