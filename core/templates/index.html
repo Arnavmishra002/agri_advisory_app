@@ -338,12 +338,158 @@
             border-left: 4px solid #ffc107;
         }
         
+        .schemes-section {
+            margin: 30px 0;
+        }
+        
         .scheme-card {
             background: #d1ecf1;
             border-radius: 10px;
             padding: 20px;
             margin: 15px 0;
             border-left: 4px solid #17a2b8;
+            transition: all 0.3s ease;
+        }
+        
+        .scheme-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .process-step {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin: 0 auto 15px auto;
+        }
+        
+        .crop-selection-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .crop-details-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .crop-info-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            border-left: 4px solid #4a7c59;
+        }
+        
+        .crop-info-card h6 {
+            color: #2d5016;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .pest-image-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .image-upload-area {
+            border: 2px dashed #4a7c59;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .image-upload-area:hover {
+            border-color: #2d5016;
+            background: #f0f8f0;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: #4a7c59;
+            margin-bottom: 15px;
+        }
+        
+        .upload-content h6 {
+            color: #2d5016;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .upload-content p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .image-preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .image-actions {
+            margin-top: 15px;
+        }
+        
+        .pest-manual-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .analysis-results {
+            background: #e8f5e8;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4a7c59;
+        }
+        
+        .analysis-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .analysis-card h6 {
+            color: #2d5016;
+            font-weight: 600;
+            margin-bottom: 10px;
         }
         
         @media (max-width: 768px) {
@@ -493,60 +639,224 @@
         <!-- Government Schemes Content -->
         <div id="government-schemes-content" class="service-content">
             <h3><i class="fas fa-landmark me-2"></i>सरकारी योजनाएं</h3>
-            <div class="scheme-card">
-                <h5>🌾 प्रधानमंत्री किसान सम्मान निधि</h5>
-                <p>₹6,000 प्रति वर्ष प्रति किसान परिवार को तीन किस्तों में</p>
-                <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Kisan')">और जानें</button>
+            
+            <!-- Central Government Schemes -->
+            <div class="schemes-section">
+                <h4><i class="fas fa-flag me-2"></i>केंद्र सरकार की योजनाएं</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="scheme-card">
+                            <h5>🌾 प्रधानमंत्री किसान सम्मान निधि</h5>
+                            <p><strong>राशि:</strong> ₹6,000 प्रति वर्ष प्रति किसान परिवार</p>
+                            <p><strong>किस्तें:</strong> तीन किस्तों में (₹2,000 प्रति किस्त)</p>
+                            <p><strong>पात्रता:</strong> सभी किसान परिवार</p>
+                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Kisan Samman Nidhi')">और जानें</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="scheme-card">
+                            <h5>🚜 प्रधानमंत्री कृषि सिंचाई योजना</h5>
+                            <p><strong>उद्देश्य:</strong> सिंचाई सुविधाओं को बेहतर बनाना</p>
+                            <p><strong>सहायता:</strong> वित्तीय सहायता और तकनीकी सहायता</p>
+                            <p><strong>लाभ:</strong> पानी की बचत और उत्पादकता बढ़ाना</p>
+                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Krishi Sinchai Yojana')">और जानें</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="scheme-card">
+                            <h5>🌱 राष्ट्रीय कृषि विकास योजना</h5>
+                            <p><strong>उद्देश्य:</strong> कृषि और संबद्ध क्षेत्रों का विकास</p>
+                            <p><strong>सहायता:</strong> केंद्रीय सहायता और अनुदान</p>
+                            <p><strong>क्षेत्र:</strong> फसल, पशुपालन, मत्स्य पालन</p>
+                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('RKVY')">और जानें</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="scheme-card">
+                            <h5>🌾 प्रधानमंत्री फसल बीमा योजना</h5>
+                            <p><strong>उद्देश्य:</strong> फसल नुकसान से सुरक्षा</p>
+                            <p><strong>प्रीमियम:</strong> किसानों के लिए कम दर</p>
+                            <p><strong>कवरेज:</strong> प्राकृतिक आपदाओं से सुरक्षा</p>
+                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Fasal Bima Yojana')">और जानें</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="scheme-card">
+                            <h5>🚁 किसान ड्रोन योजना</h5>
+                            <p><strong>उद्देश्य:</strong> ड्रोन तकनीक का उपयोग</p>
+                            <p><strong>सहायता:</strong> ड्रोन खरीद पर सब्सिडी</p>
+                            <p><strong>लाभ:</strong> फसल निगरानी और स्प्रे</p>
+                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('Kisan Drone Yojana')">और जानें</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="scheme-card">
+                            <h5>🌿 जैविक खेती योजना</h5>
+                            <p><strong>उद्देश्य:</strong> जैविक खेती को बढ़ावा</p>
+                            <p><strong>सहायता:</strong> प्रमाणन और विपणन सहायता</p>
+                            <p><strong>लाभ:</strong> पर्यावरण अनुकूल खेती</p>
+                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('Organic Farming Scheme')">और जानें</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="scheme-card">
-                <h5>🚜 प्रधानमंत्री कृषि सिंचाई योजना</h5>
-                <p>सिंचाई सुविधाओं को बेहतर बनाने के लिए वित्तीय सहायता</p>
-                <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Krishi Sinchai')">और जानें</button>
+
+            <!-- State Government Schemes -->
+            <div class="schemes-section">
+                <h4><i class="fas fa-map-marker-alt me-2"></i>राज्य सरकार की योजनाएं</h4>
+                <div id="stateSchemes">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        आपकी लोकेशन के अनुसार राज्य योजनाएं लोड हो रही हैं...
+                    </div>
+                </div>
             </div>
-            <div class="scheme-card">
-                <h5>🌱 राष्ट्रीय कृषि विकास योजना</h5>
-                <p>कृषि और संबद्ध क्षेत्रों के विकास के लिए केंद्रीय सहायता</p>
-                <button class="btn btn-primary btn-sm" onclick="askAboutScheme('RKVY')">और जानें</button>
+
+            <!-- Scheme Application Process -->
+            <div class="schemes-section">
+                <h4><i class="fas fa-clipboard-list me-2"></i>योजना आवेदन प्रक्रिया</h4>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="process-step">
+                            <div class="step-number">1</div>
+                            <h6>पात्रता जांच</h6>
+                            <p>योजना की पात्रता शर्तों को जांचें</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="process-step">
+                            <div class="step-number">2</div>
+                            <h6>दस्तावेज तैयार करें</h6>
+                            <p>आवश्यक दस्तावेजों को तैयार करें</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="process-step">
+                            <div class="step-number">3</div>
+                            <h6>ऑनलाइन आवेदन</h6>
+                            <p>सरकारी पोर्टल पर आवेदन करें</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Crop Recommendations Content -->
         <div id="crop-recommendations-content" class="service-content">
             <h3><i class="fas fa-seedling me-2"></i>फसल सुझाव</h3>
+            
+            <!-- Location-based Recommendations -->
             <div class="crop-recommendation">
                 <h5>📍 आपकी लोकेशन के लिए सुझाव</h5>
                 <div id="cropRecommendations">
-                    <p>लोकेशन डिटेक्ट करने के लिए कृपया थोड़ा इंतजार करें...</p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        लोकेशन डिटेक्ट करने के लिए कृपया थोड़ा इंतजार करें...
+                    </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <label class="form-label">फसल का प्रकार चुनें:</label>
-                    <select id="cropType" class="form-select">
-                        <option value="">फसल चुनें...</option>
-                        <option value="rice">चावल (Rice)</option>
-                        <option value="wheat">गेहूं (Wheat)</option>
-                        <option value="maize">मक्का (Maize)</option>
-                        <option value="sugarcane">गन्ना (Sugarcane)</option>
-                        <option value="cotton">कपास (Cotton)</option>
-                        <option value="potato">आलू (Potato)</option>
-                        <option value="tomato">टमाटर (Tomato)</option>
-                        <option value="onion">प्याज (Onion)</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">मौसम:</label>
-                    <select id="season" class="form-select">
-                        <option value="">मौसम चुनें...</option>
-                        <option value="kharif">खरीफ</option>
-                        <option value="rabi">रबी</option>
-                        <option value="zaid">जायद</option>
-                    </select>
+
+            <!-- Detailed Crop Selection -->
+            <div class="crop-selection-section">
+                <h5>🌾 विस्तृत फसल सुझाव</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">फसल का प्रकार:</label>
+                        <select id="cropType" class="form-select" onchange="loadCropDetails()">
+                            <option value="">फसल चुनें...</option>
+                            <option value="rice">चावल (Rice)</option>
+                            <option value="wheat">गेहूं (Wheat)</option>
+                            <option value="maize">मक्का (Maize)</option>
+                            <option value="sugarcane">गन्ना (Sugarcane)</option>
+                            <option value="cotton">कपास (Cotton)</option>
+                            <option value="potato">आलू (Potato)</option>
+                            <option value="tomato">टमाटर (Tomato)</option>
+                            <option value="onion">प्याज (Onion)</option>
+                            <option value="mustard">सरसों (Mustard)</option>
+                            <option value="soybean">सोयाबीन (Soybean)</option>
+                            <option value="groundnut">मूंगफली (Groundnut)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">मौसम:</label>
+                        <select id="season" class="form-select" onchange="loadCropDetails()">
+                            <option value="">मौसम चुनें...</option>
+                            <option value="kharif">खरीफ (जुलाई-अक्टूबर)</option>
+                            <option value="rabi">रबी (अक्टूबर-मार्च)</option>
+                            <option value="zaid">जायद (मार्च-जून)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">भूमि का प्रकार:</label>
+                        <select id="soilType" class="form-select" onchange="loadCropDetails()">
+                            <option value="">भूमि चुनें...</option>
+                            <option value="loamy">दोमट मिट्टी</option>
+                            <option value="clay">चिकनी मिट्टी</option>
+                            <option value="sandy">बलुई मिट्टी</option>
+                            <option value="black">काली मिट्टी</option>
+                            <option value="red">लाल मिट्टी</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+
+            <!-- Detailed Crop Information -->
+            <div id="cropDetails" class="crop-details-section" style="display: none;">
+                <h5>📊 फसल की विस्तृत जानकारी</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="crop-info-card">
+                            <h6><i class="fas fa-clock me-2"></i>समय अवधि</h6>
+                            <div id="cropDuration">
+                                <p><strong>बुवाई का समय:</strong> <span id="sowingTime">-</span></p>
+                                <p><strong>कटाई का समय:</strong> <span id="harvestTime">-</span></p>
+                                <p><strong>कुल अवधि:</strong> <span id="totalDuration">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="crop-info-card">
+                            <h6><i class="fas fa-rupee-sign me-2"></i>लागत विश्लेषण</h6>
+                            <div id="cropCost">
+                                <p><strong>बीज लागत:</strong> <span id="seedCost">-</span></p>
+                                <p><strong>खाद लागत:</strong> <span id="fertilizerCost">-</span></p>
+                                <p><strong>कुल लागत:</strong> <span id="totalCost">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="crop-info-card">
+                            <h6><i class="fas fa-chart-line me-2"></i>उत्पादन और आय</h6>
+                            <div id="cropProduction">
+                                <p><strong>अनुमानित उत्पादन:</strong> <span id="expectedYield">-</span></p>
+                                <p><strong>बाजार भाव:</strong> <span id="marketPrice">-</span></p>
+                                <p><strong>अनुमानित आय:</strong> <span id="expectedIncome">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="crop-info-card">
+                            <h6><i class="fas fa-percentage me-2"></i>लाभ मार्जिन</h6>
+                            <div id="cropProfit">
+                                <p><strong>कुल लागत:</strong> <span id="totalCostDisplay">-</span></p>
+                                <p><strong>कुल आय:</strong> <span id="totalIncomeDisplay">-</span></p>
+                                <p><strong>शुद्ध लाभ:</strong> <span id="netProfit">-</span></p>
+                                <p><strong>लाभ प्रतिशत:</strong> <span id="profitPercentage">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
             <div class="mt-3">
-                <button class="btn btn-primary" onclick="getCropRecommendation()">
-                    <i class="fas fa-magic me-2"></i>फसल सुझाव प्राप्त करें
+                <button class="btn btn-primary me-2" onclick="getDetailedCropRecommendation()">
+                    <i class="fas fa-magic me-2"></i>विस्तृत फसल सुझाव प्राप्त करें
+                </button>
+                <button class="btn btn-outline-primary" onclick="compareCrops()">
+                    <i class="fas fa-balance-scale me-2"></i>फसलों की तुलना करें
                 </button>
             </div>
         </div>
@@ -584,32 +894,6 @@
         <!-- Market Prices Content -->
         <div id="market-prices-content" class="service-content">
             <h3><i class="fas fa-chart-line me-2"></i>बाजार कीमतें</h3>
-            
-            <!-- Location Search Section -->
-            <div class="location-search-section">
-                <h5>📍 अपनी लोकेशन अपडेट करें</h5>
-                <div class="row">
-                    <div class="col-md-8">
-                        <div class="input-group">
-                            <input type="text" id="locationSearchInput" class="form-control" placeholder="शहर या गांव का नाम टाइप करें (जैसे: दिल्ली, मुंबई, पुणे, कानपुर...)" onkeypress="handleLocationSearchKeyPress(event)">
-                            <button class="btn btn-outline-primary" onclick="searchAndUpdateLocation()">
-                                <i class="fas fa-search me-1"></i>खोजें
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <button class="btn btn-success w-100" onclick="useCurrentLocation()">
-                            <i class="fas fa-map-marker-alt me-1"></i>वर्तमान लोकेशन
-                        </button>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        वर्तमान लोकेशन: <span id="currentLocationDisplay">डिटेक्ट हो रहा है...</span>
-                    </small>
-                </div>
-            </div>
 
             <!-- Mandi Selection Section -->
             <div class="mandi-dropdown">
@@ -664,23 +948,77 @@
         <!-- Pest Control Content -->
         <div id="pest-control-content" class="service-content">
             <h3><i class="fas fa-bug me-2"></i>कीट नियंत्रण</h3>
-            <div class="pest-info">
-                <h5>🔍 कीट और रोग की पहचान</h5>
-                <p>अपनी फसल की तस्वीर अपलोड करें या समस्या का विवरण दें</p>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <label class="form-label">फसल का नाम:</label>
-                    <input type="text" id="pestCrop" class="form-control" placeholder="जैसे: गेहूं, चावल, मक्का...">
+            
+            <!-- Image Upload Section -->
+            <div class="pest-image-section">
+                <h5>📸 फसल की तस्वीर अपलोड करें</h5>
+                <div class="image-upload-area" id="imageUploadArea">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <h6>तस्वीर अपलोड करें</h6>
+                        <p>फसल की समस्या की तस्वीर यहां ड्रैग करें या क्लिक करके चुनें</p>
+                        <input type="file" id="cropImageInput" accept="image/*" onchange="handleImageUpload(event)" style="display: none;">
+                        <button class="btn btn-outline-primary" onclick="document.getElementById('cropImageInput').click()">
+                            <i class="fas fa-camera me-2"></i>तस्वीर चुनें
+                        </button>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">समस्या का विवरण:</label>
-                    <input type="text" id="pestProblem" class="form-control" placeholder="जैसे: पत्तों पर धब्बे, कीड़े दिख रहे...">
+                <div id="imagePreview" class="image-preview" style="display: none;">
+                    <img id="previewImg" src="" alt="Preview" class="preview-image">
+                    <div class="image-actions">
+                        <button class="btn btn-success btn-sm" onclick="analyzeImage()">
+                            <i class="fas fa-search me-1"></i>तस्वीर का विश्लेषण करें
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="removeImage()">
+                            <i class="fas fa-trash me-1"></i>हटाएं
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            <!-- Manual Problem Description -->
+            <div class="pest-manual-section">
+                <h5>📝 समस्या का विवरण दें</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">फसल का नाम:</label>
+                        <input type="text" id="pestCrop" class="form-control" placeholder="जैसे: गेहूं, चावल, मक्का...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">समस्या का प्रकार:</label>
+                        <select id="pestType" class="form-select">
+                            <option value="">समस्या चुनें...</option>
+                            <option value="insect">कीट की समस्या</option>
+                            <option value="disease">रोग की समस्या</option>
+                            <option value="nutrient">पोषक तत्व की कमी</option>
+                            <option value="weather">मौसम की समस्या</option>
+                            <option value="other">अन्य समस्या</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <label class="form-label">समस्या का विस्तृत विवरण:</label>
+                        <textarea id="pestProblem" class="form-control" rows="3" placeholder="जैसे: पत्तों पर धब्बे दिख रहे हैं, कीड़े दिख रहे हैं, पत्ते पीले हो रहे हैं..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Results -->
+            <div id="pestAnalysisResults" class="analysis-results" style="display: none;">
+                <h5>🔍 विश्लेषण परिणाम</h5>
+                <div id="analysisContent">
+                    <!-- Analysis results will be displayed here -->
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
             <div class="mt-3">
-                <button class="btn btn-primary" onclick="getPestAdvice()">
+                <button class="btn btn-primary me-2" onclick="getPestAdvice()">
                     <i class="fas fa-bug me-2"></i>समस्या का समाधान पाएं
+                </button>
+                <button class="btn btn-outline-primary" onclick="getPreventiveMeasures()">
+                    <i class="fas fa-shield-alt me-2"></i>रोकथाम के उपाय
                 </button>
             </div>
         </div>
@@ -1303,6 +1641,339 @@
             if (dropdown) {
                 dropdown.selectedIndex = 0;
             }
+        }
+
+        // Enhanced crop functions
+        function loadCropDetails() {
+            const cropType = document.getElementById('cropType').value;
+            const season = document.getElementById('season').value;
+            const soilType = document.getElementById('soilType').value;
+            
+            if (cropType && season && soilType) {
+                const cropDetails = getCropDetails(cropType, season, soilType);
+                displayCropDetails(cropDetails);
+                document.getElementById('cropDetails').style.display = 'block';
+            } else {
+                document.getElementById('cropDetails').style.display = 'none';
+            }
+        }
+
+        function getCropDetails(cropType, season, soilType) {
+            const cropDatabase = {
+                'rice': {
+                    name: 'चावल',
+                    duration: '120-150 दिन',
+                    sowingTime: 'जून-जुलाई',
+                    harvestTime: 'अक्टूबर-नवंबर',
+                    seedCost: '₹2,000-3,000 प्रति एकड़',
+                    fertilizerCost: '₹3,000-4,000 प्रति एकड़',
+                    totalCost: '₹15,000-20,000 प्रति एकड़',
+                    expectedYield: '25-30 क्विंटल प्रति एकड़',
+                    marketPrice: '₹2,000-2,500 प्रति क्विंटल',
+                    expectedIncome: '₹50,000-75,000 प्रति एकड़',
+                    profitPercentage: '150-200%'
+                },
+                'wheat': {
+                    name: 'गेहूं',
+                    duration: '120-140 दिन',
+                    sowingTime: 'नवंबर-दिसंबर',
+                    harvestTime: 'मार्च-अप्रैल',
+                    seedCost: '₹1,500-2,000 प्रति एकड़',
+                    fertilizerCost: '₹2,500-3,500 प्रति एकड़',
+                    totalCost: '₹12,000-16,000 प्रति एकड़',
+                    expectedYield: '20-25 क्विंटल प्रति एकड़',
+                    marketPrice: '₹2,200-2,500 प्रति क्विंटल',
+                    expectedIncome: '₹44,000-62,500 प्रति एकड़',
+                    profitPercentage: '180-250%'
+                },
+                'maize': {
+                    name: 'मक्का',
+                    duration: '90-120 दिन',
+                    sowingTime: 'जून-जुलाई',
+                    harvestTime: 'सितंबर-अक्टूबर',
+                    seedCost: '₹1,800-2,200 प्रति एकड़',
+                    fertilizerCost: '₹2,800-3,500 प्रति एकड़',
+                    totalCost: '₹10,000-14,000 प्रति एकड़',
+                    expectedYield: '15-20 क्विंटल प्रति एकड़',
+                    marketPrice: '₹1,800-2,200 प्रति क्विंटल',
+                    expectedIncome: '₹27,000-44,000 प्रति एकड़',
+                    profitPercentage: '120-180%'
+                },
+                'sugarcane': {
+                    name: 'गन्ना',
+                    duration: '12-18 महीने',
+                    sowingTime: 'अक्टूबर-नवंबर',
+                    harvestTime: 'अक्टूबर-मार्च',
+                    seedCost: '₹3,000-4,000 प्रति एकड़',
+                    fertilizerCost: '₹4,000-5,000 प्रति एकड़',
+                    totalCost: '₹25,000-35,000 प्रति एकड़',
+                    expectedYield: '300-400 क्विंटल प्रति एकड़',
+                    marketPrice: '₹300-350 प्रति क्विंटल',
+                    expectedIncome: '₹90,000-140,000 प्रति एकड़',
+                    profitPercentage: '200-300%'
+                },
+                'cotton': {
+                    name: 'कपास',
+                    duration: '150-180 दिन',
+                    sowingTime: 'अप्रैल-मई',
+                    harvestTime: 'अक्टूबर-दिसंबर',
+                    seedCost: '₹2,500-3,000 प्रति एकड़',
+                    fertilizerCost: '₹3,500-4,500 प्रति एकड़',
+                    totalCost: '₹18,000-25,000 प्रति एकड़',
+                    expectedYield: '8-12 क्विंटल प्रति एकड़',
+                    marketPrice: '₹6,000-7,000 प्रति क्विंटल',
+                    expectedIncome: '₹48,000-84,000 प्रति एकड़',
+                    profitPercentage: '150-250%'
+                }
+            };
+            
+            return cropDatabase[cropType] || {
+                name: 'अज्ञात फसल',
+                duration: '-',
+                sowingTime: '-',
+                harvestTime: '-',
+                seedCost: '-',
+                fertilizerCost: '-',
+                totalCost: '-',
+                expectedYield: '-',
+                marketPrice: '-',
+                expectedIncome: '-',
+                profitPercentage: '-'
+            };
+        }
+
+        function displayCropDetails(details) {
+            document.getElementById('sowingTime').textContent = details.sowingTime;
+            document.getElementById('harvestTime').textContent = details.harvestTime;
+            document.getElementById('totalDuration').textContent = details.duration;
+            document.getElementById('seedCost').textContent = details.seedCost;
+            document.getElementById('fertilizerCost').textContent = details.fertilizerCost;
+            document.getElementById('totalCost').textContent = details.totalCost;
+            document.getElementById('expectedYield').textContent = details.expectedYield;
+            document.getElementById('marketPrice').textContent = details.marketPrice;
+            document.getElementById('expectedIncome').textContent = details.expectedIncome;
+            document.getElementById('totalCostDisplay').textContent = details.totalCost;
+            document.getElementById('totalIncomeDisplay').textContent = details.expectedIncome;
+            document.getElementById('netProfit').textContent = details.profitPercentage;
+            document.getElementById('profitPercentage').textContent = details.profitPercentage;
+        }
+
+        function getDetailedCropRecommendation() {
+            const cropType = document.getElementById('cropType').value;
+            const season = document.getElementById('season').value;
+            const soilType = document.getElementById('soilType').value;
+            
+            if (!cropType || !season || !soilType) {
+                showNotification('कृपया सभी फील्ड भरें', 'error');
+                return;
+            }
+            
+            const query = `${cropType} की ${season} मौसम में ${soilType} मिट्टी में खेती के बारे में विस्तृत जानकारी दें। लागत, समय, उत्पादन और लाभ के बारे में बताएं।`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: currentLocation.name || 'Current Location'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    document.getElementById('cropRecommendations').innerHTML = `
+                        <div class="alert alert-success">
+                            <h6>🌾 ${cropType} के लिए विस्तृत सुझाव:</h6>
+                            <div style="white-space: pre-line;">${data.response}</div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error getting detailed crop recommendation:', error);
+                showNotification('विस्तृत सुझाव प्राप्त नहीं हो सका', 'error');
+            });
+        }
+
+        function compareCrops() {
+            showNotification('फसल तुलना सुविधा जल्द ही उपलब्ध होगी', 'info');
+        }
+
+        // Image upload functions
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('previewImg').src = e.target.result;
+                        document.getElementById('imagePreview').style.display = 'block';
+                        document.getElementById('imageUploadArea').style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    showNotification('कृपया केवल तस्वीर फाइल अपलोड करें', 'error');
+                }
+            }
+        }
+
+        function removeImage() {
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('imageUploadArea').style.display = 'block';
+            document.getElementById('cropImageInput').value = '';
+            document.getElementById('pestAnalysisResults').style.display = 'none';
+        }
+
+        function analyzeImage() {
+            const imageFile = document.getElementById('cropImageInput').files[0];
+            if (!imageFile) {
+                showNotification('कृपया पहले तस्वीर अपलोड करें', 'error');
+                return;
+            }
+
+            showNotification('तस्वीर का विश्लेषण हो रहा है...', 'info');
+            
+            // Simulate image analysis (in real app, you'd send to AI/ML service)
+            setTimeout(() => {
+                const analysisResult = simulateImageAnalysis();
+                displayAnalysisResult(analysisResult);
+                showNotification('तस्वीर का विश्लेषण पूरा हो गया', 'success');
+            }, 2000);
+        }
+
+        function simulateImageAnalysis() {
+            const analyses = [
+                {
+                    problem: 'पत्तों पर धब्बे',
+                    disease: 'बैक्टीरियल ब्लाइट',
+                    severity: 'मध्यम',
+                    solution: 'कॉपर फंगीसाइड का उपयोग करें',
+                    prevention: 'नियमित सिंचाई और निकासी सुनिश्चित करें'
+                },
+                {
+                    problem: 'पत्ते पीले हो रहे',
+                    disease: 'नाइट्रोजन की कमी',
+                    severity: 'कम',
+                    solution: 'यूरिया या NPK खाद का उपयोग करें',
+                    prevention: 'मिट्टी की जांच करवाकर संतुलित खाद का उपयोग करें'
+                },
+                {
+                    problem: 'कीड़े दिख रहे',
+                    disease: 'एफिड्स (Aphids)',
+                    severity: 'उच्च',
+                    solution: 'नीम का तेल या कीटनाशक का उपयोग करें',
+                    prevention: 'प्राकृतिक शिकारियों को बढ़ावा दें'
+                }
+            ];
+            
+            return analyses[Math.floor(Math.random() * analyses.length)];
+        }
+
+        function displayAnalysisResult(result) {
+            const container = document.getElementById('analysisContent');
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="analysis-card">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>समस्या की पहचान</h6>
+                            <p><strong>समस्या:</strong> ${result.problem}</p>
+                            <p><strong>रोग/कीट:</strong> ${result.disease}</p>
+                            <p><strong>गंभीरता:</strong> <span class="badge bg-warning">${result.severity}</span></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="analysis-card">
+                            <h6><i class="fas fa-medkit me-2"></i>समाधान</h6>
+                            <p><strong>तत्काल उपचार:</strong> ${result.solution}</p>
+                            <p><strong>रोकथाम:</strong> ${result.prevention}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('pestAnalysisResults').style.display = 'block';
+        }
+
+        function getPreventiveMeasures() {
+            const crop = document.getElementById('pestCrop').value;
+            if (!crop) {
+                showNotification('कृपया फसल का नाम दें', 'error');
+                return;
+            }
+
+            const query = `${crop} में कीट और रोगों की रोकथाम के उपाय बताएं`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: currentLocation.name || 'Current Location'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    showNotification('रोकथाम के उपाय मिल गए!', 'success');
+                    alert(data.response);
+                }
+            })
+            .catch(error => {
+                console.error('Error getting preventive measures:', error);
+                showNotification('रोकथाम के उपाय नहीं मिल सके', 'error');
+            });
+        }
+
+        // State schemes based on location
+        function loadStateSchemes(locationName) {
+            const stateSchemes = {
+                'महाराष्ट्र': [
+                    { name: 'महाराष्ट्र कृषि योजना', amount: '₹10,000 प्रति एकड़', description: 'कृषि विकास के लिए राज्य सहायता' },
+                    { name: 'शेतकरी संपदा योजना', amount: '₹5,000 प्रति किसान', description: 'किसानों की आय बढ़ाने के लिए' }
+                ],
+                'उत्तर प्रदेश': [
+                    { name: 'उत्तर प्रदेश कृषि योजना', amount: '₹8,000 प्रति एकड़', description: 'कृषि उत्पादकता बढ़ाने के लिए' },
+                    { name: 'किसान कल्याण योजना', amount: '₹3,000 प्रति किसान', description: 'किसान कल्याण के लिए' }
+                ],
+                'पंजाब': [
+                    { name: 'पंजाब कृषि योजना', amount: '₹12,000 प्रति एकड़', description: 'कृषि आधुनिकीकरण के लिए' },
+                    { name: 'किसान सुविधा योजना', amount: '₹4,000 प्रति किसान', description: 'किसान सुविधाओं के लिए' }
+                ]
+            };
+            
+            const schemes = stateSchemes[locationName] || [
+                { name: 'राज्य कृषि योजना', amount: '₹5,000-10,000', description: 'स्थानीय कृषि विकास के लिए' }
+            ];
+            
+            const container = document.getElementById('stateSchemes');
+            let html = '<div class="row">';
+            
+            schemes.forEach(scheme => {
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="scheme-card">
+                            <h5>🏛️ ${scheme.name}</h5>
+                            <p><strong>राशि:</strong> ${scheme.amount}</p>
+                            <p><strong>विवरण:</strong> ${scheme.description}</p>
+                            <button class="btn btn-primary btn-sm" onclick="askAboutScheme('${scheme.name}')">और जानें</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         // Handle mandi selection
