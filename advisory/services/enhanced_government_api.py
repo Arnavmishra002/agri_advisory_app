@@ -82,7 +82,8 @@ class EnhancedGovernmentAPI:
         cache_key = f"market_{crop}_{location}_{language}"
         
         if self._is_cached(cache_key):
-            return self.cache[cache_key]
+            _, data = self.cache[cache_key]
+            return data
         
         # Try multiple API sources
         api_sources = ['agmarknet', 'enam', 'fci', 'apmc']
@@ -133,7 +134,8 @@ class EnhancedGovernmentAPI:
         cache_key = f"weather_{location}_{language}"
         
         if self._is_cached(cache_key):
-            return self.cache[cache_key]
+            _, data = self.cache[cache_key]
+            return data
         
         weather_data = None
         
@@ -166,7 +168,8 @@ class EnhancedGovernmentAPI:
         cache_key = f"crops_{location}_{season}_{language}"
         
         if self._is_cached(cache_key):
-            return self.cache[cache_key]
+            _, data = self.cache[cache_key]
+            return data
         
         # Generate crop recommendations based on location and season
         recommendations = self._generate_crop_recommendations(location, season, language)
@@ -190,7 +193,8 @@ class EnhancedGovernmentAPI:
         cache_key = f"schemes_{location}_{state}_{language}"
         
         if self._is_cached(cache_key):
-            return self.cache[cache_key]
+            _, data = self.cache[cache_key]
+            return data
         
         schemes_data = self.fallback_data['government_schemes'].copy()
         
