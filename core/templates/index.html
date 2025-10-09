@@ -492,6 +492,57 @@
             margin-bottom: 10px;
         }
         
+        .quick-crop-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .crop-suitability-indicator {
+            background: #e8f5e8;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #4a7c59;
+        }
+        
+        .crop-comparison-section {
+            background: #fff3cd;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .crop-recommendation-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #4a7c59;
+        }
+        
+        .crop-recommendation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        
+        .crop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .crop-header h6 {
+            color: #2d5016;
+            font-weight: 600;
+            margin: 0;
+        }
+        
         @media (max-width: 768px) {
             .hero-title {
                 font-size: 2rem;
@@ -754,6 +805,87 @@
                         लोकेशन डिटेक्ट करने के लिए कृपया थोड़ा इंतजार करें...
                     </div>
                 </div>
+                
+                <!-- Dynamic Analysis Section -->
+                <div id="dynamicAnalysis" class="mt-3" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="analysis-card">
+                                <h6><i class="fas fa-cloud-sun me-2"></i>मौसम विश्लेषण</h6>
+                                <div id="weatherAnalysis">
+                                    <p><strong>तापमान:</strong> <span id="currentTemp">-</span>°C</p>
+                                    <p><strong>बारिश:</strong> <span id="rainfall">-</span> mm</p>
+                                    <p><strong>आर्द्रता:</strong> <span id="humidity">-</span>%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="analysis-card">
+                                <h6><i class="fas fa-seedling me-2"></i>मिट्टी विश्लेषण</h6>
+                                <div id="soilAnalysis">
+                                    <p><strong>मिट्टी प्रकार:</strong> <span id="soilTypeAnalysis">-</span></p>
+                                    <p><strong>pH स्तर:</strong> <span id="phLevel">-</span></p>
+                                    <p><strong>पोषक तत्व:</strong> <span id="nutrients">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="analysis-card">
+                                <h6><i class="fas fa-chart-line me-2"></i>बाजार विश्लेषण</h6>
+                                <div id="marketAnalysis">
+                                    <p><strong>वर्तमान कीमत:</strong> <span id="currentPrice">-</span></p>
+                                    <p><strong>कीमत रुझान:</strong> <span id="priceTrend">-</span></p>
+                                    <p><strong>मांग स्तर:</strong> <span id="demandLevel">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="analysis-card">
+                                <h6><i class="fas fa-calendar-alt me-2"></i>भविष्य पूर्वानुमान</h6>
+                                <div id="futureAnalysis">
+                                    <p><strong>मौसम पूर्वानुमान:</strong> <span id="weatherForecast">-</span></p>
+                                    <p><strong>बाजार पूर्वानुमान:</strong> <span id="marketForecast">-</span></p>
+                                    <p><strong>जोखिम स्तर:</strong> <span id="riskLevel">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Best Crop Recommendations -->
+                <div id="bestCropRecommendations" class="mt-4" style="display: none;">
+                    <h6><i class="fas fa-trophy me-2"></i>आपकी लोकेशन के लिए सर्वोत्तम फसलें</h6>
+                    <div id="topCropsList">
+                        <!-- Top crops will be displayed here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Crop Selection -->
+            <div class="quick-crop-section">
+                <h5>🚀 त्वरित फसल चयन</h5>
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-success w-100" onclick="selectQuickCrop('rice', 'kharif', 'loamy')">
+                            🌾 चावल (खरीफ)
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-success w-100" onclick="selectQuickCrop('wheat', 'rabi', 'loamy')">
+                            🌾 गेहूं (रबी)
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-success w-100" onclick="selectQuickCrop('maize', 'kharif', 'sandy')">
+                            🌽 मक्का (खरीफ)
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-success w-100" onclick="selectQuickCrop('sugarcane', 'kharif', 'clay')">
+                            🍃 गन्ना (वर्षभर)
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Detailed Crop Selection -->
@@ -762,7 +894,7 @@
                 <div class="row">
                     <div class="col-md-4">
                         <label class="form-label">फसल का प्रकार:</label>
-                        <select id="cropType" class="form-select" onchange="loadCropDetails()">
+                        <select id="cropType" class="form-select" onchange="onCropTypeChange()">
                             <option value="">फसल चुनें...</option>
                             <option value="rice">चावल (Rice)</option>
                             <option value="wheat">गेहूं (Wheat)</option>
@@ -775,11 +907,15 @@
                             <option value="mustard">सरसों (Mustard)</option>
                             <option value="soybean">सोयाबीन (Soybean)</option>
                             <option value="groundnut">मूंगफली (Groundnut)</option>
+                            <option value="bajra">बाजरा (Pearl Millet)</option>
+                            <option value="jowar">ज्वार (Sorghum)</option>
+                            <option value="turmeric">हल्दी (Turmeric)</option>
+                            <option value="chilli">मिर्च (Chilli)</option>
                         </select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">मौसम:</label>
-                        <select id="season" class="form-select" onchange="loadCropDetails()">
+                        <select id="season" class="form-select" onchange="onSeasonChange()">
                             <option value="">मौसम चुनें...</option>
                             <option value="kharif">खरीफ (जुलाई-अक्टूबर)</option>
                             <option value="rabi">रबी (अक्टूबर-मार्च)</option>
@@ -788,7 +924,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">भूमि का प्रकार:</label>
-                        <select id="soilType" class="form-select" onchange="loadCropDetails()">
+                        <select id="soilType" class="form-select" onchange="onSoilTypeChange()">
                             <option value="">भूमि चुनें...</option>
                             <option value="loamy">दोमट मिट्टी</option>
                             <option value="clay">चिकनी मिट्टी</option>
@@ -796,6 +932,16 @@
                             <option value="black">काली मिट्टी</option>
                             <option value="red">लाल मिट्टी</option>
                         </select>
+                    </div>
+                </div>
+                
+                <!-- Crop Suitability Indicator -->
+                <div id="cropSuitability" class="mt-3" style="display: none;">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>उपयुक्तता:</strong> <span id="suitabilityScore">-</span>% | 
+                        <strong>अनुमानित लाभ:</strong> <span id="estimatedProfit">-</span> | 
+                        <strong>जोखिम स्तर:</strong> <span id="riskLevel">-</span>
                     </div>
                 </div>
             </div>
@@ -811,6 +957,7 @@
                                 <p><strong>बुवाई का समय:</strong> <span id="sowingTime">-</span></p>
                                 <p><strong>कटाई का समय:</strong> <span id="harvestTime">-</span></p>
                                 <p><strong>कुल अवधि:</strong> <span id="totalDuration">-</span></p>
+                                <p><strong>फसल चक्र:</strong> <span id="cropCycle">-</span></p>
                             </div>
                         </div>
                     </div>
@@ -820,6 +967,7 @@
                             <div id="cropCost">
                                 <p><strong>बीज लागत:</strong> <span id="seedCost">-</span></p>
                                 <p><strong>खाद लागत:</strong> <span id="fertilizerCost">-</span></p>
+                                <p><strong>कीटनाशक लागत:</strong> <span id="pesticideCost">-</span></p>
                                 <p><strong>कुल लागत:</strong> <span id="totalCost">-</span></p>
                             </div>
                         </div>
@@ -833,6 +981,7 @@
                                 <p><strong>अनुमानित उत्पादन:</strong> <span id="expectedYield">-</span></p>
                                 <p><strong>बाजार भाव:</strong> <span id="marketPrice">-</span></p>
                                 <p><strong>अनुमानित आय:</strong> <span id="expectedIncome">-</span></p>
+                                <p><strong>बाजार की मांग:</strong> <span id="marketDemand">-</span></p>
                             </div>
                         </div>
                     </div>
@@ -848,6 +997,32 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Additional Information -->
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="crop-info-card">
+                            <h6><i class="fas fa-seedling me-2"></i>खेती की जानकारी</h6>
+                            <div id="farmingInfo">
+                                <p><strong>पानी की आवश्यकता:</strong> <span id="waterRequirement">-</span></p>
+                                <p><strong>उर्वरक की जरूरत:</strong> <span id="fertilizerNeed">-</span></p>
+                                <p><strong>कीट प्रतिरोध:</strong> <span id="pestResistance">-</span></p>
+                                <p><strong>जलवायु अनुकूलता:</strong> <span id="climateCompatibility">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="crop-info-card">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>सावधानियां</h6>
+                            <div id="precautions">
+                                <p><strong>मुख्य कीट:</strong> <span id="mainPests">-</span></p>
+                                <p><strong>मुख्य रोग:</strong> <span id="mainDiseases">-</span></p>
+                                <p><strong>विशेष देखभाल:</strong> <span id="specialCare">-</span></p>
+                                <p><strong>सरकारी सहायता:</strong> <span id="govtSupport">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Action Buttons -->
@@ -855,9 +1030,22 @@
                 <button class="btn btn-primary me-2" onclick="getDetailedCropRecommendation()">
                     <i class="fas fa-magic me-2"></i>विस्तृत फसल सुझाव प्राप्त करें
                 </button>
-                <button class="btn btn-outline-primary" onclick="compareCrops()">
+                <button class="btn btn-outline-primary me-2" onclick="compareCrops()">
                     <i class="fas fa-balance-scale me-2"></i>फसलों की तुलना करें
                 </button>
+                <button class="btn btn-outline-success" onclick="getCropMarketAnalysis()">
+                    <i class="fas fa-chart-bar me-2"></i>बाजार विश्लेषण
+                </button>
+            </div>
+            
+            <!-- Crop Comparison Modal -->
+            <div id="cropComparisonModal" style="display: none;">
+                <div class="crop-comparison-section">
+                    <h5>⚖️ फसलों की तुलना</h5>
+                    <div id="comparisonResults">
+                        <!-- Comparison results will be displayed here -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1566,31 +1754,275 @@
         function loadCropDataForLocation(locationName) {
             if (!currentLocation) return;
             
-            const query = `मुझे ${locationName} के लिए फसल सुझाव चाहिए। मेरी लोकेशन: ${currentLocation.lat}, ${currentLocation.lon}`;
+            showNotification(`${locationName} के लिए वास्तविक डेटा लोड हो रहा है...`, 'info');
             
-            fetch('/api/advisories/chatbot/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    query: query,
-                    language: 'hi',
-                    session_id: sessionId,
-                    latitude: currentLocation.lat,
-                    longitude: currentLocation.lon,
-                    location_name: locationName
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.response) {
-                    updateCropRecommendations(data.response);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading crop data for location:', error);
+            // Load real-time data from government APIs
+            Promise.all([
+                loadRealWeatherData(locationName),
+                loadRealSoilData(locationName),
+                loadRealMarketData(locationName),
+                loadRealCropRecommendations(locationName)
+            ]).then(([weatherData, soilData, marketData, cropData]) => {
+                displayDynamicAnalysis(weatherData, soilData, marketData);
+                displayBestCropRecommendations(cropData);
+                showNotification('वास्तविक डेटा लोड हो गया!', 'success');
+            }).catch(error => {
+                console.error('Error loading real data:', error);
+                showNotification('वास्तविक डेटा लोड नहीं हो सका', 'error');
             });
+        }
+
+        async function loadRealWeatherData(locationName) {
+            try {
+                const response = await fetch(`/api/advisories/weather/?lat=${currentLocation.lat}&lon=${currentLocation.lon}&lang=hi`);
+                const data = await response.json();
+                
+                if (data && data.temperature) {
+                    return {
+                        temperature: data.temperature,
+                        rainfall: data.rainfall || 'अज्ञात',
+                        humidity: data.humidity,
+                        condition: data.condition || 'अज्ञात'
+                    };
+                }
+                
+                // Fallback to chatbot API for weather
+                const chatbotResponse = await fetch('/api/advisories/chatbot/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `${locationName} का मौसम बताएं - तापमान, बारिश, आर्द्रता`,
+                        language: 'hi',
+                        session_id: sessionId,
+                        latitude: currentLocation.lat,
+                        longitude: currentLocation.lon,
+                        location_name: locationName
+                    })
+                });
+                
+                const chatbotData = await chatbotResponse.json();
+                return parseWeatherFromResponse(chatbotData.response || '');
+                
+            } catch (error) {
+                console.error('Error loading weather data:', error);
+                return null;
+            }
+        }
+
+        async function loadRealSoilData(locationName) {
+            try {
+                // Use government soil health API if available
+                const response = await fetch(`/api/advisories/chatbot/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `${locationName} की मिट्टी की जानकारी बताएं - मिट्टी प्रकार, pH स्तर, पोषक तत्व`,
+                        language: 'hi',
+                        session_id: sessionId,
+                        latitude: currentLocation.lat,
+                        longitude: currentLocation.lon,
+                        location_name: locationName
+                    })
+                });
+                
+                const data = await response.json();
+                return parseSoilFromResponse(data.response || '');
+                
+            } catch (error) {
+                console.error('Error loading soil data:', error);
+                return null;
+            }
+        }
+
+        async function loadRealMarketData(locationName) {
+            try {
+                // Load market prices for multiple crops
+                const crops = ['rice', 'wheat', 'maize', 'cotton', 'sugarcane'];
+                const marketPromises = crops.map(crop => 
+                    fetch(`/api/advisories/market-prices/prices/?product=${crop}&lat=${currentLocation.lat}&lon=${currentLocation.lon}`)
+                        .then(res => res.json())
+                        .catch(() => null)
+                );
+                
+                const marketResults = await Promise.all(marketPromises);
+                return analyzeMarketTrends(marketResults, crops);
+                
+            } catch (error) {
+                console.error('Error loading market data:', error);
+                return null;
+            }
+        }
+
+        async function loadRealCropRecommendations(locationName) {
+            try {
+                const response = await fetch('/api/advisories/chatbot/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `${locationName} के लिए सर्वोत्तम फसलों की सिफारिश करें। मौसम, मिट्टी, बाजार कीमत और भविष्य की संभावनाओं के आधार पर।`,
+                        language: 'hi',
+                        session_id: sessionId,
+                        latitude: currentLocation.lat,
+                        longitude: currentLocation.lon,
+                        location_name: locationName
+                    })
+                });
+                
+                const data = await response.json();
+                return parseCropRecommendations(data.response || '');
+                
+            } catch (error) {
+                console.error('Error loading crop recommendations:', error);
+                return null;
+            }
+        }
+
+        function parseWeatherFromResponse(response) {
+            const weatherData = {
+                temperature: 'अज्ञात',
+                rainfall: 'अज्ञात',
+                humidity: 'अज्ञात',
+                condition: 'अज्ञात'
+            };
+            
+            // Parse temperature
+            const tempMatch = response.match(/तापमान[:\s]*(\d+(?:\.\d+)?)/);
+            if (tempMatch) weatherData.temperature = tempMatch[1];
+            
+            // Parse rainfall
+            const rainMatch = response.match(/बारिश[:\s]*(\d+(?:\.\d+)?)/);
+            if (rainMatch) weatherData.rainfall = rainMatch[1];
+            
+            // Parse humidity
+            const humidityMatch = response.match(/आर्द्रता[:\s]*(\d+(?:\.\d+)?)/);
+            if (humidityMatch) weatherData.humidity = humidityMatch[1];
+            
+            return weatherData;
+        }
+
+        function parseSoilFromResponse(response) {
+            const soilData = {
+                soilType: 'अज्ञात',
+                phLevel: 'अज्ञात',
+                nutrients: 'अज्ञात'
+            };
+            
+            // Parse soil type
+            if (response.includes('दोमट')) soilData.soilType = 'दोमट मिट्टी';
+            else if (response.includes('चिकनी')) soilData.soilType = 'चिकनी मिट्टी';
+            else if (response.includes('बलुई')) soilData.soilType = 'बलुई मिट्टी';
+            else if (response.includes('काली')) soilData.soilType = 'काली मिट्टी';
+            else if (response.includes('लाल')) soilData.soilType = 'लाल मिट्टी';
+            
+            // Parse pH level
+            const phMatch = response.match(/pH[:\s]*(\d+(?:\.\d+)?)/);
+            if (phMatch) soilData.phLevel = phMatch[1];
+            
+            return soilData;
+        }
+
+        function analyzeMarketTrends(marketResults, crops) {
+            const marketData = {
+                currentPrice: 'अज्ञात',
+                priceTrend: 'अज्ञात',
+                demandLevel: 'अज्ञात'
+            };
+            
+            let totalPrice = 0;
+            let validPrices = 0;
+            
+            marketResults.forEach((result, index) => {
+                if (result && result.market_data && result.market_data.length > 0) {
+                    const price = parseFloat(result.market_data[0].price || 0);
+                    if (price > 0) {
+                        totalPrice += price;
+                        validPrices++;
+                    }
+                }
+            });
+            
+            if (validPrices > 0) {
+                marketData.currentPrice = `₹${Math.round(totalPrice / validPrices)}`;
+                marketData.priceTrend = 'स्थिर';
+                marketData.demandLevel = validPrices >= 3 ? 'उच्च' : 'मध्यम';
+            }
+            
+            return marketData;
+        }
+
+        function parseCropRecommendations(response) {
+            const crops = [];
+            const lines = response.split('\n');
+            
+            lines.forEach(line => {
+                const match = line.match(/(\d+)\.\s*([^:]+):?\s*([^%]+)?/);
+                if (match) {
+                    const score = match[3] ? parseInt(match[3].replace('%', '').trim()) : 85;
+                    crops.push({
+                        name: match[2].trim(),
+                        score: score,
+                        description: 'सरकारी API द्वारा अनुशंसित'
+                    });
+                }
+            });
+            
+            return crops.slice(0, 5); // Return top 5 crops
+        }
+
+        function displayDynamicAnalysis(weatherData, soilData, marketData) {
+            // Display weather analysis
+            if (weatherData) {
+                document.getElementById('currentTemp').textContent = weatherData.temperature;
+                document.getElementById('rainfall').textContent = weatherData.rainfall;
+                document.getElementById('humidity').textContent = weatherData.humidity;
+            }
+            
+            // Display soil analysis
+            if (soilData) {
+                document.getElementById('soilTypeAnalysis').textContent = soilData.soilType;
+                document.getElementById('phLevel').textContent = soilData.phLevel;
+                document.getElementById('nutrients').textContent = soilData.nutrients;
+            }
+            
+            // Display market analysis
+            if (marketData) {
+                document.getElementById('currentPrice').textContent = marketData.currentPrice;
+                document.getElementById('priceTrend').textContent = marketData.priceTrend;
+                document.getElementById('demandLevel').textContent = marketData.demandLevel;
+            }
+            
+            // Show dynamic analysis section
+            document.getElementById('dynamicAnalysis').style.display = 'block';
+        }
+
+        function displayBestCropRecommendations(crops) {
+            if (!crops || crops.length === 0) return;
+            
+            let html = '<div class="row">';
+            
+            crops.forEach((crop, index) => {
+                const scoreColor = crop.score >= 90 ? 'success' : crop.score >= 80 ? 'primary' : 'warning';
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                
+                html += `
+                    <div class="col-md-4 mb-3">
+                        <div class="crop-recommendation-card">
+                            <div class="crop-header">
+                                <h6>${medal} ${crop.name}</h6>
+                                <span class="badge bg-${scoreColor}">${crop.score}%</span>
+                            </div>
+                            <p><small>${crop.description}</small></p>
+                            <button class="btn btn-outline-primary btn-sm" onclick="selectQuickCrop('${crop.name.toLowerCase()}', 'kharif', 'loamy')">
+                                विस्तृत जानकारी
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            document.getElementById('topCropsList').innerHTML = html;
+            document.getElementById('bestCropRecommendations').style.display = 'block';
         }
 
         function loadWeatherDataForLocation(locationName) {
@@ -1644,18 +2076,403 @@
         }
 
         // Enhanced crop functions
+        function selectQuickCrop(cropType, season, soilType) {
+            console.log('Quick crop selected:', cropType, season, soilType);
+            
+            // Set the dropdown values
+            document.getElementById('cropType').value = cropType;
+            document.getElementById('season').value = season;
+            document.getElementById('soilType').value = soilType;
+            
+            // Load crop details
+            loadCropDetails();
+            
+            showNotification(`${cropType} फसल का चयन किया गया`, 'success');
+        }
+
+        function onCropTypeChange() {
+            const cropType = document.getElementById('cropType').value;
+            if (cropType) {
+                // Auto-suggest season and soil type based on crop
+                suggestSeasonAndSoil(cropType);
+                checkCropSuitability();
+            }
+            loadCropDetails();
+        }
+
+        function onSeasonChange() {
+            checkCropSuitability();
+            loadCropDetails();
+        }
+
+        function onSoilTypeChange() {
+            checkCropSuitability();
+            loadCropDetails();
+        }
+
+        function suggestSeasonAndSoil(cropType) {
+            const suggestions = {
+                'rice': { season: 'kharif', soil: 'loamy' },
+                'wheat': { season: 'rabi', soil: 'loamy' },
+                'maize': { season: 'kharif', soil: 'sandy' },
+                'sugarcane': { season: 'kharif', soil: 'clay' },
+                'cotton': { season: 'kharif', soil: 'black' },
+                'potato': { season: 'rabi', soil: 'loamy' },
+                'tomato': { season: 'zaid', soil: 'loamy' },
+                'onion': { season: 'rabi', soil: 'loamy' },
+                'mustard': { season: 'rabi', soil: 'loamy' },
+                'soybean': { season: 'kharif', soil: 'loamy' },
+                'groundnut': { season: 'kharif', soil: 'sandy' },
+                'bajra': { season: 'kharif', soil: 'sandy' },
+                'jowar': { season: 'kharif', soil: 'sandy' },
+                'turmeric': { season: 'kharif', soil: 'loamy' },
+                'chilli': { season: 'kharif', soil: 'loamy' }
+            };
+            
+            if (suggestions[cropType]) {
+                document.getElementById('season').value = suggestions[cropType].season;
+                document.getElementById('soilType').value = suggestions[cropType].soil;
+            }
+        }
+
+        function checkCropSuitability() {
+            const cropType = document.getElementById('cropType').value;
+            const season = document.getElementById('season').value;
+            const soilType = document.getElementById('soilType').value;
+            
+            if (cropType && season && soilType) {
+                const suitability = calculateCropSuitability(cropType, season, soilType);
+                displaySuitabilityIndicator(suitability);
+            } else {
+                document.getElementById('cropSuitability').style.display = 'none';
+            }
+        }
+
+        function calculateCropSuitability(cropType, season, soilType) {
+            // Base suitability scores
+            const baseScores = {
+                'rice': { kharif: 95, rabi: 60, zaid: 70, loamy: 90, clay: 85, sandy: 60, black: 80, red: 75 },
+                'wheat': { kharif: 40, rabi: 95, zaid: 70, loamy: 95, clay: 80, sandy: 70, black: 85, red: 80 },
+                'maize': { kharif: 90, rabi: 50, zaid: 80, loamy: 80, clay: 70, sandy: 95, black: 85, red: 75 },
+                'sugarcane': { kharif: 95, rabi: 80, zaid: 85, loamy: 85, clay: 95, sandy: 60, black: 90, red: 80 },
+                'cotton': { kharif: 90, rabi: 30, zaid: 70, loamy: 80, clay: 75, sandy: 85, black: 95, red: 80 },
+                'potato': { kharif: 60, rabi: 90, zaid: 85, loamy: 95, clay: 80, sandy: 70, black: 85, red: 75 },
+                'tomato': { kharif: 70, rabi: 85, zaid: 95, loamy: 90, clay: 80, sandy: 75, black: 85, red: 80 },
+                'onion': { kharif: 60, rabi: 90, zaid: 80, loamy: 90, clay: 85, sandy: 80, black: 85, red: 80 },
+                'mustard': { kharif: 30, rabi: 95, zaid: 70, loamy: 90, clay: 85, sandy: 80, black: 85, red: 80 },
+                'soybean': { kharif: 95, rabi: 40, zaid: 70, loamy: 90, clay: 80, sandy: 75, black: 85, red: 80 },
+                'groundnut': { kharif: 90, rabi: 50, zaid: 80, loamy: 80, clay: 70, sandy: 95, black: 85, red: 80 },
+                'bajra': { kharif: 95, rabi: 30, zaid: 70, loamy: 75, clay: 60, sandy: 95, black: 80, red: 70 },
+                'jowar': { kharif: 90, rabi: 40, zaid: 75, loamy: 80, clay: 70, sandy: 90, black: 85, red: 75 },
+                'turmeric': { kharif: 95, rabi: 60, zaid: 80, loamy: 90, clay: 85, sandy: 70, black: 85, red: 80 },
+                'chilli': { kharif: 85, rabi: 70, zaid: 90, loamy: 90, clay: 80, sandy: 75, black: 85, red: 80 }
+            };
+            
+            const cropData = baseScores[cropType] || {};
+            const seasonScore = cropData[season] || 50;
+            const soilScore = cropData[soilType] || 50;
+            
+            const overallScore = Math.round((seasonScore + soilScore) / 2);
+            
+            // Calculate estimated profit and risk level
+            const profitLevels = {
+                'rice': 'मध्यम-उच्च',
+                'wheat': 'मध्यम',
+                'maize': 'उच्च',
+                'sugarcane': 'बहुत उच्च',
+                'cotton': 'उच्च',
+                'potato': 'उच्च',
+                'tomato': 'बहुत उच्च',
+                'onion': 'उच्च',
+                'mustard': 'मध्यम-उच्च',
+                'soybean': 'उच्च',
+                'groundnut': 'उच्च',
+                'bajra': 'मध्यम',
+                'jowar': 'मध्यम',
+                'turmeric': 'बहुत उच्च',
+                'chilli': 'बहुत उच्च'
+            };
+            
+            const riskLevels = {
+                'rice': 'मध्यम',
+                'wheat': 'कम',
+                'maize': 'मध्यम',
+                'sugarcane': 'उच्च',
+                'cotton': 'उच्च',
+                'potato': 'मध्यम',
+                'tomato': 'उच्च',
+                'onion': 'मध्यम',
+                'mustard': 'कम',
+                'soybean': 'मध्यम',
+                'groundnut': 'मध्यम',
+                'bajra': 'कम',
+                'jowar': 'कम',
+                'turmeric': 'उच्च',
+                'chilli': 'उच्च'
+            };
+            
+            return {
+                score: overallScore,
+                profit: profitLevels[cropType] || 'मध्यम',
+                risk: riskLevels[cropType] || 'मध्यम'
+            };
+        }
+
+        function displaySuitabilityIndicator(suitability) {
+            document.getElementById('suitabilityScore').textContent = suitability.score;
+            document.getElementById('estimatedProfit').textContent = suitability.profit;
+            document.getElementById('riskLevel').textContent = suitability.risk;
+            document.getElementById('cropSuitability').style.display = 'block';
+        }
+
         function loadCropDetails() {
             const cropType = document.getElementById('cropType').value;
             const season = document.getElementById('season').value;
             const soilType = document.getElementById('soilType').value;
             
             if (cropType && season && soilType) {
-                const cropDetails = getCropDetails(cropType, season, soilType);
-                displayCropDetails(cropDetails);
+                const cropDetails = getEnhancedCropDetails(cropType, season, soilType);
+                displayEnhancedCropDetails(cropDetails);
                 document.getElementById('cropDetails').style.display = 'block';
             } else {
                 document.getElementById('cropDetails').style.display = 'none';
             }
+        }
+
+        function getEnhancedCropDetails(cropType, season, soilType) {
+            const cropDatabase = {
+                'rice': {
+                    name: 'चावल',
+                    duration: '120-150 दिन',
+                    sowingTime: 'जून-जुलाई',
+                    harvestTime: 'अक्टूबर-नवंबर',
+                    cropCycle: 'खरीफ (मुख्य फसल)',
+                    seedCost: '₹2,000-3,000 प्रति एकड़',
+                    fertilizerCost: '₹3,000-4,000 प्रति एकड़',
+                    pesticideCost: '₹1,500-2,000 प्रति एकड़',
+                    totalCost: '₹15,000-20,000 प्रति एकड़',
+                    expectedYield: '25-30 क्विंटल प्रति एकड़',
+                    marketPrice: '₹2,000-2,500 प्रति क्विंटल',
+                    expectedIncome: '₹50,000-75,000 प्रति एकड़',
+                    marketDemand: 'बहुत उच्च (स्टेपल फूड)',
+                    waterRequirement: 'उच्च (धान के लिए पानी चाहिए)',
+                    fertilizerNeed: 'NPK 100:50:50 किग्रा/एकड़',
+                    pestResistance: 'मध्यम',
+                    climateCompatibility: 'गर्म और आर्द्र जलवायु',
+                    mainPests: 'भूरा प्लानथॉपर, स्टेम बोरर',
+                    mainDiseases: 'ब्लास्ट, बैक्टीरियल ब्लाइट',
+                    specialCare: 'नियमित सिंचाई और जल निकासी',
+                    govtSupport: 'MSP पर खरीद, बीज सब्सिडी'
+                },
+                'wheat': {
+                    name: 'गेहूं',
+                    duration: '120-140 दिन',
+                    sowingTime: 'नवंबर-दिसंबर',
+                    harvestTime: 'मार्च-अप्रैल',
+                    cropCycle: 'रबी (सर्दियों की फसल)',
+                    seedCost: '₹1,500-2,000 प्रति एकड़',
+                    fertilizerCost: '₹2,500-3,500 प्रति एकड़',
+                    pesticideCost: '₹1,000-1,500 प्रति एकड़',
+                    totalCost: '₹12,000-16,000 प्रति एकड़',
+                    expectedYield: '20-25 क्विंटल प्रति एकड़',
+                    marketPrice: '₹2,200-2,500 प्रति क्विंटल',
+                    expectedIncome: '₹44,000-62,500 प्रति एकड़',
+                    marketDemand: 'बहुत उच्च (स्टेपल फूड)',
+                    waterRequirement: 'मध्यम (3-4 सिंचाई)',
+                    fertilizerNeed: 'NPK 120:60:40 किग्रा/एकड़',
+                    pestResistance: 'अच्छा',
+                    climateCompatibility: 'ठंडी और शुष्क जलवायु',
+                    mainPests: 'एफिड्स, टर्माइट्स',
+                    mainDiseases: 'रस्ट, स्मट',
+                    specialCare: 'समय पर बुवाई और कटाई',
+                    govtSupport: 'MSP पर खरीद, बीज सब्सिडी'
+                },
+                'maize': {
+                    name: 'मक्का',
+                    duration: '90-120 दिन',
+                    sowingTime: 'जून-जुलाई',
+                    harvestTime: 'सितंबर-अक्टूबर',
+                    cropCycle: 'खरीफ (गर्मियों की फसल)',
+                    seedCost: '₹1,800-2,200 प्रति एकड़',
+                    fertilizerCost: '₹2,800-3,500 प्रति एकड़',
+                    pesticideCost: '₹1,200-1,800 प्रति एकड़',
+                    totalCost: '₹10,000-14,000 प्रति एकड़',
+                    expectedYield: '15-20 क्विंटल प्रति एकड़',
+                    marketPrice: '₹1,800-2,200 प्रति क्विंटल',
+                    expectedIncome: '₹27,000-44,000 प्रति एकड़',
+                    marketDemand: 'उच्च (पशु आहार, उद्योग)',
+                    waterRequirement: 'मध्यम (4-5 सिंचाई)',
+                    fertilizerNeed: 'NPK 80:40:40 किग्रा/एकड़',
+                    pestResistance: 'मध्यम',
+                    climateCompatibility: 'गर्म और आर्द्र जलवायु',
+                    mainPests: 'स्टेम बोरर, फॉल आर्मीवर्म',
+                    mainDiseases: 'डाउनी मिल्ड्यू, रस्ट',
+                    specialCare: 'समय पर पोलिनेशन',
+                    govtSupport: 'बीज सब्सिडी, MSP'
+                },
+                'sugarcane': {
+                    name: 'गन्ना',
+                    duration: '12-18 महीने',
+                    sowingTime: 'अक्टूबर-नवंबर',
+                    harvestTime: 'अक्टूबर-मार्च',
+                    cropCycle: 'वर्षभर (लंबी अवधि)',
+                    seedCost: '₹3,000-4,000 प्रति एकड़',
+                    fertilizerCost: '₹4,000-5,000 प्रति एकड़',
+                    pesticideCost: '₹2,000-3,000 प्रति एकड़',
+                    totalCost: '₹25,000-35,000 प्रति एकड़',
+                    expectedYield: '300-400 क्विंटल प्रति एकड़',
+                    marketPrice: '₹300-350 प्रति क्विंटल',
+                    expectedIncome: '₹90,000-140,000 प्रति एकड़',
+                    marketDemand: 'बहुत उच्च (चीनी उद्योग)',
+                    waterRequirement: 'बहुत उच्च (नियमित सिंचाई)',
+                    fertilizerNeed: 'NPK 150:75:75 किग्रा/एकड़',
+                    pestResistance: 'कम',
+                    climateCompatibility: 'गर्म और आर्द्र जलवायु',
+                    mainPests: 'टॉप बोरर, रूट बोरर',
+                    mainDiseases: 'रेड रॉट, रस्ट',
+                    specialCare: 'नियमित सिंचाई और कटिंग',
+                    govtSupport: 'FRP पर खरीद, सिंचाई सब्सिडी'
+                },
+                'cotton': {
+                    name: 'कपास',
+                    duration: '150-180 दिन',
+                    sowingTime: 'अप्रैल-मई',
+                    harvestTime: 'अक्टूबर-दिसंबर',
+                    cropCycle: 'खरीफ (गर्मियों की फसल)',
+                    seedCost: '₹2,500-3,000 प्रति एकड़',
+                    fertilizerCost: '₹3,500-4,500 प्रति एकड़',
+                    pesticideCost: '₹4,000-6,000 प्रति एकड़',
+                    totalCost: '₹18,000-25,000 प्रति एकड़',
+                    expectedYield: '8-12 क्विंटल प्रति एकड़',
+                    marketPrice: '₹6,000-7,000 प्रति क्विंटल',
+                    expectedIncome: '₹48,000-84,000 प्रति एकड़',
+                    marketDemand: 'उच्च (टेक्सटाइल उद्योग)',
+                    waterRequirement: 'उच्च (6-8 सिंचाई)',
+                    fertilizerNeed: 'NPK 100:50:50 किग्रा/एकड़',
+                    pestResistance: 'कम (BT कॉटन बेहतर)',
+                    climateCompatibility: 'गर्म और शुष्क जलवायु',
+                    mainPests: 'बॉलवर्म, व्हाइटफ्लाई',
+                    mainDiseases: 'बैक्टीरियल ब्लाइट, फुसैरियम विल्ट',
+                    specialCare: 'कीट प्रबंधन बहुत जरूरी',
+                    govtSupport: 'CACP मूल्य, बीज सब्सिडी'
+                }
+            };
+            
+            return cropDatabase[cropType] || {
+                name: 'अज्ञात फसल',
+                duration: '-',
+                sowingTime: '-',
+                harvestTime: '-',
+                cropCycle: '-',
+                seedCost: '-',
+                fertilizerCost: '-',
+                pesticideCost: '-',
+                totalCost: '-',
+                expectedYield: '-',
+                marketPrice: '-',
+                expectedIncome: '-',
+                marketDemand: '-',
+                waterRequirement: '-',
+                fertilizerNeed: '-',
+                pestResistance: '-',
+                climateCompatibility: '-',
+                mainPests: '-',
+                mainDiseases: '-',
+                specialCare: '-',
+                govtSupport: '-'
+            };
+        }
+
+        function displayEnhancedCropDetails(details) {
+            // Update basic details
+            document.getElementById('sowingTime').textContent = details.sowingTime;
+            document.getElementById('harvestTime').textContent = details.harvestTime;
+            document.getElementById('totalDuration').textContent = details.duration;
+            document.getElementById('cropCycle').textContent = details.cropCycle;
+            
+            // Update cost details
+            document.getElementById('seedCost').textContent = details.seedCost;
+            document.getElementById('fertilizerCost').textContent = details.fertilizerCost;
+            document.getElementById('pesticideCost').textContent = details.pesticideCost;
+            document.getElementById('totalCost').textContent = details.totalCost;
+            
+            // Update production details
+            document.getElementById('expectedYield').textContent = details.expectedYield;
+            document.getElementById('marketPrice').textContent = details.marketPrice;
+            document.getElementById('expectedIncome').textContent = details.expectedIncome;
+            document.getElementById('marketDemand').textContent = details.marketDemand;
+            
+            // Update profit details
+            document.getElementById('totalCostDisplay').textContent = details.totalCost;
+            document.getElementById('totalIncomeDisplay').textContent = details.expectedIncome;
+            
+            // Calculate profit
+            const costMatch = details.totalCost.match(/₹([0-9,]+)-([0-9,]+)/);
+            const incomeMatch = details.expectedIncome.match(/₹([0-9,]+)-([0-9,]+)/);
+            
+            if (costMatch && incomeMatch) {
+                const avgCost = (parseInt(costMatch[1].replace(/,/g, '')) + parseInt(costMatch[2].replace(/,/g, ''))) / 2;
+                const avgIncome = (parseInt(incomeMatch[1].replace(/,/g, '')) + parseInt(incomeMatch[2].replace(/,/g, ''))) / 2;
+                const profit = avgIncome - avgCost;
+                const profitPercent = Math.round((profit / avgCost) * 100);
+                
+                document.getElementById('netProfit').textContent = `₹${profit.toLocaleString()} प्रति एकड़`;
+                document.getElementById('profitPercentage').textContent = `${profitPercent}%`;
+            }
+            
+            // Update farming info
+            document.getElementById('waterRequirement').textContent = details.waterRequirement;
+            document.getElementById('fertilizerNeed').textContent = details.fertilizerNeed;
+            document.getElementById('pestResistance').textContent = details.pestResistance;
+            document.getElementById('climateCompatibility').textContent = details.climateCompatibility;
+            
+            // Update precautions
+            document.getElementById('mainPests').textContent = details.mainPests;
+            document.getElementById('mainDiseases').textContent = details.mainDiseases;
+            document.getElementById('specialCare').textContent = details.specialCare;
+            document.getElementById('govtSupport').textContent = details.govtSupport;
+        }
+
+        function getCropMarketAnalysis() {
+            const cropType = document.getElementById('cropType').value;
+            const season = document.getElementById('season').value;
+            
+            if (!cropType || !season) {
+                showNotification('कृपया फसल और मौसम चुनें', 'error');
+                return;
+            }
+            
+            const query = `${cropType} फसल का ${season} मौसम में बाजार विश्लेषण बताएं। कीमत रुझान, मांग और भविष्य की संभावनाएं।`;
+            
+            showNotification('बाजार विश्लेषण लोड हो रहा है...', 'info');
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: currentLocation.name || 'Current Location'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    showNotification('बाजार विश्लेषण मिल गया!', 'success');
+                    alert(data.response);
+                } else {
+                    showNotification('बाजार विश्लेषण नहीं मिल सका', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error getting market analysis:', error);
+                showNotification('बाजार विश्लेषण नहीं मिल सका', 'error');
+            });
         }
 
         function getCropDetails(cropType, season, soilType) {
@@ -2440,7 +3257,7 @@
             // Load initial data
             updateGlobalLocationDisplay(currentLocation.name);
             loadNearestMandis();
-            loadCropData();
+            loadCropDataForLocation(currentLocation.name);
             
             // Test button functionality
             console.log('Testing button functionality...');
