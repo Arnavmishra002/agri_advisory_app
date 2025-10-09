@@ -2237,7 +2237,16 @@
 
         // Ask about scheme
         function askAboutScheme(schemeName) {
-            const query = `${schemeName} योजना के बारे में विस्तार से बताएं`;
+            console.log('askAboutScheme called with:', schemeName);
+            
+            if (!schemeName) {
+                showNotification('योजना का नाम नहीं मिला', 'error');
+                return;
+            }
+            
+            const query = `${schemeName} योजना के बारे में विस्तार से बताएं। पात्रता, आवेदन प्रक्रिया, दस्तावेज और लाभ के बारे में जानकारी दें।`;
+            
+            showNotification('योजना की जानकारी लोड हो रही है...', 'info');
             
             fetch('/api/advisories/chatbot/', {
                 method: 'POST',
@@ -2256,13 +2265,74 @@
             .then(response => response.json())
             .then(data => {
                 if (data.response) {
-                    alert(data.response);
+                    showNotification('योजना की जानकारी मिल गई!', 'success');
+                    // Display in a better format
+                    displaySchemeDetails(schemeName, data.response);
+                } else {
+                    showNotification('योजना की जानकारी नहीं मिल सकी', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error getting scheme info:', error);
                 showNotification('योजना की जानकारी नहीं मिल सकी', 'error');
             });
+        }
+        
+        // Display scheme details in a modal or detailed view
+        function displaySchemeDetails(schemeName, details) {
+            const modalHtml = `
+                <div class="modal fade" id="schemeModal" tabindex="-1" aria-labelledby="schemeModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="schemeModalLabel">${schemeName}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div style="white-space: pre-line; line-height: 1.6;">${details}</div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">बंद करें</button>
+                                <button type="button" class="btn btn-primary" onclick="openSchemeApplication('${schemeName}')">आवेदन करें</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('schemeModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Show modal with fallback
+            try {
+                const modal = new bootstrap.Modal(document.getElementById('schemeModal'));
+                modal.show();
+            } catch (error) {
+                console.log('Bootstrap modal not available, using alert fallback');
+                alert(`${schemeName}\n\n${details}\n\nकृपया सरकारी वेबसाइट पर जाकर आवेदन करें।`);
+            }
+        }
+        
+        // Open scheme application
+        function openSchemeApplication(schemeName) {
+            const applicationUrls = {
+                'PM किसान सम्मान निधि': 'https://pmkisan.gov.in/',
+                'प्रधानमंत्री कृषि सिंचाई योजना': 'https://pmksy.gov.in/',
+                'राष्ट्रीय कृषि विकास योजना': 'https://rkvy.nic.in/',
+                'प्रधानमंत्री फसल बीमा योजना': 'https://pmfby.gov.in/',
+                'किसान ड्रोन योजना': 'https://agricoop.gov.in/',
+                'जैविक खेती योजना': 'https://www.organic-india.com/'
+            };
+            
+            const url = applicationUrls[schemeName] || 'https://agricoop.gov.in/';
+            window.open(url, '_blank');
+            showNotification('सरकारी वेबसाइट खुल गई है', 'success');
         }
 
         // Send message function
@@ -2350,6 +2420,51 @@
                 notification.style.display = 'none';
             }, 3000);
         }
+        
+        // DOM Content Loaded Event
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Initializing...');
+            
+            // Initialize session ID
+            sessionId = 'session_' + Date.now();
+            console.log('Session ID:', sessionId);
+            
+            // Initialize current location
+            currentLocation = {
+                lat: 28.6139,
+                lon: 77.2090,
+                name: 'दिल्ली'
+            };
+            console.log('Current location:', currentLocation);
+            
+            // Load initial data
+            updateGlobalLocationDisplay(currentLocation.name);
+            loadNearestMandis();
+            loadCropData();
+            
+            // Test button functionality
+            console.log('Testing button functionality...');
+            const schemeButtons = document.querySelectorAll('button[onclick*="askAboutScheme"]');
+            console.log('Found scheme buttons:', schemeButtons.length);
+            
+            // Add click event listeners to all scheme buttons
+            schemeButtons.forEach((button, index) => {
+                console.log(`Adding click listener to button ${index + 1}`);
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const schemeName = this.getAttribute('onclick').match(/askAboutScheme\('([^']+)'\)/);
+                    if (schemeName) {
+                        console.log('Button clicked for scheme:', schemeName[1]);
+                        askAboutScheme(schemeName[1]);
+                    }
+                });
+            });
+            
+            console.log('Initialization complete!');
+        });
     </script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
