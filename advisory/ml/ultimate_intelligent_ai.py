@@ -2029,108 +2029,48 @@ class UltimateIntelligentAI:
         else:
             return "Delhi"  # Default fallback
     
-    def _generate_enhanced_crop_response(self, location: str, season: str, lat: float, lon: float, language: str) -> str:
-        """Generate enhanced crop response with government schemes integration"""
+    def _generate_enhanced_crop_response(self, analysis: Dict[str, Any], language: str, 
+                                       latitude: float = None, longitude: float = None, 
+                                       location_name: str = None) -> str:
+        """Generate enhanced crop response using AI/ML system with government APIs"""
         
-        # Get government schemes data
-        schemes_data = self._get_government_schemes_data(location, language)
+        location = location_name or 'Delhi'
         
-        # Get crop recommendations based on location and season
-        crop_recommendations = self._get_location_based_crops(location, season)
-        
-        # Generate response based on language
-        if language == 'hi':
-            response = f"🌾 {location} के लिए {season.title()} सीजन फसल सुझाव:\n\n"
+        try:
+            # Use AI/ML crop recommendation system with government APIs
+            if latitude and longitude:
+                recommendations = ai_ml_crop_system.get_dynamic_crop_recommendations(
+                    latitude=latitude,
+                    longitude=longitude,
+                    location_name=location,
+                    season=analysis.get('entities', {}).get('season'),
+                    language=language
+                )
+                
+                if recommendations:
+                    return self._format_ai_ml_crop_response(recommendations, location, language)
             
-            for i, crop in enumerate(crop_recommendations[:3], 1):
-                response += f"{i}. 🌱 {crop['name']} (सुझाव: {crop['score']}%)\n"
-                response += f"   💰 MSP: ₹{crop['msp']} per quintal\n"
-                response += f"   📈 उत्पादन: {crop['yield']}\n"
-                response += f"   🌍 मिट्टी: {crop['soil']}\n"
-                response += f"   🌤️ जलवायु: {crop['climate']}\n\n"
+            # Fallback to enhanced government API
+            crop_data = self.government_api.get_enhanced_crop_recommendations(location, None, language)
             
-            # Add government schemes section
-            response += f"🏛️ सरकारी योजनाएं:\n"
-            for scheme in schemes_data[:3]:
-                response += f"• {scheme['name']}: {scheme['benefit']}\n"
-            
-            response += f"\n💡 सुझाव: स्थानीय कृषि विभाग से संपर्क करें\n"
-            response += f"📊 डेटा स्रोत: ICAR, IMD, सरकारी कृषि डेटाबेस"
-            
-        else:  # English
-            response = f"🌾 {season.title()} Season Crop Recommendations for {location}:\n\n"
-            
-            for i, crop in enumerate(crop_recommendations[:3], 1):
-                response += f"{i}. 🌱 {crop['name']} (Recommendation: {crop['score']}%)\n"
-                response += f"   💰 MSP: ₹{crop['msp']} per quintal\n"
-                response += f"   📈 Yield: {crop['yield']}\n"
-                response += f"   🌍 Soil: {crop['soil']}\n"
-                response += f"   🌤️ Climate: {crop['climate']}\n\n"
-            
-            # Add government schemes section
-            response += f"🏛️ Government Schemes:\n"
-            for scheme in schemes_data[:3]:
-                response += f"• {scheme['name']}: {scheme['benefit']}\n"
-            
-            response += f"\n💡 Suggestion: Contact local agriculture department\n"
-            response += f"📊 Data Source: ICAR, IMD, Government Agriculture Database"
-        
-        return response
-    
-    def _get_location_based_crops(self, location: str, season: str) -> list:
-        """Get crop recommendations based on location and season"""
-        location_lower = location.lower()
-        
-        # Comprehensive crop database
-        crop_database = {
-            'delhi': {
-                'kharif': [
-                    {'name': 'Rice', 'score': 85, 'msp': 2040, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                    {'name': 'Maize', 'score': 90, 'msp': 2090, 'yield': '3-4 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                    {'name': 'Cotton', 'score': 75, 'msp': 6620, 'yield': '2-3 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
-                ],
-                'rabi': [
-                    {'name': 'Wheat', 'score': 95, 'msp': 2275, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                    {'name': 'Mustard', 'score': 85, 'msp': 5450, 'yield': '1.5-2 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                    {'name': 'Potato', 'score': 90, 'msp': 1327, 'yield': '25-30 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
-                ]
-            },
-            'mumbai': {
-                'kharif': [
-                    {'name': 'Rice', 'score': 90, 'msp': 2040, 'yield': '4-5 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'},
-                    {'name': 'Sugarcane', 'score': 95, 'msp': 315, 'yield': '70-90 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'},
-                    {'name': 'Cotton', 'score': 80, 'msp': 6620, 'yield': '2-3 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'}
-                ],
-                'rabi': [
-                    {'name': 'Wheat', 'score': 75, 'msp': 2275, 'yield': '3-4 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'},
-                    {'name': 'Onion', 'score': 90, 'msp': 3036, 'yield': '25-30 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'},
-                    {'name': 'Tomato', 'score': 85, 'msp': 3444, 'yield': '30-40 tons/hectare', 'soil': 'Coastal', 'climate': 'Tropical'}
-                ]
-            },
-            'lucknow': {
-                'kharif': [
-                    {'name': 'Rice', 'score': 90, 'msp': 2040, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                    {'name': 'Maize', 'score': 85, 'msp': 2090, 'yield': '3-4 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                    {'name': 'Sugarcane', 'score': 95, 'msp': 315, 'yield': '70-90 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
-                ],
-                'rabi': [
-                    {'name': 'Wheat', 'score': 95, 'msp': 2275, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                    {'name': 'Mustard', 'score': 90, 'msp': 5450, 'yield': '1.5-2 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                    {'name': 'Potato', 'score': 85, 'msp': 1327, 'yield': '25-30 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
-                ]
-            }
-        }
-        
-        # Get crops for location and season
-        if location_lower in crop_database and season.lower() in crop_database[location_lower]:
-            return crop_database[location_lower][season.lower()]
-        else:
-            # Default recommendations
-            return [
-                {'name': 'Rice', 'score': 80, 'msp': 2040, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                {'name': 'Wheat', 'score': 85, 'msp': 2275, 'yield': '4-5 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'},
-                {'name': 'Maize', 'score': 75, 'msp': 2090, 'yield': '3-4 tons/hectare', 'soil': 'Alluvial', 'climate': 'Sub-tropical'}
-            ]
+            if crop_data and crop_data.get('recommendations'):
+                recommendations = crop_data['recommendations']
+                
+                # Format using enhanced multilingual support
+                response_data = {
+                    'type': 'crop_recommendation',
+                    'location': location,
+                    'crops': recommendations
+                }
+                
+                return self.enhanced_multilingual.format_response(response_data, language)
+            else:
+                # Final fallback to original method
+                return self.generate_response("crop recommendation", analysis, language, latitude, longitude, location_name)
+                
+        except Exception as e:
+            logger.warning(f"Enhanced crop response failed: {e}")
+            return self.generate_response("crop recommendation", analysis, language, latitude, longitude, location_name)
     
     def _get_government_schemes_data(self, location: str, language: str) -> list:
         """Get government schemes data for the location"""
@@ -2818,20 +2758,32 @@ class UltimateIntelligentAI:
         # Use enhanced multilingual formatting
         if response_type == 'farming':
             # Use enhanced government API for farming queries
-            if 'crop' in response_type or 'crop' in analysis.get('entities', {}):
+            entities = analysis.get('entities', {})
+            
+            # Check for crop-related queries
+            if any(keyword in user_query.lower() for keyword in ['crop', 'फसल', 'suggest', 'सुझाव', 'recommend', 'बोएं', 'lagayein', 'कौन सी', 'fasal', 'बीज', 'seed']):
                 return self._generate_enhanced_crop_response(analysis, language, latitude, longitude, location_name)
-            elif 'market' in response_type or 'price' in analysis.get('entities', {}):
+            # Check for market/price queries
+            elif any(keyword in user_query.lower() for keyword in ['market', 'price', 'मंडी', 'कीमत', 'भाव', 'mandi', 'bazaar']):
                 return self._generate_enhanced_market_response(analysis, language, latitude, longitude, location_name)
-            elif 'weather' in response_type:
+            # Check for weather queries
+            elif any(keyword in user_query.lower() for keyword in ['weather', 'मौसम', 'rain', 'बारिश', 'temperature', 'तापमान']):
                 return self._generate_enhanced_weather_response(analysis, language, latitude, longitude, location_name)
+            # Check for government scheme queries
+            elif any(keyword in user_query.lower() for keyword in ['scheme', 'योजना', 'loan', 'ऋण', 'subsidy', 'सब्सिडी', 'pm kisan', 'बीमा']):
+                return self._generate_enhanced_scheme_response(analysis, language, latitude, longitude, location_name)
+            # Check for pest/disease queries
+            elif any(keyword in user_query.lower() for keyword in ['pest', 'disease', 'कीट', 'रोग', 'insect', 'problem', 'समस्या']):
+                return self._generate_enhanced_pest_response(analysis, language, latitude, longitude, location_name)
             else:
-                return self.generate_response(user_query, analysis, language, latitude, longitude, location_name)
+                # Default farming response
+                return self._generate_enhanced_crop_response(analysis, language, latitude, longitude, location_name)
         
         elif response_type == 'general':
             # Use general APIs service for general queries
             try:
                 general_response = self.general_apis.handle_general_question(user_query, language)
-                if general_response.get('confidence', 0) > 0.5:
+                if general_response and isinstance(general_response, dict) and general_response.get('confidence', 0) > 0.5:
                     return general_response.get('response', '')
                 else:
                     # Fallback to agricultural redirect
@@ -2950,6 +2902,82 @@ class UltimateIntelligentAI:
             # Return as JSON string for frontend parsing
             import json
             return json.dumps(structured_data, ensure_ascii=False)
+    
+    def _generate_enhanced_scheme_response(self, analysis: Dict[str, Any], language: str, 
+                                         latitude: float = None, longitude: float = None, 
+                                         location_name: str = None) -> str:
+        """Generate enhanced government scheme response"""
+        location = location_name or 'Delhi'
+        
+        try:
+            schemes_data = self.government_api.get_government_schemes(location, None, language)
+            
+            if language == 'hi':
+                response = f"🏛️ {location} के लिए सरकारी योजनाएं:\n\n"
+                response += f"📍 सरकारी API द्वारा प्रदान की गई जानकारी\n\n"
+                
+                for scheme_key, scheme in schemes_data.items():
+                    response += f"🌾 {scheme.get('name', 'Unknown Scheme')}\n"
+                    response += f"लाभ: {scheme.get('benefit', 'N/A')}\n"
+                    response += f"पात्रता: {scheme.get('eligibility', 'N/A')}\n"
+                    response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                
+                response += f"\n📞 अधिक जानकारी के लिए संबंधित विभाग से संपर्क करें"
+            else:
+                response = f"🏛️ Government Schemes for {location}:\n\n"
+                response += f"📍 Information provided by Government APIs\n\n"
+                
+                for scheme_key, scheme in schemes_data.items():
+                    response += f"🌾 {scheme.get('name', 'Unknown Scheme')}\n"
+                    response += f"Benefit: {scheme.get('benefit', 'N/A')}\n"
+                    response += f"Eligibility: {scheme.get('eligibility', 'N/A')}\n"
+                    response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                
+                response += f"\n📞 Contact relevant department for more information"
+            
+            return response
+            
+        except Exception as e:
+            logger.warning(f"Enhanced scheme response failed: {e}")
+            return self.generate_response("government schemes", analysis, language, latitude, longitude, location_name)
+    
+    def _generate_enhanced_pest_response(self, analysis: Dict[str, Any], language: str, 
+                                       latitude: float = None, longitude: float = None, 
+                                       location_name: str = None) -> str:
+        """Generate enhanced pest control response"""
+        location = location_name or 'Delhi'
+        
+        try:
+            if language == 'hi':
+                response = f"🐛 {location} में कीट नियंत्रण सुझाव:\n\n"
+                response += f"📍 AI द्वारा विश्लेषण और सरकारी डेटा के आधार पर\n\n"
+                response += f"🔍 कीट पहचान के लिए:\n"
+                response += f"• फसल की तस्वीर अपलोड करें\n"
+                response += f"• समस्या का विवरण दें\n"
+                response += f"• AI तुरंत पहचान और समाधान देगा\n\n"
+                response += f"🌱 सामान्य कीट नियंत्रण:\n"
+                response += f"• नीम का तेल: प्राकृतिक कीटनाशक\n"
+                response += f"• जैविक खेती: पर्यावरण अनुकूल\n"
+                response += f"• समय पर सिंचाई: रोग रोकथाम\n\n"
+                response += f"📞 स्थानीय कृषि विभाग से संपर्क करें"
+            else:
+                response = f"🐛 Pest Control Suggestions for {location}:\n\n"
+                response += f"📍 Analysis based on AI and Government data\n\n"
+                response += f"🔍 For pest identification:\n"
+                response += f"• Upload crop photo\n"
+                response += f"• Describe the problem\n"
+                response += f"• AI will identify and provide solution\n\n"
+                response += f"🌱 General pest control:\n"
+                response += f"• Neem oil: Natural pesticide\n"
+                response += f"• Organic farming: Environment friendly\n"
+                response += f"• Timely irrigation: Disease prevention\n\n"
+                response += f"📞 Contact local agriculture department"
+            
+            return response
+            
+        except Exception as e:
+            logger.warning(f"Enhanced pest response failed: {e}")
+            return self.generate_response("pest control", analysis, language, latitude, longitude, location_name)
     
     def _generate_enhanced_market_response(self, analysis: Dict[str, Any], language: str, 
                                          latitude: float = None, longitude: float = None, 
