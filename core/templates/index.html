@@ -36,6 +36,119 @@
             padding: 20px;
         }
         
+        .hero-section {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%);
+            color: white;
+            padding: 40px 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .services-section {
+            margin: 40px 0;
+        }
+        
+        .services-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d5016;
+            margin-bottom: 30px;
+        }
+        
+        .service-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-color: #4a7c59;
+        }
+        
+        .service-card.active {
+            border-color: #2d5016;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .service-icon {
+            font-size: 2.5rem;
+            color: #4a7c59;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .service-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2d5016;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .service-description {
+            color: #666;
+            text-align: center;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .service-button {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .service-button:hover {
+            background: linear-gradient(135deg, #1e3a0f 0%, #3a6b49 100%);
+            transform: translateY(-2px);
+        }
+        
+        .service-content {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid #e9ecef;
+        }
+        
+        .service-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         .chat-container {
             background: white;
             border-radius: 15px;
@@ -95,33 +208,22 @@
             transform: translateY(-2px);
         }
         
-        .feature-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            transition: transform 0.3s ease;
+        .form-control {
+            border-radius: 25px;
+            border: 2px solid #e9ecef;
+            padding: 12px 20px;
         }
         
-        .feature-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .feature-icon {
-            font-size: 2rem;
-            color: #2d5016;
-            margin-bottom: 15px;
+        .form-control:focus {
+            border-color: #4a7c59;
+            box-shadow: 0 0 0 0.2rem rgba(74, 124, 89, 0.25);
         }
         
         .loading {
             display: none;
             text-align: center;
             padding: 20px;
-        }
-        
-        .spinner-border {
-            color: #2d5016;
+            color: #4a7c59;
         }
         
         .notification {
@@ -147,101 +249,351 @@
         .notification.info {
             background: #17a2b8;
         }
+        
+        .crop-recommendation {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .crop-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .mandi-dropdown {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .mandi-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #4a7c59;
+        }
+        
+        .weather-card {
+            background: linear-gradient(135deg, #87CEEB 0%, #98D8E8 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            color: #2c3e50;
+        }
+        
+        .pest-info {
+            background: #fff3cd;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .scheme-card {
+            background: #d1ecf1;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .service-card {
+                margin-bottom: 15px;
+            }
+            
+            .main-container {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="#">
                 <i class="fas fa-seedling me-2"></i>
                 कृषिमित्र AI
             </a>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text text-white">
-                    <i class="fas fa-globe me-1"></i>
-                    किसानों का सबसे अच्छा दोस्त
-                </span>
-            </div>
         </div>
     </nav>
 
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Chat Interface -->
-        <div class="chat-container">
-            <div class="chat-header">
-                <h4 class="mb-0">
-                    <i class="fas fa-robot me-2"></i>
-                    AI कृषि सलाहकार
-                </h4>
-                <small>आपकी सभी कृषि समस्याओं का समाधान</small>
-            </div>
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <h1 class="hero-title">🌾 कृषिमित्र AI</h1>
+            <p class="hero-subtitle">किसानों का सबसे अच्छा दोस्त - AI से स्मार्ट खेती करें</p>
+        </div>
+
+        <!-- Services Section -->
+        <div class="services-section">
+            <h2 class="services-title">किसानों के लिए आवश्यक सेवाएं</h2>
             
-            <div class="chat-messages" id="chatMessages">
-                <div class="message bot-message">
-                    <strong>कृषिमित्र AI:</strong> नमस्ते! मैं आपकी कृषि संबंधी सभी समस्याओं में मदद कर सकता हूं। आप क्या जानना चाहते हैं?
+            <div class="row">
+                <!-- Government Schemes -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="service-card government-schemes-card" onclick="showService('government-schemes')">
+                        <div class="service-icon">
+                            <i class="fas fa-landmark"></i>
+                        </div>
+                        <h4 class="service-title">सरकारी योजनाएं</h4>
+                        <p class="service-description">केंद्र और राज्य सरकार की कृषि योजनाएं। सब्सिडी, ऋण और अन्य सहायता की जानकारी।</p>
+                        <button class="service-button">योजनाएं देखें</button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="loading" id="loading">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
+
+                <!-- Crop Recommendations -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="service-card crop-recommendations-card" onclick="showService('crop-recommendations')">
+                        <div class="service-icon">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <h4 class="service-title">फसल सुझाव</h4>
+                        <p class="service-description">AI द्वारा आपके क्षेत्र के लिए सर्वोत्तम फसलों की सिफारिश। मौसम, मिट्टी, कीमतों और अन्य कारकों के आधार पर।</p>
+                        <button class="service-button">फसल सुझाव प्राप्त करें</button>
+                    </div>
                 </div>
-                <p class="mt-2">प्रतिक्रिया आ रही है...</p>
-            </div>
-            
-            <div class="chat-input">
-                <div class="input-group">
-                    <input type="text" class="form-control" id="messageInput" 
-                           placeholder="अपना सवाल लिखें... (उदाहरण: दिल्ली में गेहूं की कीमत क्या है?)"
-                           onkeypress="handleKeyPress(event)">
-                    <button class="btn btn-primary" type="button" onclick="sendMessage()">
-                        <i class="fas fa-paper-plane me-1"></i>
-                        भेजें
-                    </button>
+
+                <!-- Weather -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="service-card weather-card" onclick="showService('weather')">
+                        <div class="service-icon">
+                            <i class="fas fa-cloud-sun"></i>
+                        </div>
+                        <h4 class="service-title">मौसम पूर्वानुमान</h4>
+                        <p class="service-description">सटीक मौसम की जानकारी और पूर्वानुमान। बारिश, तापमान, हवा की गति सब कुछ पता करें।</p>
+                        <button class="service-button">मौसम देखें</button>
+                    </div>
+                </div>
+
+                <!-- Market Prices -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="service-card market-prices-card" onclick="showService('market-prices')">
+                        <div class="service-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h4 class="service-title">बाजार कीमतें</h4>
+                        <p class="service-description">रियल-टाइम बाजार कीमतें और रुझान। अपनी फसल की सही कीमत जानें और बेचने का सही समय पता करें।</p>
+                        <button class="service-button">कीमतें देखें</button>
+                    </div>
+                </div>
+
+                <!-- Pest Control -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="service-card pest-control-card" onclick="showService('pest-control')">
+                        <div class="service-icon">
+                            <i class="fas fa-bug"></i>
+                        </div>
+                        <h4 class="service-title">कीट नियंत्रण</h4>
+                        <p class="service-description">AI द्वारा कीट और रोग की पहचान। फसल की तस्वीर डालें और तुरंत जानें कि क्या समस्या है और कैसे ठीक करें।</p>
+                        <button class="service-button">जांच करें</button>
+                    </div>
+                </div>
+
+                <!-- AI Assistant -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="service-card ai-assistant-card" onclick="showService('ai-assistant')">
+                        <div class="service-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h4 class="service-title">AI सहायक</h4>
+                        <p class="service-description">कृषि से जुड़े किसी भी सवाल का जवाब पाएं। 24/7 उपलब्ध AI सहायक से बात करें और तुरंत सलाह लें।</p>
+                        <button class="service-button">बात करें</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Features -->
-        <div class="row">
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-seedling"></i>
-                    </div>
-                    <h5>फसल सुझाव</h5>
-                    <p>मिट्टी और मौसम के अनुसार सबसे अच्छी फसल की सलाह</p>
-                    <button class="btn btn-primary btn-sm" onclick="askCropAdvice()">
-                        फसल सुझाव लें
-                    </button>
+        <!-- Service Content Areas -->
+        
+        <!-- Government Schemes Content -->
+        <div id="government-schemes-content" class="service-content">
+            <h3><i class="fas fa-landmark me-2"></i>सरकारी योजनाएं</h3>
+            <div class="scheme-card">
+                <h5>🌾 प्रधानमंत्री किसान सम्मान निधि</h5>
+                <p>₹6,000 प्रति वर्ष प्रति किसान परिवार को तीन किस्तों में</p>
+                <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Kisan')">और जानें</button>
+            </div>
+            <div class="scheme-card">
+                <h5>🚜 प्रधानमंत्री कृषि सिंचाई योजना</h5>
+                <p>सिंचाई सुविधाओं को बेहतर बनाने के लिए वित्तीय सहायता</p>
+                <button class="btn btn-primary btn-sm" onclick="askAboutScheme('PM Krishi Sinchai')">और जानें</button>
+            </div>
+            <div class="scheme-card">
+                <h5>🌱 राष्ट्रीय कृषि विकास योजना</h5>
+                <p>कृषि और संबद्ध क्षेत्रों के विकास के लिए केंद्रीय सहायता</p>
+                <button class="btn btn-primary btn-sm" onclick="askAboutScheme('RKVY')">और जानें</button>
+            </div>
+        </div>
+
+        <!-- Crop Recommendations Content -->
+        <div id="crop-recommendations-content" class="service-content">
+            <h3><i class="fas fa-seedling me-2"></i>फसल सुझाव</h3>
+            <div class="crop-recommendation">
+                <h5>📍 आपकी लोकेशन के लिए सुझाव</h5>
+                <div id="cropRecommendations">
+                    <p>लोकेशन डिटेक्ट करने के लिए कृपया थोड़ा इंतजार करें...</p>
                 </div>
             </div>
-            
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h5>बाजार कीमतें</h5>
-                    <p>वर्तमान बाजार कीमतें और MSP की जानकारी</p>
-                    <button class="btn btn-primary btn-sm" onclick="askMarketPrices()">
-                        कीमतें देखें
-                    </button>
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">फसल का प्रकार चुनें:</label>
+                    <select id="cropType" class="form-select">
+                        <option value="">फसल चुनें...</option>
+                        <option value="rice">चावल (Rice)</option>
+                        <option value="wheat">गेहूं (Wheat)</option>
+                        <option value="maize">मक्का (Maize)</option>
+                        <option value="sugarcane">गन्ना (Sugarcane)</option>
+                        <option value="cotton">कपास (Cotton)</option>
+                        <option value="potato">आलू (Potato)</option>
+                        <option value="tomato">टमाटर (Tomato)</option>
+                        <option value="onion">प्याज (Onion)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">मौसम:</label>
+                    <select id="season" class="form-select">
+                        <option value="">मौसम चुनें...</option>
+                        <option value="kharif">खरीफ</option>
+                        <option value="rabi">रबी</option>
+                        <option value="zaid">जायद</option>
+                    </select>
                 </div>
             </div>
-            
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-cloud-sun"></i>
+            <div class="mt-3">
+                <button class="btn btn-primary" onclick="getCropRecommendation()">
+                    <i class="fas fa-magic me-2"></i>फसल सुझाव प्राप्त करें
+                </button>
+            </div>
+        </div>
+
+        <!-- Weather Content -->
+        <div id="weather-content" class="service-content">
+            <h3><i class="fas fa-cloud-sun me-2"></i>मौसम जानकारी</h3>
+            <div class="weather-card">
+                <h5>🌤️ वर्तमान मौसम</h5>
+                <div id="currentWeather">
+                    <p>मौसम की जानकारी लोड हो रही है...</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">शहर/गांव का नाम:</label>
+                    <input type="text" id="weatherLocation" class="form-control" placeholder="जैसे: दिल्ली, मुंबई, पुणे...">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">दिन:</label>
+                    <select id="weatherDays" class="form-select">
+                        <option value="1">आज</option>
+                        <option value="3">3 दिन</option>
+                        <option value="7">7 दिन</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-primary" onclick="getWeatherInfo()">
+                    <i class="fas fa-cloud-sun me-2"></i>मौसम जानकारी प्राप्त करें
+                </button>
+            </div>
+        </div>
+
+        <!-- Market Prices Content -->
+        <div id="market-prices-content" class="service-content">
+            <h3><i class="fas fa-chart-line me-2"></i>बाजार कीमतें</h3>
+            <div class="mandi-dropdown">
+                <h5>🏪 निकटतम मंडी</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <select id="nearestMandisDropdown" class="form-select" onchange="handleMandiSelection(this.value)">
+                            <option value="">निकटतम मंडी चुनें...</option>
+                        </select>
                     </div>
-                    <h5>मौसम जानकारी</h5>
-                    <p>वर्तमान मौसम और कृषि सलाह</p>
-                    <button class="btn btn-primary btn-sm" onclick="askWeather()">
-                        मौसम देखें
-                    </button>
+                    <div class="col-md-6">
+                        <select id="cropForPrice" class="form-select">
+                            <option value="">फसल चुनें...</option>
+                            <option value="rice">चावल (Rice)</option>
+                            <option value="wheat">गेहूं (Wheat)</option>
+                            <option value="maize">मक्का (Maize)</option>
+                            <option value="sugarcane">गन्ना (Sugarcane)</option>
+                            <option value="cotton">कपास (Cotton)</option>
+                            <option value="potato">आलू (Potato)</option>
+                            <option value="tomato">टमाटर (Tomato)</option>
+                            <option value="onion">प्याज (Onion)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div id="marketPricesData">
+                <p>मंडी की जानकारी लोड हो रही है...</p>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-primary" onclick="loadMarketPrices()">
+                    <i class="fas fa-chart-line me-2"></i>कीमतें अपडेट करें
+                </button>
+            </div>
+        </div>
+
+        <!-- Pest Control Content -->
+        <div id="pest-control-content" class="service-content">
+            <h3><i class="fas fa-bug me-2"></i>कीट नियंत्रण</h3>
+            <div class="pest-info">
+                <h5>🔍 कीट और रोग की पहचान</h5>
+                <p>अपनी फसल की तस्वीर अपलोड करें या समस्या का विवरण दें</p>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">फसल का नाम:</label>
+                    <input type="text" id="pestCrop" class="form-control" placeholder="जैसे: गेहूं, चावल, मक्का...">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">समस्या का विवरण:</label>
+                    <input type="text" id="pestProblem" class="form-control" placeholder="जैसे: पत्तों पर धब्बे, कीड़े दिख रहे...">
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-primary" onclick="getPestAdvice()">
+                    <i class="fas fa-bug me-2"></i>समस्या का समाधान पाएं
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Assistant Content -->
+        <div id="ai-assistant-content" class="service-content">
+            <h3><i class="fas fa-robot me-2"></i>AI सहायक</h3>
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h5><i class="fas fa-robot me-2"></i>कृषिमित्र AI सहायक</h5>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        <strong>कृषिमित्र AI:</strong> नमस्ते! मैं आपकी कृषि संबंधी सभी समस्याओं में मदद कर सकता हूं। आप क्या जानना चाहते हैं?
+                    </div>
+                </div>
+                <div class="loading" id="loading">
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    सोच रहा हूं...
+                </div>
+                <div class="chat-input">
+                    <div class="input-group">
+                        <input type="text" id="messageInput" class="form-control" placeholder="अपना सवाल टाइप करें..." onkeypress="handleKeyPress(event)">
+                        <button class="btn btn-primary" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane me-1"></i>
+                            भेजें
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -260,6 +612,7 @@
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
             detectLocation();
+            loadNearestMandis();
         });
 
         // Location detection
@@ -272,6 +625,7 @@
                             lon: position.coords.longitude
                         };
                         console.log('Location detected:', currentLocation);
+                        loadCropData();
                     },
                     function(error) {
                         console.log('Location detection failed:', error);
@@ -281,6 +635,7 @@
                             lon: 77.2090,
                             name: 'Delhi'
                         };
+                        loadCropData();
                     }
                 );
             } else {
@@ -290,7 +645,406 @@
                     lon: 77.2090,
                     name: 'Delhi'
                 };
+                loadCropData();
             }
+        }
+
+        // Show service function
+        function showService(serviceName) {
+            console.log('showService called with:', serviceName);
+            
+            // Hide all service contents
+            document.querySelectorAll('.service-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all cards
+            document.querySelectorAll('.service-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Show selected service content
+            const targetContent = document.getElementById(serviceName + '-content');
+            if (targetContent) {
+                targetContent.classList.add('active');
+                targetContent.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Add active class to selected card
+            const activeCard = document.querySelector('.' + serviceName + '-card');
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+            
+            // Load specific data based on service
+            switch(serviceName) {
+                case 'crop-recommendations':
+                    loadCropData();
+                    break;
+                case 'weather':
+                    loadWeatherData();
+                    break;
+                case 'market-prices':
+                    loadMarketPrices();
+                    break;
+            }
+        }
+
+        // Load crop recommendations
+        function loadCropData() {
+            if (!currentLocation) return;
+            
+            const query = `मुझे मेरी लोकेशन के लिए फसल सुझाव चाहिए। मेरी लोकेशन: ${currentLocation.lat}, ${currentLocation.lon}`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: currentLocation.name || 'Current Location'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    updateCropRecommendations(data.response);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading crop data:', error);
+            });
+        }
+
+        // Update crop recommendations display
+        function updateCropRecommendations(response) {
+            const container = document.getElementById('cropRecommendations');
+            
+            // Try to parse structured response
+            const crops = parseStructuredCropResponse(response);
+            if (crops && crops.length > 0) {
+                updateCropRecommendationsFromParsed(crops);
+            } else {
+                container.innerHTML = `<div class="alert alert-info">${response}</div>`;
+            }
+        }
+
+        // Parse structured crop response
+        function parseStructuredCropResponse(response) {
+            try {
+                // Look for structured data in response
+                if (response.includes('crops') || response.includes('फसल')) {
+                    const lines = response.split('\n');
+                    const crops = [];
+                    
+                    for (let line of lines) {
+                        if (line.includes('फसल') || line.includes('crop')) {
+                            const match = line.match(/(\d+)\.\s*([^:]+):?\s*([^%]+)?/);
+                            if (match) {
+                                crops.push({
+                                    name: match[2].trim(),
+                                    score: match[3] ? parseInt(match[3].replace('%', '').trim()) : 85,
+                                    description: 'आपकी लोकेशन के लिए उपयुक्त'
+                                });
+                            }
+                        }
+                    }
+                    
+                    return crops.length > 0 ? crops : null;
+                }
+                return null;
+            } catch (error) {
+                console.error('Error parsing crop response:', error);
+                return null;
+            }
+        }
+
+        // Update crop recommendations from parsed data
+        function updateCropRecommendationsFromParsed(crops) {
+            const container = document.getElementById('cropRecommendations');
+            let html = '<div class="row">';
+            
+            crops.slice(0, 3).forEach((crop, index) => {
+                const cropName = crop.name || crop.crop || 'Unknown Crop';
+                const score = crop.score || crop.suitability || 85;
+                
+                html += `
+                    <div class="col-md-4 mb-3">
+                        <div class="crop-item">
+                            <h6>🌾 ${cropName}</h6>
+                            <p><strong>सुझाव:</strong> ${score}%</p>
+                            <p><small>${crop.description || 'आपकी लोकेशन के लिए उपयुक्त'}</small></p>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Load nearest mandis
+        function loadNearestMandis() {
+            const mandis = [
+                { name: 'दिल्ली मंडी', location: 'दिल्ली', distance: '5 किमी' },
+                { name: 'आजादपुर मंडी', location: 'दिल्ली', distance: '8 किमी' },
+                { name: 'गाजीपुर मंडी', location: 'दिल्ली', distance: '12 किमी' },
+                { name: 'नोएडा मंडी', location: 'नोएडा', distance: '15 किमी' },
+                { name: 'गुड़गांव मंडी', location: 'गुड़गांव', distance: '20 किमी' }
+            ];
+            
+            const dropdown = document.getElementById('nearestMandisDropdown');
+            mandis.forEach(mandi => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify(mandi);
+                option.textContent = `${mandi.name} (${mandi.distance})`;
+                dropdown.appendChild(option);
+            });
+        }
+
+        // Handle mandi selection
+        function handleMandiSelection(selectedMandiJson) {
+            if (!selectedMandiJson) return;
+            
+            try {
+                const mandi = JSON.parse(selectedMandiJson);
+                const crop = document.getElementById('cropForPrice').value;
+                
+                if (crop) {
+                    loadMarketPricesForMandi(mandi, crop);
+                }
+            } catch (error) {
+                console.error('Error parsing mandi selection:', error);
+            }
+        }
+
+        // Load market prices for specific mandi
+        function loadMarketPricesForMandi(mandi, crop) {
+            const container = document.getElementById('marketPricesData');
+            container.innerHTML = '<p>कीमतें लोड हो रही हैं...</p>';
+            
+            fetch(`/api/advisories/market-prices/?product_type=${crop}&latitude=${currentLocation.lat}&longitude=${currentLocation.lon}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const price = data[0];
+                    container.innerHTML = `
+                        <div class="mandi-item">
+                            <h6>🏪 ${mandi.name}</h6>
+                            <p><strong>फसल:</strong> ${crop}</p>
+                            <p><strong>कीमत:</strong> ₹${price.price || 'N/A'} प्रति क्विंटल</p>
+                            <p><strong>स्थान:</strong> ${mandi.location}</p>
+                            <p><strong>दूरी:</strong> ${mandi.distance}</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<div class="alert alert-warning">इस मंडी में कीमत की जानकारी उपलब्ध नहीं है।</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading market prices:', error);
+                container.innerHTML = '<div class="alert alert-danger">कीमत लोड करने में त्रुटि हुई।</div>';
+            });
+        }
+
+        // Load market prices
+        function loadMarketPrices() {
+            const crop = document.getElementById('cropForPrice').value;
+            const selectedMandi = document.getElementById('nearestMandisDropdown').value;
+            
+            if (!crop) {
+                showNotification('कृपया फसल चुनें', 'error');
+                return;
+            }
+            
+            if (selectedMandi) {
+                const mandi = JSON.parse(selectedMandi);
+                loadMarketPricesForMandi(mandi, crop);
+            } else {
+                showNotification('कृपया मंडी चुनें', 'error');
+            }
+        }
+
+        // Load weather data
+        function loadWeatherData() {
+            const container = document.getElementById('currentWeather');
+            container.innerHTML = '<p>मौसम की जानकारी लोड हो रही है...</p>';
+            
+            const location = currentLocation.name || 'दिल्ली';
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: `मुझे ${location} का मौसम बताएं`,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: location
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    container.innerHTML = `<div class="alert alert-info">${data.response}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading weather:', error);
+                container.innerHTML = '<div class="alert alert-danger">मौसम की जानकारी लोड नहीं हो सकी।</div>';
+            });
+        }
+
+        // Get weather info
+        function getWeatherInfo() {
+            const location = document.getElementById('weatherLocation').value || currentLocation.name || 'दिल्ली';
+            const days = document.getElementById('weatherDays').value;
+            
+            const query = `मुझे ${location} का ${days} दिन का मौसम बताएं`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: location
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    document.getElementById('currentWeather').innerHTML = `<div class="alert alert-info">${data.response}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error getting weather:', error);
+                showNotification('मौसम की जानकारी प्राप्त नहीं हो सकी', 'error');
+            });
+        }
+
+        // Get crop recommendation
+        function getCropRecommendation() {
+            const cropType = document.getElementById('cropType').value;
+            const season = document.getElementById('season').value;
+            
+            if (!cropType) {
+                showNotification('कृपया फसल का प्रकार चुनें', 'error');
+                return;
+            }
+            
+            let query = `${cropType} की खेती के बारे में सलाह दें`;
+            if (season) {
+                query += ` ${season} मौसम में`;
+            }
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: currentLocation.name || 'Current Location'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    document.getElementById('cropRecommendations').innerHTML = `<div class="alert alert-success">${data.response}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error getting crop recommendation:', error);
+                showNotification('फसल सुझाव प्राप्त नहीं हो सका', 'error');
+            });
+        }
+
+        // Get pest advice
+        function getPestAdvice() {
+            const crop = document.getElementById('pestCrop').value;
+            const problem = document.getElementById('pestProblem').value;
+            
+            if (!crop || !problem) {
+                showNotification('कृपया फसल और समस्या का विवरण दें', 'error');
+                return;
+            }
+            
+            const query = `${crop} में ${problem} की समस्या है। इसका समाधान बताएं`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: currentLocation.name || 'Current Location'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    showNotification('समस्या का समाधान मिल गया!', 'success');
+                    // You can display the response in a modal or alert
+                    alert(data.response);
+                }
+            })
+            .catch(error => {
+                console.error('Error getting pest advice:', error);
+                showNotification('समस्या का समाधान नहीं मिल सका', 'error');
+            });
+        }
+
+        // Ask about scheme
+        function askAboutScheme(schemeName) {
+            const query = `${schemeName} योजना के बारे में विस्तार से बताएं`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lon,
+                    location_name: currentLocation.name || 'Current Location'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    alert(data.response);
+                }
+            })
+            .catch(error => {
+                console.error('Error getting scheme info:', error);
+                showNotification('योजना की जानकारी नहीं मिल सकी', 'error');
+            });
         }
 
         // Send message function
@@ -365,25 +1119,6 @@
             if (event.key === 'Enter') {
                 sendMessage();
             }
-        }
-
-        // Quick action functions
-        function askCropAdvice() {
-            const message = 'मुझे फसल सुझाव चाहिए';
-            document.getElementById('messageInput').value = message;
-            sendMessage();
-        }
-
-        function askMarketPrices() {
-            const message = 'बाजार कीमतें बताएं';
-            document.getElementById('messageInput').value = message;
-            sendMessage();
-        }
-
-        function askWeather() {
-            const message = 'मौसम की जानकारी दें';
-            document.getElementById('messageInput').value = message;
-            sendMessage();
         }
 
         // Show notification
