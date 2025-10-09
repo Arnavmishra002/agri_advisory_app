@@ -670,7 +670,11 @@ class UltimateIntelligentAI:
                 'fertilizer subsidy', 'उर्वरक सब्सिडी', 'seed subsidy', 'बीज सब्सिडी',
                 'irrigation scheme', 'सिंचाई योजना', 'soil health', 'मिट्टी स्वास्थ्य',
                 'organic farming', 'जैविक खेती', 'zero budget', 'शून्य बजट',
-                'benefit', 'help', 'support', 'लाभ', 'मदद', 'समर्थन', 'assistance', 'सहायता'
+                'benefit', 'help', 'support', 'लाभ', 'मदद', 'समर्थन', 'assistance', 'सहायता',
+                'soil health card', 'मृदा स्वास्थ्य कार्ड', 'soil health card scheme', 'मृदा स्वास्थ्य कार्ड योजना',
+                'soil testing', 'मिट्टी परीक्षण', 'free soil test', 'मुफ्त मिट्टी परीक्षण',
+                'pm kisan yojana', 'पीएम किसान योजना', 'kisan samman nidhi', 'किसान सम्मान निधि',
+                'agricultural scheme', 'कृषि योजना', 'farmer scheme', 'किसान योजना'
             ],
             
             # Fertilizer patterns
@@ -697,6 +701,8 @@ class UltimateIntelligentAI:
                 'soil type', 'मिट्टी प्रकार', 'soil health', 'मिट्टी स्वास्थ्य',
                 'soil testing', 'मिट्टी परीक्षण', 'soil fertility', 'मिट्टी उर्वरता',
                 'soil ph', 'मिट्टी पीएच', 'soil nutrients', 'मिट्टी पोषक तत्व',
+                'soil health card', 'मृदा स्वास्थ्य कार्ड', 'soil health card scheme', 'मृदा स्वास्थ्य कार्ड योजना',
+                'free soil test', 'मुफ्त मिट्टी परीक्षण', 'soil analysis', 'मिट्टी विश्लेषण',
                 'loamy', 'sandy', 'clay', 'दोमट', 'रेतीली', 'चिकनी'
             ],
             
@@ -734,9 +740,24 @@ class UltimateIntelligentAI:
         fertilizer_indicators = ['fertilizer', 'उर्वरक', 'urea', 'dap', 'npk', 'manure']
         irrigation_indicators = ['irrigation', 'सिंचाई', 'water', 'पानी', 'drip', 'sprinkler']
         soil_indicators = ['soil', 'मिट्टी', 'land', 'जमीन', 'earth', 'ground']
-        government_indicators = ['scheme', 'योजना', 'subsidy', 'सब्सिडी', 'government', 'सरकार', 'loan', 'ऋण']
+        greeting_indicators = [
+            'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'good night',
+            'नमस्ते', 'नमस्कार', 'हैलो', 'हाय', 'सुप्रभात', 'शुभ संध्या', 'शुभ रात्रि',
+            'how are you', 'कैसे हैं', 'कैसी हैं', 'आप कैसे हैं', 'तुम कैसे हो', 'how do you do',
+            'what\'s up', 'क्या हाल है', 'कैसा चल रहा है', 'greetings', 'अभिवादन'
+        ]
+        government_indicators = [
+            'scheme', 'योजना', 'subsidy', 'सब्सिडी', 'government', 'सरकार', 'loan', 'ऋण',
+            'soil health card', 'मृदा स्वास्थ्य कार्ड', 'soil health card scheme', 'मृदा स्वास्थ्य कार्ड योजना',
+            'pm kisan', 'पीएम किसान', 'pm kisan yojana', 'पीएम किसान योजना', 'kisan samman nidhi', 'किसान सम्मान निधि',
+            'soil testing', 'मिट्टी परीक्षण', 'free soil test', 'मुफ्त मिट्टी परीक्षण',
+            'agricultural scheme', 'कृषि योजना', 'farmer scheme', 'किसान योजना',
+            'kisan', 'किसान', 'crop insurance', 'फसल बीमा', 'fasal bima', 'फसल बीमा'
+        ]
         
-        if any(indicator in query_lower for indicator in weather_indicators):
+        if any(indicator in query_lower for indicator in greeting_indicators):
+            return 'greeting'
+        elif any(indicator in query_lower for indicator in weather_indicators):
             return 'weather'
         elif any(indicator in query_lower for indicator in price_indicators):
             return 'market'
@@ -808,6 +829,20 @@ class UltimateIntelligentAI:
             # SUPER INTELLIGENT query understanding - like ChatGPT
             query_lower = query.lower()
             
+            # DIRECT FIX: Check for soil health card and PM Kisan queries FIRST
+            soil_health_keywords = [
+                'soil health card', 'मृदा स्वास्थ्य कार्ड', 'soil health card scheme', 'मृदा स्वास्थ्य कार्ड योजना',
+                'soil testing', 'मिट्टी परीक्षण', 'free soil test', 'मुफ्त मिट्टी परीक्षण'
+            ]
+            
+            pm_kisan_keywords = [
+                'pm kisan', 'पीएम किसान', 'pm kisan yojana', 'पीएम किसान योजना', 
+                'kisan samman nidhi', 'किसान सम्मान निधि'
+            ]
+            
+            if any(keyword in query_lower for keyword in soil_health_keywords + pm_kisan_keywords):
+                return self._generate_government_schemes_response(entities, language)
+            
             # Check for complex multi-intent queries
             if self._is_complex_query(query_lower):
                 return self._generate_complex_intelligent_response(query, entities, language, latitude, longitude, location_name)
@@ -829,6 +864,8 @@ class UltimateIntelligentAI:
                 return self._generate_irrigation_response(entities, language, query, latitude, longitude)
             elif intent == "soil":
                 return self._generate_soil_response(entities, language, query, latitude, longitude)
+            elif intent == "government":
+                return self._generate_government_schemes_response(entities, language)
             else:
                 # SUPER INTELLIGENT general response - understands ANY query
                 return self._generate_super_intelligent_response(query, entities, language, latitude, longitude, location_name)
@@ -851,6 +888,22 @@ class UltimateIntelligentAI:
                                            latitude: float = None, longitude: float = None, location_name: str = None) -> str:
         """Generate SUPER INTELLIGENT response for ANY query - like ChatGPT"""
         query_lower = query.lower()
+        
+        # Check for soil health card queries specifically
+        soil_health_keywords = [
+            'soil health card', 'मृदा स्वास्थ्य कार्ड', 'soil health card scheme', 'मृदा स्वास्थ्य कार्ड योजना',
+            'soil testing', 'मिट्टी परीक्षण', 'free soil test', 'मुफ्त मिट्टी परीक्षण'
+        ]
+        
+        pm_kisan_keywords = [
+            'pm kisan', 'पीएम किसान', 'pm kisan yojana', 'पीएम किसान योजना', 
+            'kisan samman nidhi', 'किसान सम्मान निधि'
+        ]
+        
+        if any(keyword in query_lower for keyword in soil_health_keywords):
+            return self._generate_government_schemes_response(entities, language)
+        elif any(keyword in query_lower for keyword in pm_kisan_keywords):
+            return self._generate_government_schemes_response(entities, language)
         
         # Extract location if not provided
         if not location_name:
@@ -931,10 +984,35 @@ class UltimateIntelligentAI:
             return f"🌾 **Comprehensive Information:**\n\n" + "\n\n".join(responses)
     
     def _generate_greeting_response(self, language: str) -> str:
-        """Generate greeting response"""
+        """Generate intelligent greeting response like ChatGPT"""
         import random
-        templates = self.response_templates['greeting'].get(language, self.response_templates['greeting']['en'])
-        return random.choice(templates)
+        from datetime import datetime
+        
+        current_hour = datetime.now().hour
+        
+        if language == 'hi':
+            greetings = [
+                f"नमस्ते! मैं कृषिमित्र AI हूं, आपका व्यक्तिगत कृषि सहायक। मैं आपकी कैसे मदद कर सकता हूं? 🌾",
+                f"सुप्रभात! मैं यहां आपकी कृषि संबंधी सभी जरूरतों के लिए हूं। क्या आपको फसल सुझाव, मौसम, या बाजार कीमतों की जानकारी चाहिए? 🤖",
+                f"हैलो! मैं कृषिमित्र AI हूं। मैं आपको स्मार्ट खेती में मदद कर सकता हूं - फसल सुझाव, मौसम पूर्वानुमान, बाजार कीमतें, और बहुत कुछ! 🚜",
+                f"नमस्कार! मैं आपका AI कृषि सलाहकार हूं। मुझसे पूछें कि आप कौन सी फसल उगाना चाहते हैं या आपको किसी भी कृषि समस्या का समाधान चाहिए! 💡"
+            ]
+        elif language == 'hinglish':
+            greetings = [
+                f"Hello! Main Krishimitra AI hun, aapka personal agriculture assistant. Main aapki kaise madad kar sakta hun? 🌾",
+                f"Hi there! Main yahan aapki farming needs ke liye hun. Kya aapko crop suggestions, weather, ya market prices chahiye? 🤖",
+                f"Namaste! Main Krishimitra AI hun. Main aapko smart farming mein help kar sakta hun - crop advice, weather forecast, market rates, aur bahut kuch! 🚜",
+                f"Hello ji! Main aapka AI agriculture consultant hun. Mujhse pucho ki aap kya crop lagana chahte hain ya koi farming problem solve karni hai! 💡"
+            ]
+        else:  # English
+            greetings = [
+                f"Hello! I'm Krishimitra AI, your personal agricultural assistant. How can I help you today? 🌾",
+                f"Hi there! I'm here to help with all your farming needs. Do you need crop suggestions, weather updates, or market prices? 🤖",
+                f"Good day! I'm Krishimitra AI. I can help you with smart farming - crop recommendations, weather forecasts, market rates, and much more! 🚜",
+                f"Hello! I'm your AI agriculture consultant. Ask me about what crops to grow or any farming problems you need to solve! 💡"
+            ]
+        
+        return random.choice(greetings)
     
     def _generate_market_response(self, entities: Dict[str, Any], language: str, query: str = "", latitude: float = None, longitude: float = None) -> str:
         """Generate market response with real government data for ANY location"""
@@ -2411,11 +2489,11 @@ class UltimateIntelligentAI:
         crop = entities.get("crop", "")
         
         if language == 'hi':
-            return f"🏛️ {location} में किसानों के लिए सरकारी योजनाएं:\n\n💰 प्रमुख योजनाएं:\n• पीएम किसान सम्मान निधि - ₹6,000/वर्ष\n• प्रधानमंत्री फसल बीमा योजना - 90% सब्सिडी\n• किसान क्रेडिट कार्ड - ₹3 लाख तक ऋण\n• मृदा स्वास्थ्य कार्ड योजना\n• राष्ट्रीय कृषि विकास योजना\n• नीम कोटेड यूरिया सब्सिडी - ₹2,500/बैग\n• डीएपी सब्सिडी - ₹1,350/बैग\n\n📊 एमएसपी (न्यूनतम समर्थन मूल्य):\n• गेहूं: ₹2,275/क्विंटल\n• चावल: ₹2,183/क्विंटल\n• मक्का: ₹2,090/क्विंटल\n• कपास: ₹6,620/क्विंटल\n\n📋 आवेदन प्रक्रिया:\n• ऑनलाइन आवेदन करें\n• आधार कार्ड अनिवार्य\n• बैंक खाता जरूरी\n• भूमि दस्तावेज अपलोड करें\n\n📞 हेल्पलाइन: 1800-180-1551\n🌐 वेबसाइट: pmkisan.gov.in"
+            return f"🏛️ {location} में किसानों के लिए सरकारी योजनाएं:\n\n💰 प्रमुख योजनाएं:\n• पीएम किसान सम्मान निधि - ₹6,000/वर्ष (₹2,000 x 3 किस्त)\n• प्रधानमंत्री फसल बीमा योजना - 90% सब्सिडी\n• किसान क्रेडिट कार्ड - ₹3 लाख तक ऋण\n• मृदा स्वास्थ्य कार्ड योजना - मुफ्त मिट्टी परीक्षण\n• राष्ट्रीय कृषि विकास योजना\n• नीम कोटेड यूरिया सब्सिडी - ₹2,500/बैग\n• डीएपी सब्सिडी - ₹1,350/बैग\n\n🌱 मृदा स्वास्थ्य कार्ड योजना:\n• मुफ्त मिट्टी परीक्षण और सुझाव\n• मिट्टी का pH, पोषक तत्वों की जांच\n• फसल सुझाव और उर्वरक मात्रा\n• नजदीकी कृषि विज्ञान केंद्र में आवेदन\n• 3 साल तक वैध, पूरी तरह मुफ्त\n\n📊 एमएसपी (न्यूनतम समर्थन मूल्य):\n• गेहूं: ₹2,275/क्विंटल\n• चावल: ₹2,183/क्विंटल\n• मक्का: ₹2,090/क्विंटल\n• कपास: ₹6,620/क्विंटल\n\n📋 आवेदन प्रक्रिया:\n• ऑनलाइन आवेदन करें\n• आधार कार्ड अनिवार्य\n• बैंक खाता जरूरी\n• भूमि दस्तावेज अपलोड करें\n\n📞 हेल्पलाइन: 1800-180-1551\n🌐 वेबसाइट: pmkisan.gov.in"
         elif language == 'hinglish':
-            return f"🏛️ {location} mein kisaano ke liye sarkari yojanayein:\n\n💰 Main schemes:\n• PM Kisan Samman Nidhi - ₹6,000/year\n• Pradhan Mantri Fasal Bima Yojana - 90% subsidy\n• Kisan Credit Card - ₹3 lakh tak loan\n• Soil Health Card Yojana\n• National Agriculture Development Scheme\n• Neem Coated Urea Subsidy - ₹2,500/bag\n• DAP Subsidy - ₹1,350/bag\n\n📊 MSP (Minimum Support Price):\n• Wheat: ₹2,275/quintal\n• Rice: ₹2,183/quintal\n• Maize: ₹2,090/quintal\n• Cotton: ₹6,620/quintal\n\n📋 Apply kaise karein:\n• Online apply karein\n• Aadhaar card zaroori\n• Bank account chahiye\n• Land documents upload karein\n\n📞 Helpline: 1800-180-1551\n🌐 Website: pmkisan.gov.in"
+            return f"🏛️ {location} mein kisaano ke liye sarkari yojanayein:\n\n💰 Main schemes:\n• PM Kisan Samman Nidhi - ₹6,000/year (₹2,000 x 3 किस्त)\n• Pradhan Mantri Fasal Bima Yojana - 90% subsidy\n• Kisan Credit Card - ₹3 lakh tak loan\n• मृदा स्वास्थ्य कार्ड योजना - मुफ्त मिट्टी परीक्षण\n• National Agriculture Development Scheme\n• Neem Coated Urea Subsidy - ₹2,500/bag\n• DAP Subsidy - ₹1,350/bag\n\n🌱 मृदा स्वास्थ्य कार्ड योजना:\n• मुफ्त मिट्टी परीक्षण और सुझाव\n• मिट्टी का pH, पोषक तत्वों की जांच\n• फसल सुझाव और उर्वरक मात्रा\n• नजदीकी कृषि विज्ञान केंद्र में आवेदन\n• 3 साल तक वैध, पूरी तरह मुफ्त\n\n📊 MSP (Minimum Support Price):\n• Wheat: ₹2,275/quintal\n• Rice: ₹2,183/quintal\n• Maize: ₹2,090/quintal\n• Cotton: ₹6,620/quintal\n\n📋 Apply kaise karein:\n• Online apply karein\n• Aadhaar card zaroori\n• Bank account chahiye\n• Land documents upload karein\n\n📞 Helpline: 1800-180-1551\n🌐 Website: pmkisan.gov.in"
         else:
-            return f"🏛️ Government Schemes for Farmers in {location}:\n\n💰 Major Schemes:\n• PM Kisan Samman Nidhi - ₹6,000/year\n• Pradhan Mantri Fasal Bima Yojana - 90% subsidy\n• Kisan Credit Card - ₹3 lakh loan limit\n• Soil Health Card Scheme\n• National Agriculture Development Scheme\n• Neem Coated Urea Subsidy - ₹2,500/bag\n• DAP Subsidy - ₹1,350/bag\n\n📊 MSP (Minimum Support Price):\n• Wheat: ₹2,275/quintal\n• Rice: ₹2,183/quintal\n• Maize: ₹2,090/quintal\n• Cotton: ₹6,620/quintal\n\n📋 Application Process:\n• Apply online at pmkisan.gov.in\n• Aadhaar card mandatory\n• Bank account required\n• Upload land documents\n\n📞 Helpline: 1800-180-1551\n🌐 Website: pmkisan.gov.in"
+            return f"🏛️ Government Schemes for Farmers in {location}:\n\n💰 Major Schemes:\n• PM Kisan Samman Nidhi - ₹6,000/year (₹2,000 x 3 installments)\n• Pradhan Mantri Fasal Bima Yojana - 90% subsidy\n• Kisan Credit Card - ₹3 lakh loan limit\n• Soil Health Card Scheme - Free soil testing\n• National Agriculture Development Scheme\n• Neem Coated Urea Subsidy - ₹2,500/bag\n• DAP Subsidy - ₹1,350/bag\n\n🌱 Soil Health Card Scheme:\n• Free soil testing and recommendations\n• Soil pH and nutrient analysis\n• Crop recommendations and fertilizer dosage\n• Apply at nearest Krishi Vigyan Kendra (KVK)\n• Valid for 3 years, completely free\n\n📊 MSP (Minimum Support Price):\n• Wheat: ₹2,275/quintal\n• Rice: ₹2,183/quintal\n• Maize: ₹2,090/quintal\n• Cotton: ₹6,620/quintal\n\n📋 Application Process:\n• Apply online at pmkisan.gov.in\n• Aadhaar card mandatory\n• Bank account required\n• Upload land documents\n\n📞 Helpline: 1800-180-1551\n🌐 Website: pmkisan.gov.in"
     
     def _generate_fertilizer_response(self, entities: Dict[str, Any], language: str, query: str, latitude: float = None, longitude: float = None) -> str:
         """Generate fertilizer response with government data"""
@@ -3218,7 +3296,7 @@ class UltimateIntelligentAI:
 
     def _generate_general_intelligent_response(self, query: str, entities: Dict[str, Any], language: str, 
                                              latitude: float = None, longitude: float = None, location_name: str = None) -> str:
-        """Generate general intelligent response for any query using free APIs"""
+        """Generate general intelligent response for any query using free APIs - ChatGPT-like"""
         
         # Import the general APIs service
         try:
@@ -3231,15 +3309,39 @@ class UltimateIntelligentAI:
             if api_response.get('confidence', 0) > 0.5:
                 return api_response.get('response', '')
             
-            # If API response is low confidence, fall back to agricultural redirect
-            else:
-                if language == 'hi':
-                    return f"🌾 **कृषिमित्र AI सहायता:**\n\nमैं आपकी कृषि समस्याओं में मदद कर सकता हूँ। मैं निम्नलिखित सेवाएं प्रदान करता हूँ:\n\n💰 **बाजार कीमतें** - रियल-टाइम मंडी कीमतें\n🌤️ **मौसम जानकारी** - सटीक मौसम पूर्वानुमान\n🌱 **फसल सुझाव** - AI द्वारा सर्वोत्तम फसल सुझाव\n🐛 **कीट नियंत्रण** - कीट और रोग की पहचान\n🏛️ **सरकारी योजनाएं** - कृषि योजनाओं की जानकारी\n🌱 **उर्वरक सुझाव** - मिट्टी अनुसार उर्वरक\n💧 **सिंचाई सुझाव** - पानी की बचत के लिए\n🌾 **कटाई सुझाव** - सही समय पर कटाई\n\nकृपया अपना सवाल पूछें!"
-                else:
-                    return f"🌾 **KrisiMitra AI Assistant:**\n\nI can help you with agricultural problems. I provide the following services:\n\n💰 **Market Prices** - Real-time mandi prices\n🌤️ **Weather Information** - Accurate weather forecasts\n🌱 **Crop Recommendations** - AI-powered best crop suggestions\n🐛 **Pest Control** - Pest and disease identification\n🏛️ **Government Schemes** - Agricultural scheme information\n🌱 **Fertilizer Advice** - Soil-based fertilizer recommendations\n💧 **Irrigation Tips** - Water-saving irrigation\n🌾 **Harvest Guidance** - Right time harvesting\n\nPlease ask your question!"
-        
         except ImportError:
-            # Fallback if general APIs service is not available
+            pass
+        
+        # Enhanced ChatGPT-like responses for common non-farming queries
+        query_lower = query.lower()
+        
+        # Handle common greetings and conversational queries
+        if any(word in query_lower for word in ['how are you', 'कैसे हैं', 'कैसी हैं', 'आप कैसे हैं']):
+            if language == 'hi':
+                return "मैं बिल्कुल ठीक हूं, धन्यवाद! मैं आपकी कृषि संबंधी जरूरतों में मदद करने के लिए तैयार हूं। आपको क्या सहायता चाहिए? 😊"
+            else:
+                return "I'm doing great, thank you! I'm ready to help you with all your agricultural needs. How can I assist you today? 😊"
+        
+        elif any(word in query_lower for word in ['what is', 'क्या है', 'what are', 'कौन से हैं']):
+            if language == 'hi':
+                return "मैं आपके सवाल का जवाब देने के लिए यहां हूं! हालांकि, मैं कृषि संबंधी विषयों में विशेषज्ञ हूं। क्या आप कृषि के बारे में कुछ पूछना चाहते हैं? 🌾"
+            else:
+                return "I'm here to help answer your questions! However, I specialize in agricultural topics. Would you like to ask something about farming? 🌾"
+        
+        elif any(word in query_lower for word in ['tell me about', 'बताइए', 'explain', 'समझाइए']):
+            if language == 'hi':
+                return "मैं आपको विस्तार से समझा सकता हूं! मैं कृषि संबंधी विषयों में बहुत अच्छा हूं - फसलें, मौसम, बाजार कीमतें, सरकारी योजनाएं, और बहुत कुछ। आप किस विषय पर जानकारी चाहते हैं? 📚"
+            else:
+                return "I can explain things in detail! I'm excellent with agricultural topics - crops, weather, market prices, government schemes, and much more. What would you like to learn about? 📚"
+        
+        elif any(word in query_lower for word in ['help', 'मदद', 'assistance', 'सहायता']):
+            if language == 'hi':
+                return "बिल्कुल! मैं आपकी मदद के लिए यहां हूं। मैं कृषि के सभी क्षेत्रों में सहायता प्रदान कर सकता हूं। आप किस चीज़ में मदद चाहते हैं? 🤝"
+            else:
+                return "Absolutely! I'm here to help you. I can assist with all aspects of agriculture. What do you need help with? 🤝"
+        
+        # If it's a non-farming query, provide intelligent redirect
+        else:
             if language == 'hi':
                 return f"🌾 **कृषिमित्र AI सहायता:**\n\nमैं आपकी कृषि समस्याओं में मदद कर सकता हूँ। मैं निम्नलिखित सेवाएं प्रदान करता हूँ:\n\n💰 **बाजार कीमतें** - रियल-टाइम मंडी कीमतें\n🌤️ **मौसम जानकारी** - सटीक मौसम पूर्वानुमान\n🌱 **फसल सुझाव** - AI द्वारा सर्वोत्तम फसल सुझाव\n🐛 **कीट नियंत्रण** - कीट और रोग की पहचान\n🏛️ **सरकारी योजनाएं** - कृषि योजनाओं की जानकारी\n🌱 **उर्वरक सुझाव** - मिट्टी अनुसार उर्वरक\n💧 **सिंचाई सुझाव** - पानी की बचत के लिए\n🌾 **कटाई सुझाव** - सही समय पर कटाई\n\nकृपया अपना सवाल पूछें!"
             else:

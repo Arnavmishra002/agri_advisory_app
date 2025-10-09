@@ -88,8 +88,12 @@ class EnhancedGovernmentAPI:
             'government_schemes': {
                 'pm_kisan': {
                     'name': 'प्रधानमंत्री किसान सम्मान निधि',
-                    'benefit': '₹6,000 प्रति वर्ष',
-                    'eligibility': 'सभी किसान परिवार'
+                    'benefit': '₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)',
+                    'eligibility': 'सभी किसान परिवार',
+                    'details': 'आय सहायता योजना',
+                    'process': 'ऑनलाइन आवेदन या CSC केंद्र',
+                    'validity': 'वार्षिक नवीकरण',
+                    'cost': 'पूरी तरह मुफ्त'
                 },
                 'fasal_bima': {
                     'name': 'प्रधानमंत्री फसल बीमा योजना',
@@ -102,9 +106,13 @@ class EnhancedGovernmentAPI:
                     'eligibility': 'जमीन वाले किसान'
                 },
                 'soil_health_card': {
-                    'name': 'मृदा स्वास्थ्य कार्ड',
-                    'benefit': 'मिट्टी परीक्षण और सुझाव',
-                    'eligibility': 'सभी किसान'
+                    'name': 'मृदा स्वास्थ्य कार्ड योजना',
+                    'benefit': 'मुफ्त मिट्टी परीक्षण और सुझाव',
+                    'eligibility': 'सभी किसान',
+                    'details': 'मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव',
+                    'process': 'नजदीकी कृषि विज्ञान केंद्र में आवेदन',
+                    'validity': '3 साल तक वैध',
+                    'cost': 'पूरी तरह मुफ्त'
                 },
                 'neem_coated_urea': {
                     'name': 'नीम कोटेड यूरिया',
@@ -475,14 +483,28 @@ class EnhancedGovernmentAPI:
         return state_schemes.get(state.lower(), {})
     
     def _translate_schemes_to_hindi(self, schemes_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Translate schemes data to Hindi"""
+        """Translate schemes data to Hindi with enhanced details"""
         hindi_translations = {
             'PM Kisan Samman Nidhi': 'प्रधानमंत्री किसान सम्मान निधि',
             'PM Fasal Bima Yojana': 'प्रधानमंत्री फसल बीमा योजना',
             'Kisan Credit Card': 'किसान क्रेडिट कार्ड',
+            'Soil Health Card': 'मृदा स्वास्थ्य कार्ड योजना',
             '₹6,000 per year': '₹6,000 प्रति वर्ष',
             '90% subsidy on premium': 'प्रीमियम पर 90% सब्सिडी',
-            'Up to ₹3 lakh loan': '₹3 लाख तक का ऋण'
+            'Up to ₹3 lakh loan': '₹3 लाख तक का ऋण',
+            'Free soil testing': 'मुफ्त मिट्टी परीक्षण',
+            'All farmers': 'सभी किसान',
+            'All farmer families': 'सभी किसान परिवार',
+            'Farmers with land': 'जमीन वाले किसान',
+            'FPOs and cooperatives': 'FPO और सहकारी समितियां',
+            'Income support scheme': 'आय सहायता योजना',
+            'Soil pH and nutrient testing': 'मिट्टी का pH और पोषक तत्वों की जांच',
+            'Crop recommendations': 'फसल सुझाव',
+            'Apply at nearest KVK': 'नजदीकी कृषि विज्ञान केंद्र में आवेदन',
+            'Valid for 3 years': '3 साल तक वैध',
+            'Annual renewal': 'वार्षिक नवीकरण',
+            'Completely free': 'पूरी तरह मुफ्त',
+            'Online application or CSC': 'ऑनलाइन आवेदन या CSC केंद्र'
         }
         
         translated_schemes = {}
@@ -491,6 +513,9 @@ class EnhancedGovernmentAPI:
             for field, value in scheme.items():
                 if isinstance(value, str) and value in hindi_translations:
                     translated_scheme[field] = hindi_translations[value]
+                elif isinstance(value, str) and field in ['details', 'process', 'validity', 'cost']:
+                    # Keep detailed fields as they are already in Hindi
+                    translated_scheme[field] = value
             translated_schemes[key] = translated_scheme
         
         return translated_schemes
