@@ -694,6 +694,78 @@
             margin: 0;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
+
+        /* Autocomplete Styles */
+        .autocomplete-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-suggestions.show {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item.active {
+            background-color: #e3f2fd;
+        }
+
+        .suggestion-name {
+            font-weight: 500;
+            color: #2d5016;
+        }
+
+        .suggestion-details {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        .suggestion-distance {
+            font-size: 0.8rem;
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            pointer-events: none;
+        }
         
         .score-label {
             font-weight: 500;
@@ -1289,33 +1361,42 @@
         <div id="market-prices-content" class="service-content">
             <h3><i class="fas fa-chart-line me-2"></i>बाजार कीमतें</h3>
 
-            <!-- Mandi Selection Section -->
+            <!-- Enhanced Location and Mandi Selection Section -->
             <div class="mandi-dropdown">
                 <h5>🏪 निकटतम मंडी चुनें</h5>
                 <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label">मंडी का नाम:</label>
-                        <select id="nearestMandisDropdown" class="form-select" onchange="handleMandiSelection(this.value)">
-                            <option value="">निकटतम मंडी चुनें...</option>
-                        </select>
-                        <small class="text-muted">आपकी लोकेशन के नजदीक की मंडियां</small>
+                    <div class="col-md-4">
+                        <label class="form-label">📍 स्थान खोजें:</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="locationSearchInput" class="form-control" 
+                                   placeholder="शहर, जिला या राज्य टाइप करें..." 
+                                   oninput="searchLocations(this.value)"
+                                   onfocus="showLocationSuggestions()">
+                            <div id="locationSuggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                        <small class="text-muted">Google Maps जैसी सर्च</small>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">फसल का प्रकार:</label>
-                        <select id="cropForPrice" class="form-select">
-                            <option value="">फसल चुनें...</option>
-                            <option value="rice">चावल (Rice)</option>
-                            <option value="wheat">गेहूं (Wheat)</option>
-                            <option value="maize">मक्का (Maize)</option>
-                            <option value="sugarcane">गन्ना (Sugarcane)</option>
-                            <option value="cotton">कपास (Cotton)</option>
-                            <option value="potato">आलू (Potato)</option>
-                            <option value="tomato">टमाटर (Tomato)</option>
-                            <option value="onion">प्याज (Onion)</option>
-                            <option value="mustard">सरसों (Mustard)</option>
-                            <option value="soybean">सोयाबीन (Soybean)</option>
-                            <option value="groundnut">मूंगफली (Groundnut)</option>
-                        </select>
+                    <div class="col-md-4">
+                        <label class="form-label">🏪 मंडी का नाम:</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="mandiSearchInput" class="form-control" 
+                                   placeholder="मंडी का नाम टाइप करें..." 
+                                   oninput="searchMandis(this.value)"
+                                   onfocus="showMandiSuggestions()">
+                            <div id="mandiSuggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                        <small class="text-muted">टाइप करते समय सुझाव मिलेंगे</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">🌾 फसल का प्रकार:</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="cropSearchInput" class="form-control" 
+                                   placeholder="फसल का नाम टाइप करें..." 
+                                   oninput="searchCrops(this.value)"
+                                   onfocus="showCropSuggestions()">
+                            <div id="cropSuggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                        <small class="text-muted">लोकप्रिय फसलों की सूची</small>
                     </div>
                 </div>
             </div>
@@ -1324,7 +1405,7 @@
             <div id="marketPricesData">
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
-                    मंडी और फसल चुनने के बाद कीमतें दिखाई जाएंगी
+                    स्थान, मंडी और फसल चुनने के बाद कीमतें दिखाई जाएंगी
                 </div>
             </div>
 
@@ -1334,7 +1415,10 @@
                     <i class="fas fa-chart-line me-2"></i>कीमतें अपडेट करें
                 </button>
                 <button class="btn btn-outline-primary" onclick="refreshMandiList()">
-                    <i class="fas fa-sync-alt me-2"></i>मंडी लिस्ट रिफ्रेश करें
+                    <i class="fas fa-sync-alt me-2"></i>डेटा रिफ्रेश करें
+                </button>
+                <button class="btn btn-outline-success" onclick="getCurrentLocation()">
+                    <i class="fas fa-map-marker-alt me-2"></i>मेरी लोकेशन
                 </button>
             </div>
         </div>
@@ -1455,12 +1539,38 @@
         // Global variables
         let currentLocation = null;
         let sessionId = 'session_' + Date.now();
+        let selectedMandi = null;
+        let selectedCrop = null;
 
         // Initialize the app
+        // Initialize autocomplete system
+        function initializeAutocomplete() {
+            // Set default location to Delhi if no location is set
+            if (!currentLocation) {
+                currentLocation = { lat: 28.6139, lon: 77.2090, name: 'Delhi' };
+                if (document.getElementById('locationSearchInput')) {
+                    document.getElementById('locationSearchInput').value = 'Delhi';
+                    loadNearbyMandis('Delhi');
+                }
+            }
+            
+            // Show initial suggestions if elements exist
+            if (document.getElementById('locationSuggestions')) {
+                showLocationSuggestions();
+            }
+            if (document.getElementById('mandiSuggestions')) {
+                showMandiSuggestions();
+            }
+            if (document.getElementById('cropSuggestions')) {
+                showCropSuggestions();
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             detectLocation();
             loadNearestMandis();
             updateGlobalLocationDisplay();
+            initializeAutocomplete();
         });
 
         // Location detection
@@ -3189,6 +3299,272 @@
             container.innerHTML = html;
         }
 
+        // Autocomplete data
+        const locationData = [
+            { name: 'Delhi', state: 'Delhi', type: 'city', lat: 28.6139, lon: 77.2090 },
+            { name: 'Mumbai', state: 'Maharashtra', type: 'city', lat: 19.0760, lon: 72.8777 },
+            { name: 'Bangalore', state: 'Karnataka', type: 'city', lat: 12.9716, lon: 77.5946 },
+            { name: 'Chennai', state: 'Tamil Nadu', type: 'city', lat: 13.0827, lon: 80.2707 },
+            { name: 'Kolkata', state: 'West Bengal', type: 'city', lat: 22.5726, lon: 88.3639 },
+            { name: 'Hyderabad', state: 'Telangana', type: 'city', lat: 17.3850, lon: 78.4867 },
+            { name: 'Pune', state: 'Maharashtra', type: 'city', lat: 18.5204, lon: 73.8567 },
+            { name: 'Ahmedabad', state: 'Gujarat', type: 'city', lat: 23.0225, lon: 72.5714 },
+            { name: 'Jaipur', state: 'Rajasthan', type: 'city', lat: 26.9124, lon: 75.7873 },
+            { name: 'Lucknow', state: 'Uttar Pradesh', type: 'city', lat: 26.8467, lon: 80.9462 },
+            { name: 'Bhopal', state: 'Madhya Pradesh', type: 'city', lat: 23.2599, lon: 77.4126 },
+            { name: 'Chandigarh', state: 'Punjab', type: 'city', lat: 30.7333, lon: 76.7794 },
+            { name: 'Patna', state: 'Bihar', type: 'city', lat: 25.5941, lon: 85.1376 },
+            { name: 'Bhubaneswar', state: 'Odisha', type: 'city', lat: 20.2961, lon: 85.8245 },
+            { name: 'Kochi', state: 'Kerala', type: 'city', lat: 9.9312, lon: 76.2673 }
+        ];
+
+        const mandiData = [
+            { name: 'Azadpur Mandi', location: 'Delhi', distance: '5 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Vashi APMC', location: 'Mumbai', distance: '8 km', crops: ['vegetables', 'fruits', 'spices'] },
+            { name: 'Yeshwanthpur APMC', location: 'Bangalore', distance: '12 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Koyambedu Market', location: 'Chennai', distance: '15 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Bara Bazar', location: 'Kolkata', distance: '10 km', crops: ['rice', 'spices'] },
+            { name: 'Gaddiannaram Market', location: 'Hyderabad', distance: '18 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Pune APMC', location: 'Pune', distance: '20 km', crops: ['vegetables', 'fruits', 'spices'] },
+            { name: 'Jamalpur Mandi', location: 'Ahmedabad', distance: '8 km', crops: ['cotton', 'spices'] },
+            { name: 'Galta Gate Mandi', location: 'Jaipur', distance: '12 km', crops: ['vegetables', 'spices'] },
+            { name: 'Nakhas Mandi', location: 'Lucknow', distance: '6 km', crops: ['vegetables', 'spices'] }
+        ];
+
+        const cropData = [
+            { name: 'गेहूं (Wheat)', value: 'wheat', category: 'cereal' },
+            { name: 'चावल (Rice)', value: 'rice', category: 'cereal' },
+            { name: 'मक्का (Maize)', value: 'maize', category: 'cereal' },
+            { name: 'जौ (Barley)', value: 'barley', category: 'cereal' },
+            { name: 'कपास (Cotton)', value: 'cotton', category: 'cash_crop' },
+            { name: 'गन्ना (Sugarcane)', value: 'sugarcane', category: 'cash_crop' },
+            { name: 'आलू (Potato)', value: 'potato', category: 'vegetable' },
+            { name: 'टमाटर (Tomato)', value: 'tomato', category: 'vegetable' },
+            { name: 'प्याज (Onion)', value: 'onion', category: 'vegetable' },
+            { name: 'सरसों (Mustard)', value: 'mustard', category: 'oilseed' },
+            { name: 'सोयाबीन (Soybean)', value: 'soybean', category: 'oilseed' },
+            { name: 'मूंगफली (Groundnut)', value: 'groundnut', category: 'oilseed' },
+            { name: 'चना (Chickpea)', value: 'chickpea', category: 'pulse' },
+            { name: 'मूंग (Green Gram)', value: 'green_gram', category: 'pulse' },
+            { name: 'उड़द (Black Gram)', value: 'black_gram', category: 'pulse' }
+        ];
+
+        // Location search functionality
+        function searchLocations(query) {
+            if (query.length < 2) {
+                hideLocationSuggestions();
+                return;
+            }
+
+            const filtered = locationData.filter(location => 
+                location.name.toLowerCase().includes(query.toLowerCase()) ||
+                location.state.toLowerCase().includes(query.toLowerCase())
+            );
+
+            showLocationSuggestions(filtered);
+        }
+
+        function showLocationSuggestions(suggestions = null) {
+            const container = document.getElementById('locationSuggestions');
+            
+            if (!suggestions) {
+                // Show all locations when focused
+                suggestions = locationData.slice(0, 10);
+            }
+
+            const html = suggestions.map(location => `
+                <div class="suggestion-item" onclick="selectLocation('${location.name}', ${location.lat}, ${location.lon})">
+                    <div>
+                        <div class="suggestion-name">${location.name}</div>
+                        <div class="suggestion-details">${location.state}, ${location.type}</div>
+                    </div>
+                    <div class="suggestion-distance">📍</div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+            container.classList.add('show');
+        }
+
+        function selectLocation(name, lat, lon) {
+            document.getElementById('locationSearchInput').value = name;
+            hideLocationSuggestions();
+            
+            // Update current location
+            currentLocation = { lat: lat, lon: lon };
+            
+            // Load nearby mandis for this location
+            loadNearbyMandis(name);
+        }
+
+        function hideLocationSuggestions() {
+            document.getElementById('locationSuggestions').classList.remove('show');
+        }
+
+        // Mandi search functionality
+        function searchMandis(query) {
+            if (query.length < 2) {
+                hideMandiSuggestions();
+                return;
+            }
+
+            const filtered = mandiData.filter(mandi => 
+                mandi.name.toLowerCase().includes(query.toLowerCase()) ||
+                mandi.location.toLowerCase().includes(query.toLowerCase())
+            );
+
+            showMandiSuggestions(filtered);
+        }
+
+        function showMandiSuggestions(suggestions = null) {
+            const container = document.getElementById('mandiSuggestions');
+            
+            if (!suggestions) {
+                suggestions = mandiData.slice(0, 8);
+            }
+
+            const html = suggestions.map(mandi => `
+                <div class="suggestion-item" onclick="selectMandi('${mandi.name}', '${mandi.location}')">
+                    <div>
+                        <div class="suggestion-name">${mandi.name}</div>
+                        <div class="suggestion-details">${mandi.location}</div>
+                    </div>
+                    <div class="suggestion-distance">${mandi.distance}</div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+            container.classList.add('show');
+        }
+
+        function selectMandi(name, location) {
+            document.getElementById('mandiSearchInput').value = name;
+            hideMandiSuggestions();
+            
+            // Store selected mandi
+            selectedMandi = { name: name, location: location };
+        }
+
+        function hideMandiSuggestions() {
+            document.getElementById('mandiSuggestions').classList.remove('show');
+        }
+
+        // Crop search functionality
+        function searchCrops(query) {
+            if (query.length < 2) {
+                hideCropSuggestions();
+                return;
+            }
+
+            const filtered = cropData.filter(crop => 
+                crop.name.toLowerCase().includes(query.toLowerCase()) ||
+                crop.value.toLowerCase().includes(query.toLowerCase()) ||
+                crop.category.toLowerCase().includes(query.toLowerCase())
+            );
+
+            showCropSuggestions(filtered);
+        }
+
+        function showCropSuggestions(suggestions = null) {
+            const container = document.getElementById('cropSuggestions');
+            
+            if (!suggestions) {
+                suggestions = cropData.slice(0, 10);
+            }
+
+            const html = suggestions.map(crop => `
+                <div class="suggestion-item" onclick="selectCrop('${crop.value}', '${crop.name}')">
+                    <div>
+                        <div class="suggestion-name">${crop.name}</div>
+                        <div class="suggestion-details">${crop.category}</div>
+                    </div>
+                    <div class="suggestion-distance">🌾</div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+            container.classList.add('show');
+        }
+
+        function selectCrop(value, name) {
+            document.getElementById('cropSearchInput').value = name;
+            hideCropSuggestions();
+            
+            // Store selected crop
+            selectedCrop = { value: value, name: name };
+        }
+
+        function hideCropSuggestions() {
+            document.getElementById('cropSuggestions').classList.remove('show');
+        }
+
+        // Load nearby mandis based on location
+        function loadNearbyMandis(locationName) {
+            const nearbyMandis = mandiData.filter(mandi => 
+                mandi.location.toLowerCase() === locationName.toLowerCase()
+            );
+
+            // Update mandi suggestions
+            if (nearbyMandis.length > 0) {
+                showMandiSuggestions(nearbyMandis);
+            }
+        }
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.autocomplete-container')) {
+                hideLocationSuggestions();
+                hideMandiSuggestions();
+                hideCropSuggestions();
+            }
+        });
+
+        // Get current location function for the button
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        };
+                        
+                        // Reverse geocode to get location name
+                        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${currentLocation.lat}&longitude=${currentLocation.lon}&localityLanguage=hi`)
+                        .then(response => response.json())
+                        .then(data => {
+                            currentLocation.name = data.city || data.locality || 'Current Location';
+                            
+                            // Update location input
+                            if (document.getElementById('locationSearchInput')) {
+                                document.getElementById('locationSearchInput').value = currentLocation.name;
+                            }
+                            
+                            updateGlobalLocationDisplay();
+                            loadNearbyMandis(currentLocation.name);
+                            showNotification(`स्थान अपडेट हो गया: ${currentLocation.name}`, 'success');
+                        })
+                        .catch(error => {
+                            console.error('Error getting location name:', error);
+                            currentLocation.name = 'Current Location';
+                            if (document.getElementById('locationSearchInput')) {
+                                document.getElementById('locationSearchInput').value = currentLocation.name;
+                            }
+                            updateGlobalLocationDisplay();
+                            loadNearbyMandis(currentLocation.name);
+                            showNotification('स्थान अपडेट हो गया', 'success');
+                        });
+                    },
+                    function(error) {
+                        console.error('Error getting location:', error);
+                        showNotification('स्थान प्राप्त करने में त्रुटि', 'error');
+                    }
+                );
+            } else {
+                showNotification('जियोलोकेशन समर्थित नहीं है', 'error');
+            }
+        }
+
         // Handle mandi selection
         function handleMandiSelection(selectedMandiJson) {
             if (!selectedMandiJson) return;
@@ -3335,22 +3711,32 @@
             });
         }
 
-        // Load market prices
+        // Load market prices with new autocomplete system
         function loadMarketPrices() {
-            const crop = document.getElementById('cropForPrice').value;
-            const selectedMandi = document.getElementById('nearestMandisDropdown').value;
+            const locationInput = document.getElementById('locationSearchInput').value;
+            const mandiInput = document.getElementById('mandiSearchInput').value;
+            const cropInput = document.getElementById('cropSearchInput').value;
             
-            if (!crop) {
+            if (!locationInput) {
+                showNotification('कृपया स्थान चुनें', 'error');
+                return;
+            }
+            
+            if (!mandiInput) {
+                showNotification('कृपया मंडी चुनें', 'error');
+                return;
+            }
+            
+            if (!cropInput) {
                 showNotification('कृपया फसल चुनें', 'error');
                 return;
             }
             
-            if (selectedMandi) {
-                const mandi = JSON.parse(selectedMandi);
-                loadMarketPricesForMandi(mandi, crop);
-            } else {
-                showNotification('कृपया मंडी चुनें', 'error');
-            }
+            // Get crop value from selected crop
+            const cropValue = selectedCrop ? selectedCrop.value : cropInput.toLowerCase();
+            const mandiInfo = selectedMandi || { name: mandiInput, location: locationInput };
+            
+            loadMarketPricesForMandi(mandiInfo, cropValue);
         }
 
         // Load weather data

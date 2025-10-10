@@ -1,0 +1,3168 @@
+{
+  "timestamp": "2025-10-10T17:34:39.200259",
+  "test_suite": "production_comprehensive",
+  "total_tests": 150,
+  "passed_tests": 127,
+  "failed_tests": 23,
+  "service_tests": {
+    "market_price": {
+      "total_tests": 15,
+      "passed_tests": 0,
+      "success_rate": 0.0,
+      "detailed_results": [
+        {
+          "status": "partial",
+          "data": {
+            "price": 2350,
+            "market": "Delhi Mandi",
+            "state": "Delhi",
+            "source": "Enhanced Fallback",
+            "msp": 2275,
+            "trend": "+2.5%",
+            "change": "+2.5%",
+            "min_price": 2200,
+            "max_price": 2500,
+            "timestamp": "2025-10-10T17:34:57.868601"
+          },
+          "test_number": 1,
+          "execution_time": 18.665181159973145
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 2817,
+            "market": "Mumbai Mandi",
+            "state": "Mumbai",
+            "source": "Enhanced Fallback",
+            "msp": 2183,
+            "trend": "+1.8%",
+            "change": "+1.8%",
+            "min_price": 2100,
+            "max_price": 2800,
+            "timestamp": "2025-10-10T17:35:14.966545"
+          },
+          "test_number": 2,
+          "execution_time": 17.097633361816406
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 2152,
+            "market": "Bangalore Mandi",
+            "state": "Bangalore",
+            "source": "Enhanced Fallback",
+            "msp": 2090,
+            "trend": "+3.2%",
+            "change": "+3.2%",
+            "min_price": 1900,
+            "max_price": 2200,
+            "timestamp": "2025-10-10T17:35:35.878528"
+          },
+          "test_number": 3,
+          "execution_time": 20.91171669960022
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 6270,
+            "market": "Chennai Mandi",
+            "state": "Chennai",
+            "source": "Enhanced Fallback",
+            "msp": 6620,
+            "trend": "-1.5%",
+            "change": "-1.5%",
+            "min_price": 6000,
+            "max_price": 7200,
+            "timestamp": "2025-10-10T17:35:51.478861"
+          },
+          "test_number": 4,
+          "execution_time": 15.599989175796509
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 6370,
+            "market": "Kolkata Mandi",
+            "state": "Kolkata",
+            "source": "Enhanced Fallback",
+            "msp": 6377,
+            "trend": "+4.1%",
+            "change": "+4.1%",
+            "min_price": 5500,
+            "max_price": 7500,
+            "timestamp": "2025-10-10T17:36:07.038004"
+          },
+          "test_number": 5,
+          "execution_time": 15.558984518051147
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 2397,
+            "market": "Hyderabad Mandi",
+            "state": "Hyderabad",
+            "source": "Enhanced Fallback",
+            "msp": 2275,
+            "trend": "+2.5%",
+            "change": "+2.5%",
+            "min_price": 2200,
+            "max_price": 2500,
+            "timestamp": "2025-10-10T17:36:23.398479"
+          },
+          "test_number": 6,
+          "execution_time": 16.360294818878174
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 2646,
+            "market": "Pune Mandi",
+            "state": "Pune",
+            "source": "Enhanced Fallback",
+            "msp": 2183,
+            "trend": "+1.8%",
+            "change": "+1.8%",
+            "min_price": 2100,
+            "max_price": 2800,
+            "timestamp": "2025-10-10T17:36:40.310075"
+          },
+          "test_number": 7,
+          "execution_time": 16.911304712295532
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 2111,
+            "market": "Ahmedabad Mandi",
+            "state": "Ahmedabad",
+            "source": "Enhanced Fallback",
+            "msp": 2090,
+            "trend": "+3.2%",
+            "change": "+3.2%",
+            "min_price": 1900,
+            "max_price": 2200,
+            "timestamp": "2025-10-10T17:37:04.458856"
+          },
+          "test_number": 8,
+          "execution_time": 24.148430585861206
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 1000,
+            "market": "Delhi Mandi",
+            "state": "Delhi",
+            "source": "Enhanced Fallback",
+            "msp": 0,
+            "trend": "+5.2%",
+            "change": "+5.2%",
+            "min_price": 800,
+            "max_price": 1200,
+            "timestamp": "2025-10-10T17:37:23.191944"
+          },
+          "test_number": 9,
+          "execution_time": 18.732937574386597
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 1724,
+            "market": "Mumbai Mandi",
+            "state": "Mumbai",
+            "source": "Enhanced Fallback",
+            "msp": 0,
+            "trend": "+7.8%",
+            "change": "+7.8%",
+            "min_price": 1200,
+            "max_price": 1800,
+            "timestamp": "2025-10-10T17:37:38.496297"
+          },
+          "test_number": 10,
+          "execution_time": 15.304194450378418
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 2467,
+            "market": "Bangalore Mandi",
+            "state": "Bangalore",
+            "source": "Enhanced Fallback",
+            "msp": 2275,
+            "trend": "+2.5%",
+            "change": "+2.5%",
+            "min_price": 2200,
+            "max_price": 2500,
+            "timestamp": "2025-10-10T17:37:54.391388"
+          },
+          "test_number": 11,
+          "execution_time": 15.894968748092651
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 2232,
+            "market": "Chennai Mandi",
+            "state": "Chennai",
+            "source": "Enhanced Fallback",
+            "msp": 2275,
+            "trend": "+2.5%",
+            "change": "+2.5%",
+            "min_price": 2200,
+            "max_price": 2500,
+            "timestamp": "2025-10-10T17:38:10.855113"
+          },
+          "test_number": 12,
+          "execution_time": 16.46360182762146
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 5586,
+            "market": "Kolkata Mandi",
+            "state": "Kolkata",
+            "source": "Enhanced Fallback",
+            "msp": 5650,
+            "trend": "+3.5%",
+            "change": "+3.5%",
+            "min_price": 5200,
+            "max_price": 6200,
+            "timestamp": "2025-10-10T17:38:38.441455"
+          },
+          "test_number": 13,
+          "execution_time": 27.586288690567017
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 2397,
+            "market": "Hyderabad Mandi",
+            "state": "Hyderabad",
+            "source": "Enhanced Fallback",
+            "msp": 2275,
+            "trend": "+2.5%",
+            "change": "+2.5%",
+            "min_price": 2200,
+            "max_price": 2500,
+            "timestamp": "2025-10-10T17:38:53.542560"
+          },
+          "test_number": 14,
+          "execution_time": 15.093924760818481
+        },
+        {
+          "status": "partial",
+          "data": {
+            "price": 2538,
+            "market": "Pune Mandi",
+            "state": "Pune",
+            "source": "Enhanced Fallback",
+            "msp": 2275,
+            "trend": "+2.5%",
+            "change": "+2.5%",
+            "min_price": 2200,
+            "max_price": 2500,
+            "timestamp": "2025-10-10T17:39:08.639552"
+          },
+          "test_number": 15,
+          "execution_time": 15.096617460250854
+        }
+      ]
+    },
+    "weather": {
+      "total_tests": 15,
+      "passed_tests": 12,
+      "success_rate": 80.0,
+      "detailed_results": [
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 28,
+            "humidity": 65,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.191503"
+          },
+          "test_number": 1,
+          "execution_time": 0.5503127574920654
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 30,
+            "humidity": 80,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.437959"
+          },
+          "test_number": 2,
+          "execution_time": 0.24613189697265625
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 26,
+            "humidity": 60,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.726364"
+          },
+          "test_number": 3,
+          "execution_time": 0.288165807723999
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 33,
+            "humidity": 70,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.960722"
+          },
+          "test_number": 4,
+          "execution_time": 0.23420023918151855
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 32,
+            "humidity": 75,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:10.294218"
+          },
+          "test_number": 5,
+          "execution_time": 0.3333570957183838
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 31.0,
+            "humidity": 60,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:10.610116"
+          },
+          "test_number": 6,
+          "execution_time": 0.3156590461730957
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 27.0,
+            "humidity": 68,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:11.007256"
+          },
+          "test_number": 7,
+          "execution_time": 0.3969082832336426
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 33.0,
+            "humidity": 55,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:11.441284"
+          },
+          "test_number": 8,
+          "execution_time": 0.4337770938873291
+        },
+        {
+          "status": "partial",
+          "data": {
+            "temperature": 28,
+            "humidity": 65,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.191503"
+          },
+          "test_number": 9,
+          "execution_time": 2.9325485229492188e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 30,
+            "humidity": 80,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.437959"
+          },
+          "test_number": 10,
+          "execution_time": 1.8835067749023438e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 26,
+            "humidity": 60,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.726364"
+          },
+          "test_number": 11,
+          "execution_time": 1.52587890625e-05
+        },
+        {
+          "status": "partial",
+          "data": {
+            "temperature": 28,
+            "humidity": 65,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.191503"
+          },
+          "test_number": 12,
+          "execution_time": 1.7404556274414062e-05
+        },
+        {
+          "status": "partial",
+          "data": {
+            "temperature": 30,
+            "humidity": 80,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.437959"
+          },
+          "test_number": 13,
+          "execution_time": 1.33514404296875e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 26,
+            "humidity": 60,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.726364"
+          },
+          "test_number": 14,
+          "execution_time": 1.6927719116210938e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "temperature": 33,
+            "humidity": 70,
+            "condition": "Clear",
+            "source": "Fallback Data",
+            "timestamp": "2025-10-10T17:39:09.960722"
+          },
+          "test_number": 15,
+          "execution_time": 1.3113021850585938e-05
+        }
+      ]
+    },
+    "crop_recommendation": {
+      "total_tests": 15,
+      "passed_tests": 14,
+      "success_rate": 93.33333333333333,
+      "detailed_results": [
+        {
+          "status": "passed",
+          "data": {
+            "location": "Delhi",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.444492"
+          },
+          "found_crops": [
+            "rice",
+            "maize",
+            "cotton"
+          ],
+          "test_number": 1,
+          "execution_time": 0.00012612342834472656
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Mumbai",
+            "season": "rabi",
+            "recommendations": [
+              {
+                "crop": "wheat",
+                "name": "Wheat",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2275,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "onion",
+                "name": "Onion",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2500,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "tomato",
+                "name": "Tomato",
+                "score": 85,
+                "suitability": 85,
+                "msp": 2500,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "vegetables",
+                "name": "Vegetables",
+                "score": 80,
+                "suitability": 80,
+                "msp": 2500,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.444843"
+          },
+          "found_crops": [
+            "wheat",
+            "onion",
+            "tomato"
+          ],
+          "test_number": 2,
+          "execution_time": 9.131431579589844e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Bangalore",
+            "season": "zaid",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "vegetables",
+                "name": "Vegetables",
+                "score": 80,
+                "suitability": 80,
+                "msp": 2500,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.445136"
+          },
+          "found_crops": [
+            "rice",
+            "maize",
+            "groundnut"
+          ],
+          "test_number": 3,
+          "execution_time": 8.344650268554688e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Chennai",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.445487"
+          },
+          "found_crops": [
+            "rice",
+            "cotton"
+          ],
+          "test_number": 4,
+          "execution_time": 5.2928924560546875e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Kolkata",
+            "season": "rabi",
+            "recommendations": [
+              {
+                "crop": "wheat",
+                "name": "Wheat",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2275,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "mustard",
+                "name": "Mustard",
+                "score": 90,
+                "suitability": 90,
+                "msp": 5650,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "potato",
+                "name": "Potato",
+                "score": 85,
+                "suitability": 85,
+                "msp": 2500,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "onion",
+                "name": "Onion",
+                "score": 80,
+                "suitability": 80,
+                "msp": 2500,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.445835"
+          },
+          "found_crops": [
+            "wheat",
+            "mustard",
+            "potato"
+          ],
+          "test_number": 5,
+          "execution_time": 6.318092346191406e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Hyderabad",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.446164"
+          },
+          "found_crops": [
+            "rice",
+            "cotton"
+          ],
+          "test_number": 6,
+          "execution_time": 7.534027099609375e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Pune",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.446785"
+          },
+          "found_crops": [
+            "groundnut"
+          ],
+          "test_number": 7,
+          "execution_time": 8.96453857421875e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Ahmedabad",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.447201"
+          },
+          "found_crops": [
+            "rice",
+            "cotton"
+          ],
+          "test_number": 8,
+          "execution_time": 8.654594421386719e-05
+        },
+        {
+          "status": "partial",
+          "data": {
+            "location": "Delhi",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.444492"
+          },
+          "test_number": 9,
+          "execution_time": 2.2649765014648438e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Mumbai",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "sugarcane",
+                "name": "Sugarcane",
+                "score": 90,
+                "suitability": 90,
+                "msp": 315,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.448012"
+          },
+          "found_crops": [
+            "rice",
+            "sugarcane"
+          ],
+          "test_number": 10,
+          "execution_time": 8.845329284667969e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Bangalore",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "vegetables",
+                "name": "Vegetables",
+                "score": 80,
+                "suitability": 80,
+                "msp": 2500,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.448397"
+          },
+          "found_crops": [
+            "rice",
+            "maize",
+            "vegetables"
+          ],
+          "test_number": 11,
+          "execution_time": 7.915496826171875e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Chennai",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.445487"
+          },
+          "found_crops": [
+            "rice",
+            "maize"
+          ],
+          "test_number": 12,
+          "execution_time": 2.0742416381835938e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Kolkata",
+            "season": "rabi",
+            "recommendations": [
+              {
+                "crop": "wheat",
+                "name": "Wheat",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2275,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "mustard",
+                "name": "Mustard",
+                "score": 90,
+                "suitability": 90,
+                "msp": 5650,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "potato",
+                "name": "Potato",
+                "score": 85,
+                "suitability": 85,
+                "msp": 2500,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "onion",
+                "name": "Onion",
+                "score": 80,
+                "suitability": 80,
+                "msp": 2500,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.445835"
+          },
+          "found_crops": [
+            "wheat",
+            "mustard"
+          ],
+          "test_number": 13,
+          "execution_time": 2.0503997802734375e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Hyderabad",
+            "season": "zaid",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.449386"
+          },
+          "found_crops": [
+            "rice"
+          ],
+          "test_number": 14,
+          "execution_time": 8.416175842285156e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "location": "Pune",
+            "season": "kharif",
+            "recommendations": [
+              {
+                "crop": "rice",
+                "name": "Rice",
+                "score": 95,
+                "suitability": 95,
+                "msp": 2183,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "maize",
+                "name": "Maize",
+                "score": 90,
+                "suitability": 90,
+                "msp": 2090,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "cotton",
+                "name": "Cotton",
+                "score": 85,
+                "suitability": 85,
+                "msp": 6620,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              },
+              {
+                "crop": "groundnut",
+                "name": "Groundnut",
+                "score": 80,
+                "suitability": 80,
+                "msp": 6377,
+                "yield": "3-5 tons/hectare",
+                "soil": "Loamy",
+                "climate": "Sub-tropical"
+              }
+            ],
+            "source": "Enhanced Government API",
+            "timestamp": "2025-10-10T17:39:11.446785"
+          },
+          "found_crops": [
+            "rice",
+            "cotton"
+          ],
+          "test_number": 15,
+          "execution_time": 1.7642974853515625e-05
+        }
+      ]
+    },
+    "government_schemes": {
+      "total_tests": 15,
+      "passed_tests": 11,
+      "success_rate": 73.33333333333333,
+      "detailed_results": [
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 1,
+          "execution_time": 0.00017023086547851562
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 2,
+          "execution_time": 0.0002856254577636719
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 3,
+          "execution_time": 0.00011467933654785156
+        },
+        {
+          "status": "partial",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 4,
+          "execution_time": 0.00020575523376464844
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 5,
+          "execution_time": 0.00018334388732910156
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 6,
+          "execution_time": 0.00014257431030273438
+        },
+        {
+          "status": "partial",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 7,
+          "execution_time": 0.00021266937255859375
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 8,
+          "execution_time": 0.00020313262939453125
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 9,
+          "execution_time": 0.0001533031463623047
+        },
+        {
+          "status": "partial",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 10,
+          "execution_time": 0.00018715858459472656
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 11,
+          "execution_time": 0.00015735626220703125
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 12,
+          "execution_time": 0.00013065338134765625
+        },
+        {
+          "status": "partial",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 13,
+          "execution_time": 0.00018668174743652344
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 14,
+          "execution_time": 0.00016689300537109375
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pm_kisan": {
+              "name": "प्रधानमंत्री किसान सम्मान निधि",
+              "benefit": "₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)",
+              "eligibility": "सभी किसान परिवार",
+              "details": "आय सहायता योजना",
+              "process": "ऑनलाइन आवेदन या CSC केंद्र",
+              "validity": "वार्षिक नवीकरण",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "fasal_bima": {
+              "name": "प्रधानमंत्री फसल बीमा योजना",
+              "benefit": "प्रीमियम पर 90% सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_credit_card": {
+              "name": "किसान क्रेडिट कार्ड",
+              "benefit": "₹3 लाख तक का ऋण",
+              "eligibility": "जमीन वाले किसान"
+            },
+            "soil_health_card": {
+              "name": "मृदा स्वास्थ्य कार्ड योजना",
+              "benefit": "मुफ्त मिट्टी परीक्षण और सुझाव",
+              "eligibility": "सभी किसान",
+              "details": "मिट्टी का pH, पोषक तत्वों की जांच, फसल सुझाव",
+              "process": "नजदीकी कृषि विज्ञान केंद्र में आवेदन",
+              "validity": "3 साल तक वैध",
+              "cost": "पूरी तरह मुफ्त"
+            },
+            "neem_coated_urea": {
+              "name": "नीम कोटेड यूरिया",
+              "benefit": "₹268/बैग सब्सिडी",
+              "eligibility": "सभी किसान"
+            },
+            "kisan_drone": {
+              "name": "किसान ड्रोन योजना",
+              "benefit": "ड्रोन खरीद पर 75% सब्सिडी",
+              "eligibility": "FPO, सहकारी समितियां"
+            }
+          },
+          "test_number": 15,
+          "execution_time": 0.00015616416931152344
+        }
+      ]
+    },
+    "soil_health": {
+      "total_tests": 15,
+      "passed_tests": 15,
+      "success_rate": 100.0,
+      "detailed_results": [
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "alluvial",
+            "location": "Delhi",
+            "ph_range": [
+              6.5,
+              8.0
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 1,
+          "execution_time": 8.58306884765625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "black",
+            "location": "Hyderabad",
+            "ph_range": [
+              7.0,
+              8.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 2,
+          "execution_time": 1.5497207641601562e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "red",
+            "location": "Bangalore",
+            "ph_range": [
+              5.5,
+              7.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 3,
+          "execution_time": 1.4066696166992188e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "laterite",
+            "location": "Chennai",
+            "ph_range": [
+              4.5,
+              6.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 4,
+          "execution_time": 9.059906005859375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "desert",
+            "location": "Rajasthan",
+            "ph_range": [
+              7.5,
+              9.0
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 5,
+          "execution_time": 1.0251998901367188e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "alluvial",
+            "location": "unknown",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 6,
+          "execution_time": 8.106231689453125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "black",
+            "location": "unknown",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "high",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 7,
+          "execution_time": 1.33514404296875e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "red",
+            "location": "unknown",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "low",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 8,
+          "execution_time": 1.3589859008789062e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "laterite",
+            "location": "unknown",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "low",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 9,
+          "execution_time": 9.775161743164062e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "desert",
+            "location": "unknown",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "deficient",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 10,
+          "execution_time": 9.5367431640625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "unknown",
+            "location": "Delhi",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "high",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 11,
+          "execution_time": 8.344650268554688e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "unknown",
+            "location": "Mumbai",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 12,
+          "execution_time": 6.198883056640625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "unknown",
+            "location": "Bangalore",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 13,
+          "execution_time": 5.7220458984375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "unknown",
+            "location": "Chennai",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "medium",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 14,
+          "execution_time": 5.4836273193359375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "soil_type": "unknown",
+            "location": "Kolkata",
+            "ph_range": [
+              6.0,
+              7.5
+            ],
+            "fertility": "high",
+            "nutrients": {
+              "nitrogen": "medium",
+              "phosphorus": "medium",
+              "potassium": "medium"
+            }
+          },
+          "test_number": 15,
+          "execution_time": 5.245208740234375e-06
+        }
+      ]
+    },
+    "pest_control": {
+      "total_tests": 15,
+      "passed_tests": 15,
+      "success_rate": 100.0,
+      "detailed_results": [
+        {
+          "status": "passed",
+          "data": {
+            "pest": "aphid",
+            "crop": "wheat",
+            "control_method": "biological",
+            "recommendation": "Use biological control for aphid"
+          },
+          "test_number": 1,
+          "execution_time": 6.67572021484375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "whitefly",
+            "crop": "cotton",
+            "control_method": "chemical",
+            "recommendation": "Use chemical control for whitefly"
+          },
+          "test_number": 2,
+          "execution_time": 8.106231689453125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "stem_borer",
+            "crop": "rice",
+            "control_method": "integrated",
+            "recommendation": "Use integrated control for stem_borer"
+          },
+          "test_number": 3,
+          "execution_time": 4.5299530029296875e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "thrips",
+            "crop": "onion",
+            "control_method": "biological",
+            "recommendation": "Use biological control for thrips"
+          },
+          "test_number": 4,
+          "execution_time": 5.4836273193359375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "mite",
+            "crop": "tomato",
+            "control_method": "chemical",
+            "recommendation": "Use chemical control for mite"
+          },
+          "test_number": 5,
+          "execution_time": 7.152557373046875e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "wheat",
+            "control_method": "fungicide",
+            "recommendation": "Use fungicide control for pest"
+          },
+          "test_number": 6,
+          "execution_time": 6.4373016357421875e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "rice",
+            "control_method": "fungicide",
+            "recommendation": "Use fungicide control for pest"
+          },
+          "test_number": 7,
+          "execution_time": 4.291534423828125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "cotton",
+            "control_method": "antibiotic",
+            "recommendation": "Use antibiotic control for pest"
+          },
+          "test_number": 8,
+          "execution_time": 5.7220458984375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "grape",
+            "control_method": "fungicide",
+            "recommendation": "Use fungicide control for pest"
+          },
+          "test_number": 9,
+          "execution_time": 4.76837158203125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "chickpea",
+            "control_method": "biological",
+            "recommendation": "Use biological control for pest"
+          },
+          "test_number": 10,
+          "execution_time": 5.9604644775390625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "rice",
+            "control_method": "integrated",
+            "recommendation": "Use integrated control for pest"
+          },
+          "test_number": 11,
+          "execution_time": 5.4836273193359375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "cotton",
+            "control_method": "integrated",
+            "recommendation": "Use integrated control for pest"
+          },
+          "test_number": 12,
+          "execution_time": 5.7220458984375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "wheat",
+            "control_method": "integrated",
+            "recommendation": "Use integrated control for pest"
+          },
+          "test_number": 13,
+          "execution_time": 6.198883056640625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "vegetables",
+            "control_method": "integrated",
+            "recommendation": "Use integrated control for pest"
+          },
+          "test_number": 14,
+          "execution_time": 5.4836273193359375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "pest": "unknown",
+            "crop": "fruits",
+            "control_method": "integrated",
+            "recommendation": "Use integrated control for pest"
+          },
+          "test_number": 15,
+          "execution_time": 5.4836273193359375e-06
+        }
+      ]
+    },
+    "fertilizer": {
+      "total_tests": 15,
+      "passed_tests": 15,
+      "success_rate": 100.0,
+      "detailed_results": [
+        {
+          "status": "passed",
+          "data": {
+            "crop": "wheat",
+            "soil_type": "alluvial",
+            "npk_ratio": "120:60:40",
+            "fertilizer_type": "chemical",
+            "application_timing": "sowing"
+          },
+          "test_number": 1,
+          "execution_time": 6.198883056640625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "rice",
+            "soil_type": "clay",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "chemical",
+            "application_timing": "sowing"
+          },
+          "test_number": 2,
+          "execution_time": 7.62939453125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "cotton",
+            "soil_type": "black",
+            "npk_ratio": "150:75:50",
+            "fertilizer_type": "chemical",
+            "application_timing": "sowing"
+          },
+          "test_number": 3,
+          "execution_time": 4.76837158203125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "maize",
+            "soil_type": "loamy",
+            "npk_ratio": "120:60:40",
+            "fertilizer_type": "chemical",
+            "application_timing": "sowing"
+          },
+          "test_number": 4,
+          "execution_time": 4.291534423828125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "sugarcane",
+            "soil_type": "alluvial",
+            "npk_ratio": "200:100:60",
+            "fertilizer_type": "chemical",
+            "application_timing": "sowing"
+          },
+          "test_number": 5,
+          "execution_time": 4.0531158447265625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "vegetables",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "organic",
+            "application_timing": "sowing"
+          },
+          "test_number": 6,
+          "execution_time": 4.5299530029296875e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "fruits",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "compost",
+            "application_timing": "sowing"
+          },
+          "test_number": 7,
+          "execution_time": 4.0531158447265625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "pulses",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "green_manure",
+            "application_timing": "sowing"
+          },
+          "test_number": 8,
+          "execution_time": 5.4836273193359375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "oilseeds",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "farmyard_manure",
+            "application_timing": "sowing"
+          },
+          "test_number": 9,
+          "execution_time": 6.198883056640625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "cereals",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "vermicompost",
+            "application_timing": "sowing"
+          },
+          "test_number": 10,
+          "execution_time": 4.76837158203125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "wheat",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "chemical",
+            "application_timing": "sowing"
+          },
+          "test_number": 11,
+          "execution_time": 4.291534423828125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "rice",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "chemical",
+            "application_timing": "transplanting"
+          },
+          "test_number": 12,
+          "execution_time": 5.4836273193359375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "cotton",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "chemical",
+            "application_timing": "flowering"
+          },
+          "test_number": 13,
+          "execution_time": 4.76837158203125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "maize",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "chemical",
+            "application_timing": "tasseling"
+          },
+          "test_number": 14,
+          "execution_time": 6.4373016357421875e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "sugarcane",
+            "soil_type": "unknown",
+            "npk_ratio": "100:50:30",
+            "fertilizer_type": "chemical",
+            "application_timing": "ratooning"
+          },
+          "test_number": 15,
+          "execution_time": 8.58306884765625e-06
+        }
+      ]
+    },
+    "irrigation": {
+      "total_tests": 15,
+      "passed_tests": 15,
+      "success_rate": 100.0,
+      "detailed_results": [
+        {
+          "status": "passed",
+          "data": {
+            "crop": "rice",
+            "location": "unknown",
+            "irrigation_type": "flood",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 1,
+          "execution_time": 5.4836273193359375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "cotton",
+            "location": "unknown",
+            "irrigation_type": "drip",
+            "efficiency": "high",
+            "water_requirement": "medium"
+          },
+          "test_number": 2,
+          "execution_time": 6.9141387939453125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "vegetables",
+            "location": "unknown",
+            "irrigation_type": "sprinkler",
+            "efficiency": "high",
+            "water_requirement": "medium"
+          },
+          "test_number": 3,
+          "execution_time": 3.814697265625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "wheat",
+            "location": "unknown",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 4,
+          "execution_time": 3.814697265625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "sugarcane",
+            "location": "unknown",
+            "irrigation_type": "drip",
+            "efficiency": "high",
+            "water_requirement": "medium"
+          },
+          "test_number": 5,
+          "execution_time": 3.0994415283203125e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "rice",
+            "location": "unknown",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "high"
+          },
+          "test_number": 6,
+          "execution_time": 3.337860107421875e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "wheat",
+            "location": "unknown",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 7,
+          "execution_time": 3.337860107421875e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "cotton",
+            "location": "unknown",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 8,
+          "execution_time": 3.337860107421875e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "maize",
+            "location": "unknown",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 9,
+          "execution_time": 1.2159347534179688e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "sugarcane",
+            "location": "unknown",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "high"
+          },
+          "test_number": 10,
+          "execution_time": 5.245208740234375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "wheat",
+            "location": "Delhi",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 11,
+          "execution_time": 5.245208740234375e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "rice",
+            "location": "Mumbai",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 12,
+          "execution_time": 1.049041748046875e-05
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "vegetables",
+            "location": "Bangalore",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 13,
+          "execution_time": 5.9604644775390625e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "cotton",
+            "location": "Chennai",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 14,
+          "execution_time": 4.5299530029296875e-06
+        },
+        {
+          "status": "passed",
+          "data": {
+            "crop": "maize",
+            "location": "Hyderabad",
+            "irrigation_type": "furrow",
+            "efficiency": "medium",
+            "water_requirement": "medium"
+          },
+          "test_number": 15,
+          "execution_time": 3.814697265625e-06
+        }
+      ]
+    }
+  },
+  "ai_query_tests": {
+    "total_tests": 30,
+    "passed_tests": 30,
+    "success_rate": 100.0,
+    "detailed_results": [
+      {
+        "query": "Delhi mein kya fasal lagayein?",
+        "expected_type": "farming_agriculture",
+        "expected_response": "crop_recommendation",
+        "actual_response_type": "ai_ml_crop",
+        "status": "passed",
+        "response_time": 0.007920980453491211,
+        "has_government_data": true,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Wheat ka price kya hai Mumbai mein?",
+        "expected_type": "market_economics",
+        "expected_response": "market_price",
+        "actual_response_type": "market_price",
+        "status": "passed",
+        "response_time": 4.366824626922607,
+        "has_government_data": true,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Mumbai mein mausam kaisa hai?",
+        "expected_type": "weather_climate",
+        "expected_response": "weather",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0006041526794433594,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "PM Kisan scheme kaise apply kare?",
+        "expected_type": "government_policies",
+        "expected_response": "government_scheme",
+        "actual_response_type": "government_scheme",
+        "status": "passed",
+        "response_time": 0.001909494400024414,
+        "has_government_data": false,
+        "confidence": 0.6666666666666666
+      },
+      {
+        "query": "Cotton mein keede kaise control kare?",
+        "expected_type": "farming_agriculture",
+        "expected_response": "pest_control",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0005509853363037109,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Wheat ke liye kon sa fertilizer use kare?",
+        "expected_type": "farming_agriculture",
+        "expected_response": "fertilizer",
+        "actual_response_type": "ai_ml_crop",
+        "status": "passed",
+        "response_time": 0.0006387233734130859,
+        "has_government_data": true,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Rice ki irrigation kaise kare?",
+        "expected_type": "farming_agriculture",
+        "expected_response": "irrigation",
+        "actual_response_type": "ai_ml_crop",
+        "status": "passed",
+        "response_time": 0.0006260871887207031,
+        "has_government_data": true,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Soil health card kaise banaye?",
+        "expected_type": "government_policies",
+        "expected_response": "soil_health",
+        "actual_response_type": "ai_ml_crop",
+        "status": "passed",
+        "response_time": 0.0008149147033691406,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Bangalore mein kya crop profitable hai?",
+        "expected_type": "farming_agriculture",
+        "expected_response": "crop_recommendation",
+        "actual_response_type": "ai_ml_crop",
+        "status": "passed",
+        "response_time": 0.00045800209045410156,
+        "has_government_data": true,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Fasal bima yojana ki jaankari do",
+        "expected_type": "government_policies",
+        "expected_response": "government_scheme",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0004668235778808594,
+        "has_government_data": false,
+        "confidence": 0.5
+      },
+      {
+        "query": "What is the capital of India?",
+        "expected_type": "general_knowledge",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0005514621734619141,
+        "has_government_data": false,
+        "confidence": 0.6666666666666666
+      },
+      {
+        "query": "Who is the Prime Minister of India?",
+        "expected_type": "general_knowledge",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0004413127899169922,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Tell me about Indian history",
+        "expected_type": "general_knowledge",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0004138946533203125,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "How to learn programming?",
+        "expected_type": "education_learning",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.00040841102600097656,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "What is artificial intelligence?",
+        "expected_type": "technology_ai",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.00034427642822265625,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Tell me a joke",
+        "expected_type": "entertainment_fun",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.00035309791564941406,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "How to cook rice?",
+        "expected_type": "general_knowledge",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.00038623809814453125,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "What are the symptoms of diabetes?",
+        "expected_type": "health_medical",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0004029273986816406,
+        "has_government_data": false,
+        "confidence": 0.5
+      },
+      {
+        "query": "How to use Google?",
+        "expected_type": "technology_ai",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.00040221214294433594,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "What is the weather today?",
+        "expected_type": "weather_climate",
+        "expected_response": "weather",
+        "actual_response_type": "weather",
+        "status": "passed",
+        "response_time": 0.5104789733886719,
+        "has_government_data": false,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Crop prices and weather forecast for Delhi",
+        "expected_type": "mixed_query",
+        "expected_response": "complex",
+        "actual_response_type": "weather",
+        "status": "passed",
+        "response_time": 4.4271018505096436,
+        "has_government_data": false,
+        "confidence": 0.6666666666666666
+      },
+      {
+        "query": "Farming advice and government schemes",
+        "expected_type": "mixed_query",
+        "expected_response": "complex",
+        "actual_response_type": "government_scheme",
+        "status": "passed",
+        "response_time": 0.0010616779327392578,
+        "has_government_data": true,
+        "confidence": 0.6666666666666666
+      },
+      {
+        "query": "Agricultural technology and market trends",
+        "expected_type": "mixed_query",
+        "expected_response": "complex",
+        "actual_response_type": "market_price",
+        "status": "passed",
+        "response_time": 0.0016739368438720703,
+        "has_government_data": true,
+        "confidence": 0.3333333333333333
+      },
+      {
+        "query": "Soil health and general farming tips",
+        "expected_type": "mixed_query",
+        "expected_response": "complex",
+        "actual_response_type": "ai_ml_crop",
+        "status": "passed",
+        "response_time": 0.001312255859375,
+        "has_government_data": true,
+        "confidence": 0.6666666666666666
+      },
+      {
+        "query": "Weather and crop recommendation for Bangalore",
+        "expected_type": "mixed_query",
+        "expected_response": "complex",
+        "actual_response_type": "ai_ml_crop",
+        "status": "passed",
+        "response_time": 0.3801429271697998,
+        "has_government_data": false,
+        "confidence": 0.6666666666666666
+      },
+      {
+        "query": "",
+        "expected_type": "general_knowledge",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0002589225769042969,
+        "has_government_data": false,
+        "confidence": 0.5
+      },
+      {
+        "query": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_type": "general_knowledge",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.002111673355102539,
+        "has_government_data": false,
+        "confidence": 0.5
+      },
+      {
+        "query": "!@#$%^&*()",
+        "expected_type": "general_knowledge",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0003485679626464844,
+        "has_government_data": false,
+        "confidence": 0.5
+      },
+      {
+        "query": "hello",
+        "expected_type": "general_knowledge",
+        "expected_response": "greeting",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0004074573516845703,
+        "has_government_data": false,
+        "confidence": 0.5
+      },
+      {
+        "query": "help",
+        "expected_type": "general_knowledge",
+        "expected_response": "general",
+        "actual_response_type": "general",
+        "status": "passed",
+        "response_time": 0.0003235340118408203,
+        "has_government_data": false,
+        "confidence": 0.5
+      }
+    ]
+  },
+  "performance_metrics": {
+    "total_execution_time": 282.0080542564392,
+    "average_response_time": 1.8795899724960328
+  },
+  "summary": {
+    "overall_success_rate": 84.66666666666667,
+    "service_tests_summary": {
+      "market_price": 0.0,
+      "weather": 80.0,
+      "crop_recommendation": 93.33333333333333,
+      "government_schemes": 73.33333333333333,
+      "soil_health": 100.0,
+      "pest_control": 100.0,
+      "fertilizer": 100.0,
+      "irrigation": 100.0
+    },
+    "ai_understanding_rate": 100.0,
+    "performance_metrics": {
+      "total_execution_time": 282.0080542564392,
+      "average_response_time": 1.8795899724960328
+    }
+  }
+}
