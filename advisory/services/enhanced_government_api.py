@@ -274,7 +274,7 @@ class EnhancedGovernmentAPI:
             'state': location or 'Delhi',
             'format': 'json'
         }
-        
+            
         try:
             # Add retry mechanism with exponential backoff
             for attempt in range(3):
@@ -296,7 +296,7 @@ class EnhancedGovernmentAPI:
                             logger.warning(f"API {source} returned empty or invalid data")
                             if attempt < 2:
                                 time.sleep(1 * (attempt + 1))  # Exponential backoff
-                                continue
+                            continue
                     else:
                         logger.warning(f"API {source} returned status {response.status_code} (attempt {attempt + 1})")
                         if attempt < 2:
@@ -307,7 +307,7 @@ class EnhancedGovernmentAPI:
                     if attempt < 2:
                         time.sleep(1 * (attempt + 1))
                         continue
-                    
+                        
             return None
         except Exception as e:
             logger.warning(f"API {source} unexpected error: {e}")
@@ -363,7 +363,7 @@ class EnhancedGovernmentAPI:
                 }
         except Exception as e:
             logger.warning(f"Error parsing {source} response: {e}")
-        return None
+            return None
     
     def _get_enhanced_fallback_price(self, crop: str, location: str, language: str) -> Dict[str, Any]:
         """Get enhanced fallback price data with realistic market prices"""

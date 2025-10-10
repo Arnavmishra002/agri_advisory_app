@@ -46,3 +46,7 @@ django-ratelimit>=4.0.0
 streamlit>=1.28.0
 plotly>=5.17.0
 Pillow>=10.0.0
+
+# Google AI Studio Integration
+google-generativeai>=0.3.0
+google-ai-generativelanguage>=0.4.0
