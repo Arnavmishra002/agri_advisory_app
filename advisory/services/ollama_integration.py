@@ -649,6 +649,148 @@ Be imaginative, engaging, and entertaining."""
         except Exception as e:
             logger.error(f"Error setting model: {e}")
             return False
+    
+    def generate_response(self, query: str, language: str = 'en') -> str:
+        """Generate response using Ollama for general queries"""
+        try:
+            # Try to use Ollama API first
+            response = self._call_ollama_api(query, language)
+            if response and len(response) > 50:
+                return response
+            
+            # Fallback to knowledge base
+            return self._get_knowledge_base_response(query, language)
+            
+        except Exception as e:
+            logger.error(f"Error generating response with Ollama: {e}")
+            return self._get_knowledge_base_response(query, language)
+    
+    def _call_ollama_api(self, query: str, language: str) -> str:
+        """Call Ollama API directly"""
+        try:
+            # Prepare the prompt
+            if language in ['hi', 'hinglish']:
+                system_prompt = "आप एक सहायक AI हैं। हिंदी में उत्तर दें।"
+            else:
+                system_prompt = "You are a helpful AI assistant. Provide accurate and detailed responses."
+            
+            payload = {
+                "model": self.current_model,
+                "prompt": f"{system_prompt}\n\nUser: {query}\n\nAssistant:",
+                "stream": False,
+                "options": {
+                    "temperature": 0.7,
+                    "top_p": 0.9,
+                    "max_tokens": 500
+                }
+            }
+            
+            response = requests.post(
+                f"{self.ollama_base_url}/api/generate",
+                json=payload,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                return data.get('response', '').strip()
+            else:
+                logger.warning(f"Ollama API returned status {response.status_code}")
+                return ""
+                
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Ollama API request failed: {e}")
+            return ""
+        except Exception as e:
+            logger.error(f"Error calling Ollama API: {e}")
+            return ""
+    
+    def _get_knowledge_base_response(self, query: str, language: str) -> str:
+        """Get response from knowledge base"""
+        query_lower = query.lower()
+        
+        # AI and technology queries
+        if any(keyword in query_lower for keyword in ['artificial intelligence', 'ai', 'machine learning', 'technology']):
+            if language in ['hi', 'hinglish']:
+                return """🤖 कृत्रिम बुद्धिमत्ता (AI) के बारे में:
+
+AI एक ऐसी तकनीक है जो कंप्यूटर को मानव की तरह सोचने और सीखने की क्षमता देती है।
+
+🌟 **AI के मुख्य प्रकार**:
+• Machine Learning - डेटा से सीखना
+• Deep Learning - मानव मस्तिष्क की नकल
+• Natural Language Processing - भाषा समझना
+
+💡 **AI के उपयोग**:
+• Agriculture - फसल निगरानी और पूर्वानुमान
+• Healthcare - रोग निदान
+• Finance - धोखाधड़ी का पता लगाना
+• Education - व्यक्तिगत सीखने की सुविधा
+
+🚀 **भविष्य**: AI तेजी से विकसित हो रहा है और हमारे जीवन को बेहतर बना रहा है।"""
+            else:
+                return """🤖 Artificial Intelligence (AI) Overview:
+
+Artificial Intelligence is technology that enables computers to think and learn like humans. It's based on machine learning, deep learning, and neural networks.
+
+🌟 **Main Types of AI**:
+• Machine Learning - Learning from data
+• Deep Learning - Mimicking human brain
+• Natural Language Processing - Understanding language
+
+💡 **AI Applications**:
+• Agriculture - Crop monitoring and forecasting
+• Healthcare - Disease diagnosis
+• Finance - Fraud detection
+• Education - Personalized learning
+
+🚀 **Future**: AI is rapidly evolving and improving our lives across all sectors."""
+        
+        # Geography queries
+        elif any(keyword in query_lower for keyword in ['capital', 'राजधानी', 'country', 'देश']):
+            if language in ['hi', 'hinglish']:
+                return """🗺️ भारत की राजधानी के बारे में:
+
+भारत की राजधानी **नई दिल्ली** है।
+
+📍 **मुख्य तथ्य**:
+• राजधानी: नई दिल्ली
+• राज्य: दिल्ली (केंद्र शासित प्रदेश)
+• जनसंख्या: लगभग 3.3 करोड़
+• क्षेत्रफल: 1,484 वर्ग किमी
+
+🏛️ **महत्वपूर्ण स्थान**:
+• राष्ट्रपति भवन
+• संसद भवन
+• सुप्रीम कोर्ट
+• रेड फोर्ट
+
+🌟 **इतिहास**: 1911 में ब्रिटिश राज में राजधानी बनी।"""
+            else:
+                return """🗺️ About India's Capital:
+
+India's capital is **New Delhi**.
+
+📍 **Key Facts**:
+• Capital: New Delhi
+• State: Delhi (Union Territory)
+• Population: Approximately 33 million
+• Area: 1,484 sq km
+
+🏛️ **Important Places**:
+• Rashtrapati Bhavan
+• Parliament House
+• Supreme Court
+• Red Fort
+
+🌟 **History**: Became capital in 1911 during British rule."""
+        
+        # Default response
+        else:
+            if language in ['hi', 'hinglish']:
+                return "मैं एक AI सहायक हूं। मैं आपकी सहायता कर सकता हूं। कृपया अपना प्रश्न स्पष्ट रूप से पूछें।"
+            else:
+                return "I am an AI assistant. I can help you with various questions. Please ask your question clearly."
 
 # Create global instance
 ollama_integration = OllamaIntegration()

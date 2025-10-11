@@ -14,6 +14,8 @@ import random
 from ..services.enhanced_government_api import EnhancedGovernmentAPI
 from ..services.real_time_government_api import RealTimeGovernmentAPI
 from ..services.pest_detection import PestDetectionSystem
+from ..services.deep_ai_understanding import analyze_query_deeply
+from ..services.realtime_government_ai import process_farming_query_realtime
 from django_filters.rest_framework import DjangoFilterBackend
 import time
 from rest_framework import filters
@@ -943,27 +945,44 @@ Health is the greatest wealth. Good health improves the quality of life.
                 language = serializer.validated_data.get('language', 'en')
                 
                 try:
-                    # Use ChatGPT-level AI for all queries with enhanced response system
-                    response_text = self._get_enhanced_response(
-                        message, language, 
-                        request.data.get('latitude'),
-                        request.data.get('longitude'),
-                        request.data.get('location')
+                    # Use Real-time Government AI for farming queries
+                    location_name = request.data.get('location', 'Delhi')
+                    
+                    # Process query with real-time government data
+                    realtime_response = process_farming_query_realtime(
+                        query=message,
+                        language=language,
+                        location=location_name
                     )
+                    
+                    # Extract response and metadata
+                    response_text = realtime_response.get('response', 'Sorry, I could not process your query.')
+                    data_source = realtime_response.get('data_source', 'general_ai')
+                    confidence = realtime_response.get('confidence', 0.8)
+                    deep_analysis = realtime_response.get('deep_analysis', {})
+                    real_time_data = realtime_response.get('real_time_data', {})
                     
                     return Response({
                         'response': response_text,
-                        'intent': 'agricultural_query',
-                        'entities': [],
+                        'intent': deep_analysis.get('intent', 'agricultural_query'),
+                        'entities': deep_analysis.get('entities', []),
                         'language': language,
+                        'location': location_name,
+                        'data_source': data_source,
+                        'confidence': confidence,
+                        'is_real_time': data_source == 'real_time_government_apis',
+                        'real_time_data': real_time_data,
                         'timestamp': time.time()
                     })
                 except Exception as e:
+                    logger.error(f"Error in chatbot processing: {e}")
                     return Response({
-                        'response': 'Sorry, I encountered an error. Please try again.',
+                        'response': 'Sorry, I encountered an error processing your query. Please try again.',
                         'intent': 'error',
                         'entities': [],
                         'language': language,
+                        'data_source': 'error_fallback',
+                        'error': str(e),
                         'timestamp': time.time()
                     }, status=500)
             else:
