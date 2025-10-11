@@ -257,18 +257,18 @@ class EnhancedGovernmentAPI:
                     'profit_margin': '₹35,000/hectare'
                 }
             ]
-            
-            result = {
-                'location': location,
-                'season': season or 'kharif',
-                'recommendations': recommendations,
+        
+        result = {
+            'location': location,
+            'season': season or 'kharif',
+            'recommendations': recommendations,
                 'data_source': 'Government Analysis',
                 'timestamp': datetime.now().isoformat(),
                 'total_crops_analyzed': len(recommendations),
                 'confidence': 0.85
             }
-            
-            return result
+        
+        return result
             
         except Exception as e:
             logger.error(f"Error in enhanced crop recommendations: {e}")
@@ -801,7 +801,7 @@ class EnhancedGovernmentAPI:
             # Generate historical weather analysis
             historical_analysis = self._generate_historical_analysis(weather_profile, location)
             
-            return {
+                return {
                 'temperature': temperature,
                 'humidity': humidity,
                 'wind_speed': wind_speed,
