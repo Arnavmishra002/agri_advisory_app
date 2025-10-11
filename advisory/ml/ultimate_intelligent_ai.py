@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 from typing import Dict, Any, List
 # from ..services.enhanced_government_api import EnhancedGovernmentAPI
+from ..services.accurate_location_api import get_accurate_location
 import sys
 import os
 from ..services.enhanced_classifier import enhanced_classifier
@@ -478,17 +479,15 @@ class UltimateIntelligentAI:
     def _extract_dynamic_location(self, query_lower: str) -> str:
         """Dynamically extract ANY location/mandi from query - ENHANCED VERSION with comprehensive Indian location detection"""
         
-        # First try comprehensive location detection
+        # First try accurate location detection
         try:
-            from ..services.enhanced_government_api import EnhancedGovernmentAPI
-            gov_api = EnhancedGovernmentAPI()
-            location_result = gov_api.detect_location_comprehensive(query_lower)
+            accurate_location_info = get_accurate_location(query_lower)
             
-            if location_result['confidence'] > 0.6:
-                logger.info(f"Comprehensive location detection found: {location_result['location']} (confidence: {location_result['confidence']})")
-                return location_result['location']
+            if accurate_location_info['confidence'] > 0.6:
+                logger.info(f"Accurate location detection found: {accurate_location_info['location']} in {accurate_location_info['state']} (confidence: {accurate_location_info['confidence']})")
+                return accurate_location_info['location']
         except Exception as e:
-            logger.warning(f"Comprehensive location detection failed: {e}")
+            logger.warning(f"Accurate location detection failed: {e}")
         
         # Fallback to original method
         # First check predefined locations

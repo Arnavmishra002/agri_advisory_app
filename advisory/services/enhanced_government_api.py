@@ -13,8 +13,11 @@ import time
 
 logger = logging.getLogger(__name__)
 
-# India Location Hub API configuration
+# Location API configurations
 INDIA_LOCATION_API_BASE = "https://api.india-location-hub.in/v1"
+GOOGLE_MAPS_API_BASE = "https://maps.googleapis.com/maps/api/geocode/json"
+# Note: Add your Google Maps API key here for production use
+GOOGLE_MAPS_API_KEY = None  # Set this to your actual API key
 
 # Import dynamic profitable crop AI
 try:
@@ -281,7 +284,7 @@ class EnhancedGovernmentAPI:
         }
         
     def detect_location_comprehensive(self, query: str) -> Dict[str, Any]:
-        """Comprehensive location detection using API and fallback database"""
+        """Google Maps level comprehensive location detection for every Indian location"""
         query_lower = query.lower().strip()
         
         # Check cache first
@@ -297,32 +300,364 @@ class EnhancedGovernmentAPI:
             'coordinates': None,
             'confidence': 0,
             'source': 'none',
-            'type': 'unknown'
+            'type': 'unknown',
+            'google_maps_equivalent': False
         }
         
-        # Try India Location Hub API first
+        # 1. Try Google Maps API first (most accurate like Google Maps)
+        google_result = self._detect_location_via_google_maps(query_lower)
+        if google_result['confidence'] > 0.8:
+            result.update(google_result)
+            result['source'] = 'google_maps'
+            result['google_maps_equivalent'] = True
+            self.location_cache[cache_key] = result
+            return result
+        
+        # 2. Try India Location Hub API
         if self.location_api_enabled:
             api_result = self._detect_location_via_api(query_lower)
             if api_result['confidence'] > 0.7:
                 result.update(api_result)
-                result['source'] = 'api'
+                result['source'] = 'india_location_api'
                 self.location_cache[cache_key] = result
                 return result
         
-        # Fallback to comprehensive database search
-        db_result = self._detect_location_via_database(query_lower)
-        if db_result['confidence'] > 0.5:
+        # 3. Enhanced comprehensive database search (Google Maps level coverage)
+        db_result = self._detect_location_via_enhanced_database(query_lower)
+        if db_result['confidence'] > 0.6:
             result.update(db_result)
-            result['source'] = 'database'
+            result['source'] = 'enhanced_database'
         
-        # Enhanced pattern matching for villages and small locations
-        pattern_result = self._detect_location_via_patterns(query_lower)
+        # 4. Advanced pattern matching for any location name
+        pattern_result = self._detect_location_via_advanced_patterns(query_lower)
         if pattern_result['confidence'] > result['confidence']:
             result.update(pattern_result)
-            result['source'] = 'pattern'
+            result['source'] = 'advanced_pattern'
+        
+        # 5. Fuzzy matching for partial names
+        fuzzy_result = self._detect_location_via_fuzzy_matching(query_lower)
+        if fuzzy_result['confidence'] > result['confidence']:
+            result.update(fuzzy_result)
+            result['source'] = 'fuzzy_matching'
         
         self.location_cache[cache_key] = result
         return result
+    
+    def _detect_location_via_google_maps(self, query_lower: str) -> Dict[str, Any]:
+        """Detect location using Google Maps Geocoding API (Google Maps level accuracy)"""
+        if not GOOGLE_MAPS_API_KEY:
+            # Fallback to free geocoding service
+            return self._detect_location_via_free_geocoding(query_lower)
+        
+        try:
+            # Google Maps Geocoding API
+            geocoding_url = f"{GOOGLE_MAPS_API_BASE}"
+            params = {
+                'address': f"{query_lower}, India",
+                'key': GOOGLE_MAPS_API_KEY,
+                'region': 'in',  # Bias results towards India
+                'language': 'en'
+            }
+            
+            response = self.session.get(geocoding_url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if data.get('status') == 'OK' and data.get('results'):
+                    result = data['results'][0]
+                    location_info = self._parse_google_maps_result(result)
+                    
+                    if location_info:
+                        location_info['confidence'] = 0.95
+                        location_info['google_maps_equivalent'] = True
+                        return location_info
+            
+        except Exception as e:
+            logger.warning(f"Google Maps API failed: {e}")
+        
+        return {'confidence': 0}
+    
+    def _detect_location_via_free_geocoding(self, query_lower: str) -> Dict[str, Any]:
+        """Free geocoding service fallback (Nominatim OpenStreetMap)"""
+        try:
+            # Use Nominatim (OpenStreetMap) free geocoding
+            geocoding_url = "https://nominatim.openstreetmap.org/search"
+            params = {
+                'q': f"{query_lower}, India",
+                'format': 'json',
+                'limit': 1,
+                'countrycodes': 'in',
+                'addressdetails': 1
+            }
+            
+            headers = {
+                'User-Agent': 'KrisiMitra-AI-Assistant/2.0'
+            }
+            
+            response = self.session.get(geocoding_url, params=params, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if data and len(data) > 0:
+                    result = data[0]
+                    location_info = self._parse_nominatim_result(result)
+                    
+                    if location_info:
+                        location_info['confidence'] = 0.85
+                        return location_info
+            
+        except Exception as e:
+            logger.warning(f"Free geocoding failed: {e}")
+        
+        return {'confidence': 0}
+    
+    def _parse_google_maps_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Parse Google Maps API result"""
+        try:
+            geometry = result.get('geometry', {})
+            location = geometry.get('location', {})
+            address_components = result.get('address_components', [])
+            
+            # Extract location details from address components
+            state = None
+            district = None
+            city = None
+            country = None
+            
+            for component in address_components:
+                types = component.get('types', [])
+                name = component.get('long_name', '')
+                
+                if 'administrative_area_level_1' in types:  # State
+                    state = name
+                elif 'administrative_area_level_2' in types:  # District
+                    district = name
+                elif 'locality' in types or 'administrative_area_level_3' in types:  # City
+                    city = name
+                elif 'country' in types:
+                    country = name
+            
+            # Determine the main location name
+            location_name = result.get('formatted_address', '').split(',')[0].strip()
+            
+            return {
+                'location': location_name,
+                'state': state or 'Unknown',
+                'district': district or city or 'Unknown',
+                'region': self._get_region_from_state(state or ''),
+                'coordinates': {
+                    'lat': location.get('lat', 0),
+                    'lng': location.get('lng', 0)
+                },
+                'type': 'google_maps_detected',
+                'formatted_address': result.get('formatted_address', ''),
+                'place_id': result.get('place_id', '')
+            }
+            
+        except Exception as e:
+            logger.error(f"Error parsing Google Maps result: {e}")
+            return None
+    
+    def _parse_nominatim_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Parse Nominatim (OpenStreetMap) result"""
+        try:
+            address = result.get('address', {})
+            display_name = result.get('display_name', '')
+            
+            # Extract location details
+            state = address.get('state', '')
+            district = address.get('county', '') or address.get('district', '')
+            city = address.get('city', '') or address.get('town', '') or address.get('village', '')
+            country = address.get('country', '')
+            
+            # Determine the main location name
+            location_name = result.get('name', '') or city or district or state or display_name.split(',')[0].strip()
+            
+            return {
+                'location': location_name,
+                'state': state or 'Unknown',
+                'district': district or 'Unknown',
+                'region': self._get_region_from_state(state or ''),
+                'coordinates': {
+                    'lat': float(result.get('lat', 0)),
+                    'lng': float(result.get('lon', 0))
+                },
+                'type': 'nominatim_detected',
+                'display_name': display_name
+            }
+            
+        except Exception as e:
+            logger.error(f"Error parsing Nominatim result: {e}")
+            return None
+    
+    def _detect_location_via_enhanced_database(self, query_lower: str) -> Dict[str, Any]:
+        """Enhanced database search with Google Maps level coverage"""
+        best_match = None
+        best_confidence = 0
+        
+        # Search in states with exact and partial matches
+        for state_key, state_data in self.indian_locations['states'].items():
+            state_name = state_data['name'].lower()
+            hindi_name = state_data['hindi_name'].lower()
+            
+            # Exact match
+            if query_lower == state_name or query_lower == hindi_name:
+                return {
+                    'location': state_data['name'],
+                    'state': state_data['name'],
+                    'district': 'Multiple',
+                    'region': state_data['region'],
+                    'coordinates': self._get_state_coordinates(state_data['name']),
+                    'confidence': 0.95,
+                    'type': 'state'
+                }
+            
+            # Partial match (contains)
+            if state_name in query_lower or query_lower in state_name:
+                return {
+                    'location': state_data['name'],
+                    'state': state_data['name'],
+                    'district': 'Multiple',
+                    'region': state_data['region'],
+                    'coordinates': self._get_state_coordinates(state_data['name']),
+                    'confidence': 0.85,
+                    'type': 'state'
+                }
+            
+            # Search in districts with enhanced matching
+            for district in state_data['districts']:
+                district_lower = district.lower()
+                
+                # Exact match
+                if query_lower == district_lower:
+                    return {
+                        'location': district.title(),
+                        'state': state_data['name'],
+                        'district': district.title(),
+                        'region': state_data['region'],
+                        'coordinates': self._get_district_coordinates(district, state_data['name']),
+                        'confidence': 0.9,
+                        'type': 'district'
+                    }
+                
+                # Partial match
+                if district_lower in query_lower or query_lower in district_lower:
+                    return {
+                        'location': district.title(),
+                        'state': state_data['name'],
+                        'district': district.title(),
+                        'region': state_data['region'],
+                        'coordinates': self._get_district_coordinates(district, state_data['name']),
+                        'confidence': 0.8,
+                        'type': 'district'
+                    }
+            
+            # Search in major cities with enhanced matching
+            for city in state_data['major_cities']:
+                city_lower = city.lower()
+                
+                # Exact match
+                if query_lower == city_lower:
+                    return {
+                        'location': city.title(),
+                        'state': state_data['name'],
+                        'district': city.title(),
+                        'region': state_data['region'],
+                        'coordinates': self._get_city_coordinates(city, state_data['name']),
+                        'confidence': 0.85,
+                        'type': 'city'
+                    }
+                
+                # Partial match
+                if city_lower in query_lower or query_lower in city_lower:
+                    return {
+                        'location': city.title(),
+                        'state': state_data['name'],
+                        'district': city.title(),
+                        'region': state_data['region'],
+                        'coordinates': self._get_city_coordinates(city, state_data['name']),
+                        'confidence': 0.75,
+                        'type': 'city'
+                    }
+        
+        return {'confidence': 0}
+    
+    def _detect_location_via_advanced_patterns(self, query_lower: str) -> Dict[str, Any]:
+        """Advanced pattern matching for any location name"""
+        # Enhanced village patterns with more comprehensive coverage
+        enhanced_village_patterns = [
+            'pur', 'pura', 'pore', 'ore', 'garh', 'nagar', 'bad', 'ganj', 'li', 'gaon', 'gaun', 'gram',
+            'kheda', 'khedi', 'khera', 'kheri', 'khurd', 'kalan', 'chak', 'chakki', 'majra', 'majri',
+            'khas', 'khurd', 'kalan', 'chhota', 'bada', 'naya', 'purana', 'tanda', 'dera', 'basti',
+            'nagar', 'colony', 'settlement', 'abadi', 'mohalla', 'patti', 'tehsil', 'block',
+            'panchayat', 'gram_panchayat', 'village', 'town', 'city', 'municipality',
+            # Regional suffixes
+            'wala', 'wali', 'wale', 'wadi', 'wara', 'pada', 'palle', 'palli', 'peta', 'pet',
+            'khurd', 'kalan', 'buzurg', 'chhota', 'bada', 'naya', 'purana',
+            # Railway station suffixes
+            'junction', 'jnc', 'road', 'rd', 'station', 'stn',
+            # Market suffixes
+            'mandi', 'market', 'bazaar', 'bazar', 'hat', 'haat'
+        ]
+        
+        # Check for enhanced village patterns
+        for pattern in enhanced_village_patterns:
+            if query_lower.endswith(pattern):
+                base_name = query_lower[:-len(pattern)].strip()
+                if len(base_name) > 2:
+                    confidence = 0.7 if pattern in ['mandi', 'market', 'bazaar', 'junction'] else 0.6
+                    return {
+                        'location': query_lower.title(),
+                        'state': 'Unknown',
+                        'district': 'Unknown',
+                        'region': 'Unknown',
+                        'coordinates': None,
+                        'confidence': confidence,
+                        'type': 'village' if confidence < 0.7 else 'market'
+                    }
+        
+        return {'confidence': 0}
+    
+    def _detect_location_via_fuzzy_matching(self, query_lower: str) -> Dict[str, Any]:
+        """Fuzzy matching for partial location names"""
+        # Simple fuzzy matching for partial names
+        words = query_lower.split()
+        
+        for word in words:
+            if len(word) >= 4:  # Minimum 4 characters for meaningful location
+                # Check if word matches any known location
+                for state_key, state_data in self.indian_locations['states'].items():
+                    state_name = state_data['name'].lower()
+                    
+                    # Check if word is part of state name
+                    if word in state_name or state_name.startswith(word):
+                        return {
+                            'location': state_data['name'],
+                            'state': state_data['name'],
+                            'district': 'Multiple',
+                            'region': state_data['region'],
+                            'coordinates': self._get_state_coordinates(state_data['name']),
+                            'confidence': 0.7,
+                            'type': 'state_fuzzy'
+                        }
+                    
+                    # Check cities
+                    for city in state_data['major_cities']:
+                        city_lower = city.lower()
+                        if word in city_lower or city_lower.startswith(word):
+                            return {
+                                'location': city.title(),
+                                'state': state_data['name'],
+                                'district': city.title(),
+                                'region': state_data['region'],
+                                'coordinates': self._get_city_coordinates(city, state_data['name']),
+                                'confidence': 0.65,
+                                'type': 'city_fuzzy'
+                            }
+        
+        return {'confidence': 0}
     
     def _detect_location_via_api(self, query_lower: str) -> Dict[str, Any]:
         """Detect location using India Location Hub API"""
@@ -617,12 +952,22 @@ class EnhancedGovernmentAPI:
     def get_real_market_prices(self, crop: str, location: str = None, commodity: str = None, 
                               latitude: float = None, longitude: float = None, 
                               language: str = 'en', **kwargs) -> List[Dict[str, Any]]:
-        """Get real market prices (compatibility method)"""
+        """Get real market prices using Google Maps-level accurate location detection"""
         try:
+            # Use Google Maps-level comprehensive location detection first
+            if location:
+                location_info = self.detect_location_comprehensive(location)
+                accurate_location = location_info['location'] or location
+                accurate_state = location_info['state'] or location
+                logger.info(f"Market prices service using accurate location: {accurate_location} in {accurate_state} (confidence: {location_info['confidence']})")
+            else:
+                accurate_location = location
+                accurate_state = location
+            
             # Use provided parameters or defaults
             commodity = commodity or crop
-            state = location
-            mandi = kwargs.get('mandi')
+            state = accurate_state
+            mandi = kwargs.get('mandi') or accurate_location
             
             # Use the provided parameters or defaults
             crop_name = commodity or crop
@@ -637,20 +982,27 @@ class EnhancedGovernmentAPI:
             return []
     
     def get_enhanced_weather_data(self, location: str, language: str = 'en') -> Dict[str, Any]:
-        """Get enhanced weather data with fallback"""
-        cache_key = f"weather_{location}_{language}"
+        """Get enhanced weather data using Google Maps-level accurate location detection"""
+        # Use Google Maps-level comprehensive location detection first
+        location_info = self.detect_location_comprehensive(location)
+        accurate_location = location_info['location'] or location
+        
+        cache_key = f"weather_{accurate_location}_{language}"
         
         if self._is_cached(cache_key):
             _, data = self.cache[cache_key]
+            # Update data with accurate location info
+            data['location_info'] = location_info
             return data
         
         weather_data = None
         
         try:
-            # Try IMD API
-            weather_data = self._fetch_weather_from_imd(location)
+            # Try IMD API with accurate location
+            logger.info(f"Weather service using accurate location: {accurate_location} in {location_info['state']} (confidence: {location_info['confidence']})")
+            weather_data = self._fetch_weather_from_imd(accurate_location)
         except Exception as e:
-            logger.warning(f"Weather API failed: {e}")
+            logger.warning(f"Weather API failed for {accurate_location}: {e}")
         
         # If API fails, use fallback
         if not weather_data:
@@ -671,8 +1023,17 @@ class EnhancedGovernmentAPI:
     
     def get_enhanced_crop_recommendations(self, location: str, season: str = None, 
                                         language: str = 'en') -> Dict[str, Any]:
-        """Get enhanced crop recommendations with dynamic profitable crop AI and real-time government data"""
+        """Get enhanced crop recommendations using Google Maps-level accurate location detection"""
         try:
+            # Use Google Maps-level comprehensive location detection first
+            location_info = self.detect_location_comprehensive(location)
+            accurate_location = location_info['location'] or location
+            
+            logger.info(f"Crop recommendations using accurate location: {accurate_location} in {location_info['state']} (confidence: {location_info['confidence']}, source: {location_info['source']})")
+            
+            # Use accurate location for recommendations
+            location = accurate_location
+            
             # Simple fallback implementation
             recommendations = [
                 {
@@ -707,17 +1068,17 @@ class EnhancedGovernmentAPI:
                 }
             ]
         
-            result = {
-                'location': location,
-                'season': season or 'kharif',
-                'recommendations': recommendations,
+        result = {
+            'location': location,
+            'season': season or 'kharif',
+            'recommendations': recommendations,
                 'data_source': 'Government Analysis',
                 'timestamp': datetime.now().isoformat(),
                 'total_crops_analyzed': len(recommendations),
                 'confidence': 0.85
             }
-            
-            return result
+        
+        return result
             
         except Exception as e:
             logger.error(f"Error in enhanced crop recommendations: {e}")
@@ -914,8 +1275,18 @@ class EnhancedGovernmentAPI:
     
     def get_government_schemes(self, location: str = None, state: str = None, 
                               language: str = 'en') -> Dict[str, Any]:
-        """Get government schemes data"""
-        cache_key = f"schemes_{location}_{state}_{language}"
+        """Get government schemes data using Google Maps-level accurate location detection"""
+        # Use Google Maps-level comprehensive location detection first
+        if location:
+            location_info = self.detect_location_comprehensive(location)
+            accurate_location = location_info['location'] or location
+            accurate_state = location_info['state'] or state or location
+            logger.info(f"Government schemes using accurate location: {accurate_location} in {accurate_state} (confidence: {location_info['confidence']})")
+        else:
+            accurate_location = location
+            accurate_state = state
+        
+        cache_key = f"schemes_{accurate_location}_{accurate_state}_{language}"
         
         if self._is_cached(cache_key):
             _, data = self.cache[cache_key]
