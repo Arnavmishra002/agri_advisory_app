@@ -50,3 +50,16 @@ Pillow>=10.0.0
 # Google AI Studio Integration
 google-generativeai>=0.3.0
 google-ai-generativelanguage>=0.4.0
+
+# Open Source AI Integration (Optional)
+# Note: Ollama is installed separately, not via pip
+# Install from: https://ollama.ai/
+
+# Additional Performance Libraries (Optional)
+aiohttp>=3.8.0  # Async HTTP requests for better performance
+asyncio-mqtt>=0.13.0  # Async MQTT support for IoT integration
+uvloop>=0.17.0  # Fast event loop for async operations
+
+# Enhanced Data Processing
+beautifulsoup4>=4.12.0  # Web scraping for government data
+lxml>=4.9.0  # XML parsing for government APIs
