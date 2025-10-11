@@ -219,6 +219,62 @@
             box-shadow: 0 0 0 0.2rem rgba(74, 124, 89, 0.25);
         }
         
+        /* Crop Search Styles */
+        .crop-search-container {
+            position: relative;
+        }
+        
+        .crop-suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #4a7c59;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .crop-suggestion-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .crop-suggestion-item:hover {
+            background-color: #f8f9fa;
+            color: #4a7c59;
+        }
+        
+        .crop-suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .crop-name {
+            font-weight: 600;
+            color: #2d5016;
+        }
+        
+        .crop-type {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .crop-search-highlight {
+            background-color: #fff3cd;
+            font-weight: bold;
+        }
+        
         .loading {
             display: none;
             text-align: center;
@@ -1209,24 +1265,18 @@
                 <div class="row">
                     <div class="col-md-4">
                         <label class="form-label">फसल का प्रकार:</label>
-                        <select id="cropType" class="form-select" onchange="onCropTypeChange()">
-                            <option value="">फसल चुनें...</option>
-                            <option value="rice">चावल (Rice)</option>
-                            <option value="wheat">गेहूं (Wheat)</option>
-                            <option value="maize">मक्का (Maize)</option>
-                            <option value="sugarcane">गन्ना (Sugarcane)</option>
-                            <option value="cotton">कपास (Cotton)</option>
-                            <option value="potato">आलू (Potato)</option>
-                            <option value="tomato">टमाटर (Tomato)</option>
-                            <option value="onion">प्याज (Onion)</option>
-                            <option value="mustard">सरसों (Mustard)</option>
-                            <option value="soybean">सोयाबीन (Soybean)</option>
-                            <option value="groundnut">मूंगफली (Groundnut)</option>
-                            <option value="bajra">बाजरा (Pearl Millet)</option>
-                            <option value="jowar">ज्वार (Sorghum)</option>
-                            <option value="turmeric">हल्दी (Turmeric)</option>
-                            <option value="chilli">मिर्च (Chilli)</option>
-                        </select>
+                        <div class="crop-search-container">
+                            <input type="text" 
+                                   id="cropSearchInput" 
+                                   class="form-control" 
+                                   placeholder="फसल का नाम टाइप करें... (जैसे: गेहूं, चावल, टमाटर)"
+                                   autocomplete="off"
+                                   oninput="onCropSearchInput(this.value)"
+                                   onfocus="showCropSuggestions()"
+                                   onblur="hideCropSuggestions()">
+                            <div id="cropSuggestions" class="crop-suggestions-dropdown"></div>
+                        </div>
+                        <input type="hidden" id="cropType" value="">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">मौसम:</label>
@@ -2631,6 +2681,106 @@
             loadCropDetails();
             
             showNotification(`${cropType} फसल का चयन किया गया`, 'success');
+        }
+
+        // Crop Search Database
+        const cropDatabase = [
+            { value: 'rice', name: 'चावल', english: 'Rice', type: 'Cereal', season: 'Kharif' },
+            { value: 'wheat', name: 'गेहूं', english: 'Wheat', type: 'Cereal', season: 'Rabi' },
+            { value: 'maize', name: 'मक्का', english: 'Maize', type: 'Cereal', season: 'Kharif' },
+            { value: 'sugarcane', name: 'गन्ना', english: 'Sugarcane', type: 'Cash Crop', season: 'Year-round' },
+            { value: 'cotton', name: 'कपास', english: 'Cotton', type: 'Fiber Crop', season: 'Kharif' },
+            { value: 'potato', name: 'आलू', english: 'Potato', type: 'Vegetable', season: 'Rabi' },
+            { value: 'tomato', name: 'टमाटर', english: 'Tomato', type: 'Vegetable', season: 'Year-round' },
+            { value: 'onion', name: 'प्याज', english: 'Onion', type: 'Vegetable', season: 'Rabi' },
+            { value: 'brinjal', name: 'बैंगन', english: 'Brinjal', type: 'Vegetable', season: 'Year-round' },
+            { value: 'mustard', name: 'सरसों', english: 'Mustard', type: 'Oilseed', season: 'Rabi' },
+            { value: 'soybean', name: 'सोयाबीन', english: 'Soybean', type: 'Oilseed', season: 'Kharif' },
+            { value: 'groundnut', name: 'मूंगफली', english: 'Groundnut', type: 'Oilseed', season: 'Kharif' },
+            { value: 'bajra', name: 'बाजरा', english: 'Pearl Millet', type: 'Cereal', season: 'Kharif' },
+            { value: 'jowar', name: 'ज्वार', english: 'Sorghum', type: 'Cereal', season: 'Kharif' },
+            { value: 'turmeric', name: 'हल्दी', english: 'Turmeric', type: 'Spice', season: 'Kharif' },
+            { value: 'chilli', name: 'मिर्च', english: 'Chilli', type: 'Spice', season: 'Year-round' },
+            { value: 'ginger', name: 'अदरक', english: 'Ginger', type: 'Spice', season: 'Year-round' },
+            { value: 'coriander', name: 'धनिया', english: 'Coriander', type: 'Spice', season: 'Rabi' },
+            { value: 'mango', name: 'आम', english: 'Mango', type: 'Fruit', season: 'Year-round' },
+            { value: 'banana', name: 'केला', english: 'Banana', type: 'Fruit', season: 'Year-round' },
+            { value: 'orange', name: 'संतरा', english: 'Orange', type: 'Fruit', season: 'Year-round' },
+            { value: 'papaya', name: 'पपीता', english: 'Papaya', type: 'Fruit', season: 'Year-round' },
+            { value: 'cauliflower', name: 'फूलगोभी', english: 'Cauliflower', type: 'Vegetable', season: 'Rabi' },
+            { value: 'cabbage', name: 'पत्तागोभी', english: 'Cabbage', type: 'Vegetable', season: 'Rabi' },
+            { value: 'spinach', name: 'पालक', english: 'Spinach', type: 'Vegetable', season: 'Year-round' },
+            { value: 'carrot', name: 'गाजर', english: 'Carrot', type: 'Vegetable', season: 'Rabi' },
+            { value: 'radish', name: 'मूली', english: 'Radish', type: 'Vegetable', season: 'Rabi' },
+            { value: 'cucumber', name: 'खीरा', english: 'Cucumber', type: 'Vegetable', season: 'Year-round' },
+            { value: 'okra', name: 'भिंडी', english: 'Okra', type: 'Vegetable', season: 'Kharif' },
+            { value: 'pumpkin', name: 'कद्दू', english: 'Pumpkin', type: 'Vegetable', season: 'Kharif' }
+        ];
+
+        // Crop Search Functions
+        function onCropSearchInput(query) {
+            const suggestionsContainer = document.getElementById('cropSuggestions');
+            
+            if (query.length < 2) {
+                suggestionsContainer.style.display = 'none';
+                return;
+            }
+
+            const filteredCrops = cropDatabase.filter(crop => 
+                crop.name.toLowerCase().includes(query.toLowerCase()) ||
+                crop.english.toLowerCase().includes(query.toLowerCase()) ||
+                crop.type.toLowerCase().includes(query.toLowerCase())
+            );
+
+            if (filteredCrops.length === 0) {
+                suggestionsContainer.innerHTML = '<div class="crop-suggestion-item">कोई फसल नहीं मिली</div>';
+            } else {
+                suggestionsContainer.innerHTML = filteredCrops.slice(0, 10).map(crop => {
+                    const highlightedName = highlightText(crop.name, query);
+                    const highlightedEnglish = highlightText(crop.english, query);
+                    return `
+                        <div class="crop-suggestion-item" onclick="selectCrop('${crop.value}', '${crop.name}', '${crop.english}')">
+                            <div>
+                                <div class="crop-name">${highlightedName}</div>
+                                <div class="crop-type">${highlightedEnglish} - ${crop.type} (${crop.season})</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            suggestionsContainer.style.display = 'block';
+        }
+
+        function highlightText(text, query) {
+            if (!query) return text;
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<span class="crop-search-highlight">$1</span>');
+        }
+
+        function selectCrop(cropValue, cropName, cropEnglish) {
+            document.getElementById('cropSearchInput').value = `${cropName} (${cropEnglish})`;
+            document.getElementById('cropType').value = cropValue;
+            document.getElementById('cropSuggestions').style.display = 'none';
+            
+            // Trigger the same logic as the old dropdown
+            onCropTypeChange();
+            
+            showNotification(`${cropName} फसल का चयन किया गया`, 'success');
+        }
+
+        function showCropSuggestions() {
+            const input = document.getElementById('cropSearchInput');
+            if (input.value.length >= 2) {
+                document.getElementById('cropSuggestions').style.display = 'block';
+            }
+        }
+
+        function hideCropSuggestions() {
+            // Delay hiding to allow clicking on suggestions
+            setTimeout(() => {
+                document.getElementById('cropSuggestions').style.display = 'none';
+            }, 200);
         }
 
         function onCropTypeChange() {
