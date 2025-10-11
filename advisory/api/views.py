@@ -126,7 +126,6 @@ class ChatbotViewSet(viewsets.ViewSet):
             
             # Get real-time government data
             from ..services.enhanced_government_api import EnhancedGovernmentAPI
-from ..services.accurate_location_api import get_accurate_location
             gov_api = EnhancedGovernmentAPI()
             
             # Get crop recommendations from government data
@@ -372,7 +371,6 @@ from ..services.accurate_location_api import get_accurate_location
         """Get real-time market prices using government APIs"""
         try:
             from ..services.enhanced_government_api import EnhancedGovernmentAPI
-from ..services.accurate_location_api import get_accurate_location
             gov_api = EnhancedGovernmentAPI()
             
             # Extract crop from message
@@ -432,7 +430,6 @@ from ..services.accurate_location_api import get_accurate_location
         """Get real-time weather using government APIs"""
         try:
             from ..services.enhanced_government_api import EnhancedGovernmentAPI
-from ..services.accurate_location_api import get_accurate_location
             gov_api = EnhancedGovernmentAPI()
             
             if not location_name and latitude and longitude:
@@ -534,7 +531,6 @@ from ..services.accurate_location_api import get_accurate_location
         """Get real-time government schemes using government APIs"""
         try:
             from ..services.enhanced_government_api import EnhancedGovernmentAPI
-from ..services.accurate_location_api import get_accurate_location
             gov_api = EnhancedGovernmentAPI()
             
             if not location_name and latitude and longitude:
@@ -617,7 +613,6 @@ from ..services.accurate_location_api import get_accurate_location
         """Get real-time soil and fertilizer information using government APIs"""
         try:
             from ..services.enhanced_government_api import EnhancedGovernmentAPI
-from ..services.accurate_location_api import get_accurate_location
             gov_api = EnhancedGovernmentAPI()
             
             if not location_name and latitude and longitude:
@@ -1257,7 +1252,6 @@ Health is the greatest wealth. Good health improves the quality of life.
         
         try:
             from ..services.enhanced_government_api import EnhancedGovernmentAPI
-from ..services.accurate_location_api import get_accurate_location
             gov_api = EnhancedGovernmentAPI()
             
             # Search for crops
@@ -4281,7 +4275,6 @@ class WeatherViewSet(viewsets.ViewSet):
         super().__init__(*args, **kwargs)
         from ..services.real_time_government_api import RealTimeGovernmentAPI
         from ..services.enhanced_government_api import EnhancedGovernmentAPI
-from ..services.accurate_location_api import get_accurate_location
         self.real_time_api = RealTimeGovernmentAPI()
         self.weather_api = EnhancedGovernmentAPI()
     @action(detail=False, methods=['get'])
@@ -5035,7 +5028,6 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 
                 # Get market prices from government API
                 from ..services.enhanced_government_api import EnhancedGovernmentAPI
-from ..services.accurate_location_api import get_accurate_location
                 government_api = EnhancedGovernmentAPI()
                 
                 try:
@@ -5134,7 +5126,6 @@ from ..services.accurate_location_api import get_accurate_location
             weather_data = None
             try:
                 from ..services.enhanced_government_api import EnhancedGovernmentAPI
-from ..services.accurate_location_api import get_accurate_location
                 government_api = EnhancedGovernmentAPI()
                 
                 if latitude and longitude:
