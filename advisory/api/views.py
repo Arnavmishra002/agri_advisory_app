@@ -137,19 +137,35 @@ class ChatbotViewSet(viewsets.ViewSet):
                 
                 if crop_data and crop_data.get('recommendations') and len(crop_data['recommendations']) > 0:
                     recommendations = crop_data['recommendations']
-                    response += f"🥇 **अनुशंसित फसलें**:\n\n"
+                    response += f"🥇 **अनुशंसित फसलें** ({len(recommendations)} फसलों का विश्लेषण):\n\n"
                     
                     for i, crop in enumerate(recommendations[:5], 1):  # Show only top 5 crops
                         score = crop.get('score', 0)
                         crop_name = crop.get('name', 'फसल')
+                        crop_type = crop.get('crop_type', 'फसल')
                         season = crop.get('season', 'N/A')
                         suitability = "बहुत अच्छा" if score >= 90 else "अच्छा" if score >= 80 else "सामान्य" if score >= 70 else "कम"
                         
-                        response += f"**{i}. {crop_name}** - {suitability}\n"
-                        response += f"   • मौसम: {season}\n"
-                        response += f"   • MSP: ₹{crop.get('msp', 'N/A')}/क्विंटल\n"
-                        response += f"   • उपज: {crop.get('expected_yield', 'N/A')}\n"
-                        response += f"   • लाभ: {crop.get('profitability', 'N/A')}%\n\n"
+                        # Create separate box for each crop
+                        response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        response += f"🌾 **{i}. {crop_name}** ({crop_type})\n"
+                        response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        response += f"📊 **उपयुक्तता**: {suitability} ({score}%)\n"
+                        response += f"🌱 **सीजन**: {season}\n"
+                        response += f"📅 **बुआई**: {crop.get('sowing_months', 'N/A')}\n"
+                        response += f"🌾 **कटाई**: {crop.get('harvest_months', 'N/A')}\n"
+                        response += f"💰 **MSP**: ₹{crop.get('msp', 'N/A')}/क्विंटल\n"
+                        response += f"💲 **बाजार भाव**: ₹{crop.get('market_price', 'N/A')}/क्विंटल\n"
+                        response += f"📈 **उपज**: {crop.get('expected_yield', 'N/A')}\n"
+                        response += f"💵 **लाभ मार्जिन**: {crop.get('profit_margin', 'N/A')}\n"
+                        response += f"💧 **पानी की आवश्यकता**: {crop.get('water_requirement', 'N/A')}\n"
+                        response += f"🌿 **खाद**: {crop.get('fertilizer_requirement', 'N/A')}\n"
+                        response += f"🐛 **कीट प्रबंधन**: {crop.get('pest_management', 'N/A')}\n"
+                        response += f"🏛️ **सरकारी सहायता**: {crop.get('government_support', 'N/A')}%\n"
+                        response += f"⚠️ **जोखिम स्तर**: {crop.get('risk_level', 'N/A')}%\n"
+                        response += f"📊 **बाजार मांग**: {crop.get('market_demand', 'N/A')}%\n"
+                        response += f"🌍 **निर्यात क्षमता**: {crop.get('export_potential', 'N/A')}%\n"
+                        response += f"💡 **स्थानीय सुझाव**: {crop.get('local_advice', 'स्थानीय कृषि विशेषज्ञ से सलाह लें')}\n\n"
                     
                     response += f"💡 **सुझाव**: {recommendations[0].get('local_advice', 'स्थानीय कृषि विशेषज्ञ से सलाह लें')}\n\n"
                     response += f"🔍 **अन्य फसलों के बारे में पूछें**:\n"
@@ -172,19 +188,35 @@ class ChatbotViewSet(viewsets.ViewSet):
                     recommendations = crop_data['recommendations']
                     response += f"📍 **Location**: {location_name}\n"
                     response += f"🌱 **Season**: Current season\n\n"
-                    response += "🥇 **Recommended Crops**:\n\n"
+                    response += f"🥇 **Recommended Crops** (Analysis of {len(recommendations)} crops):\n\n"
                     
                     for i, crop in enumerate(recommendations[:5], 1):  # Show only top 5 crops
                         score = crop.get('score', 0)
                         crop_name = crop.get('name', 'Crop')
+                        crop_type = crop.get('crop_type', 'Crop')
                         season = crop.get('season', 'N/A')
                         suitability = "Excellent" if score >= 90 else "Good" if score >= 80 else "Fair" if score >= 70 else "Poor"
                         
-                        response += f"**{i}. {crop_name}** - {suitability}\n"
-                        response += f"   • Season: {season}\n"
-                        response += f"   • MSP: ₹{crop.get('msp', 'N/A')}/quintal\n"
-                        response += f"   • Yield: {crop.get('expected_yield', 'N/A')}\n"
-                        response += f"   • Profit: {crop.get('profitability', 'N/A')}%\n\n"
+                        # Create separate box for each crop
+                        response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        response += f"🌾 **{i}. {crop_name}** ({crop_type})\n"
+                        response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        response += f"📊 **Suitability**: {suitability} ({score}%)\n"
+                        response += f"🌱 **Season**: {season}\n"
+                        response += f"📅 **Sowing**: {crop.get('sowing_months', 'N/A')}\n"
+                        response += f"🌾 **Harvest**: {crop.get('harvest_months', 'N/A')}\n"
+                        response += f"💰 **MSP**: ₹{crop.get('msp', 'N/A')}/quintal\n"
+                        response += f"💲 **Market Price**: ₹{crop.get('market_price', 'N/A')}/quintal\n"
+                        response += f"📈 **Yield**: {crop.get('expected_yield', 'N/A')}\n"
+                        response += f"💵 **Profit Margin**: {crop.get('profit_margin', 'N/A')}\n"
+                        response += f"💧 **Water Requirement**: {crop.get('water_requirement', 'N/A')}\n"
+                        response += f"🌿 **Fertilizer**: {crop.get('fertilizer_requirement', 'N/A')}\n"
+                        response += f"🐛 **Pest Management**: {crop.get('pest_management', 'N/A')}\n"
+                        response += f"🏛️ **Government Support**: {crop.get('government_support', 'N/A')}%\n"
+                        response += f"⚠️ **Risk Level**: {crop.get('risk_level', 'N/A')}%\n"
+                        response += f"📊 **Market Demand**: {crop.get('market_demand', 'N/A')}%\n"
+                        response += f"🌍 **Export Potential**: {crop.get('export_potential', 'N/A')}%\n"
+                        response += f"💡 **Local Advice**: {crop.get('local_advice', 'Consult local agricultural experts')}\n\n"
                     
                     response += f"💡 **Advice**: {recommendations[0].get('local_advice', 'Consult local agricultural experts')}\n\n"
                     response += f"🔍 **Ask about other crops**:\n"
@@ -989,6 +1021,42 @@ Health is the greatest wealth. Good health improves the quality of life.
                 return Response(serializer.errors, status=400)
         else:
             return Response({'message': 'Chatbot API is running. Send POST request with message and language.'})
+    
+    @action(detail=False, methods=['get'])
+    def search_crops(self, request):
+        """Search for crops with autocomplete functionality"""
+        query = request.GET.get('q', '').strip()
+        limit = int(request.GET.get('limit', 10))
+        
+        if len(query) < 2:
+            return Response({
+                'results': [],
+                'message': 'Please enter at least 2 characters to search',
+                'query': query
+            })
+        
+        try:
+            from ..services.enhanced_government_api import EnhancedGovernmentAPI
+            gov_api = EnhancedGovernmentAPI()
+            
+            # Search for crops
+            results = gov_api.search_crops(query, limit)
+            
+            return Response({
+                'results': results,
+                'query': query,
+                'count': len(results),
+                'timestamp': time.time()
+            })
+            
+        except Exception as e:
+            logger.error(f"Error in crop search: {e}")
+            return Response({
+                'results': [],
+                'error': str(e),
+                'query': query,
+                'timestamp': time.time()
+            }, status=500)
     
     def create(self, request):
         """Handle POST requests to chatbot endpoint"""

@@ -574,296 +574,90 @@ class RealTimeGovernmentAI:
             return response
     
     def _generate_general_response(self, query: str, deep_analysis: Dict[str, Any], language: str) -> str:
-        """Generate intelligent response for non-farming queries using open source AI"""
+        """Generate simple, ChatGPT-like response for general queries with optimized performance"""
         intent = deep_analysis.get('intent', 'general_inquiry')
         query_lower = query.lower()
         
-        # Try to use Ollama for intelligent response first
+        # Try to use Ollama for intelligent response first (with timeout)
         try:
             ollama_response = self.ollama.generate_response(query, language)
             if ollama_response and len(ollama_response) > 50:
                 logger.info("Using Ollama for general query response")
+                # Simplify Ollama response if it's too complex
+                if len(ollama_response) > 500:
+                    return self._simplify_response(ollama_response, language)
                 return ollama_response
         except Exception as e:
             logger.warning(f"Ollama response failed, using fallback: {e}")
         
-        # Fallback to hardcoded responses if Ollama fails
+        # Fallback to simple, direct responses
+        
+        # Simple, direct responses for common queries
+        if any(keyword in query_lower for keyword in ['who is', 'कौन है', 'what is', 'क्या है']):
+            # Handle "who is" queries
+            if 'allu arjun' in query_lower:
+                return "Allu Arjun is a popular Indian actor who works primarily in Telugu cinema. He's known for his dancing skills and has acted in many successful films."
+            elif 'narendra modi' in query_lower:
+                return "Narendra Modi is the current Prime Minister of India. He has been in office since 2014 and is a member of the Bharatiya Janata Party (BJP)."
+            elif 'rahul gandhi' in query_lower:
+                return "Rahul Gandhi is an Indian politician and a member of the Indian National Congress party. He has served as a Member of Parliament."
         
         # Science and technology queries
         if any(keyword in query_lower for keyword in ['artificial intelligence', 'ai', 'machine learning', 'technology']):
             if language in ['hi', 'hinglish']:
-                return """🤖 कृत्रिम बुद्धिमत्ता (AI) के बारे में:
-
-AI एक ऐसी तकनीक है जो कंप्यूटर को मानव की तरह सोचने और सीखने की क्षमता देती है।
-
-🌟 **AI के मुख्य प्रकार**:
-• Machine Learning - डेटा से सीखना
-• Deep Learning - मानव मस्तिष्क की नकल
-• Natural Language Processing - भाषा समझना
-
-💡 **AI के उपयोग**:
-• Agriculture - फसल निगरानी और पूर्वानुमान
-• Healthcare - रोग निदान
-• Finance - धोखाधड़ी का पता लगाना
-• Education - व्यक्तिगत सीखने की सुविधा
-
-🚀 **भविष्य**: AI तेजी से विकसित हो रहा है और हमारे जीवन को बेहतर बना रहा है।"""
+                return "AI (कृत्रिम बुद्धिमत्ता) एक तकनीक है जो कंप्यूटर को मानव की तरह सोचने और सीखने की क्षमता देती है। यह मशीन लर्निंग, डीप लर्निंग और न्यूरल नेटवर्क पर आधारित है।"
             else:
-                return """🤖 Artificial Intelligence (AI) Overview:
-
-Artificial Intelligence is technology that enables computers to think and learn like humans. It's based on machine learning, deep learning, and neural networks.
-
-🌟 **Main Types of AI**:
-• Machine Learning - Learning from data
-• Deep Learning - Mimicking human brain
-• Natural Language Processing - Understanding language
-
-💡 **AI Applications**:
-• Agriculture - Crop monitoring and forecasting
-• Healthcare - Disease diagnosis
-• Finance - Fraud detection
-• Education - Personalized learning
-
-🚀 **Future**: AI is rapidly evolving and improving our lives across all sectors."""
+                return "AI (Artificial Intelligence) is technology that enables computers to think and learn like humans. It's used in many fields like healthcare, agriculture, finance, and education."
         
         # Geography queries
         elif any(keyword in query_lower for keyword in ['capital', 'राजधानी', 'country', 'देश']):
             if language in ['hi', 'hinglish']:
-                return """🗺️ भारत की राजधानी के बारे में:
-
-भारत की राजधानी **नई दिल्ली** है।
-
-📍 **मुख्य तथ्य**:
-• राजधानी: नई दिल्ली
-• राज्य: दिल्ली (केंद्र शासित प्रदेश)
-• जनसंख्या: लगभग 3.3 करोड़
-• क्षेत्रफल: 1,484 वर्ग किमी
-
-🏛️ **महत्वपूर्ण स्थान**:
-• राष्ट्रपति भवन
-• संसद भवन
-• सुप्रीम कोर्ट
-• रेड फोर्ट
-
-🌟 **इतिहास**: 1911 में ब्रिटिश राज में राजधानी बनी।"""
+                return "भारत की राजधानी नई दिल्ली है। यह दिल्ली में स्थित है और भारत का राजनीतिक केंद्र है।"
             else:
-                return """🗺️ About India's Capital:
-
-India's capital is **New Delhi**.
-
-📍 **Key Facts**:
-• Capital: New Delhi
-• State: Delhi (Union Territory)
-• Population: Approximately 33 million
-• Area: 1,484 sq km
-
-🏛️ **Important Places**:
-• Rashtrapati Bhavan
-• Parliament House
-• Supreme Court
-• Red Fort
-
-🌟 **History**: Became capital in 1911 during British rule."""
+                return "India's capital is New Delhi. It's located in Delhi and serves as the political center of India."
         
         # Programming queries
         elif any(keyword in query_lower for keyword in ['programming', 'coding', 'python', 'javascript', 'learn']):
             if language in ['hi', 'hinglish']:
-                return """💻 प्रोग्रामिंग सीखने का गाइड:
-
-प्रोग्रामिंग सीखना एक रोमांचक यात्रा है! यहाँ कुछ सुझाव हैं:
-
-🎯 **शुरुआत करने के लिए**:
-• Python - सबसे आसान भाषा
-• JavaScript - वेब डेवलपमेंट के लिए
-• Java - एंटरप्राइज एप्लिकेशन के लिए
-
-📚 **सीखने के तरीके**:
-• ऑनलाइन कोर्स (Coursera, edX)
-• YouTube ट्यूटोरियल
-• प्रैक्टिस प्रोजेक्ट बनाएं
-• कोडिंग चैलेंज हल करें
-
-💡 **सुझाव**: रोजाना कोडिंग करें और छोटे प्रोजेक्ट बनाएं!"""
+                return "प्रोग्रामिंग सीखने के लिए Python एक अच्छी शुरुआत है। आप Codecademy, FreeCodeCamp, या YouTube पर ट्यूटोरियल देख सकते हैं।"
             else:
-                return """💻 Programming Learning Guide:
-
-Learning to program is an exciting journey! Here are some suggestions:
-
-🎯 **To Get Started**:
-• Python - Easiest language to learn
-• JavaScript - For web development
-• Java - For enterprise applications
-
-📚 **Learning Methods**:
-• Online courses (Coursera, edX)
-• YouTube tutorials
-• Build practice projects
-• Solve coding challenges
-
-💡 **Advice**: Code daily and build small projects!"""
+                return "For learning programming, Python is a great starting language. You can use platforms like Codecademy, FreeCodeCamp, or watch tutorials on YouTube."
         
-        # Science queries
-        elif any(keyword in query_lower for keyword in ['photosynthesis', 'science', 'physics', 'biology']):
-            if language in ['hi', 'hinglish']:
-                return """🔬 विज्ञान संबंधी जानकारी:
-
-विज्ञान हमारे जीवन का महत्वपूर्ण हिस्सा है।
-
-🌱 **प्रकाश संश्लेषण**:
-• पौधे सूर्य के प्रकाश का उपयोग करते हैं
-• कार्बन डाइऑक्साइड + पानी → ग्लूकोज + ऑक्सीजन
-• यह प्रक्रिया पौधों के लिए भोजन बनाती है
-
-⚛️ **भौतिक विज्ञान**:
-• गति के नियम (Newton के नियम)
-• ऊर्जा का संरक्षण
-• विद्युत और चुंबकत्व
-
-🧬 **जीव विज्ञान**:
-• डीएनए जीवन का आधार
-• कोशिकाएं जीवन की इकाई
-• जेनेटिक इंजीनियरिंग
-
-💡 **महत्व**: विज्ञान मानवता के विकास का आधार है।"""
-            else:
-                return """🔬 Science Information:
-
-Science is a crucial part of our lives. It helps us understand the mysteries of nature.
-
-🌱 **Photosynthesis**:
-• Plants use sunlight energy
-• Carbon dioxide + Water → Glucose + Oxygen
-• This process creates food for plants
-
-⚛️ **Physics**:
-• Laws of motion (Newton's laws)
-• Conservation of energy
-• Electricity and magnetism
-
-🧬 **Biology**:
-• DNA is the foundation of life
-• Cells are the unit of life
-• Genetic engineering
-
-💡 **Importance**: Science is the foundation of human development."""
-        
-        # Space and exploration queries
-        elif any(keyword in query_lower for keyword in ['space', 'exploration', 'universe', 'planets']):
-            if language in ['hi', 'hinglish']:
-                return """🚀 अंतरिक्ष अन्वेषण के बारे में:
-
-अंतरिक्ष अन्वेषण मानवता की सबसे बड़ी उपलब्धि है।
-
-🌍 **हमारे सौर मंडल**:
-• सूर्य - हमारा तारा
-• 8 ग्रह (बुध, शुक्र, पृथ्वी, मंगल, बृहस्पति, शनि, अरुण, वरुण)
-• क्षुद्रग्रह और धूमकेतु
-
-🛰️ **मानव अंतरिक्ष यान**:
-• अंतर्राष्ट्रीय अंतरिक्ष स्टेशन (ISS)
-• चंद्रमा पर पहुंचना (1969)
-• मंगल अन्वेषण यान
-
-🌟 **भविष्य के लक्ष्य**:
-• मंगल पर मानव बस्ती
-• गहरे अंतरिक्ष की खोज
-• बाहरी ग्रहों पर जीवन की खोज
-
-💡 **महत्व**: अंतरिक्ष अन्वेषण नई तकनीक और ज्ञान लाता है।"""
-            else:
-                return """🚀 About Space Exploration:
-
-Space exploration is one of humanity's greatest achievements.
-
-🌍 **Our Solar System**:
-• Sun - Our star
-• 8 planets (Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune)
-• Asteroids and comets
-
-🛰️ **Human Spacecraft**:
-• International Space Station (ISS)
-• Moon landing (1969)
-• Mars exploration rovers
-
-🌟 **Future Goals**:
-• Human settlement on Mars
-• Deep space exploration
-• Search for life on other planets
-
-💡 **Importance**: Space exploration brings new technology and knowledge."""
-        
-        # Computer queries
-        elif any(keyword in query_lower for keyword in ['computer', 'कंप्यूटर', 'how computer works']):
-            if language in ['hi', 'hinglish']:
-                return """💻 कंप्यूटर कैसे काम करता है:
-
-कंप्यूटर एक जटिल मशीन है जो डेटा प्रोसेस करता है।
-
-🔧 **मुख्य भाग**:
-• CPU (सेंट्रल प्रोसेसिंग यूनिट) - दिमाग
-• RAM - अस्थायी मेमोरी
-• हार्ड ड्राइव - स्थायी भंडारण
-• मदरबोर्ड - सभी भागों को जोड़ता है
-
-⚡ **काम करने का तरीका**:
-• इनपुट (कीबोर्ड, माउस)
-• प्रोसेसिंग (CPU में गणना)
-• आउटपुट (स्क्रीन, प्रिंटर)
-• भंडारण (फाइलों को सेव करना)
-
-🔄 **प्रोग्रामिंग**:
-• सॉफ्टवेयर निर्देश देता है
-• अलग-अलग भाषाएं (Python, Java, C++)
-• एल्गोरिदम समस्याओं को हल करते हैं
-
-💡 **महत्व**: कंप्यूटर आधुनिक जीवन का आधार है।"""
-            else:
-                return """💻 How Computer Works:
-
-A computer is a complex machine that processes data.
-
-🔧 **Main Components**:
-• CPU (Central Processing Unit) - The brain
-• RAM - Temporary memory
-• Hard Drive - Permanent storage
-• Motherboard - Connects all parts
-
-⚡ **How it Works**:
-• Input (keyboard, mouse)
-• Processing (calculations in CPU)
-• Output (screen, printer)
-• Storage (saving files)
-
-🔄 **Programming**:
-• Software gives instructions
-• Different languages (Python, Java, C++)
-• Algorithms solve problems
-
-💡 **Importance**: Computers are the foundation of modern life."""
-        
-        # Default response
+        # Default intelligent response
         else:
             if language in ['hi', 'hinglish']:
-                return f"मैं एक कृषि सहायक AI हूं। मैं मुख्य रूप से कृषि, फसल, मौसम, मंडी भाव और सरकारी योजनाओं के बारे में मदद कर सकता हूं। कृपया कोई कृषि संबंधी प्रश्न पूछें।"
+                return "मैं कृषिमित्र AI हूं, आपका बुद्धिमान कृषि सहायक। मैं कृषि, फसल, मौसम, सरकारी योजनाओं के साथ-साथ सामान्य ज्ञान के प्रश्नों का भी उत्तर दे सकता हूं। आप क्या जानना चाहते हैं?"
             else:
-                return f"I am an agricultural assistant AI. I can mainly help with agriculture, crops, weather, market prices, and government schemes. Please ask any agriculture-related questions."
+                return "I'm Krishimitra AI, your intelligent agricultural assistant. I can help with agriculture, crops, weather, government schemes, and also answer general knowledge questions. What would you like to know?"
     
-    def _generate_fallback_response(self, query: str, language: str) -> str:
-        """Generate fallback response when real-time data fails"""
+    def _simplify_response(self, response: str, language: str) -> str:
+        """Simplify complex responses to be more farmer-friendly"""
+        if len(response) <= 200:
+            return response
+        
+        # Extract key points and create a simpler version
+        sentences = response.split('. ')
+        if len(sentences) <= 2:
+            return response
+        
+        # Take first 2-3 sentences for simplicity
+        simplified = '. '.join(sentences[:2]) + '.'
+        
+        # Add a simple closing
         if language in ['hi', 'hinglish']:
-            return f"क्षमा करें, वर्तमान में सरकारी डेटा लोड हो रहा है। कृपया कुछ समय बाद पुनः प्रयास करें।"
+            simplified += " अधिक जानकारी के लिए कृषि संबंधी प्रश्न पूछें।"
         else:
-            return f"Sorry, government data is currently loading. Please try again in a few moments."
+            simplified += " Ask more agriculture-related questions for detailed information."
+        
+        return simplified
 
-# Create global instance
+
+# Global instance for easy access
 realtime_gov_ai = RealTimeGovernmentAI()
 
 def process_farming_query_realtime(query: str, language: str = 'en', location: str = '') -> Dict[str, Any]:
-    """Main function for processing farming queries with real-time government data"""
+    """
+    External function to process farming queries with real-time government data.
+    This acts as the entry point for other modules.
+    """
     return realtime_gov_ai.process_farming_query(query, language, location)
-
-if __name__ == "__main__":
-    # Test the system
-    test_query = "Delhi mein kya fasal lagayein kharif season mein?"
-    result = process_farming_query_realtime(test_query, 'hinglish', 'Delhi')
-    print(json.dumps(result, indent=2))

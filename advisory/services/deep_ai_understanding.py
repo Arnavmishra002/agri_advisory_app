@@ -788,3 +788,5 @@ if __name__ == "__main__":
     test_query = "Delhi mein kya fasal lagayein kharif season mein?"
     result = analyze_query_deeply(test_query)
     print(json.dumps(result, indent=2))
+
+

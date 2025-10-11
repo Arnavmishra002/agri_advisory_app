@@ -9,7 +9,7 @@ import logging
 import time
 from datetime import datetime
 from typing import Dict, Any, List
-from ..services.enhanced_government_api import EnhancedGovernmentAPI
+# from ..services.enhanced_government_api import EnhancedGovernmentAPI
 import sys
 import os
 from ..services.enhanced_classifier import enhanced_classifier
@@ -68,7 +68,7 @@ class UltimateIntelligentAI:
     
     def __init__(self):
         self.response_templates = self._load_response_templates()
-        self.government_api = EnhancedGovernmentAPI()  # Initialize government API
+        # self.government_api = EnhancedGovernmentAPI()  # Initialize government API
         self.enhanced_classifier = enhanced_classifier  # Enhanced query classifier
         self.enhanced_multilingual = enhanced_multilingual  # Enhanced multilingual support
         self.general_apis = general_apis_service  # General APIs service

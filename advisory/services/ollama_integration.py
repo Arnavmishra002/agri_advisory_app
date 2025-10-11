@@ -651,22 +651,24 @@ Be imaginative, engaging, and entertaining."""
             return False
     
     def generate_response(self, query: str, language: str = 'en') -> str:
-        """Generate response using Ollama for general queries"""
+        """Generate response using Ollama for general queries with improved fallback"""
         try:
-            # Try to use Ollama API first
-            response = self._call_ollama_api(query, language)
+            # Quick check if Ollama is available (reduced timeout)
+            response = self._call_ollama_api(query, language, timeout=5)
             if response and len(response) > 50:
+                logger.info("Using Ollama for response")
                 return response
             
-            # Fallback to knowledge base
-            return self._get_knowledge_base_response(query, language)
+            # Fallback to enhanced knowledge base
+            logger.info("Ollama not available, using enhanced fallback")
+            return self._get_enhanced_knowledge_base_response(query, language)
             
         except Exception as e:
-            logger.error(f"Error generating response with Ollama: {e}")
-            return self._get_knowledge_base_response(query, language)
+            logger.warning(f"Ollama failed, using fallback: {e}")
+            return self._get_enhanced_knowledge_base_response(query, language)
     
-    def _call_ollama_api(self, query: str, language: str) -> str:
-        """Call Ollama API directly"""
+    def _call_ollama_api(self, query: str, language: str, timeout: int = 10) -> str:
+        """Call Ollama API directly with configurable timeout"""
         try:
             # Prepare the prompt
             if language in ['hi', 'hinglish']:
@@ -688,7 +690,7 @@ Be imaginative, engaging, and entertaining."""
             response = requests.post(
                 f"{self.ollama_base_url}/api/generate",
                 json=payload,
-                timeout=30
+                timeout=timeout
             )
             
             if response.status_code == 200:
@@ -791,6 +793,75 @@ India's capital is **New Delhi**.
                 return "मैं एक AI सहायक हूं। मैं आपकी सहायता कर सकता हूं। कृपया अपना प्रश्न स्पष्ट रूप से पूछें।"
             else:
                 return "I am an AI assistant. I can help you with various questions. Please ask your question clearly."
+    
+    def _get_enhanced_knowledge_base_response(self, query: str, language: str) -> str:
+        """Get enhanced response from comprehensive knowledge base"""
+        query_lower = query.lower()
+        
+        # Enhanced comprehensive responses
+        responses = {
+            # General greetings
+            'hello': {
+                'en': "Hello! I'm Krishimitra AI, your agricultural assistant. I can help you with farming, crops, weather, market prices, and government schemes. What would you like to know?",
+                'hi': "नमस्ते! मैं कृषिमित्र AI हूं, आपका कृषि सहायक। मैं खेती, फसल, मौसम, बाजार भाव और सरकारी योजनाओं में आपकी मदद कर सकता हूं। आप क्या जानना चाहते हैं?"
+            },
+            'who are you': {
+                'en': "I'm Krishimitra AI, your intelligent agricultural assistant. I provide real-time crop recommendations, weather forecasts, market prices, and government scheme information using official data sources.",
+                'hi': "मैं कृषिमित्र AI हूं, आपका बुद्धिमान कृषि सहायक। मैं सरकारी डेटा स्रोतों का उपयोग करके वास्तविक समय में फसल सुझाव, मौसम पूर्वानुमान, बाजार भाव और सरकारी योजना की जानकारी प्रदान करता हूं।"
+            },
+            # Technology questions
+            'artificial intelligence': {
+                'en': "Artificial Intelligence (AI) is technology that enables computers to think and learn like humans. In agriculture, AI helps with crop prediction, pest detection, weather forecasting, and optimizing farming practices for better yields and sustainability.",
+                'hi': "कृत्रिम बुद्धिमत्ता (AI) एक तकनीक है जो कंप्यूटर को मानव की तरह सोचने और सीखने की क्षमता देती है। कृषि में, AI फसल भविष्यवाणी, कीट पहचान, मौसम पूर्वानुमान और बेहतर उपज और स्थिरता के लिए खेती के तरीकों को अनुकूलित करने में मदद करता है।"
+            },
+            'machine learning': {
+                'en': "Machine Learning is a subset of AI that enables systems to automatically learn and improve from experience. In agriculture, it's used for crop yield prediction, soil analysis, disease detection, and precision farming techniques.",
+                'hi': "मशीन लर्निंग AI का एक उपसमुच्चय है जो सिस्टम को अनुभव से स्वचालित रूप से सीखने और सुधारने में सक्षम बनाता है। कृषि में, इसका उपयोग फसल उपज भविष्यवाणी, मिट्टी विश्लेषण, रोग पहचान और सटीक खेती तकनीकों के लिए किया जाता है।"
+            },
+            # Geography questions
+            'capital of india': {
+                'en': "The capital of India is New Delhi. It's located in the National Capital Territory of Delhi and serves as the political and administrative center of India.",
+                'hi': "भारत की राजधानी नई दिल्ली है। यह दिल्ली के राष्ट्रीय राजधानी क्षेत्र में स्थित है और भारत के राजनीतिक और प्रशासनिक केंद्र के रूप में कार्य करता है।"
+            },
+            'prime minister': {
+                'en': "The current Prime Minister of India is Narendra Modi. He has been serving as Prime Minister since 2014 and is a member of the Bharatiya Janata Party (BJP).",
+                'hi': "भारत के वर्तमान प्रधानमंत्री नरेंद्र मोदी हैं। वह 2014 से प्रधानमंत्री के रूप में सेवा कर रहे हैं और भारतीय जनता पार्टी (भाजपा) के सदस्य हैं।"
+            },
+            # Programming questions
+            'programming': {
+                'en': "Programming is the process of creating instructions for computers to follow. Popular languages include Python (great for beginners), JavaScript (for web development), Java (for enterprise applications), and C++ (for system programming). Start with Python for agriculture-related applications!",
+                'hi': "प्रोग्रामिंग कंप्यूटर के लिए निर्देश बनाने की प्रक्रिया है। लोकप्रिय भाषाओं में Python (शुरुआती के लिए बेहतरीन), JavaScript (वेब डेवलपमेंट के लिए), Java (एंटरप्राइज एप्लिकेशन के लिए), और C++ (सिस्टम प्रोग्रामिंग के लिए) शामिल हैं। कृषि संबंधी एप्लिकेशन के लिए Python से शुरुआत करें!"
+            },
+            # Science questions
+            'photosynthesis': {
+                'en': "Photosynthesis is the process by which plants convert light energy from the sun into chemical energy (glucose). Plants use carbon dioxide from air, water from soil, and sunlight to produce glucose and release oxygen. This is essential for plant growth and our oxygen supply.",
+                'hi': "प्रकाश संश्लेषण वह प्रक्रिया है जिसके द्वारा पौधे सूर्य से प्रकाश ऊर्जा को रासायनिक ऊर्जा (ग्लूकोज) में परिवर्तित करते हैं। पौधे हवा से कार्बन डाइऑक्साइड, मिट्टी से पानी, और सूर्य के प्रकाश का उपयोग करके ग्लूकोज का उत्पादन करते हैं और ऑक्सीजन छोड़ते हैं। यह पौधों के विकास और हमारी ऑक्सीजन आपूर्ति के लिए आवश्यक है।"
+            }
+        }
+        
+        # Check for specific keywords and return appropriate response
+        for key, response in responses.items():
+            if key in query_lower:
+                return response.get(language, response.get('en', ""))
+        
+        # Check for partial matches
+        if any(word in query_lower for word in ['who is', 'कौन है']):
+            if language in ['hi', 'hinglish']:
+                return "कृपया विशिष्ट व्यक्ति या विषय का नाम बताएं। मैं आपको उसके बारे में जानकारी दे सकूंगा।"
+            else:
+                return "Please specify the person or subject you're asking about. I can provide information about them."
+        
+        if any(word in query_lower for word in ['what is', 'क्या है']):
+            if language in ['hi', 'hinglish']:
+                return "कृपया विशिष्ट विषय या अवधारणा का नाम बताएं। मैं आपको उसके बारे में विस्तृत जानकारी दे सकूंगा।"
+            else:
+                return "Please specify the subject or concept you're asking about. I can provide detailed information about it."
+        
+        # Default intelligent response
+        if language in ['hi', 'hinglish']:
+            return "मैं कृषिमित्र AI हूं, आपका बुद्धिमान कृषि सहायक। मैं कृषि, फसल, मौसम, सरकारी योजनाओं के साथ-साथ सामान्य ज्ञान के प्रश्नों का भी उत्तर दे सकता हूं। आप क्या जानना चाहते हैं?"
+        else:
+            return "I'm Krishimitra AI, your intelligent agricultural assistant. I can help with agriculture, crops, weather, government schemes, and also answer general knowledge questions. What would you like to know?"
 
 # Create global instance
 ollama_integration = OllamaIntegration()
