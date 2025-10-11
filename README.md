@@ -62,24 +62,24 @@
 
 ### Installation
 
-```bash
+                                                          ```bash
 # Clone the repository
 git clone https://github.com/Arnavmishra002/agri_advisory_app.git
-cd agri_advisory_app
+                                                          cd agri_advisory_app
 
 # Create virtual environment
-python -m venv venv
+                                                        python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+                                                          pip install -r requirements.txt
 
 # Setup database
-python manage.py migrate
+                                                          python manage.py migrate
 
 # Run the application
-python manage.py runserver
-```
+                                                          python manage.py runserver
+                                                        ```
 
 ### Access the Application
 
@@ -90,7 +90,7 @@ python manage.py runserver
 
 ### Chatbot API
 
-```bash
+                                                        ```bash
 POST /api/advisories/chatbot/
 {
     "query": "Delhi mein kya fasal lagayein?",
@@ -102,7 +102,7 @@ POST /api/advisories/chatbot/
 
 ### Market Prices API
 
-```bash
+                                                          ```bash
 GET /api/market-prices/prices/?lat=28.6139&lon=77.2090&lang=hi&product=wheat
 ```
 
@@ -202,7 +202,7 @@ The system has been thoroughly tested with:
 
 ## 🤝 **Contributing**
 
-1. Fork the repository
+                                                      1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Test thoroughly
