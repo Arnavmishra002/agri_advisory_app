@@ -3752,7 +3752,11 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 return Response({
                     'error': 'Enhanced location system not available',
                     'crop': crop_name,
-                    'suggestion': 'Use location search instead'
+                    'suggestion': 'Use location search instead',
+                    'fallback_data': {
+                        'crop': crop_name,
+                        'message': 'Basic crop information available through other endpoints'
+                    }
                 }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             
             # Search for crop
@@ -3835,16 +3839,23 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 )
             except ImportError:
                 # Fallback to AI system
-                if location_name:
-                    recommendations = ultimate_ai.get_location_recommendations(location_name, limit=10)
-                else:
-                    recommendations = ultimate_ai.get_location_recommendations("India", limit=10)
-                
-                return Response({
-                    'recommendations': recommendations,
-                    'source': 'AI System (Fallback)',
-                    'timestamp': time.time()
-                }, status=status.HTTP_200_OK)
+                try:
+                    if location_name:
+                        recommendations = ultimate_ai.get_location_recommendations(location_name, limit=10)
+                    else:
+                        recommendations = ultimate_ai.get_location_recommendations("India", limit=10)
+                    
+                    return Response({
+                        'recommendations': recommendations,
+                        'source': 'AI System (Fallback)',
+                        'timestamp': time.time()
+                    }, status=status.HTTP_200_OK)
+                except Exception as e:
+                    return Response({
+                        'error': 'Location system not available',
+                        'details': str(e),
+                        'timestamp': time.time()
+                    }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             
             # Get location data
             if latitude and longitude:

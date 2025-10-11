@@ -18,7 +18,20 @@ from ..services.general_apis import general_apis_service
 from ..services.ai_ml_crop_recommendation import ai_ml_crop_system
 from ..services.google_ai_studio import google_ai_studio
 from ..services.ollama_integration import ollama_integration
-from ..services.comprehensive_government_api import ComprehensiveGovernmentAPI
+# Import ComprehensiveGovernmentAPI with fallback
+try:
+    from ..services.comprehensive_government_api import ComprehensiveGovernmentAPI
+except ImportError:
+    # Fallback if comprehensive_government_api is not available
+    class ComprehensiveGovernmentAPI:
+        def __init__(self):
+            pass
+        def get_real_market_prices(self, *args, **kwargs):
+            return []
+        def get_msp_prices(self, *args, **kwargs):
+            return []
+        def get_government_schemes(self, *args, **kwargs):
+            return []
 from .self_learning_ai import self_learning_ai
 
 # Import ChatGPT-level enhancer
