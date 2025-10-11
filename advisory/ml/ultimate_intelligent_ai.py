@@ -18,7 +18,7 @@ from ..services.general_apis import general_apis_service
 from ..services.ai_ml_crop_recommendation import ai_ml_crop_system
 from ..services.google_ai_studio import google_ai_studio
 from ..services.ollama_integration import ollama_integration
-from ..services.comprehensive_government_api import comprehensive_government_api
+from ..services.comprehensive_government_api import ComprehensiveGovernmentAPI
 from .self_learning_ai import self_learning_ai
 
 # Import ChatGPT-level enhancer
@@ -61,7 +61,7 @@ class UltimateIntelligentAI:
         self.general_apis = general_apis_service  # General APIs service
         self.google_ai = google_ai_studio  # Google AI Studio integration
         self.ollama = ollama_integration  # Ollama integration for ChatGPT-level responses
-        self.government_api = comprehensive_government_api  # Comprehensive government API integration
+        self.government_api = ComprehensiveGovernmentAPI()  # Comprehensive government API integration
         self.crop_prices = {
             'wheat': '2,450',
             'rice': '3,200', 

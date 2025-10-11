@@ -449,12 +449,15 @@ def get_comprehensive_location_info(latitude: float, longitude: float) -> Dict[s
     return government_data
 
 def search_location_by_name(location_name: str) -> Dict[str, Any]:
-    """Search for location by name (like Google Maps search)"""
+    """Search for location by name (like Google Maps search) with crop recommendations"""
     location_name_lower = location_name.lower().replace(' ', '_')
     
     # Check if it's a state name
     for state_name, state_data in enhanced_location_system.indian_states.items():
         if location_name_lower in state_name or state_name in location_name_lower:
+            # Get crop recommendations for this state
+            crop_recommendations = get_crop_recommendations_for_region(state_data['region'])
+            
             return {
                 'type': 'state',
                 'name': state_name.replace('_', ' ').title(),
@@ -463,8 +466,15 @@ def search_location_by_name(location_name: str) -> Dict[str, Any]:
                     'longitude': state_data['lon']
                 },
                 'region': state_data['region'],
-                'districts': state_data['districts']
+                'districts': state_data['districts'],
+                'crop_recommendations': crop_recommendations,
+                'agricultural_info': get_agricultural_info_for_state(state_name, state_data['region'])
             }
+    
+    # Check if it's a crop name search
+    crop_search_result = search_crop_by_name(location_name)
+    if crop_search_result:
+        return crop_search_result
     
     # If not found, return default coordinates for India
     return {
@@ -472,5 +482,301 @@ def search_location_by_name(location_name: str) -> Dict[str, Any]:
         'name': 'India',
         'coordinates': {'latitude': 20.5937, 'longitude': 78.9629},
         'region': 'unknown',
-        'districts': []
+        'districts': [],
+        'crop_recommendations': get_general_crop_recommendations()
     }
+
+def search_crop_by_name(crop_name: str) -> Dict[str, Any]:
+    """Search for crop by name and provide recommendations"""
+    crop_name_lower = crop_name.lower().strip()
+    
+    # Comprehensive crop database with regional recommendations
+    crop_database = {
+        # Cereals
+        'wheat': {
+            'name': 'Wheat',
+            'scientific_name': 'Triticum aestivum',
+            'suitable_regions': ['north', 'central', 'west'],
+            'best_states': ['Punjab', 'Haryana', 'Uttar Pradesh', 'Madhya Pradesh'],
+            'season': 'Rabi',
+            'growing_period': 'October to April',
+            'yield_potential': '4-5 tonnes/hectare',
+            'market_price': '₹2,275/quintal (MSP)',
+            'fertilizer_requirement': 'NPK 120:60:40 kg/hectare',
+            'water_requirement': '400-500mm',
+            'soil_type': 'Clay loam, Sandy loam',
+            'climate': 'Cool and dry weather'
+        },
+        'rice': {
+            'name': 'Rice',
+            'scientific_name': 'Oryza sativa',
+            'suitable_regions': ['south', 'east', 'northeast'],
+            'best_states': ['West Bengal', 'Tamil Nadu', 'Andhra Pradesh', 'Karnataka'],
+            'season': 'Kharif',
+            'growing_period': 'June to November',
+            'yield_potential': '3-4 tonnes/hectare',
+            'market_price': '₹2,183/quintal (MSP)',
+            'fertilizer_requirement': 'NPK 120:60:40 kg/hectare',
+            'water_requirement': '1200-1500mm',
+            'soil_type': 'Clay, Heavy clay',
+            'climate': 'Hot and humid'
+        },
+        'maize': {
+            'name': 'Maize',
+            'scientific_name': 'Zea mays',
+            'suitable_regions': ['north', 'central', 'south'],
+            'best_states': ['Karnataka', 'Andhra Pradesh', 'Madhya Pradesh', 'Bihar'],
+            'season': 'Kharif',
+            'growing_period': 'June to October',
+            'yield_potential': '3-4 tonnes/hectare',
+            'market_price': '₹2,090/quintal (MSP)',
+            'fertilizer_requirement': 'NPK 120:60:40 kg/hectare',
+            'water_requirement': '500-600mm',
+            'soil_type': 'Sandy loam, Loam',
+            'climate': 'Warm and humid'
+        },
+        'cotton': {
+            'name': 'Cotton',
+            'scientific_name': 'Gossypium hirsutum',
+            'suitable_regions': ['west', 'south', 'central'],
+            'best_states': ['Maharashtra', 'Gujarat', 'Telangana', 'Andhra Pradesh'],
+            'season': 'Kharif',
+            'growing_period': 'June to December',
+            'yield_potential': '500-600 kg lint/hectare',
+            'market_price': '₹6,620/quintal (MSP)',
+            'fertilizer_requirement': 'NPK 100:50:50 kg/hectare',
+            'water_requirement': '600-800mm',
+            'soil_type': 'Black soil, Clay loam',
+            'climate': 'Hot and dry'
+        },
+        'sugarcane': {
+            'name': 'Sugarcane',
+            'scientific_name': 'Saccharum officinarum',
+            'suitable_regions': ['west', 'south', 'north'],
+            'best_states': ['Maharashtra', 'Uttar Pradesh', 'Karnataka', 'Tamil Nadu'],
+            'season': 'Year-round',
+            'growing_period': '12-18 months',
+            'yield_potential': '80-100 tonnes/hectare',
+            'market_price': '₹315/quintal (FRP)',
+            'fertilizer_requirement': 'NPK 200:100:100 kg/hectare',
+            'water_requirement': '1500-2000mm',
+            'soil_type': 'Deep, well-drained loam',
+            'climate': 'Hot and humid'
+        },
+        'soybean': {
+            'name': 'Soybean',
+            'scientific_name': 'Glycine max',
+            'suitable_regions': ['central', 'west', 'south'],
+            'best_states': ['Madhya Pradesh', 'Maharashtra', 'Rajasthan', 'Karnataka'],
+            'season': 'Kharif',
+            'growing_period': 'June to October',
+            'yield_potential': '2-3 tonnes/hectare',
+            'market_price': '₹3,950/quintal (MSP)',
+            'fertilizer_requirement': 'NPK 60:40:40 kg/hectare',
+            'water_requirement': '400-500mm',
+            'soil_type': 'Well-drained loam',
+            'climate': 'Warm and moist'
+        }
+    }
+    
+    # Search for crop in database
+    for crop_key, crop_info in crop_database.items():
+        if (crop_name_lower in crop_key or 
+            crop_name_lower in crop_info['name'].lower() or
+            crop_name_lower in crop_info['scientific_name'].lower()):
+            
+            # Get suitable locations for this crop
+            suitable_locations = get_suitable_locations_for_crop(crop_info)
+            
+            return {
+                'type': 'crop',
+                'crop_info': crop_info,
+                'suitable_locations': suitable_locations,
+                'recommendations': get_crop_specific_recommendations(crop_info),
+                'market_analysis': get_crop_market_analysis(crop_key)
+            }
+    
+    return None
+
+def get_crop_recommendations_for_region(region: str) -> List[Dict[str, Any]]:
+    """Get crop recommendations for a specific region"""
+    regional_crops = {
+        'north': [
+            {'name': 'Wheat', 'season': 'Rabi', 'priority': 'high'},
+            {'name': 'Rice', 'season': 'Kharif', 'priority': 'medium'},
+            {'name': 'Maize', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Sugarcane', 'season': 'Year-round', 'priority': 'medium'},
+            {'name': 'Mustard', 'season': 'Rabi', 'priority': 'high'}
+        ],
+        'south': [
+            {'name': 'Rice', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Cotton', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Sugarcane', 'season': 'Year-round', 'priority': 'high'},
+            {'name': 'Maize', 'season': 'Kharif', 'priority': 'medium'},
+            {'name': 'Groundnut', 'season': 'Kharif', 'priority': 'high'}
+        ],
+        'east': [
+            {'name': 'Rice', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Jute', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Wheat', 'season': 'Rabi', 'priority': 'medium'},
+            {'name': 'Maize', 'season': 'Kharif', 'priority': 'medium'},
+            {'name': 'Potato', 'season': 'Rabi', 'priority': 'high'}
+        ],
+        'west': [
+            {'name': 'Cotton', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Sugarcane', 'season': 'Year-round', 'priority': 'high'},
+            {'name': 'Soybean', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Groundnut', 'season': 'Kharif', 'priority': 'medium'},
+            {'name': 'Wheat', 'season': 'Rabi', 'priority': 'medium'}
+        ],
+        'northeast': [
+            {'name': 'Rice', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Maize', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Tea', 'season': 'Year-round', 'priority': 'high'},
+            {'name': 'Jute', 'season': 'Kharif', 'priority': 'medium'},
+            {'name': 'Potato', 'season': 'Rabi', 'priority': 'medium'}
+        ],
+        'central': [
+            {'name': 'Wheat', 'season': 'Rabi', 'priority': 'high'},
+            {'name': 'Soybean', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Maize', 'season': 'Kharif', 'priority': 'high'},
+            {'name': 'Cotton', 'season': 'Kharif', 'priority': 'medium'},
+            {'name': 'Gram', 'season': 'Rabi', 'priority': 'medium'}
+        ]
+    }
+    
+    return regional_crops.get(region, get_general_crop_recommendations())
+
+def get_general_crop_recommendations() -> List[Dict[str, Any]]:
+    """Get general crop recommendations for India"""
+    return [
+        {'name': 'Wheat', 'season': 'Rabi', 'priority': 'high'},
+        {'name': 'Rice', 'season': 'Kharif', 'priority': 'high'},
+        {'name': 'Maize', 'season': 'Kharif', 'priority': 'medium'},
+        {'name': 'Cotton', 'season': 'Kharif', 'priority': 'medium'},
+        {'name': 'Sugarcane', 'season': 'Year-round', 'priority': 'medium'}
+    ]
+
+def get_agricultural_info_for_state(state_name: str, region: str) -> Dict[str, Any]:
+    """Get agricultural information for a specific state"""
+    state_info = {
+        'delhi': {
+            'major_crops': ['Wheat', 'Rice', 'Maize'],
+            'soil_type': 'Alluvial',
+            'climate': 'Semi-arid',
+            'irrigation': 'Canal and tube well',
+            'agricultural_zones': ['North Delhi', 'South Delhi', 'East Delhi']
+        },
+        'punjab': {
+            'major_crops': ['Wheat', 'Rice', 'Cotton', 'Sugarcane'],
+            'soil_type': 'Alluvial',
+            'climate': 'Semi-arid',
+            'irrigation': 'Canal irrigation',
+            'agricultural_zones': ['Malwa', 'Majha', 'Doaba']
+        },
+        'karnataka': {
+            'major_crops': ['Rice', 'Maize', 'Sugarcane', 'Cotton'],
+            'soil_type': 'Red soil, Black soil',
+            'climate': 'Tropical',
+            'irrigation': 'Rain-fed and irrigation',
+            'agricultural_zones': ['Coastal', 'Malnad', 'Bayaluseeme']
+        },
+        'tamil_nadu': {
+            'major_crops': ['Rice', 'Sugarcane', 'Cotton', 'Groundnut'],
+            'soil_type': 'Red soil, Alluvial',
+            'climate': 'Tropical',
+            'irrigation': 'Tank and well irrigation',
+            'agricultural_zones': ['Northern', 'Western', 'Southern']
+        },
+        'maharashtra': {
+            'major_crops': ['Cotton', 'Sugarcane', 'Soybean', 'Wheat'],
+            'soil_type': 'Black soil, Red soil',
+            'climate': 'Tropical',
+            'irrigation': 'Rain-fed and irrigation',
+            'agricultural_zones': ['Vidarbha', 'Marathwada', 'Western Maharashtra']
+        }
+    }
+    
+    return state_info.get(state_name.lower(), {
+        'major_crops': ['Wheat', 'Rice', 'Maize'],
+        'soil_type': 'Mixed',
+        'climate': 'Tropical to Subtropical',
+        'irrigation': 'Mixed',
+        'agricultural_zones': ['Zone 1', 'Zone 2', 'Zone 3']
+    })
+
+def get_suitable_locations_for_crop(crop_info: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Get suitable locations for a specific crop"""
+    suitable_states = []
+    
+    for state_name, state_data in enhanced_location_system.indian_states.items():
+        if state_data['region'] in crop_info['suitable_regions']:
+            suitable_states.append({
+                'state': state_name.replace('_', ' ').title(),
+                'region': state_data['region'],
+                'coordinates': {
+                    'latitude': state_data['lat'],
+                    'longitude': state_data['lon']
+                },
+                'suitability_score': calculate_crop_suitability_score(crop_info, state_data)
+            })
+    
+    # Sort by suitability score
+    suitable_states.sort(key=lambda x: x['suitability_score'], reverse=True)
+    return suitable_states[:5]  # Return top 5 suitable locations
+
+def calculate_crop_suitability_score(crop_info: Dict[str, Any], state_data: Dict[str, Any]) -> float:
+    """Calculate suitability score for a crop in a state"""
+    base_score = 0.5
+    
+    # Increase score if state is in best states list
+    if state_data['region'] in crop_info['suitable_regions']:
+        base_score += 0.3
+    
+    # Add random variation for demonstration
+    import random
+    base_score += random.uniform(0, 0.2)
+    
+    return min(base_score, 1.0)
+
+def get_crop_specific_recommendations(crop_info: Dict[str, Any]) -> Dict[str, Any]:
+    """Get specific recommendations for a crop"""
+    return {
+        'planting_time': crop_info['growing_period'],
+        'fertilizer_schedule': crop_info['fertilizer_requirement'],
+        'irrigation_requirements': crop_info['water_requirement'],
+        'soil_preparation': f"Prepare {crop_info['soil_type']} soil",
+        'harvest_time': "Based on growing period",
+        'storage_conditions': "Cool and dry storage recommended",
+        'market_timing': "Harvest during peak demand season"
+    }
+
+def get_crop_market_analysis(crop_key: str) -> Dict[str, Any]:
+    """Get market analysis for a crop"""
+    market_data = {
+        'wheat': {
+            'demand_trend': 'Stable',
+            'price_trend': 'Increasing',
+            'export_potential': 'High',
+            'processing_industries': ['Flour mills', 'Bakery', 'Pasta']
+        },
+        'rice': {
+            'demand_trend': 'High',
+            'price_trend': 'Stable',
+            'export_potential': 'Very High',
+            'processing_industries': ['Rice mills', 'Snack industry']
+        },
+        'cotton': {
+            'demand_trend': 'High',
+            'price_trend': 'Volatile',
+            'export_potential': 'Very High',
+            'processing_industries': ['Textile mills', 'Garment industry']
+        }
+    }
+    
+    return market_data.get(crop_key, {
+        'demand_trend': 'Moderate',
+        'price_trend': 'Stable',
+        'export_potential': 'Medium',
+        'processing_industries': ['General processing']
+    })

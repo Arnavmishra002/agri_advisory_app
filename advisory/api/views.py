@@ -3731,3 +3731,164 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 'error': 'Failed to get comprehensive data',
                 'details': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def crop_search(self, request):
+        """Search for crops and get recommendations with location suggestions"""
+        try:
+            crop_name = request.query_params.get('crop', '')
+            location = request.query_params.get('location', '')
+            
+            if not crop_name:
+                return Response({
+                    'error': 'Crop parameter is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Import enhanced location system
+            try:
+                from enhanced_indian_location_system import search_crop_by_name, get_crop_recommendations_for_region
+            except ImportError:
+                # Fallback to basic search
+                return Response({
+                    'error': 'Enhanced location system not available',
+                    'crop': crop_name,
+                    'suggestion': 'Use location search instead'
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            
+            # Search for crop
+            crop_data = search_crop_by_name(crop_name)
+            
+            if not crop_data:
+                return Response({
+                    'error': f'Crop "{crop_name}" not found in database',
+                    'suggestions': ['wheat', 'rice', 'maize', 'cotton', 'sugarcane', 'soybean']
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Get additional market data
+            additional_data = {}
+            if crop_data.get('type') == 'crop':
+                crop_info = crop_data.get('crop_info', {})
+                
+                # Get market prices from government API
+                from ..services.enhanced_government_api import EnhancedGovernmentAPI
+                government_api = EnhancedGovernmentAPI()
+                
+                try:
+                    market_data = government_api.get_real_market_prices(crop_name.lower())
+                    additional_data['market_prices'] = market_data
+                except Exception as e:
+                    logger.warning(f"Market data fetch failed: {e}")
+                
+                # Get MSP data
+                try:
+                    msp_data = government_api.get_msp_prices()
+                    crop_msp = [item for item in msp_data if crop_name.lower() in item.get('crop', '').lower()]
+                    additional_data['msp_data'] = crop_msp
+                except Exception as e:
+                    logger.warning(f"MSP data fetch failed: {e}")
+                
+                # Get weather data for suitable locations
+                suitable_locations = crop_data.get('suitable_locations', [])
+                if suitable_locations:
+                    top_location = suitable_locations[0]
+                    try:
+                        weather_data = government_api.get_real_weather_data(
+                            top_location['state'], 'en'
+                        )
+                        additional_data['weather_for_best_location'] = weather_data
+                    except Exception as e:
+                        logger.warning(f"Weather data fetch failed: {e}")
+            
+            return Response({
+                'crop_search': crop_data,
+                'additional_data': additional_data,
+                'timestamp': time.time()
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Crop search error: {e}")
+            return Response({
+                'error': 'Crop search failed',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def location_crop_recommendations(self, request):
+        """Get crop recommendations for a specific location"""
+        try:
+            latitude = request.query_params.get('lat')
+            longitude = request.query_params.get('lon')
+            location_name = request.query_params.get('location', '')
+            season = request.query_params.get('season', 'current')
+            
+            if not (latitude and longitude) and not location_name:
+                return Response({
+                    'error': 'Either coordinates (lat, lon) or location name is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Import enhanced location system
+            try:
+                from enhanced_indian_location_system import (
+                    get_comprehensive_location_info, 
+                    search_location_by_name,
+                    get_crop_recommendations_for_region
+                )
+            except ImportError:
+                # Fallback to AI system
+                if location_name:
+                    recommendations = ultimate_ai.get_location_recommendations(location_name, limit=10)
+                else:
+                    recommendations = ultimate_ai.get_location_recommendations("India", limit=10)
+                
+                return Response({
+                    'recommendations': recommendations,
+                    'source': 'AI System (Fallback)',
+                    'timestamp': time.time()
+                }, status=status.HTTP_200_OK)
+            
+            # Get location data
+            if latitude and longitude:
+                location_data = get_comprehensive_location_info(float(latitude), float(longitude))
+            else:
+                location_data = search_location_by_name(location_name)
+            
+            # Get crop recommendations
+            crop_recommendations = location_data.get('crop_recommendations', [])
+            
+            # Get government data
+            government_data = location_data.get('government_data', {})
+            
+            # Get weather data for the location
+            weather_data = None
+            try:
+                from ..services.enhanced_government_api import EnhancedGovernmentAPI
+                government_api = EnhancedGovernmentAPI()
+                
+                if latitude and longitude:
+                    weather_data = government_api.get_real_weather_data(f"{latitude},{longitude}", 'en')
+                elif location_name:
+                    weather_data = government_api.get_real_weather_data(location_name, 'en')
+            except Exception as e:
+                logger.warning(f"Weather data fetch failed: {e}")
+            
+            recommendations = {
+                'location_info': location_data.get('location_info', {}),
+                'crop_recommendations': crop_recommendations,
+                'agricultural_info': location_data.get('agricultural_info', {}),
+                'government_data': government_data,
+                'weather_data': weather_data,
+                'season': season
+            }
+            
+            return Response({
+                'recommendations': recommendations,
+                'source': 'Enhanced Location System + Government APIs',
+                'timestamp': time.time()
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Location crop recommendations error: {e}")
+            return Response({
+                'error': 'Failed to get location crop recommendations',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
