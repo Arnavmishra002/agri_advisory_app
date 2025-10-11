@@ -1105,11 +1105,35 @@ class UltimateIntelligentAI:
 🥇 **अनुशंसित फसलें**:"""
                         
                         for i, crop in enumerate(crop_recommendations[:5], 1):
+                            crop_name = crop.get('name', 'फसल')
+                            crop_type = crop.get('type', 'Crop')
+                            season = crop.get('season', 'N/A')
+                            suitability = crop.get('suitability', 75)
+                            msp = crop.get('msp', 2000)
+                            yield_info = crop.get('yield', '3-4 tons/hectare')
+                            
                             response += f"""
-{i}. **{crop.get('name', 'फसल')}**:
-   • मौसम: {crop.get('season', 'N/A')}
-   • प्राथमिकता: {crop.get('priority', 'Medium')}
-   • उपयुक्तता: {crop.get('suitability', 'Good')}%"""
+
+{'═' * 50}
+🌾 **{i}. {crop_name}** ({crop_type})
+{'═' * 50}
+📊 **उपयुक्तता**: {suitability}%
+🌱 **सीजन**: {season}
+📅 **बुआई का समय**: {crop.get('sowing_time', 'N/A')}
+🌾 **कटाई का समय**: {crop.get('harvest_time', 'N/A')}
+💰 **न्यूनतम समर्थन मूल्य (MSP)**: ₹{msp}/क्विंटल
+💲 **वर्तमान बाजार भाव**: ₹{crop.get('market_price', msp + 200)}/क्विंटल
+📈 **अपेक्षित उपज**: {yield_info}
+💵 **लाभ मार्जिन**: ₹{crop.get('profit_margin', '40,000-60,000')}/हेक्टेयर
+💧 **पानी की आवश्यकता**: {crop.get('water_requirement', 'Medium (400-600mm)')}
+🌿 **खाद की आवश्यकता**: {crop.get('fertilizer_requirement', 'NPK 120:60:40 kg/hectare')}
+🐛 **कीट प्रबंधन**: {crop.get('pest_management', 'सामान्य कीटनाशक का उपयोग करें')}
+🏛️ **सरकारी सहायता**: {crop.get('government_support', 85)}%
+⚠️ **जोखिम स्तर**: {crop.get('risk_level', 20)}%
+📊 **बाजार मांग**: {crop.get('market_demand', 90)}%
+🌍 **निर्यात क्षमता**: {crop.get('export_potential', 30)}%
+💡 **स्थानीय सुझाव**: {crop.get('local_advice', 'स्थानीय कृषि विशेषज्ञ से सलाह लें')}
+{'═' * 50}"""
                         
                         response += f"""
 
@@ -1123,11 +1147,35 @@ class UltimateIntelligentAI:
 🥇 **Recommended Crops**:"""
                         
                         for i, crop in enumerate(crop_recommendations[:5], 1):
+                            crop_name = crop.get('name', 'Crop')
+                            crop_type = crop.get('type', 'Crop')
+                            season = crop.get('season', 'N/A')
+                            suitability = crop.get('suitability', 75)
+                            msp = crop.get('msp', 2000)
+                            yield_info = crop.get('yield', '3-4 tons/hectare')
+                            
                             response += f"""
-{i}. **{crop.get('name', 'Crop')}**:
-   • Season: {crop.get('season', 'N/A')}
-   • Priority: {crop.get('priority', 'Medium')}
-   • Suitability: {crop.get('suitability', 'Good')}%"""
+
+{'═' * 50}
+🌾 **{i}. {crop_name}** ({crop_type})
+{'═' * 50}
+📊 **Suitability**: {suitability}%
+🌱 **Season**: {season}
+📅 **Sowing Time**: {crop.get('sowing_time', 'N/A')}
+🌾 **Harvest Time**: {crop.get('harvest_time', 'N/A')}
+💰 **Minimum Support Price (MSP)**: ₹{msp}/quintal
+💲 **Current Market Price**: ₹{crop.get('market_price', msp + 200)}/quintal
+📈 **Expected Yield**: {yield_info}
+💵 **Profit Margin**: ₹{crop.get('profit_margin', '40,000-60,000')}/hectare
+💧 **Water Requirement**: {crop.get('water_requirement', 'Medium (400-600mm)')}
+🌿 **Fertilizer Requirement**: {crop.get('fertilizer_requirement', 'NPK 120:60:40 kg/hectare')}
+🐛 **Pest Management**: {crop.get('pest_management', 'Use standard pesticides')}
+🏛️ **Government Support**: {crop.get('government_support', 85)}%
+⚠️ **Risk Level**: {crop.get('risk_level', 20)}%
+📊 **Market Demand**: {crop.get('market_demand', 90)}%
+🌍 **Export Potential**: {crop.get('export_potential', 30)}%
+💡 **Local Advice**: {crop.get('local_advice', 'Consult local agricultural experts')}
+{'═' * 50}"""
                         
                         response += f"""
 
