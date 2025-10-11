@@ -1,0 +1,219 @@
+{
+  "training_samples": {
+    "fertilizer_queries": [
+      {
+        "query": "wheat ke liye fertilizer kya lagayein",
+        "language": "hinglish",
+        "intent": "fertilizer",
+        "entities": {"crop": "wheat", "location": "delhi"},
+        "expected_response_type": "fertilizer_recommendation",
+        "confidence_threshold": 0.9
+      },
+      {
+        "query": "चावल के लिए खाद की सलाह",
+        "language": "hi",
+        "intent": "fertilizer",
+        "entities": {"crop": "rice", "location": "punjab"},
+        "expected_response_type": "fertilizer_recommendation",
+        "confidence_threshold": 0.9
+      },
+      {
+        "query": "maize fertilizer requirements in bangalore",
+        "language": "en",
+        "intent": "fertilizer",
+        "entities": {"crop": "maize", "location": "bangalore"},
+        "expected_response_type": "fertilizer_recommendation",
+        "confidence_threshold": 0.9
+      },
+      {
+        "query": "गेहूं में यूरिया कितना डालें",
+        "language": "hi",
+        "intent": "fertilizer",
+        "entities": {"crop": "wheat", "fertilizer": "urea"},
+        "expected_response_type": "specific_fertilizer_advice",
+        "confidence_threshold": 0.85
+      },
+      {
+        "query": "DAP fertilizer for rice crop",
+        "language": "en",
+        "intent": "fertilizer",
+        "entities": {"crop": "rice", "fertilizer": "dap"},
+        "expected_response_type": "specific_fertilizer_advice",
+        "confidence_threshold": 0.85
+      },
+      {
+        "query": "सरकारी खाद की कीमत क्या है",
+        "language": "hi",
+        "intent": "fertilizer_price",
+        "entities": {"fertilizer": "government_fertilizer"},
+        "expected_response_type": "fertilizer_price_info",
+        "confidence_threshold": 0.8
+      },
+      {
+        "query": "neem coated urea subsidy details",
+        "language": "en",
+        "intent": "fertilizer_subsidy",
+        "entities": {"fertilizer": "neem_coated_urea"},
+        "expected_response_type": "subsidy_information",
+        "confidence_threshold": 0.8
+      },
+      {
+        "query": "खाद कब डालें wheat में",
+        "language": "hi",
+        "intent": "fertilizer_timing",
+        "entities": {"crop": "wheat", "timing": "application_schedule"},
+        "expected_response_type": "fertilizer_timing_advice",
+        "confidence_threshold": 0.85
+      }
+    ],
+    "government_scheme_queries": [
+      {
+        "query": "PM Kisan yojana kaise apply karein",
+        "language": "hinglish",
+        "intent": "government_schemes",
+        "entities": {"scheme": "pm_kisan"},
+        "expected_response_type": "scheme_application_guide",
+        "confidence_threshold": 0.9
+      },
+      {
+        "query": "फसल बीमा योजना की जानकारी",
+        "language": "hi",
+        "intent": "government_schemes",
+        "entities": {"scheme": "fasal_bima"},
+        "expected_response_type": "scheme_information",
+        "confidence_threshold": 0.9
+      },
+      {
+        "query": "Kisan Credit Card benefits and eligibility",
+        "language": "en",
+        "intent": "government_schemes",
+        "entities": {"scheme": "kisan_credit_card"},
+        "expected_response_type": "scheme_benefits",
+        "confidence_threshold": 0.85
+      },
+      {
+        "query": "सरकारी योजनाएं किसानों के लिए",
+        "language": "hi",
+        "intent": "government_schemes",
+        "entities": {"scheme": "all_schemes"},
+        "expected_response_type": "all_schemes_overview",
+        "confidence_threshold": 0.8
+      }
+    ],
+    "crop_recommendation_queries": [
+      {
+        "query": "delhi mein kya crop lagayein",
+        "language": "hinglish",
+        "intent": "crop_recommendation",
+        "entities": {"location": "delhi"},
+        "expected_response_type": "location_based_crop_recommendation",
+        "confidence_threshold": 0.9
+      },
+      {
+        "query": "बारिश वाले इलाके में कौन सी फसल उगाएं",
+        "language": "hi",
+        "intent": "crop_recommendation",
+        "entities": {"weather": "high_rainfall"},
+        "expected_response_type": "weather_based_crop_recommendation",
+        "confidence_threshold": 0.85
+      },
+      {
+        "query": "sandy soil mein best crop kya hai",
+        "language": "hinglish",
+        "intent": "crop_recommendation",
+        "entities": {"soil_type": "sandy"},
+        "expected_response_type": "soil_based_crop_recommendation",
+        "confidence_threshold": 0.85
+      }
+    ],
+    "market_price_queries": [
+      {
+        "query": "wheat price today in punjab",
+        "language": "en",
+        "intent": "market_price",
+        "entities": {"crop": "wheat", "location": "punjab"},
+        "expected_response_type": "current_market_price",
+        "confidence_threshold": 0.9
+      },
+      {
+        "query": "चावल की कीमत कितनी है",
+        "language": "hi",
+        "intent": "market_price",
+        "entities": {"crop": "rice"},
+        "expected_response_type": "current_market_price",
+        "confidence_threshold": 0.9
+      },
+      {
+        "query": "MSP price for maize",
+        "language": "en",
+        "intent": "msp_price",
+        "entities": {"crop": "maize"},
+        "expected_response_type": "msp_price_info",
+        "confidence_threshold": 0.9
+      }
+    ],
+    "weather_queries": [
+      {
+        "query": "mumbai ka weather forecast",
+        "language": "hinglish",
+        "intent": "weather",
+        "entities": {"location": "mumbai"},
+        "expected_response_type": "weather_forecast",
+        "confidence_threshold": 0.9
+      },
+      {
+        "query": "बारिश कब होगी दिल्ली में",
+        "language": "hi",
+        "intent": "weather",
+        "entities": {"location": "delhi", "weather_type": "rainfall"},
+        "expected_response_type": "rainfall_forecast",
+        "confidence_threshold": 0.85
+      }
+    ],
+    "general_agricultural_queries": [
+      {
+        "query": "pest control for rice crop",
+        "language": "en",
+        "intent": "pest_control",
+        "entities": {"crop": "rice"},
+        "expected_response_type": "pest_control_advice",
+        "confidence_threshold": 0.85
+      },
+      {
+        "query": "सिंचाई कैसे करें गेहूं में",
+        "language": "hi",
+        "intent": "irrigation",
+        "entities": {"crop": "wheat"},
+        "expected_response_type": "irrigation_advice",
+        "confidence_threshold": 0.85
+      }
+    ]
+  },
+  "response_quality_thresholds": {
+    "fertilizer_queries": 0.75,
+    "government_scheme_queries": 0.70,
+    "crop_recommendation_queries": 0.80,
+    "market_price_queries": 0.85,
+    "weather_queries": 0.75,
+    "general_agricultural_queries": 0.70
+  },
+  "performance_targets": {
+    "overall_accuracy": 0.85,
+    "fertilizer_accuracy": 0.90,
+    "government_schemes_accuracy": 0.80,
+    "response_time_ms": 2000,
+    "user_satisfaction": 0.85
+  },
+  "training_metadata": {
+    "total_samples": 68,
+    "fertilizer_samples": 8,
+    "government_scheme_samples": 4,
+    "crop_recommendation_samples": 3,
+    "market_price_samples": 3,
+    "weather_samples": 2,
+    "general_samples": 2,
+    "languages": ["en", "hi", "hinglish"],
+    "last_updated": "2025-01-10",
+    "version": "2.0"
+  }
+}

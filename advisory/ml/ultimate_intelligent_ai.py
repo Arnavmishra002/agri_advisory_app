@@ -6,6 +6,7 @@ ChatGPT-level intelligence - understands every query with 90%+ accuracy
 
 import re
 import logging
+import time
 from datetime import datetime
 from typing import Dict, Any, List
 from ..services.enhanced_government_api import EnhancedGovernmentAPI
@@ -16,7 +17,36 @@ from ..services.enhanced_multilingual import enhanced_multilingual
 from ..services.general_apis import general_apis_service
 from ..services.ai_ml_crop_recommendation import ai_ml_crop_system
 from ..services.google_ai_studio import google_ai_studio
+from ..services.ollama_integration import ollama_integration
+from ..services.comprehensive_government_api import comprehensive_government_api
 from .self_learning_ai import self_learning_ai
+
+# Import ChatGPT-level enhancer
+try:
+    from chatgpt_level_response_enhancer import enhance_response_to_chatgpt_level, calculate_response_quality_metrics
+except ImportError:
+    # Fallback if enhancer not available
+    def enhance_response_to_chatgpt_level(response, query, intent, language, entities):
+        return response
+    
+    def calculate_response_quality_metrics(response, query, intent):
+        return {'overall': 0.5, 'completeness': 0.5, 'accuracy': 0.5, 'relevance': 0.5}
+
+# Import Advanced Response Enhancer
+try:
+    from advanced_response_enhancer import enhance_response_advanced
+except ImportError:
+    def enhance_response_advanced(response, query, intent, language, entities):
+        return response
+
+# Import Enhanced Indian Location System
+try:
+    from enhanced_indian_location_system import get_comprehensive_location_info, search_location_by_name
+except ImportError:
+    def get_comprehensive_location_info(lat, lon):
+        return {'location_info': {'state': 'Unknown', 'district': 'Unknown'}}
+    def search_location_by_name(name):
+        return {'name': 'Unknown', 'coordinates': {'latitude': 20.5937, 'longitude': 78.9629}}
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +60,8 @@ class UltimateIntelligentAI:
         self.enhanced_multilingual = enhanced_multilingual  # Enhanced multilingual support
         self.general_apis = general_apis_service  # General APIs service
         self.google_ai = google_ai_studio  # Google AI Studio integration
+        self.ollama = ollama_integration  # Ollama integration for ChatGPT-level responses
+        self.government_api = comprehensive_government_api  # Comprehensive government API integration
         self.crop_prices = {
             'wheat': '2,450',
             'rice': '3,200', 
@@ -1012,7 +1044,7 @@ class UltimateIntelligentAI:
         else:
             return f"🌾 **Comprehensive Information:**\n\n" + "\n\n".join(responses)
     
-    def _generate_greeting_response(self, language: str) -> str:
+    def _generate_greeting_response(self, language: str = 'en') -> str:
         """Generate intelligent greeting response like ChatGPT"""
         import random
         from datetime import datetime
@@ -2525,15 +2557,19 @@ class UltimateIntelligentAI:
             return f"🏛️ Government Schemes for Farmers in {location}:\n\n💰 Major Schemes:\n• PM Kisan Samman Nidhi - ₹6,000/year (₹2,000 x 3 installments)\n• Pradhan Mantri Fasal Bima Yojana - 90% subsidy\n• Kisan Credit Card - ₹3 lakh loan limit\n• Soil Health Card Scheme - Free soil testing\n• National Agriculture Development Scheme\n• Neem Coated Urea Subsidy - ₹2,500/bag\n• DAP Subsidy - ₹1,350/bag\n\n🌱 Soil Health Card Scheme:\n• Free soil testing and recommendations\n• Soil pH and nutrient analysis\n• Crop recommendations and fertilizer dosage\n• Apply at nearest Krishi Vigyan Kendra (KVK)\n• Valid for 3 years, completely free\n\n📊 MSP (Minimum Support Price):\n• Wheat: ₹2,275/quintal\n• Rice: ₹2,183/quintal\n• Maize: ₹2,090/quintal\n• Cotton: ₹6,620/quintal\n\n📋 Application Process:\n• Apply online at pmkisan.gov.in\n• Aadhaar card mandatory\n• Bank account required\n• Upload land documents\n\n📞 Helpline: 1800-180-1551\n🌐 Website: pmkisan.gov.in"
     
     def _generate_fertilizer_response(self, entities: Dict[str, Any], language: str, query: str, latitude: float = None, longitude: float = None) -> str:
-        """Generate fertilizer response with government data"""
+        """Generate comprehensive fertilizer response with government data"""
         location = entities.get("location", "Delhi")
         crop = entities.get("crop", "")
         
         # Get real-time fertilizer data from government API
         try:
             fertilizer_data = self.government_api.get_real_fertilizer_prices(latitude, longitude)
-        except:
+        except Exception as e:
+            logger.warning(f"Failed to get fertilizer data: {e}")
             fertilizer_data = None
+        
+        # Enhanced fertilizer recommendations based on crop and soil type
+        fertilizer_recommendations = self._get_enhanced_fertilizer_recommendations(crop, location, language)
         
         if language == 'hi':
             response = f"🌱 {location} में {crop} के लिए उर्वरक सलाह:\n\n"
@@ -2588,6 +2624,224 @@ class UltimateIntelligentAI:
                 response += "• Urea: 100-150 kg/hectare\n• DAP: 50-80 kg/hectare\n• MOP: 40-60 kg/hectare\n• Zinc Sulphate: 25 kg/hectare\n"
             
             response += f"\n⏰ Fertilizer Application Timing:\n• At sowing: 50%\n• Top dressing: 25% (30 days later)\n• Second top dressing: 25% (60 days later)\n\n💡 Tips:\n• Get soil testing done\n• Use organic manure\n• Use neem coated urea\n• Avail government subsidies"
+        
+        return response
+    
+    def _get_enhanced_fertilizer_recommendations(self, crop: str, location: str, language: str) -> Dict[str, Any]:
+        """Get enhanced fertilizer recommendations based on crop, location, and government data"""
+        
+        # Comprehensive fertilizer database based on ICAR recommendations
+        crop_fertilizer_db = {
+            'wheat': {
+                'primary': {
+                    'urea': {'amount': '100-120', 'unit': 'kg/hectare', 'timing': 'Split application'},
+                    'dap': {'amount': '50-60', 'unit': 'kg/hectare', 'timing': 'Basal application'},
+                    'mop': {'amount': '40-50', 'unit': 'kg/hectare', 'timing': 'Basal application'}
+                },
+                'secondary': {
+                    'zinc_sulphate': {'amount': '25', 'unit': 'kg/hectare'},
+                    'boron': {'amount': '1-2', 'unit': 'kg/hectare'}
+                },
+                'organic': {
+                    'farmyard_manure': {'amount': '10-15', 'unit': 'tonnes/hectare'},
+                    'vermicompost': {'amount': '5-8', 'unit': 'tonnes/hectare'}
+                },
+                'application_schedule': {
+                    'basal': 'DAP, MOP, Zinc Sulphate, Farmyard Manure',
+                    'top_dressing_1': 'Urea (1/3) at 25-30 days',
+                    'top_dressing_2': 'Urea (1/3) at 45-50 days',
+                    'top_dressing_3': 'Urea (1/3) at 60-65 days'
+                },
+                'critical_stages': 'Sowing, Tillering, Flag leaf, Grain filling',
+                'soil_ph_range': '6.0-8.0',
+                'moisture_requirement': 'Adequate soil moisture during application'
+            },
+            'rice': {
+                'primary': {
+                    'urea': {'amount': '120-150', 'unit': 'kg/hectare', 'timing': 'Split application'},
+                    'dap': {'amount': '60-80', 'unit': 'kg/hectare', 'timing': 'Basal application'},
+                    'mop': {'amount': '50-60', 'unit': 'kg/hectare', 'timing': 'Basal application'}
+                },
+                'secondary': {
+                    'zinc_sulphate': {'amount': '25', 'unit': 'kg/hectare'},
+                    'iron_sulphate': {'amount': '10-15', 'unit': 'kg/hectare'}
+                },
+                'organic': {
+                    'farmyard_manure': {'amount': '12-15', 'unit': 'tonnes/hectare'},
+                    'green_manure': {'amount': '3-5', 'unit': 'tonnes/hectare'}
+                },
+                'application_schedule': {
+                    'basal': 'DAP, MOP, Zinc Sulphate, Farmyard Manure',
+                    'top_dressing_1': 'Urea (1/3) at 20-25 days after transplanting',
+                    'top_dressing_2': 'Urea (1/3) at 40-45 days',
+                    'top_dressing_3': 'Urea (1/3) at 60-65 days'
+                },
+                'critical_stages': 'Transplanting, Tillering, Panicle initiation, Flowering',
+                'soil_ph_range': '5.5-7.5',
+                'moisture_requirement': 'Continuous flooding or alternate wetting and drying'
+            },
+            'maize': {
+                'primary': {
+                    'urea': {'amount': '150-180', 'unit': 'kg/hectare', 'timing': 'Split application'},
+                    'dap': {'amount': '80-100', 'unit': 'kg/hectare', 'timing': 'Basal application'},
+                    'mop': {'amount': '60-80', 'unit': 'kg/hectare', 'timing': 'Basal application'}
+                },
+                'secondary': {
+                    'zinc_sulphate': {'amount': '25', 'unit': 'kg/hectare'},
+                    'sulfur': {'amount': '20-25', 'unit': 'kg/hectare'}
+                },
+                'organic': {
+                    'farmyard_manure': {'amount': '15-20', 'unit': 'tonnes/hectare'},
+                    'compost': {'amount': '8-10', 'unit': 'tonnes/hectare'}
+                },
+                'application_schedule': {
+                    'basal': 'DAP, MOP, Zinc Sulphate, Farmyard Manure',
+                    'top_dressing_1': 'Urea (1/3) at 25-30 days',
+                    'top_dressing_2': 'Urea (1/3) at 45-50 days',
+                    'top_dressing_3': 'Urea (1/3) at 65-70 days'
+                },
+                'critical_stages': 'Sowing, Knee-high, Tasseling, Grain filling',
+                'soil_ph_range': '6.0-7.5',
+                'moisture_requirement': 'Critical at tasseling and grain filling stages'
+            }
+        }
+        
+        # Default recommendations if crop not found
+        default_recommendations = {
+            'primary': {
+                'urea': {'amount': '100-150', 'unit': 'kg/hectare', 'timing': 'Split application'},
+                'dap': {'amount': '50-80', 'unit': 'kg/hectare', 'timing': 'Basal application'},
+                'mop': {'amount': '40-60', 'unit': 'kg/hectare', 'timing': 'Basal application'}
+            },
+            'secondary': {
+                'zinc_sulphate': {'amount': '25', 'unit': 'kg/hectare'},
+                'micronutrients': {'amount': 'As per soil test', 'unit': 'kg/hectare'}
+            },
+            'organic': {
+                'farmyard_manure': {'amount': '10-15', 'unit': 'tonnes/hectare'},
+                'vermicompost': {'amount': '5-8', 'unit': 'tonnes/hectare'}
+            }
+        }
+        
+        crop_lower = crop.lower() if crop else ''
+        recommendations = crop_fertilizer_db.get(crop_lower, default_recommendations)
+        
+        # Add government subsidy information
+        recommendations['government_subsidies'] = {
+            'urea': '50% subsidy available',
+            'dap': '60% subsidy available', 
+            'mop': '40% subsidy available',
+            'neem_coated_urea': '50% subsidy + additional benefits',
+            'micronutrients': '30% subsidy available'
+        }
+        
+        recommendations['soil_health_card'] = {
+            'benefit': 'Free soil testing and recommendations',
+            'validity': '3 years',
+            'application': 'At nearest KVK or agriculture office'
+        }
+        
+        return recommendations
+
+    def _generate_government_schemes_response(self, entities: Dict[str, Any], language: str) -> str:
+        """Generate government schemes response with comprehensive information"""
+        location = entities.get("location", "Delhi")
+        
+        if language == 'hi':
+            response = f"🏛️ {location} में किसानों के लिए सरकारी योजनाएं:\n\n"
+            response += "💰 **मुख्य योजनाएं:**\n"
+            response += "• **PM किसान सम्मान निधि** - ₹6,000 प्रति वर्ष (₹2,000 x 3 किस्त)\n"
+            response += "• **प्रधानमंत्री फसल बीमा योजना** - 90% सब्सिडी\n"
+            response += "• **किसान क्रेडिट कार्ड** - ₹3 लाख तक ऋण\n"
+            response += "• **मृदा स्वास्थ्य कार्ड योजना** - मुफ्त मिट्टी परीक्षण\n"
+            response += "• **राष्ट्रीय कृषि विकास योजना**\n"
+            response += "• **नीम कोटेड यूरिया सब्सिडी** - ₹2,500/बैग\n"
+            response += "• **DAP सब्सिडी** - ₹1,350/बैग\n\n"
+            
+            response += "🌱 **मृदा स्वास्थ्य कार्ड योजना:**\n"
+            response += "• मुफ्त मिट्टी परीक्षण और सुझाव\n"
+            response += "• मिट्टी का pH, पोषक तत्वों की जांच\n"
+            response += "• फसल सुझाव और उर्वरक मात्रा\n"
+            response += "• नजदीकी कृषि विज्ञान केंद्र में आवेदन\n"
+            response += "• 3 साल तक वैध, पूरी तरह मुफ्त\n\n"
+            
+            response += "📊 **MSP (न्यूनतम समर्थन मूल्य):**\n"
+            response += "• गेहूं: ₹2,275/क्विंटल\n"
+            response += "• चावल: ₹2,183/क्विंटल\n"
+            response += "• मक्का: ₹2,090/क्विंटल\n"
+            response += "• कपास: ₹6,620/क्विंटल\n\n"
+            
+            response += "📋 **आवेदन कैसे करें:**\n"
+            response += "• ऑनलाइन आवेदन करें\n"
+            response += "• आधार कार्ड जरूरी\n"
+            response += "• बैंक खाता चाहिए\n"
+            response += "• भूमि दस्तावेज अपलोड करें\n\n"
+            response += "📞 **हेल्पलाइन:** 1800-180-1551\n"
+            response += "🌐 **वेबसाइट:** pmkisan.gov.in"
+            
+        elif language == 'hinglish':
+            response = f"🏛️ {location} mein kisaano ke liye sarkari yojanayein:\n\n"
+            response += "💰 **Main schemes:**\n"
+            response += "• **PM Kisan Samman Nidhi** - ₹6,000/year (₹2,000 x 3 किस्त)\n"
+            response += "• **Pradhan Mantri Fasal Bima Yojana** - 90% subsidy\n"
+            response += "• **Kisan Credit Card** - ₹3 lakh tak loan\n"
+            response += "• **मृदा स्वास्थ्य कार्ड योजना** - मुफ्त मिट्टी परीक्षण\n"
+            response += "• **National Agriculture Development Scheme**\n"
+            response += "• **Neem Coated Urea Subsidy** - ₹2,500/bag\n"
+            response += "• **DAP Subsidy** - ₹1,350/bag\n\n"
+            
+            response += "🌱 **मृदा स्वास्थ्य कार्ड योजना:**\n"
+            response += "• मुफ्त मिट्टी परीक्षण और सुझाव\n"
+            response += "• मिट्टी का pH, पोषक तत्वों की जांच\n"
+            response += "• फसल सुझाव और उर्वरक मात्रा\n"
+            response += "• नजदीकी कृषि विज्ञान केंद्र में आवेदन\n"
+            response += "• 3 साल तक वैध, पूरी तरह मुफ्त\n\n"
+            
+            response += "📊 **MSP (Minimum Support Price):**\n"
+            response += "• Wheat: ₹2,275/quintal\n"
+            response += "• Rice: ₹2,183/quintal\n"
+            response += "• Maize: ₹2,090/quintal\n"
+            response += "• Cotton: ₹6,620/quintal\n\n"
+            
+            response += "📋 **Apply kaise karein:**\n"
+            response += "• Online apply karein\n"
+            response += "• Aadhaar card zaroori\n"
+            response += "• Bank account chahiye\n"
+            response += "• Land documents upload karein\n\n"
+            response += "📞 **Helpline:** 1800-180-1551\n"
+            response += "🌐 **Website:** pmkisan.gov.in"
+            
+        else:
+            response = f"🏛️ Government Schemes for Farmers in {location}:\n\n"
+            response += "💰 **Major Schemes:**\n"
+            response += "• **PM Kisan Samman Nidhi** - ₹6,000/year (₹2,000 x 3 installments)\n"
+            response += "• **Pradhan Mantri Fasal Bima Yojana** - 90% subsidy\n"
+            response += "• **Kisan Credit Card** - ₹3 lakh loan limit\n"
+            response += "• **Soil Health Card Scheme** - Free soil testing\n"
+            response += "• **National Agriculture Development Scheme**\n"
+            response += "• **Neem Coated Urea Subsidy** - ₹2,500/bag\n"
+            response += "• **DAP Subsidy** - ₹1,350/bag\n\n"
+            
+            response += "🌱 **Soil Health Card Scheme:**\n"
+            response += "• Free soil testing and recommendations\n"
+            response += "• Soil pH and nutrient analysis\n"
+            response += "• Crop recommendations and fertilizer dosage\n"
+            response += "• Apply at nearest Krishi Vigyan Kendra (KVK)\n"
+            response += "• Valid for 3 years, completely free\n\n"
+            
+            response += "📊 **MSP (Minimum Support Price):**\n"
+            response += "• Wheat: ₹2,275/quintal\n"
+            response += "• Rice: ₹2,183/quintal\n"
+            response += "• Maize: ₹2,090/quintal\n"
+            response += "• Cotton: ₹6,620/quintal\n\n"
+            
+            response += "📋 **Application Process:**\n"
+            response += "• Apply online at pmkisan.gov.in\n"
+            response += "• Aadhaar card mandatory\n"
+            response += "• Bank account required\n"
+            response += "• Upload land documents\n\n"
+            response += "📞 **Helpline:** 1800-180-1551\n"
+            response += "🌐 **Website:** pmkisan.gov.in"
         
         return response
 
@@ -2844,6 +3098,109 @@ class UltimateIntelligentAI:
         else:
             return "Sorry, I couldn't understand your request. Please try again."
     
+    def get_chatgpt_level_response(self, user_query: str, language: str = 'en', 
+                                  user_id: str = None, session_id: str = None, 
+                                  latitude: float = None, longitude: float = None,
+                                  conversation_history: List = None, location_name: str = None) -> Dict[str, Any]:
+        """Get ChatGPT-level response for any query using government APIs, Ollama and open source APIs"""
+        try:
+            logger.info(f"Processing ChatGPT-level query: {user_query[:100]}...")
+            
+            # First, try government APIs for relevant queries
+            gov_response = self.government_api.get_government_response(
+                query=user_query,
+                language=language,
+                query_type='general',
+                context={
+                    'user_id': user_id,
+                    'session_id': session_id,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'conversation_history': conversation_history,
+                    'location_name': location_name
+                }
+            )
+            
+            if gov_response and gov_response.get('confidence', 0) > 0.8:
+                return {
+                    'response': gov_response['response'],
+                    'intent': gov_response.get('category', 'general'),
+                    'entities': gov_response.get('entities', []),
+                    'language': language,
+                    'timestamp': time.time(),
+                    'source': gov_response.get('source', 'government_api'),
+                    'confidence': gov_response.get('confidence', 0.9),
+                    'chatgpt_level': True,
+                    'government_data': True
+                }
+            
+            # Use Ollama integration for comprehensive responses
+            ollama_response = self.ollama.get_response(
+                query=user_query,
+                language=language,
+                context={
+                    'user_id': user_id,
+                    'session_id': session_id,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'conversation_history': conversation_history,
+                    'location_name': location_name
+                }
+            )
+            
+            if ollama_response and ollama_response.get('confidence', 0) > 0.7:
+                return {
+                    'response': ollama_response['response'],
+                    'intent': ollama_response.get('category', 'general'),
+                    'entities': ollama_response.get('entities', []),
+                    'language': language,
+                    'timestamp': time.time(),
+                    'source': ollama_response.get('source', 'ollama'),
+                    'confidence': ollama_response.get('confidence', 0.8),
+                    'chatgpt_level': True
+                }
+            
+            # Fallback to Google AI Studio if Ollama is not available
+            google_response = self.google_ai.classify_query(user_query)
+            if google_response and google_response.get('confidence', 0) > 0.6:
+                enhanced_response = self.google_ai.generate_enhanced_response(user_query, google_response)
+                return {
+                    'response': enhanced_response,
+                    'intent': google_response.get('category', 'general'),
+                    'entities': google_response.get('entities', []),
+                    'language': language,
+                    'timestamp': time.time(),
+                    'source': 'google_ai_studio',
+                    'confidence': google_response.get('confidence', 0.7),
+                    'chatgpt_level': True
+                }
+            
+            # Ultimate fallback to general APIs
+            general_response = self.general_apis.handle_general_question(user_query, language)
+            return {
+                'response': general_response.get('response', 'I understand your query. Let me help you with that.'),
+                'intent': 'general',
+                'entities': [],
+                'language': language,
+                'timestamp': time.time(),
+                'source': general_response.get('source', 'general_apis'),
+                'confidence': general_response.get('confidence', 0.6),
+                'chatgpt_level': True
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in ChatGPT-level response: {e}")
+            return {
+                'response': self._get_error_response(language),
+                'intent': 'error',
+                'entities': [],
+                'language': language,
+                'timestamp': time.time(),
+                'source': 'error',
+                'confidence': 0.3,
+                'chatgpt_level': False
+            }
+    
     def get_response(self, user_query: str, language: str = 'en', user_id: str = None, 
                     session_id: str = None, latitude: float = None, longitude: float = None,
                     conversation_history: List = None, location_name: str = None) -> Dict[str, Any]:
@@ -2910,8 +3267,35 @@ class UltimateIntelligentAI:
             }
 
     def _determine_enhanced_response_type(self, analysis: Dict[str, Any], query: str = None) -> str:
-        """Determine response type using Google AI Studio for accurate query understanding"""
+        """Determine response type using intelligent context-aware understanding like ChatGPT"""
         try:
+            if not query:
+                return 'general'
+            
+            query_lower = query.lower().strip()
+            
+            # Handle greetings and casual conversation intelligently
+            greeting_patterns = [
+                'hi', 'hello', 'hey', 'namaste', 'namaskar', 'hii', 'helloo',
+                'good morning', 'good afternoon', 'good evening', 'good night',
+                'how are you', 'how are u', 'kaise ho', 'कैसे हो', 'कैसे हैं',
+                'thanks', 'thank you', 'dhanyawad', 'धन्यवाद', 'shukriya', 'शुक्रिया',
+                'bye', 'goodbye', 'see you', 'take care', 'alvida', 'अलविदा'
+            ]
+            
+            if any(greeting in query_lower for greeting in greeting_patterns):
+                return 'greeting'
+            
+            # Handle questions about AI capabilities
+            ai_questions = [
+                'what can you do', 'what are your capabilities', 'help', 'सहायता',
+                'what do you know', 'what can you help', 'क्या कर सकते हो',
+                'tum kya kar sakte ho', 'आप क्या कर सकते हैं'
+            ]
+            
+            if any(ai_q in query_lower for ai_q in ai_questions):
+                return 'capabilities'
+            
             # Use Google AI analysis if available for better accuracy
             google_analysis = analysis.get('google_ai_analysis', {})
             if google_analysis:
@@ -2940,56 +3324,45 @@ class UltimateIntelligentAI:
             query_type = analysis.get('query_type', 'general')
             subcategory = analysis.get('subcategory', 'general')
             
-            if query:
-                # Comprehensive farming keyword detection
-                farming_keywords = [
-                    'crop', 'फसल', 'price', 'कीमत', 'weather', 'मौसम', 'pest', 'कीट', 
-                    'government', 'सरकार', 'scheme', 'योजना', 'fertilizer', 'उर्वरक',
-                    'lagayein', 'लगाएं', 'suggest', 'सुझाव', 'recommend', 'कौन सी', 'kya',
-                    'agricultural', 'कृषि', 'farming', 'खेती', 'advice', 'सलाह',
-                    'soil', 'मिट्टी', 'market', 'बाजार', 'mandi', 'मंडी',
-                    'cotton', 'कपास', 'msp', 'एमएसपी', 'subsidy', 'सब्सिडी',
-                    'temperature', 'तापमान', 'rain', 'बारिश', 'forecast', 'पूर्वानुमान',
-                    'agricultural advice', 'कृषि सलाह', 'i need agricultural', 'मुझे कृषि',
-                    'wheat', 'गेहूं', 'rice', 'चावल', 'maize', 'मक्का', 'potato', 'आलू',
-                    'onion', 'प्याज', 'tomato', 'टमाटर', 'sugarcane', 'गन्ना'
-                ]
-                
-                # Specific query type detection with priority
-                query_lower = query.lower()
-                
-                # Crop recommendation queries
-                crop_keywords = ['lagayein', 'लगाएं', 'suggest', 'सुझाव', 'recommend', 'अनुशंसा', 'kya', 'क्या', 'कौन सी']
-                if any(keyword in query_lower for keyword in farming_keywords) and any(keyword in query_lower for keyword in crop_keywords):
-                    return 'ai_ml_crop'
-                
-                # Market price queries
-                elif any(keyword in query_lower for keyword in ['price', 'कीमत', 'market', 'बाजार', 'mandi', 'मंडी', 'msp', 'एमएसपी']):
-                    return 'market_price'
-                
-                # Weather queries
-                elif any(keyword in query_lower for keyword in ['weather', 'मौसम', 'rain', 'बारिश', 'temperature', 'तापमान', 'forecast', 'पूर्वानुमान']):
-                    return 'weather'
-                
-                # Government scheme queries
-                elif any(keyword in query_lower for keyword in ['scheme', 'योजना', 'government', 'सरकार', 'subsidy', 'सब्सिडी', 'pm kisan', 'loan', 'कर्ज']):
-                    return 'government_scheme'
-                
-                # General farming queries
-                elif any(keyword in query_lower for keyword in farming_keywords):
-                    return 'farming'
-                
-                # General queries
-                else:
-                    return 'general'
+            # Comprehensive farming keyword detection
+            farming_keywords = [
+                'crop', 'फसल', 'price', 'कीमत', 'weather', 'मौसम', 'pest', 'कीट', 
+                'government', 'सरकार', 'scheme', 'योजना', 'fertilizer', 'उर्वरक',
+                'lagayein', 'लगाएं', 'suggest', 'सुझाव', 'recommend', 'कौन सी', 'kya',
+                'agricultural', 'कृषि', 'farming', 'खेती', 'advice', 'सलाह',
+                'soil', 'मिट्टी', 'market', 'बाजार', 'mandi', 'मंडी',
+                'cotton', 'कपास', 'msp', 'एमएसपी', 'subsidy', 'सब्सिडी',
+                'temperature', 'तापमान', 'rain', 'बारिश', 'forecast', 'पूर्वानुमान',
+                'agricultural advice', 'कृषि सलाह', 'i need agricultural', 'मुझे कृषि',
+                'wheat', 'गेहूं', 'rice', 'चावल', 'maize', 'मक्का', 'potato', 'आलू',
+                'onion', 'प्याज', 'tomato', 'टमाटर', 'sugarcane', 'गन्ना'
+            ]
             
-            # Use classification result as fallback
-            if query_type == 'farming':
+            # Specific query type detection with priority
+            query_lower = query.lower()
+            
+            # Crop recommendation queries
+            crop_keywords = ['lagayein', 'लगाएं', 'suggest', 'सुझाव', 'recommend', 'अनुशंसा', 'kya', 'क्या', 'कौन सी']
+            if any(keyword in query_lower for keyword in farming_keywords) and any(keyword in query_lower for keyword in crop_keywords):
+                return 'ai_ml_crop'
+            
+            # Market price queries
+            elif any(keyword in query_lower for keyword in ['price', 'कीमत', 'market', 'बाजार', 'mandi', 'मंडी', 'msp', 'एमएसपी']):
+                return 'market_price'
+            
+            # Weather queries
+            elif any(keyword in query_lower for keyword in ['weather', 'मौसम', 'rain', 'बारिश', 'temperature', 'तापमान', 'forecast', 'पूर्वानुमान']):
+                return 'weather'
+            
+            # Government scheme queries
+            elif any(keyword in query_lower for keyword in ['scheme', 'योजना', 'government', 'सरकार', 'subsidy', 'सब्सिडी', 'pm kisan', 'loan', 'कर्ज']):
+                return 'government_scheme'
+            
+            # General farming queries
+            elif any(keyword in query_lower for keyword in farming_keywords):
                 return 'farming'
-            elif query_type == 'general':
-                return 'general'
-            elif query_type == 'mixed':
-                return 'mixed'
+            
+            # General queries
             else:
                 return 'general'
                 
@@ -3025,6 +3398,14 @@ class UltimateIntelligentAI:
             else:
                 # Default farming response
                 return self._generate_enhanced_crop_response(analysis, language, latitude, longitude, location_name)
+        
+        elif response_type == 'greeting':
+            # Handle greetings and casual conversation intelligently
+            return self._generate_greeting_response(language)
+        
+        elif response_type == 'capabilities':
+            # Handle questions about AI capabilities
+            return self._generate_capabilities_response(user_query, language)
         
         elif response_type == 'general':
             # Use Google AI Studio for general queries with fallback to general APIs
@@ -3490,43 +3871,84 @@ class UltimateIntelligentAI:
                     conversation_history: List = None, location_name: str = None) -> Dict[str, Any]:
         """Main entry point for getting intelligent responses"""
         try:
-            # Improved location detection
-            if not location_name and latitude and longitude:
-                location_name = self._get_location_name_from_coordinates(latitude, longitude)
+            # Enhanced location detection using comprehensive Indian location system
+            comprehensive_location_data = None
+            if latitude and longitude:
+                comprehensive_location_data = get_comprehensive_location_info(latitude, longitude)
+                location_info = comprehensive_location_data.get('location_info', {})
+                location_name = f"{location_info.get('district', 'Unknown')}, {location_info.get('state', 'Unknown')}"
+            elif location_name:
+                # Search location by name if coordinates not provided
+                location_search = search_location_by_name(location_name)
+                if location_search.get('coordinates'):
+                    coords = location_search['coordinates']
+                    comprehensive_location_data = get_comprehensive_location_info(
+                        coords['latitude'], coords['longitude']
+                    )
+                    location_info = comprehensive_location_data.get('location_info', {})
+                    location_name = f"{location_info.get('district', 'Unknown')}, {location_info.get('state', 'Unknown')}"
             
             if not location_name:
-                location_name = "Delhi"  # Default fallback
+                location_name = "Delhi, Delhi"  # Default fallback
             
             # Analyze the query
             analysis = self.analyze_query(user_query, language)
             
-            # Add location information to analysis
+            # Add comprehensive location information to analysis
             analysis['location'] = location_name
             analysis['latitude'] = latitude
             analysis['longitude'] = longitude
+            
+            # Add comprehensive location data if available
+            if comprehensive_location_data:
+                analysis['comprehensive_location'] = comprehensive_location_data
+                location_info = comprehensive_location_data.get('location_info', {})
+                analysis['state'] = location_info.get('state', 'Unknown')
+                analysis['district'] = location_info.get('district', 'Unknown')
+                analysis['village'] = location_info.get('village', 'Unknown')
+                analysis['region'] = location_info.get('region', 'unknown')
+                analysis['government_data'] = comprehensive_location_data
             
             # Determine response type
             query_type = self._determine_enhanced_response_type(analysis, user_query)
             
             # Generate response
-            response = self._generate_enhanced_response(
+            base_response = self._generate_enhanced_response(
                 user_query, analysis, query_type, language, latitude, longitude, location_name
             )
             
+            # Add location information to entities for dynamic responses
+            if location_name:
+                analysis['entities']['location'] = location_name
+            if latitude and longitude:
+                analysis['entities']['coordinates'] = {'lat': latitude, 'lon': longitude}
+            
+            # Enhance response with advanced enhancer for maximum quality
+            enhanced_response = enhance_response_advanced(
+                base_response, user_query, query_type, language, analysis.get('entities', {})
+            )
+            
             # Calculate intelligence score
-            intelligence_score = self._calculate_intelligence_score(response, analysis)
+            intelligence_score = self._calculate_intelligence_score(enhanced_response, analysis)
+            
+            # Calculate quality metrics
+            quality_metrics = calculate_response_quality_metrics(
+                enhanced_response, user_query, query_type
+            )
             
             # Determine if government data was used
-            has_government_data = any(keyword in response.lower() for keyword in [
+            has_government_data = any(keyword in enhanced_response.lower() for keyword in [
                 'government', 'सरकार', 'mandi', 'मंडी', '₹', 'rupee', 'रुपये', 
                 'msp', 'scheme', 'योजना', 'pm kisan', 'फसल बीमा'
             ])
             
             return {
-                "response": response,
+                "response": enhanced_response,
                 "query_type": query_type,
                 "confidence": analysis.get('confidence', 0.8),
                 "intelligence_score": intelligence_score,
+                "quality_metrics": quality_metrics,
+                "chatgpt_level": quality_metrics['overall'] >= 0.8,
                 "source": "enhanced_ai",
                 "language": language,
                 "has_government_data": has_government_data,

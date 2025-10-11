@@ -45,6 +45,41 @@ class SecurityValidator:
     
     def __init__(self):
         self.compiled_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in self.DANGEROUS_PATTERNS]
+        
+        # Enhanced error recovery patterns
+        self.error_recovery_patterns = {
+            'invalid_coordinates': {
+                'pattern': r'^[-+]?[0-9]*\.?[0-9]+$',
+                'message': 'Invalid coordinate format. Please use decimal numbers.'
+            },
+            'invalid_language': {
+                'pattern': r'^[a-z]{2,10}$',
+                'message': 'Invalid language code. Please use standard language codes.'
+            },
+            'invalid_crop_name': {
+                'pattern': r'^[a-zA-Z\s\u0900-\u097F\u0A00-\u0A7F\u0B00-\u0B7F\u0C00-\u0C7F\u0D00-\u0D7F\u0E00-\u0E7F\u0F00-\u0F7F]+$',
+                'message': 'Invalid crop name. Please use only letters and spaces.'
+            }
+        }
+        
+        # Fallback responses for different error types
+        self.fallback_responses = {
+            'invalid_input': {
+                'en': 'I apologize, but I couldn\'t understand your input. Could you please rephrase your question?',
+                'hi': 'मुझे खेद है, लेकिन मैं आपके इनपुट को समझ नहीं सका। क्या आप अपना प्रश्न दोबारा बता सकते हैं?',
+                'hinglish': 'Sorry yaar, samajh nahi aaya. Could you please repeat your question?'
+            },
+            'api_error': {
+                'en': 'I\'m experiencing some technical difficulties. Please try again in a moment.',
+                'hi': 'मुझे कुछ तकनीकी समस्याएं आ रही हैं। कृपया कुछ देर बाद फिर से कोशिश करें।',
+                'hinglish': 'Technical issue aa raha hai. Please try again after some time.'
+            },
+            'location_error': {
+                'en': 'I couldn\'t find that location. Please provide a valid city or state name.',
+                'hi': 'मुझे वह स्थान नहीं मिला। कृपया एक वैध शहर या राज्य का नाम दें।',
+                'hinglish': 'Location nahi mili. Please valid city ya state name do.'
+            }
+        }
     
     def validate_chat_message(self, message: str) -> Dict[str, Any]:
         """Validate and sanitize chat message input"""
@@ -428,3 +463,138 @@ def secure_api_endpoint(max_requests: int = 100, window_seconds: int = 3600):
         
         return wrapper
     return decorator
+
+    def get_error_recovery_response(self, error_type: str, language: str = 'en') -> str:
+        """Get appropriate error recovery response based on error type and language"""
+        try:
+            response = self.fallback_responses.get(error_type, self.fallback_responses['invalid_input'])
+            return response.get(language, response['en'])
+        except Exception as e:
+            logger.error(f"Error getting recovery response: {e}")
+            return "I apologize for the error. Please try again."
+
+    def validate_with_recovery(self, input_data: Any, validation_type: str) -> Dict[str, Any]:
+        """Validate input with automatic recovery suggestions"""
+        result = {
+            'valid': True,
+            'data': input_data,
+            'errors': [],
+            'recovery_suggestions': []
+        }
+        
+        try:
+            if validation_type == 'coordinates':
+                if isinstance(input_data, (int, float)):
+                    if not (-90 <= input_data <= 90):
+                        result['valid'] = False
+                        result['errors'].append('Latitude must be between -90 and 90')
+                        result['recovery_suggestions'].append('Please provide a valid latitude coordinate')
+                elif isinstance(input_data, str):
+                    try:
+                        float_val = float(input_data)
+                        if not (-90 <= float_val <= 90):
+                            result['valid'] = False
+                            result['errors'].append('Invalid coordinate range')
+                            result['recovery_suggestions'].append('Please provide coordinates between -90 and 90')
+                        else:
+                            result['data'] = float_val
+                    except ValueError:
+                        result['valid'] = False
+                        result['errors'].append('Invalid coordinate format')
+                        result['recovery_suggestions'].append('Please provide a decimal number')
+            
+            elif validation_type == 'language':
+                if input_data not in self.ALLOWED_LANGUAGES:
+                    result['valid'] = False
+                    result['errors'].append(f'Language "{input_data}" not supported')
+                    result['recovery_suggestions'].append(f'Please use one of: {", ".join(self.ALLOWED_LANGUAGES[:5])}...')
+                    # Auto-correct common mistakes
+                    if input_data.lower() in ['hindi', 'hind']:
+                        result['data'] = 'hi'
+                        result['valid'] = True
+                        result['recovery_suggestions'].append('Auto-corrected to "hi"')
+                    elif input_data.lower() in ['english', 'eng']:
+                        result['data'] = 'en'
+                        result['valid'] = True
+                        result['recovery_suggestions'].append('Auto-corrected to "en"')
+            
+            elif validation_type == 'crop_name':
+                if not isinstance(input_data, str) or len(input_data.strip()) == 0:
+                    result['valid'] = False
+                    result['errors'].append('Crop name cannot be empty')
+                    result['recovery_suggestions'].append('Please provide a valid crop name')
+                else:
+                    # Clean and normalize crop name
+                    cleaned_name = input_data.strip().lower()
+                    result['data'] = cleaned_name
+                    
+                    # Suggest corrections for common misspellings
+                    crop_corrections = {
+                        'wheet': 'wheat',
+                        'rice': 'rice',
+                        'maize': 'maize',
+                        'corn': 'maize',
+                        'chana': 'chickpea',
+                        'dal': 'pulses',
+                        'dal': 'lentil'
+                    }
+                    
+                    if cleaned_name in crop_corrections:
+                        result['data'] = crop_corrections[cleaned_name]
+                        result['recovery_suggestions'].append(f'Corrected crop name to "{crop_corrections[cleaned_name]}"')
+            
+        except Exception as e:
+            logger.error(f"Error in validation with recovery: {e}")
+            result['valid'] = False
+            result['errors'].append(f'Validation error: {str(e)}')
+            result['recovery_suggestions'].append('Please check your input and try again')
+        
+        return result
+
+    def create_graceful_error_response(self, error: Exception, context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Create a graceful error response with recovery options"""
+        context = context or {}
+        language = context.get('language', 'en')
+        
+        error_response = {
+            'success': False,
+            'error_type': type(error).__name__,
+            'message': self.get_error_recovery_response('api_error', language),
+            'recovery_options': [],
+            'timestamp': time.time()
+        }
+        
+        # Add specific recovery options based on error type
+        if 'connection' in str(error).lower():
+            error_response['recovery_options'].append({
+                'action': 'retry',
+                'message': 'Try again in a few moments',
+                'delay': 5
+            })
+            error_response['recovery_options'].append({
+                'action': 'fallback',
+                'message': 'Use cached data',
+                'data_available': True
+            })
+        
+        elif 'validation' in str(error).lower():
+            error_response['recovery_options'].append({
+                'action': 'correct_input',
+                'message': 'Please check your input format',
+                'examples': context.get('valid_examples', [])
+            })
+        
+        elif 'permission' in str(error).lower():
+            error_response['recovery_options'].append({
+                'action': 'authenticate',
+                'message': 'Please log in to continue',
+                'redirect': '/login'
+            })
+        
+        return error_response
+
+# Enhanced global instances
+security_validator = SecurityValidator()
+
+# Add time import for error responses
+import time

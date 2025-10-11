@@ -56,6 +56,7 @@ class ChatbotViewSet(viewsets.ViewSet):
     
     def list(self, request):
         """Handle chatbot conversations at root endpoint"""
+        # Handle both GET and POST requests
         if request.method == 'POST':
             serializer = ChatbotSerializer(data=request.data)
             if serializer.is_valid():
@@ -63,9 +64,19 @@ class ChatbotViewSet(viewsets.ViewSet):
                 language = serializer.validated_data.get('language', 'en')
                 
                 try:
-                    # Use enhanced AI if available, otherwise fallback
-                    if hasattr(self.chatbot, 'get_response'):
-                        # UltimateIntelligentAI
+                    # Use ChatGPT-level AI for all queries
+                    if hasattr(self.chatbot, 'get_chatgpt_level_response'):
+                        # Use ChatGPT-level response for comprehensive understanding
+                        response_data = self.chatbot.get_chatgpt_level_response(
+                            user_query=message,
+                            language=language,
+                            latitude=request.data.get('latitude'),
+                            longitude=request.data.get('longitude'),
+                            location_name=request.data.get('location')
+                        )
+                        response_text = response_data.get('response', 'Sorry, I could not process your request.')
+                    elif hasattr(self.chatbot, 'get_response'):
+                        # UltimateIntelligentAI fallback
                         response_data = self.chatbot.get_response(
                             user_query=message,
                             language=language,
@@ -75,7 +86,7 @@ class ChatbotViewSet(viewsets.ViewSet):
                         )
                         response_text = response_data.get('response', 'Sorry, I could not process your request.')
                     else:
-                        # IntelligentAgriculturalChatbot
+                        # IntelligentAgriculturalChatbot fallback
                         response_text = self.chatbot.process_message(message, language=language)
                     
                     return Response({
@@ -97,6 +108,10 @@ class ChatbotViewSet(viewsets.ViewSet):
                 return Response(serializer.errors, status=400)
         else:
             return Response({'message': 'Chatbot API is running. Send POST request with message and language.'})
+    
+    def create(self, request):
+        """Handle POST requests to chatbot endpoint"""
+        return self.list(request)
     
     @action(detail=False, methods=['post'])
     def chat(self, request):
@@ -3126,7 +3141,7 @@ class WeatherViewSet(viewsets.ViewSet):
             
             # Fallback to enhanced API if real-time fails
             if not real_time_weather_data or not real_time_weather_data.get('temperature'):
-                weather_data = self.weather_api.get_real_weather_data(latitude, longitude, language)
+                weather_data = self.weather_api.get_real_weather_data(f"{latitude},{longitude}", language)
                 data_source = 'Enhanced Government API (Dynamic Location-based)'
             else:
                 weather_data = real_time_weather_data
@@ -3341,8 +3356,6 @@ class MarketPricesViewSet(viewsets.ViewSet):
             if not real_time_market_data or not real_time_market_data.get('prices'):
                 try:
                     market_data = self.government_api.get_real_market_prices(
-                        crop=product_type,
-                        location=None,
                         commodity=product_type,
                         latitude=latitude,
                         longitude=longitude
@@ -3651,7 +3664,12 @@ class GovernmentSchemesViewSet(viewsets.ViewSet):
             }
         ]
         
-        return Response(schemes_data, status=status.HTTP_200_OK)
+        return Response({
+            'schemes': schemes_data,
+            'total_count': len(schemes_data),
+            'language': language,
+            'status': 'success'
+        }, status=status.HTTP_200_OK)
 
 class LocationRecommendationViewSet(viewsets.ViewSet):
     """Location recommendation system like Google Maps"""

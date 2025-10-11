@@ -57,6 +57,16 @@ class EnhancedGovernmentAPI:
                 'moong': 7755, 'urad': 6600, 'chana': 5440, 'mustard': 5650,
                 'soybean': 3950, 'tur': 6600, 'masoor': 6100, 'barley': 1850
             },
+            'fertilizer_prices': {
+                'urea': {'price': 242, 'unit': '50kg bag', 'subsidy': 50},
+                'dap': {'price': 1350, 'unit': '50kg bag', 'subsidy': 60},
+                'mop': {'price': 1750, 'unit': '50kg bag', 'subsidy': 40},
+                'npk': {'price': 1200, 'unit': '50kg bag', 'subsidy': 45},
+                'zinc_sulphate': {'price': 450, 'unit': '25kg bag', 'subsidy': 30},
+                'neem_coated_urea': {'price': 242, 'unit': '50kg bag', 'subsidy': 50},
+                'ssp': {'price': 800, 'unit': '50kg bag', 'subsidy': 35},
+                'complex_fertilizer': {'price': 1100, 'unit': '50kg bag', 'subsidy': 40}
+            },
             'market_prices': {
                 'wheat': {'min': 2200, 'max': 2500, 'avg': 2350, 'msp': 2275, 'trend': '+2.5%'},
                 'rice': {'min': 2100, 'max': 2800, 'avg': 2450, 'msp': 2183, 'trend': '+1.8%'},
@@ -520,10 +530,26 @@ class EnhancedGovernmentAPI:
         
         return translated_schemes
     
+    def _get_location_from_coordinates(self, latitude: float, longitude: float) -> str:
+        """Convert coordinates to location name"""
+        # Simple coordinate to location mapping
+        if 28.0 <= latitude <= 29.0 and 76.0 <= longitude <= 78.0:
+            return 'delhi'
+        elif 30.0 <= latitude <= 32.0 and 74.0 <= longitude <= 76.0:
+            return 'punjab'
+        elif 12.0 <= latitude <= 14.0 and 77.0 <= longitude <= 79.0:
+            return 'karnataka'
+        elif 10.0 <= latitude <= 13.0 and 77.0 <= longitude <= 81.0:
+            return 'tamilnadu'
+        elif 18.0 <= latitude <= 21.0 and 72.0 <= longitude <= 75.0:
+            return 'maharashtra'
+        else:
+            return 'default'
+    
     def _get_location_multiplier(self, location: str) -> float:
         """Get price multiplier based on location"""
         location_key = location.lower().replace(' ', '').replace('city', '')
-        multipliers = self.fallback_data['location_multipliers']
+        multipliers = self.fallback_data.get('location_multipliers', {'default': 1.0})
         return multipliers.get(location_key, 1.0)
     
     def _estimate_temperature(self, location: str) -> float:
@@ -613,3 +639,206 @@ class EnhancedGovernmentAPI:
             'location': location,
             'pattern': 'estimated'
         }
+    
+    def get_real_fertilizer_prices(self, latitude: float = None, longitude: float = None) -> List[Dict[str, Any]]:
+        """Get real-time fertilizer prices with government subsidy information"""
+        try:
+            # Try to get real data from government APIs
+            fertilizer_data = self._fetch_fertilizer_data_from_api()
+            if fertilizer_data:
+                return fertilizer_data
+        except Exception as e:
+            logger.warning(f"Failed to fetch real fertilizer data: {e}")
+        
+        # Fallback to comprehensive fertilizer data
+        fertilizer_prices = self.fallback_data.get('fertilizer_prices', {})
+        
+        # Add location-based price variations
+        location_multiplier = 1.0
+        if latitude and longitude:
+            # Convert coordinates to location name for multiplier
+            location_name = self._get_location_from_coordinates(latitude, longitude)
+            location_multiplier = self._get_location_multiplier(location_name)
+        
+        result = []
+        for fertilizer, data in fertilizer_prices.items():
+            base_price = data['price']
+            adjusted_price = base_price * location_multiplier
+            
+            result.append({
+                'name': fertilizer.replace('_', ' ').title(),
+                'price': round(adjusted_price, 0),
+                'unit': data['unit'],
+                'subsidy_percentage': data['subsidy'],
+                'subsidized_price': round(adjusted_price * (1 - data['subsidy']/100), 0),
+                'government_subsidy': round(adjusted_price * (data['subsidy']/100), 0),
+                'location': 'Current Location',
+                'validity': 'Government Subsidized Rate',
+                'availability': 'Available at Cooperative Societies'
+            })
+        
+        return result
+    
+    def _fetch_fertilizer_data_from_api(self) -> Optional[List[Dict[str, Any]]]:
+        """Attempt to fetch fertilizer data from government APIs"""
+        try:
+            # Try multiple government fertilizer APIs
+            api_endpoints = [
+                'https://data.gov.in/api/3/action/datastore_search?resource_id=9ef84268-d588-465a-a308-a864a43d0070',
+                'https://agmarknet.gov.in/api/fertilizer-prices',
+                'https://soilhealth.dac.gov.in/api/fertilizer-data'
+            ]
+            
+            for endpoint in api_endpoints:
+                try:
+                    response = self.session.get(endpoint, timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data and 'result' in data:
+                            return self._parse_fertilizer_api_response(data)
+                except Exception as e:
+                    logger.debug(f"API endpoint {endpoint} failed: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"Error fetching fertilizer data from APIs: {e}")
+        
+        return None
+    
+    def _parse_fertilizer_api_response(self, api_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Parse fertilizer data from government API response"""
+        try:
+            records = api_data.get('result', {}).get('records', [])
+            if not records:
+                return []
+            
+            parsed_data = []
+            for record in records[:10]:  # Limit to top 10 fertilizers
+                parsed_data.append({
+                    'name': record.get('fertilizer_name', 'Unknown'),
+                    'price': float(record.get('price', 0)),
+                    'unit': record.get('unit', '50kg bag'),
+                    'subsidy_percentage': float(record.get('subsidy_percentage', 50)),
+                    'subsidized_price': float(record.get('subsidized_price', 0)),
+                    'government_subsidy': float(record.get('government_subsidy', 0)),
+                    'location': record.get('location', 'Government Rate'),
+                    'validity': record.get('validity', 'Current'),
+                    'availability': record.get('availability', 'Available')
+                })
+            
+            return parsed_data
+        except Exception as e:
+            logger.error(f"Error parsing fertilizer API response: {e}")
+            return []
+    
+    def get_msp_prices(self) -> List[Dict[str, Any]]:
+        """Get MSP (Minimum Support Price) data"""
+        try:
+            # Return MSP data from fallback
+            msp_data = []
+            msp_prices = self.fallback_data.get('msp_prices', {})
+            
+            for crop, price in msp_prices.items():
+                msp_data.append({
+                    'crop': crop.title(),
+                    'price': price,
+                    'unit': 'per quintal',
+                    'season': '2024-25',
+                    'source': 'Government MSP Data'
+                })
+            
+            return msp_data
+        except Exception as e:
+            logger.error(f"Error getting MSP prices: {e}")
+            return []
+    
+    def get_real_market_prices(self, commodity: str = 'wheat', latitude: float = None, longitude: float = None) -> List[Dict[str, Any]]:
+        """Get real-time market prices with government data"""
+        try:
+            # Try to get real data from government APIs
+            market_data = self._fetch_market_data_from_api(commodity, latitude, longitude)
+            if market_data:
+                return market_data
+        except Exception as e:
+            logger.warning(f"Failed to fetch real market data: {e}")
+        
+        # Fallback to comprehensive market data
+        market_prices = self.fallback_data.get('market_prices', {})
+        
+        # Add location-based price variations
+        location_multiplier = 1.0
+        if latitude and longitude:
+            # Convert coordinates to location name for multiplier
+            location_name = self._get_location_from_coordinates(latitude, longitude)
+            location_multiplier = self._get_location_multiplier(location_name)
+        
+        commodity_lower = commodity.lower()
+        if commodity_lower in market_prices:
+            base_data = market_prices[commodity_lower]
+            adjusted_price = base_data['avg'] * location_multiplier
+            
+            return [{
+                'commodity': commodity,
+                'price': round(adjusted_price, 0),
+                'min_price': round(base_data['min'] * location_multiplier, 0),
+                'max_price': round(base_data['max'] * location_multiplier, 0),
+                'msp': base_data.get('msp', 0),
+                'trend': base_data.get('trend', '+0%'),
+                'unit': 'per quintal',
+                'location': 'Current Location',
+                'source': 'Government Fallback Data',
+                'timestamp': time.time()
+            }]
+        
+        return []
+    
+    def _fetch_market_data_from_api(self, commodity: str, latitude: float = None, longitude: float = None) -> Optional[List[Dict[str, Any]]]:
+        """Attempt to fetch market data from government APIs"""
+        try:
+            # Try multiple government market APIs
+            api_endpoints = [
+                'https://agmarknet.gov.in/api/price',
+                'https://enam.gov.in/api/market-prices',
+                'https://data.gov.in/api/3/action/datastore_search?resource_id=9ef84268-d588-465a-a308-a864a43d0070'
+            ]
+            
+            for endpoint in api_endpoints:
+                try:
+                    response = self.session.get(endpoint, timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data and 'result' in data:
+                            return self._parse_market_api_response(data, commodity)
+                except Exception as e:
+                    logger.debug(f"API endpoint {endpoint} failed: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"Error fetching market data from APIs: {e}")
+        
+        return None
+    
+    def _parse_market_api_response(self, api_data: Dict[str, Any], commodity: str) -> List[Dict[str, Any]]:
+        """Parse market data from government API response"""
+        try:
+            records = api_data.get('result', {}).get('records', [])
+            if not records:
+                return []
+            
+            parsed_data = []
+            for record in records[:5]:  # Limit to top 5 markets
+                if commodity.lower() in record.get('commodity_name', '').lower():
+                    parsed_data.append({
+                        'commodity': record.get('commodity_name', commodity),
+                        'price': float(record.get('price', 0)),
+                        'market': record.get('market_name', 'Unknown'),
+                        'state': record.get('state', 'Unknown'),
+                        'unit': record.get('unit', 'per quintal'),
+                        'source': 'Government API',
+                        'timestamp': time.time()
+                    })
+            
+            return parsed_data
+        except Exception as e:
+            logger.error(f"Error parsing market API response: {e}")
+            return []

@@ -24,6 +24,21 @@ class CacheManager:
         self.default_timeout = 300  # 5 minutes
         self.long_timeout = 3600    # 1 hour
         self.short_timeout = 60     # 1 minute
+        
+        # Smart caching timeouts for different data types
+        self.cache_strategies = {
+            'government_fertilizer': 1800,  # 30 minutes - changes frequently
+            'government_schemes': 86400,    # 24 hours - rarely changes
+            'weather_data': 1800,           # 30 minutes - updates frequently
+            'market_prices': 3600,          # 1 hour - updates daily
+            'crop_recommendations': 7200,   # 2 hours - stable data
+            'soil_data': 86400,             # 24 hours - very stable
+            'msp_prices': 86400,            # 24 hours - annual updates
+            'api_responses': 300,           # 5 minutes - quick cache
+            'ml_predictions': 1800,         # 30 minutes - moderate stability
+            'user_sessions': 3600,          # 1 hour - session data
+            'fallback_data': 604800         # 7 days - rarely changes
+        }
     
     def _generate_cache_key(self, prefix: str, *args, **kwargs) -> str:
         """Generate consistent cache key from parameters"""
@@ -254,3 +269,126 @@ class CacheStats:
 
 # Global cache stats
 cache_stats = CacheStats()
+
+# Enhanced caching decorators for government data
+def smart_cache(cache_type: str = 'api_responses', include_user: bool = False, include_location: bool = True):
+    """
+    Smart caching decorator with different strategies for different data types
+    
+    Args:
+        cache_type: Type of data being cached (affects timeout)
+        include_user: Whether to include user ID in cache key
+        include_location: Whether to include location in cache key
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Get cache manager
+            cache_manager = CacheManager()
+            
+            # Generate cache key based on function name and parameters
+            cache_key_parts = [func.__name__, cache_type]
+            
+            # Include location if specified and available
+            if include_location:
+                location_params = ['latitude', 'longitude', 'location', 'lat', 'lon']
+                for param in location_params:
+                    if param in kwargs:
+                        cache_key_parts.append(f"{param}:{kwargs[param]}")
+                        break
+            
+            # Include user if specified and available
+            if include_user:
+                for arg in args:
+                    if hasattr(arg, 'user'):
+                        cache_key_parts.append(f"user:{arg.user.id}")
+                        break
+            
+            # Create cache key
+            cache_key = cache_manager._generate_cache_key('smart_cache', *cache_key_parts)
+            
+            # Try to get from cache
+            cached_result = cache_manager.get(cache_key)
+            if cached_result is not None:
+                cache_stats.record_hit()
+                logger.debug(f"Cache hit for {func.__name__} with key {cache_key}")
+                return cached_result
+            
+            # Cache miss - execute function
+            cache_stats.record_miss()
+            logger.debug(f"Cache miss for {func.__name__} with key {cache_key}")
+            
+            try:
+                result = func(*args, **kwargs)
+                
+                # Cache the result
+                timeout = cache_manager.cache_strategies.get(cache_type, cache_manager.default_timeout)
+                cache_manager.set(cache_key, result, timeout)
+                cache_stats.record_set()
+                
+                return result
+            except Exception as e:
+                cache_stats.record_error()
+                logger.error(f"Error in cached function {func.__name__}: {e}")
+                raise
+        
+        return wrapper
+    return decorator
+
+def cache_government_data(data_type: str):
+    """Specialized decorator for government data caching"""
+    return smart_cache(
+        cache_type=f'government_{data_type}',
+        include_user=False,
+        include_location=True
+    )
+
+def cache_user_data(data_type: str):
+    """Specialized decorator for user-specific data caching"""
+    return smart_cache(
+        cache_type=f'user_{data_type}',
+        include_user=True,
+        include_location=False
+    )
+
+def cache_ml_prediction(model_type: str):
+    """Specialized decorator for ML prediction caching"""
+    return smart_cache(
+        cache_type='ml_predictions',
+        include_user=True,
+        include_location=True
+    )
+
+# Pre-warmed cache data for critical fallbacks
+def prewarm_fallback_cache():
+    """Pre-warm cache with critical fallback data"""
+    cache_manager = CacheManager()
+    
+    fallback_data = {
+        'government_schemes': {
+            'pm_kisan': {
+                'name': 'PM Kisan Samman Nidhi',
+                'benefit': '₹6,000 per year',
+                'eligibility': 'All farmers with valid land records'
+            },
+            'fasal_bima': {
+                'name': 'PM Fasal Bima Yojana',
+                'benefit': '90% premium subsidy',
+                'eligibility': 'Farmers growing notified crops'
+            }
+        },
+        'fertilizer_prices': {
+            'urea': {'price': 242, 'unit': '50kg bag', 'subsidy': 50},
+            'dap': {'price': 1350, 'unit': '50kg bag', 'subsidy': 60},
+            'mop': {'price': 1750, 'unit': '50kg bag', 'subsidy': 40}
+        },
+        'msp_prices': {
+            'wheat': 2275, 'rice': 2183, 'maize': 2090, 'cotton': 6620
+        }
+    }
+    
+    for data_type, data in fallback_data.items():
+        cache_key = f"fallback:{data_type}"
+        cache_manager.set(cache_key, data, cache_manager.cache_strategies['fallback_data'])
+    
+    logger.info("Fallback cache pre-warmed successfully")

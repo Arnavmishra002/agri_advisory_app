@@ -724,14 +724,15 @@
             padding: 12px 16px;
             cursor: pointer;
             border-bottom: 1px solid #f0f0f0;
-            transition: background-color 0.2s ease;
+            transition: all 0.2s ease;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 12px;
         }
 
         .suggestion-item:hover {
             background-color: #f8f9fa;
+            transform: translateX(2px);
         }
 
         .suggestion-item:last-child {
@@ -740,22 +741,58 @@
 
         .suggestion-item.active {
             background-color: #e3f2fd;
+            border-left: 3px solid #007bff;
+        }
+
+        .suggestion-icon {
+            font-size: 1.2rem;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .suggestion-content {
+            flex: 1;
+            min-width: 0;
         }
 
         .suggestion-name {
             font-weight: 500;
             color: #2d5016;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .suggestion-details {
             font-size: 0.85rem;
             color: #6c757d;
+            line-height: 1.3;
         }
 
-        .suggestion-distance {
-            font-size: 0.8rem;
-            color: #28a745;
-            font-weight: 500;
+        .suggestion-action {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: bold;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .correction-badge {
+            background: #ffc107;
+            color: #212529;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .suggestion-item.active .suggestion-name {
+            color: #007bff;
+        }
+
+        .suggestion-item.active .suggestion-action {
+            color: #007bff;
         }
 
         .search-icon {
@@ -3299,8 +3336,9 @@
             container.innerHTML = html;
         }
 
-        // Autocomplete data
+        // Comprehensive Indian locations data
         const locationData = [
+            // Major Cities
             { name: 'Delhi', state: 'Delhi', type: 'city', lat: 28.6139, lon: 77.2090 },
             { name: 'Mumbai', state: 'Maharashtra', type: 'city', lat: 19.0760, lon: 72.8777 },
             { name: 'Bangalore', state: 'Karnataka', type: 'city', lat: 12.9716, lon: 77.5946 },
@@ -3315,20 +3353,391 @@
             { name: 'Chandigarh', state: 'Punjab', type: 'city', lat: 30.7333, lon: 76.7794 },
             { name: 'Patna', state: 'Bihar', type: 'city', lat: 25.5941, lon: 85.1376 },
             { name: 'Bhubaneswar', state: 'Odisha', type: 'city', lat: 20.2961, lon: 85.8245 },
-            { name: 'Kochi', state: 'Kerala', type: 'city', lat: 9.9312, lon: 76.2673 }
+            { name: 'Kochi', state: 'Kerala', type: 'city', lat: 9.9312, lon: 76.2673 },
+            { name: 'Indore', state: 'Madhya Pradesh', type: 'city', lat: 22.7196, lon: 75.8577 },
+            { name: 'Surat', state: 'Gujarat', type: 'city', lat: 21.1702, lon: 72.8311 },
+            { name: 'Kanpur', state: 'Uttar Pradesh', type: 'city', lat: 26.4499, lon: 80.3319 },
+            { name: 'Nagpur', state: 'Maharashtra', type: 'city', lat: 21.1458, lon: 79.0882 },
+            { name: 'Visakhapatnam', state: 'Andhra Pradesh', type: 'city', lat: 17.6868, lon: 83.2185 },
+            
+            // States
+            { name: 'Andhra Pradesh', state: 'Andhra Pradesh', type: 'state', lat: 15.9129, lon: 79.7400 },
+            { name: 'Arunachal Pradesh', state: 'Arunachal Pradesh', type: 'state', lat: 28.2180, lon: 94.7278 },
+            { name: 'Assam', state: 'Assam', type: 'state', lat: 26.2006, lon: 92.9376 },
+            { name: 'Bihar', state: 'Bihar', type: 'state', lat: 25.0961, lon: 85.3131 },
+            { name: 'Chhattisgarh', state: 'Chhattisgarh', type: 'state', lat: 21.2787, lon: 81.8661 },
+            { name: 'Goa', state: 'Goa', type: 'state', lat: 15.2993, lon: 74.1240 },
+            { name: 'Gujarat', state: 'Gujarat', type: 'state', lat: 23.0225, lon: 72.5714 },
+            { name: 'Haryana', state: 'Haryana', type: 'state', lat: 29.0588, lon: 76.0856 },
+            { name: 'Himachal Pradesh', state: 'Himachal Pradesh', type: 'state', lat: 31.1048, lon: 77.1734 },
+            { name: 'Jharkhand', state: 'Jharkhand', type: 'state', lat: 23.6102, lon: 85.2799 },
+            { name: 'Karnataka', state: 'Karnataka', type: 'state', lat: 15.3173, lon: 75.7139 },
+            { name: 'Kerala', state: 'Kerala', type: 'state', lat: 10.8505, lon: 76.2711 },
+            { name: 'Madhya Pradesh', state: 'Madhya Pradesh', type: 'state', lat: 22.9734, lon: 78.6569 },
+            { name: 'Maharashtra', state: 'Maharashtra', type: 'state', lat: 19.7515, lon: 75.7139 },
+            { name: 'Manipur', state: 'Manipur', type: 'state', lat: 24.6637, lon: 93.9063 },
+            { name: 'Meghalaya', state: 'Meghalaya', type: 'state', lat: 25.4670, lon: 91.3662 },
+            { name: 'Mizoram', state: 'Mizoram', type: 'state', lat: 23.1645, lon: 92.9376 },
+            { name: 'Nagaland', state: 'Nagaland', type: 'state', lat: 26.1584, lon: 94.5624 },
+            { name: 'Odisha', state: 'Odisha', type: 'state', lat: 20.9517, lon: 85.0985 },
+            { name: 'Punjab', state: 'Punjab', type: 'state', lat: 31.1471, lon: 75.3412 },
+            { name: 'Rajasthan', state: 'Rajasthan', type: 'state', lat: 27.0238, lon: 74.2179 },
+            { name: 'Sikkim', state: 'Sikkim', type: 'state', lat: 27.5330, lon: 88.5122 },
+            { name: 'Tamil Nadu', state: 'Tamil Nadu', type: 'state', lat: 11.1271, lon: 78.6569 },
+            { name: 'Telangana', state: 'Telangana', type: 'state', lat: 18.1124, lon: 79.0193 },
+            { name: 'Tripura', state: 'Tripura', type: 'state', lat: 23.9408, lon: 91.9882 },
+            { name: 'Uttar Pradesh', state: 'Uttar Pradesh', type: 'state', lat: 26.8467, lon: 80.9462 },
+            { name: 'Uttarakhand', state: 'Uttarakhand', type: 'state', lat: 30.0668, lon: 79.0193 },
+            { name: 'West Bengal', state: 'West Bengal', type: 'state', lat: 22.9868, lon: 87.8550 },
+            
+            // Major Districts
+            { name: 'Aligarh', state: 'Uttar Pradesh', type: 'district', lat: 27.8974, lon: 78.0880 },
+            { name: 'Allahabad', state: 'Uttar Pradesh', type: 'district', lat: 25.4358, lon: 81.8463 },
+            { name: 'Amritsar', state: 'Punjab', type: 'district', lat: 31.6340, lon: 74.8723 },
+            { name: 'Aurangabad', state: 'Maharashtra', type: 'district', lat: 19.8762, lon: 75.3433 },
+            { name: 'Bareilly', state: 'Uttar Pradesh', type: 'district', lat: 28.3670, lon: 79.4304 },
+            { name: 'Belgaum', state: 'Karnataka', type: 'district', lat: 15.8497, lon: 74.4977 },
+            { name: 'Bhubaneswar', state: 'Odisha', type: 'district', lat: 20.2961, lon: 85.8245 },
+            { name: 'Coimbatore', state: 'Tamil Nadu', type: 'district', lat: 11.0168, lon: 76.9558 },
+            { name: 'Cuttack', state: 'Odisha', type: 'district', lat: 20.4625, lon: 85.8830 },
+            { name: 'Dhanbad', state: 'Jharkhand', type: 'district', lat: 23.7957, lon: 86.4304 },
+            { name: 'Gaya', state: 'Bihar', type: 'district', lat: 24.7969, lon: 85.0039 },
+            { name: 'Gorakhpur', state: 'Uttar Pradesh', type: 'district', lat: 26.7606, lon: 83.3732 },
+            { name: 'Guntur', state: 'Andhra Pradesh', type: 'district', lat: 16.3067, lon: 80.4365 },
+            { name: 'Hubli', state: 'Karnataka', type: 'district', lat: 15.3647, lon: 75.1240 },
+            { name: 'Jabalpur', state: 'Madhya Pradesh', type: 'district', lat: 23.1815, lon: 79.9864 },
+            { name: 'Jamshedpur', state: 'Jharkhand', type: 'district', lat: 22.8046, lon: 86.2029 },
+            { name: 'Jodhpur', state: 'Rajasthan', type: 'district', lat: 26.2389, lon: 73.0243 },
+            { name: 'Kolhapur', state: 'Maharashtra', type: 'district', lat: 16.7050, lon: 74.2433 },
+            { name: 'Kozhikode', state: 'Kerala', type: 'district', lat: 11.2588, lon: 75.7804 },
+            { name: 'Ludhiana', state: 'Punjab', type: 'district', lat: 30.9010, lon: 75.8573 },
+            { name: 'Madurai', state: 'Tamil Nadu', type: 'district', lat: 9.9252, lon: 78.1198 },
+            { name: 'Mangalore', state: 'Karnataka', type: 'district', lat: 12.9141, lon: 74.8560 },
+            { name: 'Mysore', state: 'Karnataka', type: 'district', lat: 12.2958, lon: 76.6394 },
+            { name: 'Nashik', state: 'Maharashtra', type: 'district', lat: 19.9975, lon: 73.7898 },
+            { name: 'Rajkot', state: 'Gujarat', type: 'district', lat: 22.3039, lon: 70.8022 },
+            { name: 'Ranchi', state: 'Jharkhand', type: 'district', lat: 23.3441, lon: 85.3096 },
+            { name: 'Salem', state: 'Tamil Nadu', type: 'district', lat: 11.6643, lon: 78.1460 },
+            { name: 'Srinagar', state: 'Jammu and Kashmir', type: 'district', lat: 34.0837, lon: 74.7973 },
+            { name: 'Thiruvananthapuram', state: 'Kerala', type: 'district', lat: 8.5241, lon: 76.9366 },
+            { name: 'Tiruchirapalli', state: 'Tamil Nadu', type: 'district', lat: 10.7905, lon: 78.7047 },
+            { name: 'Udaipur', state: 'Rajasthan', type: 'district', lat: 24.5854, lon: 73.7125 },
+            { name: 'Vadodara', state: 'Gujarat', type: 'district', lat: 22.3072, lon: 73.1812 },
+            { name: 'Varanasi', state: 'Uttar Pradesh', type: 'district', lat: 25.3176, lon: 82.9739 },
+            { name: 'Vijayawada', state: 'Andhra Pradesh', type: 'district', lat: 16.5062, lon: 80.6480 },
+            { name: 'Warangal', state: 'Telangana', type: 'district', lat: 17.9689, lon: 79.5941 },
+            
+            // Agricultural Districts
+            { name: 'Amravati', state: 'Maharashtra', type: 'district', lat: 20.9374, lon: 77.7796 },
+            { name: 'Anantapur', state: 'Andhra Pradesh', type: 'district', lat: 14.6819, lon: 77.6006 },
+            { name: 'Bathinda', state: 'Punjab', type: 'district', lat: 30.2110, lon: 74.9455 },
+            { name: 'Bharuch', state: 'Gujarat', type: 'district', lat: 21.7051, lon: 72.9959 },
+            { name: 'Burdwan', state: 'West Bengal', type: 'district', lat: 23.2324, lon: 87.8615 },
+            { name: 'Chittoor', state: 'Andhra Pradesh', type: 'district', lat: 13.2156, lon: 79.1004 },
+            { name: 'Erode', state: 'Tamil Nadu', type: 'district', lat: 11.3410, lon: 77.7172 },
+            { name: 'Fatehpur', state: 'Uttar Pradesh', type: 'district', lat: 25.9259, lon: 80.8130 },
+            { name: 'Guntur', state: 'Andhra Pradesh', type: 'district', lat: 16.3067, lon: 80.4365 },
+            { name: 'Hisar', state: 'Haryana', type: 'district', lat: 29.1492, lon: 75.7217 },
+            { name: 'Karnal', state: 'Haryana', type: 'district', lat: 29.6857, lon: 76.9905 },
+            { name: 'Kurnool', state: 'Andhra Pradesh', type: 'district', lat: 15.8305, lon: 78.0423 },
+            { name: 'Latur', state: 'Maharashtra', type: 'district', lat: 18.4088, lon: 76.5604 },
+            { name: 'Mahabubnagar', state: 'Telangana', type: 'district', lat: 16.7405, lon: 77.9898 },
+            { name: 'Medak', state: 'Telangana', type: 'district', lat: 17.8315, lon: 78.0382 },
+            { name: 'Nalgonda', state: 'Telangana', type: 'district', lat: 17.0535, lon: 79.2670 },
+            { name: 'Nanded', state: 'Maharashtra', type: 'district', lat: 19.1383, lon: 77.3210 },
+            { name: 'Nizamabad', state: 'Telangana', type: 'district', lat: 18.6715, lon: 78.0948 },
+            { name: 'Parbhani', state: 'Maharashtra', type: 'district', lat: 19.2610, lon: 76.7734 },
+            { name: 'Patiala', state: 'Punjab', type: 'district', lat: 30.3398, lon: 76.3869 },
+            { name: 'Raichur', state: 'Karnataka', type: 'district', lat: 16.2076, lon: 77.3463 },
+            { name: 'Sangli', state: 'Maharashtra', type: 'district', lat: 16.8524, lon: 74.5815 },
+            { name: 'Satara', state: 'Maharashtra', type: 'district', lat: 17.6805, lon: 74.0183 },
+            { name: 'Shimoga', state: 'Karnataka', type: 'district', lat: 13.9315, lon: 75.5678 },
+            { name: 'Solapur', state: 'Maharashtra', type: 'district', lat: 17.6599, lon: 75.9064 },
+            { name: 'Tumkur', state: 'Karnataka', type: 'district', lat: 13.3409, lon: 77.1025 },
+            { name: 'Wardha', state: 'Maharashtra', type: 'district', lat: 20.7453, lon: 78.6022 },
+            
+            // Union Territories
+            { name: 'Andaman and Nicobar Islands', state: 'Andaman and Nicobar Islands', type: 'union_territory', lat: 11.7401, lon: 92.6586 },
+            { name: 'Chandigarh', state: 'Chandigarh', type: 'union_territory', lat: 30.7333, lon: 76.7794 },
+            { name: 'Dadra and Nagar Haveli', state: 'Dadra and Nagar Haveli', type: 'union_territory', lat: 20.1809, lon: 73.0169 },
+            { name: 'Daman and Diu', state: 'Daman and Diu', type: 'union_territory', lat: 20.4283, lon: 72.8397 },
+            { name: 'Delhi', state: 'Delhi', type: 'union_territory', lat: 28.6139, lon: 77.2090 },
+            { name: 'Jammu and Kashmir', state: 'Jammu and Kashmir', type: 'union_territory', lat: 34.0837, lon: 74.7973 },
+            { name: 'Lakshadweep', state: 'Lakshadweep', type: 'union_territory', lat: 10.5667, lon: 72.6417 },
+            { name: 'Puducherry', state: 'Puducherry', type: 'union_territory', lat: 11.9416, lon: 79.8083 },
+            
+            // Major Indian Villages
+            // Uttar Pradesh Villages
+            { name: 'Sikandrabad', state: 'Uttar Pradesh', type: 'village', lat: 28.4495, lon: 77.7000 },
+            { name: 'Bulandshahr', state: 'Uttar Pradesh', type: 'village', lat: 28.4030, lon: 77.8583 },
+            { name: 'Hapur', state: 'Uttar Pradesh', type: 'village', lat: 28.7298, lon: 77.7814 },
+            { name: 'Modinagar', state: 'Uttar Pradesh', type: 'village', lat: 28.8320, lon: 77.7535 },
+            { name: 'Ghaziabad', state: 'Uttar Pradesh', type: 'village', lat: 28.6692, lon: 77.4538 },
+            { name: 'Noida', state: 'Uttar Pradesh', type: 'village', lat: 28.5355, lon: 77.3910 },
+            { name: 'Greater Noida', state: 'Uttar Pradesh', type: 'village', lat: 28.4744, lon: 77.5040 },
+            { name: 'Muzaffarnagar', state: 'Uttar Pradesh', type: 'village', lat: 29.4709, lon: 77.7033 },
+            { name: 'Meerut', state: 'Uttar Pradesh', type: 'village', lat: 28.9845, lon: 77.7064 },
+            { name: 'Saharanpur', state: 'Uttar Pradesh', type: 'village', lat: 29.9674, lon: 77.5451 },
+            
+            // Punjab Villages
+            { name: 'Phagwara', state: 'Punjab', type: 'village', lat: 31.2240, lon: 75.7708 },
+            { name: 'Kapurthala', state: 'Punjab', type: 'village', lat: 31.3807, lon: 75.3847 },
+            { name: 'Jalandhar', state: 'Punjab', type: 'village', lat: 31.3260, lon: 75.5762 },
+            { name: 'Nawanshahr', state: 'Punjab', type: 'village', lat: 31.1239, lon: 76.1167 },
+            { name: 'Hoshiarpur', state: 'Punjab', type: 'village', lat: 31.5320, lon: 75.9170 },
+            { name: 'Moga', state: 'Punjab', type: 'village', lat: 30.8135, lon: 75.1688 },
+            { name: 'Firozpur', state: 'Punjab', type: 'village', lat: 30.9258, lon: 74.6133 },
+            { name: 'Muktsar', state: 'Punjab', type: 'village', lat: 30.4743, lon: 74.5166 },
+            
+            // Haryana Villages
+            { name: 'Sonipat', state: 'Haryana', type: 'village', lat: 28.9931, lon: 77.0151 },
+            { name: 'Panipat', state: 'Haryana', type: 'village', lat: 29.3909, lon: 76.9635 },
+            { name: 'Karnal', state: 'Haryana', type: 'village', lat: 29.6857, lon: 76.9905 },
+            { name: 'Kurukshetra', state: 'Haryana', type: 'village', lat: 29.9695, lon: 76.8783 },
+            { name: 'Ambala', state: 'Haryana', type: 'village', lat: 30.3753, lon: 76.7821 },
+            { name: 'Yamunanagar', state: 'Haryana', type: 'village', lat: 30.1290, lon: 77.2674 },
+            { name: 'Sirsa', state: 'Haryana', type: 'village', lat: 29.5339, lon: 75.0289 },
+            { name: 'Bhiwani', state: 'Haryana', type: 'village', lat: 28.7939, lon: 76.1394 },
+            
+            // Rajasthan Villages
+            { name: 'Bharatpur', state: 'Rajasthan', type: 'village', lat: 27.2156, lon: 77.4909 },
+            { name: 'Alwar', state: 'Rajasthan', type: 'village', lat: 27.5665, lon: 76.6102 },
+            { name: 'Dausa', state: 'Rajasthan', type: 'village', lat: 26.8938, lon: 76.3349 },
+            { name: 'Sikar', state: 'Rajasthan', type: 'village', lat: 27.6119, lon: 75.1397 },
+            { name: 'Churu', state: 'Rajasthan', type: 'village', lat: 28.3019, lon: 74.9519 },
+            { name: 'Bikaner', state: 'Rajasthan', type: 'village', lat: 28.0229, lon: 73.3119 },
+            { name: 'Jaisalmer', state: 'Rajasthan', type: 'village', lat: 26.9157, lon: 70.9083 },
+            { name: 'Barmer', state: 'Rajasthan', type: 'village', lat: 25.7461, lon: 71.3924 },
+            
+            // Maharashtra Villages
+            { name: 'Thane', state: 'Maharashtra', type: 'village', lat: 19.2183, lon: 72.9781 },
+            { name: 'Navi Mumbai', state: 'Maharashtra', type: 'village', lat: 19.0330, lon: 73.0297 },
+            { name: 'Kalyan', state: 'Maharashtra', type: 'village', lat: 19.2437, lon: 73.1355 },
+            { name: 'Ulhasnagar', state: 'Maharashtra', type: 'village', lat: 19.2167, lon: 73.1500 },
+            { name: 'Bhiwandi', state: 'Maharashtra', type: 'village', lat: 19.3002, lon: 73.0581 },
+            { name: 'Badlapur', state: 'Maharashtra', type: 'village', lat: 19.1552, lon: 73.2655 },
+            { name: 'Ambernath', state: 'Maharashtra', type: 'village', lat: 19.2091, lon: 73.1791 },
+            { name: 'Vasai', state: 'Maharashtra', type: 'village', lat: 19.4700, lon: 72.8000 },
+            
+            // Gujarat Villages
+            { name: 'Gandhinagar', state: 'Gujarat', type: 'village', lat: 23.2156, lon: 72.6369 },
+            { name: 'Nadiad', state: 'Gujarat', type: 'village', lat: 22.6939, lon: 72.8614 },
+            { name: 'Anand', state: 'Gujarat', type: 'village', lat: 22.5645, lon: 72.9289 },
+            { name: 'Bharuch', state: 'Gujarat', type: 'village', lat: 21.7051, lon: 72.9959 },
+            { name: 'Navsari', state: 'Gujarat', type: 'village', lat: 20.9469, lon: 72.9280 },
+            { name: 'Valsad', state: 'Gujarat', type: 'village', lat: 20.6104, lon: 72.9282 },
+            { name: 'Palanpur', state: 'Gujarat', type: 'village', lat: 24.1702, lon: 72.4366 },
+            { name: 'Himmatnagar', state: 'Gujarat', type: 'village', lat: 23.5986, lon: 72.9662 },
+            
+            // Tamil Nadu Villages
+            { name: 'Coimbatore', state: 'Tamil Nadu', type: 'village', lat: 11.0168, lon: 76.9558 },
+            { name: 'Tiruppur', state: 'Tamil Nadu', type: 'village', lat: 11.1085, lon: 77.3411 },
+            { name: 'Erode', state: 'Tamil Nadu', type: 'village', lat: 11.3410, lon: 77.7172 },
+            { name: 'Salem', state: 'Tamil Nadu', type: 'village', lat: 11.6643, lon: 78.1460 },
+            { name: 'Tirunelveli', state: 'Tamil Nadu', type: 'village', lat: 8.7139, lon: 77.7567 },
+            { name: 'Thoothukudi', state: 'Tamil Nadu', type: 'village', lat: 8.7642, lon: 78.1348 },
+            { name: 'Nagercoil', state: 'Tamil Nadu', type: 'village', lat: 8.1774, lon: 77.4343 },
+            { name: 'Kanchipuram', state: 'Tamil Nadu', type: 'village', lat: 12.8338, lon: 79.7000 },
+            
+            // Karnataka Villages
+            { name: 'Mysuru', state: 'Karnataka', type: 'village', lat: 12.2958, lon: 76.6394 },
+            { name: 'Hubballi', state: 'Karnataka', type: 'village', lat: 15.3647, lon: 75.1240 },
+            { name: 'Dharwad', state: 'Karnataka', type: 'village', lat: 15.4589, lon: 75.0078 },
+            { name: 'Belagavi', state: 'Karnataka', type: 'village', lat: 15.8497, lon: 74.4977 },
+            { name: 'Kalaburagi', state: 'Karnataka', type: 'village', lat: 17.3297, lon: 76.8343 },
+            { name: 'Davanagere', state: 'Karnataka', type: 'village', lat: 14.4644, lon: 75.9218 },
+            { name: 'Shivamogga', state: 'Karnataka', type: 'village', lat: 13.9315, lon: 75.5678 },
+            { name: 'Tumakuru', state: 'Karnataka', type: 'village', lat: 13.3409, lon: 77.1025 },
+            
+            // Andhra Pradesh Villages
+            { name: 'Guntur', state: 'Andhra Pradesh', type: 'village', lat: 16.3067, lon: 80.4365 },
+            { name: 'Nellore', state: 'Andhra Pradesh', type: 'village', lat: 14.4426, lon: 79.9864 },
+            { name: 'Kadapa', state: 'Andhra Pradesh', type: 'village', lat: 14.4753, lon: 78.8298 },
+            { name: 'Anantapur', state: 'Andhra Pradesh', type: 'village', lat: 14.6819, lon: 77.6006 },
+            { name: 'Kurnool', state: 'Andhra Pradesh', type: 'village', lat: 15.8305, lon: 78.0423 },
+            { name: 'Tirupati', state: 'Andhra Pradesh', type: 'village', lat: 13.6288, lon: 79.4192 },
+            { name: 'Rajahmundry', state: 'Andhra Pradesh', type: 'village', lat: 17.0005, lon: 81.8040 },
+            { name: 'Kakinada', state: 'Andhra Pradesh', type: 'village', lat: 16.9891, lon: 82.2475 },
+            
+            // Telangana Villages
+            { name: 'Warangal', state: 'Telangana', type: 'village', lat: 17.9689, lon: 79.5941 },
+            { name: 'Nizamabad', state: 'Telangana', type: 'village', lat: 18.6715, lon: 78.0948 },
+            { name: 'Mahabubnagar', state: 'Telangana', type: 'village', lat: 16.7405, lon: 77.9898 },
+            { name: 'Medak', state: 'Telangana', type: 'village', lat: 17.8315, lon: 78.0382 },
+            { name: 'Nalgonda', state: 'Telangana', type: 'village', lat: 17.0535, lon: 79.2670 },
+            { name: 'Karimnagar', state: 'Telangana', type: 'village', lat: 18.4386, lon: 79.1288 },
+            { name: 'Khammam', state: 'Telangana', type: 'village', lat: 17.2473, lon: 80.1514 },
+            { name: 'Adilabad', state: 'Telangana', type: 'village', lat: 19.6633, lon: 78.5320 },
+            
+            // Kerala Villages
+            { name: 'Kochi', state: 'Kerala', type: 'village', lat: 9.9312, lon: 76.2673 },
+            { name: 'Kozhikode', state: 'Kerala', type: 'village', lat: 11.2588, lon: 75.7804 },
+            { name: 'Thrissur', state: 'Kerala', type: 'village', lat: 10.5276, lon: 76.2144 },
+            { name: 'Kollam', state: 'Kerala', type: 'village', lat: 8.8932, lon: 76.6141 },
+            { name: 'Palakkad', state: 'Kerala', type: 'village', lat: 10.7867, lon: 76.6548 },
+            { name: 'Kannur', state: 'Kerala', type: 'village', lat: 11.8745, lon: 75.3704 },
+            { name: 'Alappuzha', state: 'Kerala', type: 'village', lat: 9.4981, lon: 76.3388 },
+            { name: 'Malappuram', state: 'Kerala', type: 'village', lat: 11.0732, lon: 76.0740 },
+            
+            // West Bengal Villages
+            { name: 'Asansol', state: 'West Bengal', type: 'village', lat: 23.6739, lon: 86.9524 },
+            { name: 'Bardhaman', state: 'West Bengal', type: 'village', lat: 23.2324, lon: 87.8615 },
+            { name: 'Durgapur', state: 'West Bengal', type: 'village', lat: 23.5204, lon: 87.3119 },
+            { name: 'Siliguri', state: 'West Bengal', type: 'village', lat: 26.7271, lon: 88.3953 },
+            { name: 'Malda', state: 'West Bengal', type: 'village', lat: 25.0116, lon: 88.1405 },
+            { name: 'Baharampur', state: 'West Bengal', type: 'village', lat: 24.1047, lon: 88.2515 },
+            { name: 'Kharagpur', state: 'West Bengal', type: 'village', lat: 22.3149, lon: 87.3105 },
+            { name: 'Haldia', state: 'West Bengal', type: 'village', lat: 22.0257, lon: 88.0583 },
+            
+            // Bihar Villages
+            { name: 'Gaya', state: 'Bihar', type: 'village', lat: 24.7969, lon: 85.0039 },
+            { name: 'Bhagalpur', state: 'Bihar', type: 'village', lat: 25.2445, lon: 87.0089 },
+            { name: 'Muzaffarpur', state: 'Bihar', type: 'village', lat: 26.1209, lon: 85.3647 },
+            { name: 'Darbhanga', state: 'Bihar', type: 'village', lat: 26.1667, lon: 85.9000 },
+            { name: 'Purnia', state: 'Bihar', type: 'village', lat: 25.7778, lon: 87.4744 },
+            { name: 'Ara', state: 'Bihar', type: 'village', lat: 25.5614, lon: 84.6639 },
+            { name: 'Begusarai', state: 'Bihar', type: 'village', lat: 25.4170, lon: 86.1346 },
+            { name: 'Katihar', state: 'Bihar', type: 'village', lat: 25.5333, lon: 87.5833 },
+            
+            // Madhya Pradesh Villages
+            { name: 'Indore', state: 'Madhya Pradesh', type: 'village', lat: 22.7196, lon: 75.8577 },
+            { name: 'Gwalior', state: 'Madhya Pradesh', type: 'village', lat: 26.2183, lon: 78.1828 },
+            { name: 'Jabalpur', state: 'Madhya Pradesh', type: 'village', lat: 23.1815, lon: 79.9864 },
+            { name: 'Ujjain', state: 'Madhya Pradesh', type: 'village', lat: 23.1765, lon: 75.7885 },
+            { name: 'Sagar', state: 'Madhya Pradesh', type: 'village', lat: 23.8338, lon: 78.7164 },
+            { name: 'Dewas', state: 'Madhya Pradesh', type: 'village', lat: 22.9676, lon: 76.0534 },
+            { name: 'Satna', state: 'Madhya Pradesh', type: 'village', lat: 24.5833, lon: 80.8333 },
+            { name: 'Ratlam', state: 'Madhya Pradesh', type: 'village', lat: 23.3167, lon: 75.0667 },
+            
+            // Odisha Villages
+            { name: 'Cuttack', state: 'Odisha', type: 'village', lat: 20.4625, lon: 85.8830 },
+            { name: 'Rourkela', state: 'Odisha', type: 'village', lat: 22.2492, lon: 84.8828 },
+            { name: 'Berhampur', state: 'Odisha', type: 'village', lat: 19.3112, lon: 84.7947 },
+            { name: 'Sambalpur', state: 'Odisha', type: 'village', lat: 21.4669, lon: 83.9812 },
+            { name: 'Puri', state: 'Odisha', type: 'village', lat: 19.8134, lon: 85.8315 },
+            { name: 'Balasore', state: 'Odisha', type: 'village', lat: 21.4942, lon: 86.9336 },
+            { name: 'Bhadrak', state: 'Odisha', type: 'village', lat: 21.0667, lon: 86.6000 },
+            { name: 'Baripada', state: 'Odisha', type: 'village', lat: 21.9333, lon: 86.7333 }
         ];
 
+        // Comprehensive mandi data for all locations
         const mandiData = [
-            { name: 'Azadpur Mandi', location: 'Delhi', distance: '5 km', crops: ['vegetables', 'fruits'] },
-            { name: 'Vashi APMC', location: 'Mumbai', distance: '8 km', crops: ['vegetables', 'fruits', 'spices'] },
-            { name: 'Yeshwanthpur APMC', location: 'Bangalore', distance: '12 km', crops: ['vegetables', 'fruits'] },
-            { name: 'Koyambedu Market', location: 'Chennai', distance: '15 km', crops: ['vegetables', 'fruits'] },
-            { name: 'Bara Bazar', location: 'Kolkata', distance: '10 km', crops: ['rice', 'spices'] },
-            { name: 'Gaddiannaram Market', location: 'Hyderabad', distance: '18 km', crops: ['vegetables', 'fruits'] },
-            { name: 'Pune APMC', location: 'Pune', distance: '20 km', crops: ['vegetables', 'fruits', 'spices'] },
-            { name: 'Jamalpur Mandi', location: 'Ahmedabad', distance: '8 km', crops: ['cotton', 'spices'] },
-            { name: 'Galta Gate Mandi', location: 'Jaipur', distance: '12 km', crops: ['vegetables', 'spices'] },
-            { name: 'Nakhas Mandi', location: 'Lucknow', distance: '6 km', crops: ['vegetables', 'spices'] }
+            // Delhi
+            { name: 'Azadpur Mandi', location: 'Delhi', state: 'Delhi', distance: '5 km', crops: ['vegetables', 'fruits', 'grains'] },
+            { name: 'Ghazipur Mandi', location: 'Delhi', state: 'Delhi', distance: '12 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Najafgarh Mandi', location: 'Delhi', state: 'Delhi', distance: '18 km', crops: ['vegetables', 'fruits'] },
+            
+            // Mumbai
+            { name: 'Vashi APMC', location: 'Mumbai', state: 'Maharashtra', distance: '8 km', crops: ['vegetables', 'fruits', 'spices'] },
+            { name: 'Nashik APMC', location: 'Nashik', state: 'Maharashtra', distance: '180 km', crops: ['onions', 'vegetables', 'fruits'] },
+            { name: 'Pune APMC', location: 'Pune', state: 'Maharashtra', distance: '150 km', crops: ['vegetables', 'fruits', 'spices'] },
+            { name: 'Kolhapur APMC', location: 'Kolhapur', state: 'Maharashtra', distance: '230 km', crops: ['sugarcane', 'vegetables'] },
+            
+            // Bangalore
+            { name: 'Yeshwanthpur APMC', location: 'Bangalore', state: 'Karnataka', distance: '12 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Mysore APMC', location: 'Mysore', state: 'Karnataka', distance: '140 km', crops: ['vegetables', 'fruits', 'spices'] },
+            { name: 'Hubli APMC', location: 'Hubli', state: 'Karnataka', distance: '410 km', crops: ['cotton', 'vegetables'] },
+            { name: 'Mangalore APMC', location: 'Mangalore', state: 'Karnataka', distance: '350 km', crops: ['coconut', 'spices'] },
+            
+            // Chennai
+            { name: 'Koyambedu Market', location: 'Chennai', state: 'Tamil Nadu', distance: '15 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Coimbatore APMC', location: 'Coimbatore', state: 'Tamil Nadu', distance: '500 km', crops: ['cotton', 'vegetables'] },
+            { name: 'Madurai APMC', location: 'Madurai', state: 'Tamil Nadu', distance: '460 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Salem APMC', location: 'Salem', state: 'Tamil Nadu', distance: '340 km', crops: ['vegetables', 'fruits'] },
+            
+            // Kolkata
+            { name: 'Bara Bazar', location: 'Kolkata', state: 'West Bengal', distance: '10 km', crops: ['rice', 'spices', 'vegetables'] },
+            { name: 'Burdwan Mandi', location: 'Burdwan', state: 'West Bengal', distance: '95 km', crops: ['rice', 'vegetables'] },
+            { name: 'Asansol Mandi', location: 'Asansol', state: 'West Bengal', distance: '200 km', crops: ['rice', 'vegetables'] },
+            
+            // Hyderabad
+            { name: 'Gaddiannaram Market', location: 'Hyderabad', state: 'Telangana', distance: '18 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Warangal APMC', location: 'Warangal', state: 'Telangana', distance: '140 km', crops: ['cotton', 'vegetables'] },
+            { name: 'Nizamabad APMC', location: 'Nizamabad', state: 'Telangana', distance: '180 km', crops: ['cotton', 'vegetables'] },
+            { name: 'Mahabubnagar APMC', location: 'Mahabubnagar', state: 'Telangana', distance: '95 km', crops: ['cotton', 'vegetables'] },
+            
+            // Ahmedabad
+            { name: 'Jamalpur Mandi', location: 'Ahmedabad', state: 'Gujarat', distance: '8 km', crops: ['cotton', 'spices', 'vegetables'] },
+            { name: 'Rajkot APMC', location: 'Rajkot', state: 'Gujarat', distance: '200 km', crops: ['cotton', 'groundnut'] },
+            { name: 'Surat APMC', location: 'Surat', state: 'Gujarat', distance: '260 km', crops: ['cotton', 'vegetables'] },
+            { name: 'Vadodara APMC', location: 'Vadodara', state: 'Gujarat', distance: '110 km', crops: ['cotton', 'vegetables'] },
+            
+            // Jaipur
+            { name: 'Galta Gate Mandi', location: 'Jaipur', state: 'Rajasthan', distance: '12 km', crops: ['vegetables', 'spices'] },
+            { name: 'Jodhpur Mandi', location: 'Jodhpur', state: 'Rajasthan', distance: '330 km', crops: ['cotton', 'vegetables'] },
+            { name: 'Udaipur Mandi', location: 'Udaipur', state: 'Rajasthan', distance: '390 km', crops: ['vegetables', 'fruits'] },
+            { name: 'Kota Mandi', location: 'Kota', state: 'Rajasthan', distance: '240 km', crops: ['cotton', 'vegetables'] },
+            
+            // Lucknow
+            { name: 'Nakhas Mandi', location: 'Lucknow', state: 'Uttar Pradesh', distance: '6 km', crops: ['vegetables', 'spices'] },
+            { name: 'Kanpur Mandi', location: 'Kanpur', state: 'Uttar Pradesh', distance: '80 km', crops: ['wheat', 'vegetables'] },
+            { name: 'Allahabad Mandi', location: 'Allahabad', state: 'Uttar Pradesh', distance: '200 km', crops: ['wheat', 'rice'] },
+            { name: 'Varanasi Mandi', location: 'Varanasi', state: 'Uttar Pradesh', distance: '320 km', crops: ['rice', 'vegetables'] },
+            { name: 'Gorakhpur Mandi', location: 'Gorakhpur', state: 'Uttar Pradesh', distance: '270 km', crops: ['wheat', 'rice'] },
+            
+            // Punjab
+            { name: 'Amritsar APMC', location: 'Amritsar', state: 'Punjab', distance: '15 km', crops: ['wheat', 'rice', 'vegetables'] },
+            { name: 'Ludhiana APMC', location: 'Ludhiana', state: 'Punjab', distance: '140 km', crops: ['wheat', 'rice'] },
+            { name: 'Patiala APMC', location: 'Patiala', state: 'Punjab', distance: '80 km', crops: ['wheat', 'rice'] },
+            { name: 'Bathinda APMC', location: 'Bathinda', state: 'Punjab', distance: '180 km', crops: ['cotton', 'wheat'] },
+            
+            // Haryana
+            { name: 'Karnal APMC', location: 'Karnal', state: 'Haryana', distance: '120 km', crops: ['wheat', 'rice', 'vegetables'] },
+            { name: 'Hisar APMC', location: 'Hisar', state: 'Haryana', distance: '180 km', crops: ['cotton', 'wheat'] },
+            { name: 'Rohtak APMC', location: 'Rohtak', state: 'Haryana', distance: '70 km', crops: ['wheat', 'vegetables'] },
+            
+            // Bihar
+            { name: 'Patna Mandi', location: 'Patna', state: 'Bihar', distance: '8 km', crops: ['rice', 'wheat', 'vegetables'] },
+            { name: 'Gaya Mandi', location: 'Gaya', state: 'Bihar', distance: '100 km', crops: ['rice', 'wheat'] },
+            { name: 'Muzaffarpur Mandi', location: 'Muzaffarpur', state: 'Bihar', distance: '80 km', crops: ['rice', 'vegetables'] },
+            
+            // Andhra Pradesh
+            { name: 'Vijayawada APMC', location: 'Vijayawada', state: 'Andhra Pradesh', distance: '15 km', crops: ['rice', 'cotton', 'vegetables'] },
+            { name: 'Guntur APMC', location: 'Guntur', state: 'Andhra Pradesh', distance: '35 km', crops: ['cotton', 'chili', 'rice'] },
+            { name: 'Visakhapatnam APMC', location: 'Visakhapatnam', state: 'Andhra Pradesh', distance: '280 km', crops: ['rice', 'vegetables'] },
+            { name: 'Anantapur APMC', location: 'Anantapur', state: 'Andhra Pradesh', distance: '350 km', crops: ['groundnut', 'cotton'] },
+            { name: 'Kurnool APMC', location: 'Kurnool', state: 'Andhra Pradesh', distance: '200 km', crops: ['cotton', 'rice'] },
+            
+            // Odisha
+            { name: 'Bhubaneswar APMC', location: 'Bhubaneswar', state: 'Odisha', distance: '8 km', crops: ['rice', 'vegetables'] },
+            { name: 'Cuttack APMC', location: 'Cuttack', state: 'Odisha', distance: '25 km', crops: ['rice', 'vegetables'] },
+            { name: 'Berhampur APMC', location: 'Berhampur', state: 'Odisha', distance: '170 km', crops: ['rice', 'vegetables'] },
+            
+            // Kerala
+            { name: 'Kochi APMC', location: 'Kochi', state: 'Kerala', distance: '12 km', crops: ['coconut', 'spices', 'vegetables'] },
+            { name: 'Thiruvananthapuram APMC', location: 'Thiruvananthapuram', state: 'Kerala', distance: '220 km', crops: ['coconut', 'spices'] },
+            { name: 'Kozhikode APMC', location: 'Kozhikode', state: 'Kerala', distance: '180 km', crops: ['coconut', 'spices'] },
+            
+            // Madhya Pradesh
+            { name: 'Bhopal APMC', location: 'Bhopal', state: 'Madhya Pradesh', distance: '10 km', crops: ['wheat', 'soybean', 'vegetables'] },
+            { name: 'Indore APMC', location: 'Indore', state: 'Madhya Pradesh', distance: '190 km', crops: ['soybean', 'wheat', 'vegetables'] },
+            { name: 'Jabalpur APMC', location: 'Jabalpur', state: 'Madhya Pradesh', distance: '340 km', crops: ['wheat', 'rice'] },
+            { name: 'Gwalior APMC', location: 'Gwalior', state: 'Madhya Pradesh', distance: '320 km', crops: ['wheat', 'vegetables'] },
+            
+            // Jharkhand
+            { name: 'Ranchi APMC', location: 'Ranchi', state: 'Jharkhand', distance: '8 km', crops: ['rice', 'vegetables'] },
+            { name: 'Jamshedpur APMC', location: 'Jamshedpur', state: 'Jharkhand', distance: '140 km', crops: ['rice', 'vegetables'] },
+            { name: 'Dhanbad APMC', location: 'Dhanbad', state: 'Jharkhand', distance: '260 km', crops: ['rice', 'vegetables'] },
+            
+            // Chhattisgarh
+            { name: 'Raipur APMC', location: 'Raipur', state: 'Chhattisgarh', distance: '10 km', crops: ['rice', 'vegetables'] },
+            { name: 'Bilaspur APMC', location: 'Bilaspur', state: 'Chhattisgarh', distance: '130 km', crops: ['rice', 'vegetables'] },
+            
+            // Assam
+            { name: 'Guwahati APMC', location: 'Guwahati', state: 'Assam', distance: '8 km', crops: ['rice', 'vegetables', 'tea'] },
+            { name: 'Dibrugarh APMC', location: 'Dibrugarh', state: 'Assam', distance: '460 km', crops: ['tea', 'rice'] },
+            
+            // Himachal Pradesh
+            { name: 'Shimla APMC', location: 'Shimla', state: 'Himachal Pradesh', distance: '10 km', crops: ['apple', 'vegetables'] },
+            { name: 'Solan APMC', location: 'Solan', state: 'Himachal Pradesh', distance: '45 km', crops: ['tomato', 'vegetables'] },
+            
+            // Uttarakhand
+            { name: 'Dehradun APMC', location: 'Dehradun', state: 'Uttarakhand', distance: '8 km', crops: ['basmati rice', 'vegetables'] },
+            { name: 'Haridwar APMC', location: 'Haridwar', state: 'Uttarakhand', distance: '55 km', crops: ['rice', 'vegetables'] },
+            
+            // Goa
+            { name: 'Panaji APMC', location: 'Panaji', state: 'Goa', distance: '8 km', crops: ['coconut', 'vegetables'] },
+            { name: 'Margao APMC', location: 'Margao', state: 'Goa', distance: '35 km', crops: ['coconut', 'vegetables'] }
         ];
 
         const cropData = [
@@ -3349,52 +3758,354 @@
             { name: 'उड़द (Black Gram)', value: 'black_gram', category: 'pulse' }
         ];
 
-        // Location search functionality
+        // Enhanced location search like Rapido and Google Maps with smart recommendations
         function searchLocations(query) {
-            if (query.length < 2) {
+            if (query.length < 1) {
                 hideLocationSuggestions();
                 return;
             }
 
-            const filtered = locationData.filter(location => 
-                location.name.toLowerCase().includes(query.toLowerCase()) ||
-                location.state.toLowerCase().includes(query.toLowerCase())
-            );
+            const queryLower = query.toLowerCase().trim();
+            
+            // Smart search with multiple matching strategies
+            const scoredLocations = locationData.map(location => {
+                let score = 0;
+                const nameLower = location.name.toLowerCase();
+                const stateLower = location.state.toLowerCase();
+                
+                // 1. Exact match (highest priority)
+                if (nameLower === queryLower) {
+                    score += 1000;
+                }
+                // 2. Starts with query
+                else if (nameLower.startsWith(queryLower)) {
+                    score += 800;
+                }
+                // 3. Contains query as whole word
+                else if (nameLower.includes(' ' + queryLower + ' ') || 
+                         nameLower.startsWith(queryLower + ' ') || 
+                         nameLower.endsWith(' ' + queryLower)) {
+                    score += 600;
+                }
+                // 4. Contains query anywhere
+                else if (nameLower.includes(queryLower)) {
+                    score += 400;
+                }
+                // 5. Fuzzy matching (similar words)
+                else if (fuzzyMatch(nameLower, queryLower)) {
+                    score += 200;
+                }
+                // 6. State match
+                else if (stateLower.includes(queryLower)) {
+                    score += 150;
+                }
+                
+                // 7. Type-based scoring (cities get higher priority, villages included)
+                if (location.type === 'city') score += 50;
+                else if (location.type === 'district') score += 40;
+                else if (location.type === 'village') score += 35;
+                else if (location.type === 'state') score += 30;
+                else if (location.type === 'union_territory') score += 20;
+                
+                // 8. Popularity boost for major cities
+                const popularCities = ['delhi', 'mumbai', 'bangalore', 'chennai', 'kolkata', 'hyderabad', 'pune', 'ahmedabad'];
+                if (popularCities.includes(nameLower)) {
+                    score += 25;
+                }
+                
+                // 9. Distance-based scoring (if current location exists)
+                if (currentLocation && currentLocation.lat && currentLocation.lon) {
+                    const distance = calculateDistance(currentLocation.lat, currentLocation.lon, location.lat, location.lon);
+                    if (distance < 50) score += 30; // Within 50km
+                    else if (distance < 200) score += 20; // Within 200km
+                    else if (distance < 500) score += 10; // Within 500km
+                }
+                
+                return { ...location, score };
+            })
+            .filter(location => location.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 12); // Show top 12 results
 
-            showLocationSuggestions(filtered);
+            // Add smart suggestions if no good matches
+            if (scoredLocations.length === 0) {
+                const smartSuggestions = generateSmartSuggestions(query);
+                showLocationSuggestions(smartSuggestions);
+            } else {
+                showLocationSuggestions(scoredLocations);
+            }
+        }
+
+        // Fuzzy matching for similar words
+        function fuzzyMatch(str1, str2) {
+            const similarity = calculateSimilarity(str1, str2);
+            return similarity > 0.7; // 70% similarity threshold
+        }
+
+        // Calculate string similarity (Levenshtein distance based)
+        function calculateSimilarity(str1, str2) {
+            const longer = str1.length > str2.length ? str1 : str2;
+            const shorter = str1.length > str2.length ? str2 : str1;
+            
+            if (longer.length === 0) return 1.0;
+            
+            const distance = levenshteinDistance(longer, shorter);
+            return (longer.length - distance) / longer.length;
+        }
+
+        // Levenshtein distance calculation
+        function levenshteinDistance(str1, str2) {
+            const matrix = [];
+            
+            for (let i = 0; i <= str2.length; i++) {
+                matrix[i] = [i];
+            }
+            
+            for (let j = 0; j <= str1.length; j++) {
+                matrix[0][j] = j;
+            }
+            
+            for (let i = 1; i <= str2.length; i++) {
+                for (let j = 1; j <= str1.length; j++) {
+                    if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            
+            return matrix[str2.length][str1.length];
+        }
+
+        // Generate smart suggestions for unrecognized queries
+        function generateSmartSuggestions(query) {
+            const suggestions = [];
+            const queryLower = query.toLowerCase();
+            
+            // Common misspellings and variations
+            const corrections = {
+                'delhi': ['delhi', 'new delhi', 'dilli'],
+                'mumbai': ['mumbai', 'bombay', 'mumbay'],
+                'bangalore': ['bangalore', 'bengaluru', 'bangaluru'],
+                'chennai': ['chennai', 'madras', 'chenai'],
+                'kolkata': ['kolkata', 'calcutta', 'kolkat'],
+                'hyderabad': ['hyderabad', 'hyderbad', 'hydrabad'],
+                'pune': ['pune', 'pun', 'poona'],
+                'ahmedabad': ['ahmedabad', 'ahmadabad', 'amadavad'],
+                'jaipur': ['jaipur', 'jaypur', 'jaipor'],
+                'lucknow': ['lucknow', 'lakhnow', 'luknow'],
+                'kanpur': ['kanpur', 'cawnpore', 'kanpore'],
+                'patna': ['patna', 'patana', 'patnaa'],
+                'bhopal': ['bhopal', 'bhopl', 'bhopaal'],
+                'indore': ['indore', 'indor', 'indor'],
+                'surat': ['surat', 'surt', 'surrat'],
+                'nagpur': ['nagpur', 'nagpore', 'nagpor'],
+                'vadodara': ['vadodara', 'baroda', 'badodara'],
+                'rajkot': ['rajkot', 'rajkote', 'rajcot'],
+                'visakhapatnam': ['visakhapatnam', 'vishakapatnam', 'vizag'],
+                'coimbatore': ['coimbatore', 'kovai', 'coimbatur'],
+                'madurai': ['madurai', 'madurai', 'madura'],
+                'mysore': ['mysore', 'mysuru', 'mysor'],
+                'kochi': ['kochi', 'cochin', 'kochi'],
+                'thiruvananthapuram': ['thiruvananthapuram', 'trivandrum', 'thiruvanantapuram'],
+                'guwahati': ['guwahati', 'gauhati', 'guahati'],
+                'chandigarh': ['chandigarh', 'chandigar', 'chandigadh'],
+                'dehradun': ['dehradun', 'dehra dun', 'dehradun'],
+                'shimla': ['shimla', 'simla', 'shimla'],
+                'goa': ['goa', 'gova', 'go'],
+                'srinagar': ['srinagar', 'srinagar', 'srinagar']
+            };
+            
+            // Check for corrections
+            for (const [correct, variations] of Object.entries(corrections)) {
+                if (variations.includes(queryLower)) {
+                    const location = locationData.find(loc => loc.name.toLowerCase() === correct);
+                    if (location) {
+                        suggestions.push({ ...location, isCorrection: true });
+                    }
+                }
+            }
+            
+            // If no corrections found, suggest popular nearby locations
+            if (suggestions.length === 0) {
+                const popularLocations = [
+                    { name: 'Delhi', state: 'Delhi', type: 'city', lat: 28.6139, lon: 77.2090 },
+                    { name: 'Mumbai', state: 'Maharashtra', type: 'city', lat: 19.0760, lon: 72.8777 },
+                    { name: 'Bangalore', state: 'Karnataka', type: 'city', lat: 12.9716, lon: 77.5946 },
+                    { name: 'Chennai', state: 'Tamil Nadu', type: 'city', lat: 13.0827, lon: 80.2707 },
+                    { name: 'Kolkata', state: 'West Bengal', type: 'city', lat: 22.5726, lon: 88.3639 },
+                    { name: 'Hyderabad', state: 'Telangana', type: 'city', lat: 17.3850, lon: 78.4867 },
+                    { name: 'Pune', state: 'Maharashtra', type: 'city', lat: 18.5204, lon: 73.8567 },
+                    { name: 'Ahmedabad', state: 'Gujarat', type: 'city', lat: 23.0225, lon: 72.5714 }
+                ];
+                suggestions.push(...popularLocations);
+            }
+            
+            return suggestions.slice(0, 8);
         }
 
         function showLocationSuggestions(suggestions = null) {
             const container = document.getElementById('locationSuggestions');
             
             if (!suggestions) {
-                // Show all locations when focused
-                suggestions = locationData.slice(0, 10);
+                // Show popular locations when focused
+                suggestions = [
+                    { name: 'Delhi', state: 'Delhi', type: 'city', lat: 28.6139, lon: 77.2090 },
+                    { name: 'Mumbai', state: 'Maharashtra', type: 'city', lat: 19.0760, lon: 72.8777 },
+                    { name: 'Bangalore', state: 'Karnataka', type: 'city', lat: 12.9716, lon: 77.5946 },
+                    { name: 'Chennai', state: 'Tamil Nadu', type: 'city', lat: 13.0827, lon: 80.2707 },
+                    { name: 'Kolkata', state: 'West Bengal', type: 'city', lat: 22.5726, lon: 88.3639 },
+                    { name: 'Hyderabad', state: 'Telangana', type: 'city', lat: 17.3850, lon: 78.4867 },
+                    { name: 'Pune', state: 'Maharashtra', type: 'city', lat: 18.5204, lon: 73.8567 },
+                    { name: 'Ahmedabad', state: 'Gujarat', type: 'city', lat: 23.0225, lon: 72.5714 }
+                ];
             }
 
-            const html = suggestions.map(location => `
-                <div class="suggestion-item" onclick="selectLocation('${location.name}', ${location.lat}, ${location.lon})">
-                    <div>
-                        <div class="suggestion-name">${location.name}</div>
-                        <div class="suggestion-details">${location.state}, ${location.type}</div>
+            const html = suggestions.map((location, index) => {
+                const typeIcon = location.type === 'city' ? '🏙️' : 
+                                location.type === 'district' ? '🏘️' : 
+                                location.type === 'village' ? '🏡' :
+                                location.type === 'state' ? '🏛️' : '📍';
+                
+                // Calculate distance if current location exists
+                let distanceInfo = '';
+                if (currentLocation && currentLocation.lat && currentLocation.lon) {
+                    const distance = calculateDistance(currentLocation.lat, currentLocation.lon, location.lat, location.lon);
+                    if (distance < 1) {
+                        distanceInfo = `${Math.round(distance * 1000)}m away`;
+                    } else if (distance < 100) {
+                        distanceInfo = `${distance.toFixed(1)}km away`;
+                    } else {
+                        distanceInfo = `${Math.round(distance)}km away`;
+                    }
+                }
+                
+                // Add correction indicator
+                const correctionBadge = location.isCorrection ? '<span class="correction-badge">Did you mean?</span>' : '';
+                
+                return `
+                    <div class="suggestion-item ${index === 0 ? 'active' : ''}" 
+                         onclick="selectLocation('${location.name}', ${location.lat}, ${location.lon}, '${location.state}')">
+                        <div class="suggestion-icon">${typeIcon}</div>
+                        <div class="suggestion-content">
+                            <div class="suggestion-name">
+                                ${location.name}
+                                ${correctionBadge}
+                            </div>
+                            <div class="suggestion-details">
+                                ${location.state} • ${location.type}
+                                ${distanceInfo ? ` • ${distanceInfo}` : ''}
+                            </div>
+                        </div>
+                        <div class="suggestion-action">
+                            ${index === 0 ? '↵' : '→'}
+                        </div>
                     </div>
-                    <div class="suggestion-distance">📍</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             container.innerHTML = html;
             container.classList.add('show');
         }
 
-        function selectLocation(name, lat, lon) {
+        function selectLocation(name, lat, lon, state = null) {
             document.getElementById('locationSearchInput').value = name;
             hideLocationSuggestions();
             
             // Update current location
-            currentLocation = { lat: lat, lon: lon };
+            currentLocation = { 
+                lat: lat, 
+                lon: lon, 
+                name: name,
+                state: state || getStateFromLocation(name)
+            };
             
             // Load nearby mandis for this location
             loadNearbyMandis(name);
+            
+            // Update all services with new location
+            updateAllServicesWithLocation(name, lat, lon);
+        }
+
+        function getStateFromLocation(locationName) {
+            const location = locationData.find(loc => loc.name === locationName);
+            return location ? location.state : 'Unknown';
+        }
+
+        function updateAllServicesWithLocation(locationName, lat, lon) {
+            // Update location display
+            updateGlobalLocationDisplay();
+            
+            // Update crop recommendations for this location
+            updateCropRecommendationsForLocation(locationName, lat, lon);
+            
+            // Update weather for this location
+            updateWeatherForLocation(locationName, lat, lon);
+            
+            // Update soil health for this location
+            updateSoilHealthForLocation(locationName, lat, lon);
+            
+            // Show notification
+            showNotification(`स्थान अपडेट हो गया: ${locationName}`, 'success');
+        }
+
+        // Update crop recommendations for specific location
+        function updateCropRecommendationsForLocation(locationName, lat, lon) {
+            if (!lat || !lon) {
+                console.error('Invalid coordinates for crop recommendations');
+                return;
+            }
+
+            console.log(`Updating crop recommendations for ${locationName} (${lat}, ${lon})`);
+            
+            // Update current location
+            currentLocation = { lat: lat, lon: lon, name: locationName };
+            
+            // Generate location-specific query
+            const query = `${locationName} में कौन सी फसलें लगाएं? मेरी लोकेशन: ${lat}, ${lon}`;
+            
+            fetch('/api/advisories/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    language: 'hi',
+                    session_id: sessionId,
+                    latitude: lat,
+                    longitude: lon,
+                    location_name: locationName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    console.log('Crop recommendation response:', data.response);
+                    updateCropRecommendations(data.response);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating crop recommendations:', error);
+                showNotification('फसल सुझाव अपडेट करने में त्रुटि', 'error');
+            });
+        }
+
+        // Update weather for specific location
+        function updateWeatherForLocation(locationName, lat, lon) {
+            console.log(`Updating weather for ${locationName} (${lat}, ${lon})`);
+            // Weather update logic will be implemented here
+        }
+
+        // Update soil health for specific location
+        function updateSoilHealthForLocation(locationName, lat, lon) {
+            console.log(`Updating soil health for ${locationName} (${lat}, ${lon})`);
+            // Soil health update logic will be implemented here
         }
 
         function hideLocationSuggestions() {
@@ -3519,50 +4230,232 @@
             }
         });
 
-        // Get current location function for the button
+        // Enhanced GPS location detection like mobile apps
         function getCurrentLocation() {
+            showNotification('आपकी सटीक लोकेशन डिटेक्ट कर रहे हैं...', 'info');
+            
             if (navigator.geolocation) {
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
+                };
+                
                 navigator.geolocation.getCurrentPosition(
                     function(position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        const accuracy = position.coords.accuracy;
+                        
                         currentLocation = {
-                            lat: position.coords.latitude,
-                            lon: position.coords.longitude
+                            lat: lat,
+                            lon: lon,
+                            accuracy: accuracy
                         };
                         
-                        // Reverse geocode to get location name
-                        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${currentLocation.lat}&longitude=${currentLocation.lon}&localityLanguage=hi`)
-                        .then(response => response.json())
-                        .then(data => {
-                            currentLocation.name = data.city || data.locality || 'Current Location';
-                            
-                            // Update location input
-                            if (document.getElementById('locationSearchInput')) {
-                                document.getElementById('locationSearchInput').value = currentLocation.name;
-                            }
-                            
-                            updateGlobalLocationDisplay();
-                            loadNearbyMandis(currentLocation.name);
-                            showNotification(`स्थान अपडेट हो गया: ${currentLocation.name}`, 'success');
-                        })
-                        .catch(error => {
-                            console.error('Error getting location name:', error);
-                            currentLocation.name = 'Current Location';
-                            if (document.getElementById('locationSearchInput')) {
-                                document.getElementById('locationSearchInput').value = currentLocation.name;
-                            }
-                            updateGlobalLocationDisplay();
-                            loadNearbyMandis(currentLocation.name);
-                            showNotification('स्थान अपडेट हो गया', 'success');
-                        });
+                        // Enhanced reverse geocoding with multiple APIs
+                        detectDetailedLocation(lat, lon);
                     },
                     function(error) {
-                        console.error('Error getting location:', error);
-                        showNotification('स्थान प्राप्त करने में त्रुटि', 'error');
-                    }
+                        console.error('GPS Error:', error);
+                        let errorMessage = 'स्थान प्राप्त करने में त्रुटि';
+                        
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = 'स्थान की अनुमति नहीं दी गई';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = 'स्थान की जानकारी उपलब्ध नहीं';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = 'स्थान प्राप्त करने में समय समाप्त';
+                                break;
+                        }
+                        
+                        showNotification(errorMessage, 'error');
+                        // Fallback to IP-based location
+                        detectLocationByIP();
+                    },
+                    options
                 );
             } else {
                 showNotification('जियोलोकेशन समर्थित नहीं है', 'error');
+                // Fallback to IP-based location
+                detectLocationByIP();
             }
+        }
+
+        // Enhanced location detection with detailed information
+        function detectDetailedLocation(lat, lon) {
+            // Try multiple reverse geocoding services for better accuracy
+            const geocodingServices = [
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=hi`,
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=hi`,
+                `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lon}&key=YOUR_API_KEY&language=hi`
+            ];
+            
+            // Use the first available service
+            fetch(geocodingServices[0])
+            .then(response => response.json())
+            .then(data => {
+                const locationInfo = parseLocationData(data);
+                updateLocationWithDetails(locationInfo, lat, lon);
+            })
+            .catch(error => {
+                console.error('Primary geocoding failed:', error);
+                // Try secondary service
+                return fetch(geocodingServices[1]);
+            })
+            .then(response => response ? response.json() : null)
+            .then(data => {
+                if (data) {
+                    const locationInfo = parseLocationData(data);
+                    updateLocationWithDetails(locationInfo, lat, lon);
+                } else {
+                    throw new Error('All geocoding services failed');
+                }
+            })
+            .catch(error => {
+                console.error('All geocoding failed:', error);
+                // Fallback to approximate location
+                const approximateLocation = findNearestLocation(lat, lon);
+                updateLocationWithDetails(approximateLocation, lat, lon);
+            });
+        }
+
+        // Parse location data from different geocoding services
+        function parseLocationData(data) {
+            let locationInfo = {
+                city: 'Unknown City',
+                state: 'Unknown State',
+                country: 'India',
+                village: null,
+                district: null,
+                pincode: null
+            };
+
+            if (data.city || data.locality) {
+                locationInfo.city = data.city || data.locality;
+            }
+            if (data.principalSubdivision) {
+                locationInfo.state = data.principalSubdivision;
+            }
+            if (data.village) {
+                locationInfo.village = data.village;
+            }
+            if (data.postcode) {
+                locationInfo.pincode = data.postcode;
+            }
+
+            // Parse OpenStreetMap format
+            if (data.address) {
+                const addr = data.address;
+                locationInfo.city = addr.city || addr.town || addr.village || locationInfo.city;
+                locationInfo.state = addr.state || locationInfo.state;
+                locationInfo.district = addr.county || addr.district;
+                locationInfo.pincode = addr.postcode || locationInfo.pincode;
+            }
+
+            return locationInfo;
+        }
+
+        // Update location with detailed information
+        function updateLocationWithDetails(locationInfo, lat, lon) {
+            currentLocation = {
+                lat: lat,
+                lon: lon,
+                name: locationInfo.city,
+                state: locationInfo.state,
+                country: locationInfo.country,
+                village: locationInfo.village,
+                district: locationInfo.district,
+                pincode: locationInfo.pincode,
+                accuracy: currentLocation.accuracy
+            };
+
+            // Update location input with detailed information
+            const locationDisplay = locationInfo.village ? 
+                `${locationInfo.village}, ${locationInfo.city}, ${locationInfo.state}` :
+                `${locationInfo.city}, ${locationInfo.state}`;
+
+            if (document.getElementById('locationSearchInput')) {
+                document.getElementById('locationSearchInput').value = locationDisplay;
+            }
+
+            // Update all services
+            updateAllServicesWithLocation(locationDisplay, lat, lon);
+            
+            showNotification(`📍 स्थान डिटेक्ट हो गया: ${locationDisplay}`, 'success');
+        }
+
+        // Find nearest location from our database
+        function findNearestLocation(lat, lon) {
+            let nearestLocation = null;
+            let minDistance = Infinity;
+
+            locationData.forEach(location => {
+                const distance = calculateDistance(lat, lon, location.lat, location.lon);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestLocation = location;
+                }
+            });
+
+            return nearestLocation || {
+                name: 'Delhi',
+                state: 'Delhi',
+                lat: 28.6139,
+                lon: 77.2090
+            };
+        }
+
+        // Calculate distance between two coordinates
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in kilometers
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // IP-based location detection as fallback
+        function detectLocationByIP() {
+            showNotification('IP से स्थान डिटेक्ट कर रहे हैं...', 'info');
+            
+            fetch('https://ipapi.co/json/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.country_code === 'IN') {
+                    const locationInfo = {
+                        city: data.city || 'Unknown City',
+                        state: data.region || 'Unknown State',
+                        country: 'India',
+                        lat: data.latitude,
+                        lon: data.longitude
+                    };
+                    
+                    updateLocationWithDetails(locationInfo, data.latitude, data.longitude);
+                } else {
+                    // Default to Delhi if not in India
+                    updateLocationWithDetails({
+                        city: 'Delhi',
+                        state: 'Delhi',
+                        country: 'India'
+                    }, 28.6139, 77.2090);
+                }
+            })
+            .catch(error => {
+                console.error('IP geolocation failed:', error);
+                // Final fallback to Delhi
+                updateLocationWithDetails({
+                    city: 'Delhi',
+                    state: 'Delhi',
+                    country: 'India'
+                }, 28.6139, 77.2090);
+            });
         }
 
         // Handle mandi selection
