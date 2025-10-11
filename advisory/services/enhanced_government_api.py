@@ -13,6 +13,9 @@ import time
 
 logger = logging.getLogger(__name__)
 
+# India Location Hub API configuration
+INDIA_LOCATION_API_BASE = "https://api.india-location-hub.in/v1"
+
 # Import dynamic profitable crop AI
 try:
     from ..ml.dynamic_profitable_crop_ai import dynamic_profitable_crop_ai
@@ -55,6 +58,452 @@ class EnhancedGovernmentAPI:
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         })
+        
+        # Comprehensive Indian location database
+        self.indian_locations = self._load_comprehensive_indian_locations()
+        
+        # Location detection methods
+        self.location_api_enabled = True
+        self.location_cache = {}
+        
+    def _load_comprehensive_indian_locations(self) -> Dict[str, Any]:
+        """Load comprehensive Indian location database covering all states, districts, cities, and villages"""
+        return {
+            # All Indian States and Union Territories
+            'states': {
+                'andhra_pradesh': {
+                    'name': 'Andhra Pradesh',
+                    'hindi_name': 'आंध्र प्रदेश',
+                    'districts': ['visakhapatnam', 'vijayawada', 'guntur', 'nellore', 'kurnool', 'anantapur', 'kadapa', 'chittoor', 'prakasam', 'krishna', 'west_godavari', 'east_godavari', 'vizianagaram', 'srikakulam'],
+                    'major_cities': ['visakhapatnam', 'vijayawada', 'guntur', 'nellore', 'kurnool', 'anantapur', 'kadapa', 'chittoor', 'ongole', 'rajahmundry', 'tirupati', 'kakinada'],
+                    'region': 'South'
+                },
+                'assam': {
+                    'name': 'Assam',
+                    'hindi_name': 'असम',
+                    'districts': ['kamrup', 'dibrugarh', 'jorhat', 'sivasagar', 'sonitpur', 'nalbari', 'barpeta', 'bongaigaon', 'dhubri', 'kokrajhar', 'baksa', 'chirang', 'udalguri', 'darrang', 'morigaon', 'nagaon', 'golaghat', 'karbi_anglong', 'dima_hasao', 'cachar', 'karimganj', 'hailakandi'],
+                    'major_cities': ['guwahati', 'dibrugarh', 'jorhat', 'sivasagar', 'tezpur', 'nalbari', 'barpeta', 'bongaigaon', 'dhubri', 'kokrajhar', 'silchar', 'karimganj'],
+                    'region': 'East'
+                },
+                'bihar': {
+                    'name': 'Bihar',
+                    'hindi_name': 'बिहार',
+                    'districts': ['patna', 'gaya', 'bhagalpur', 'muzaffarpur', 'darbhanga', 'purnia', 'araria', 'kishanganj', 'katihar', 'madhepura', 'saharsa', 'supaul', 'madhubani', 'sitamarhi', 'sheohar', 'east_champaran', 'west_champaran', 'gopalganj', 'siwan', 'saran', 'vaishali', 'bhojpur', 'buxar', 'kaimur', 'rohtas', 'aurangabad', 'gaya', 'jehanabad', 'arwal', 'nawada', 'jamui', 'lakhisarai', 'munger', 'khagaria', 'begusarai', 'nalanda', 'sheikhpura'],
+                    'major_cities': ['patna', 'gaya', 'bhagalpur', 'muzaffarpur', 'darbhanga', 'purnia', 'araria', 'kishanganj', 'katihar', 'madhepura', 'saharsa', 'supaul', 'madhubani', 'sitamarhi', 'motihari', 'betiah', 'gopalganj', 'siwan', 'chapra', 'hajipur', 'ara', 'buxar', 'bhabua', 'sasaram', 'aurangabad', 'jehanabad', 'nawada', 'jamui', 'lakhisarai', 'munger', 'khagaria', 'begusarai', 'bihar_sharif', 'sheikhpura'],
+                    'region': 'East'
+                },
+                'chhattisgarh': {
+                    'name': 'Chhattisgarh',
+                    'hindi_name': 'छत्तीसगढ़',
+                    'districts': ['raipur', 'durg', 'bilaspur', 'rajnandgaon', 'korba', 'janjgir_champa', 'mungeli', 'kabirdham', 'bemetara', 'balod', 'baloda_bazar', 'gariyaband', 'dhamtari', 'kanker', 'narayanpur', 'bastar', 'kondagaon', 'sukma', 'dantewada', 'bijapur', 'surajpur', 'balrampur', 'koriya', 'sarguja', 'jashpur', 'raigarh', 'korba', 'mahasamund', 'gariaband'],
+                    'major_cities': ['raipur', 'durg', 'bilaspur', 'rajnandgaon', 'korba', 'janjgir', 'champa', 'mungeli', 'kabirdham', 'bemetara', 'balod', 'baloda_bazar', 'gariyaband', 'dhamtari', 'kanker', 'narayanpur', 'jagdalpur', 'kondagaon', 'sukma', 'dantewada', 'bijapur', 'surajpur', 'balrampur', 'koriya', 'ambikapur', 'jashpur', 'raigarh', 'mahasamund'],
+                    'region': 'Central'
+                },
+                'delhi': {
+                    'name': 'Delhi',
+                    'hindi_name': 'दिल्ली',
+                    'districts': ['central_delhi', 'east_delhi', 'new_delhi', 'north_delhi', 'north_east_delhi', 'north_west_delhi', 'shahdara', 'south_delhi', 'south_east_delhi', 'south_west_delhi', 'west_delhi'],
+                    'major_cities': ['new_delhi', 'central_delhi', 'east_delhi', 'north_delhi', 'north_east_delhi', 'north_west_delhi', 'shahdara', 'south_delhi', 'south_east_delhi', 'south_west_delhi', 'west_delhi'],
+                    'region': 'North'
+                },
+                'gujarat': {
+                    'name': 'Gujarat',
+                    'hindi_name': 'गुजरात',
+                    'districts': ['ahmedabad', 'surat', 'vadodara', 'rajkot', 'bhavnagar', 'jamnagar', 'junagadh', 'gandhinagar', 'anand', 'banaskantha', 'bharuch', 'bhavnagar', 'dahod', 'dang', 'gandhinagar', 'jamnagar', 'junagadh', 'kachchh', 'kheda', 'mahesana', 'narmada', 'navsari', 'panchmahal', 'patan', 'porbandar', 'rajkot', 'sabarkantha', 'surendranagar', 'tapi', 'vadodara', 'valsad'],
+                    'major_cities': ['ahmedabad', 'surat', 'vadodara', 'rajkot', 'bhavnagar', 'jamnagar', 'junagadh', 'gandhinagar', 'anand', 'palanpur', 'bharuch', 'dahod', 'navsari', 'godhra', 'palanpur', 'rajkot', 'himatnagar', 'surendranagar', 'vyara', 'valsad'],
+                    'region': 'West'
+                },
+                'haryana': {
+                    'name': 'Haryana',
+                    'hindi_name': 'हरियाणा',
+                    'districts': ['faridabad', 'gurgaon', 'hisar', 'karnal', 'panipat', 'rohtak', 'sonipat', 'ambala', 'bhiwani', 'fatehabad', 'jind', 'kaithal', 'kurukshetra', 'mahendragarh', 'mewat', 'palwal', 'panchkula', 'rewari', 'sirsa', 'yamunanagar'],
+                    'major_cities': ['faridabad', 'gurgaon', 'hisar', 'karnal', 'panipat', 'rohtak', 'sonipat', 'ambala', 'bhiwani', 'fatehabad', 'jind', 'kaithal', 'kurukshetra', 'narnaul', 'nuh', 'palwal', 'panchkula', 'rewari', 'sirsa', 'yamunanagar'],
+                    'region': 'North'
+                },
+                'himachal_pradesh': {
+                    'name': 'Himachal Pradesh',
+                    'hindi_name': 'हिमाचल प्रदेश',
+                    'districts': ['shimla', 'kangra', 'mandi', 'chamba', 'solan', 'sirmaur', 'kinnaur', 'lahaul_spiti', 'kullu', 'hamirpur', 'una', 'bilaspur'],
+                    'major_cities': ['shimla', 'dharamshala', 'mandi', 'chamba', 'solan', 'nahan', 'kalpa', 'keylong', 'kullu', 'hamirpur', 'una', 'bilaspur'],
+                    'region': 'North'
+                },
+                'jammu_kashmir': {
+                    'name': 'Jammu and Kashmir',
+                    'hindi_name': 'जम्मू और कश्मीर',
+                    'districts': ['srinagar', 'jammu', 'anantnag', 'baramulla', 'budgam', 'doda', 'ganderbal', 'kathua', 'kishtwar', 'kulgam', 'kupwara', 'poonch', 'pulwama', 'rajauri', 'ramban', 'reasi', 'samba', 'shopian', 'udhampur'],
+                    'major_cities': ['srinagar', 'jammu', 'anantnag', 'baramulla', 'budgam', 'doda', 'ganderbal', 'kathua', 'kishtwar', 'kulgam', 'kupwara', 'poonch', 'pulwama', 'rajauri', 'ramban', 'reasi', 'samba', 'shopian', 'udhampur'],
+                    'region': 'North'
+                },
+                'jharkhand': {
+                    'name': 'Jharkhand',
+                    'hindi_name': 'झारखंड',
+                    'districts': ['ranchi', 'dhanbad', 'bokaro', 'jamshedpur', 'deoghar', 'giridih', 'hazaribagh', 'kodarma', 'palamu', 'garhwa', 'latehar', 'lohardaga', 'gumla', 'simdega', 'west_singhbhum', 'east_singhbhum', 'saraikela_kharsawan', 'dumka', 'jamtara', 'pakur', 'sahebganj', 'godda', 'chatra', 'koderma', 'ramgarh'],
+                    'major_cities': ['ranchi', 'dhanbad', 'bokaro', 'jamshedpur', 'deoghar', 'giridih', 'hazaribagh', 'kodarma', 'daltonganj', 'garhwa', 'latehar', 'lohardaga', 'gumla', 'simdega', 'chaibasa', 'jamshedpur', 'saraikela', 'dumka', 'jamtara', 'pakur', 'sahebganj', 'godda', 'chatra', 'ramgarh'],
+                    'region': 'East'
+                },
+                'karnataka': {
+                    'name': 'Karnataka',
+                    'hindi_name': 'कर्नाटक',
+                    'districts': ['bangalore', 'mysore', 'hubli', 'mangalore', 'belgaum', 'gulbarga', 'davangere', 'bellary', 'bijapur', 'shimoga', 'tumkur', 'raichur', 'bidar', 'kolar', 'chitradurga', 'hassan', 'mandya', 'chikmagalur', 'udupi', 'dakshina_kannada', 'udupi', 'kodagu', 'chamrajanagar', 'bagalkot', 'gadag', 'haveri', 'dharwad', 'karwar', 'chikkaballapur', 'ramanagara', 'yadgir', 'koppal', 'vijayapura'],
+                    'major_cities': ['bangalore', 'mysore', 'hubli', 'mangalore', 'belgaum', 'gulbarga', 'davangere', 'bellary', 'bijapur', 'shimoga', 'tumkur', 'raichur', 'bidar', 'kolar', 'chitradurga', 'hassan', 'mandya', 'chikmagalur', 'udupi', 'mangalore', 'madikeri', 'chamrajanagar', 'bagalkot', 'gadag', 'haveri', 'dharwad', 'karwar', 'chikkaballapur', 'ramanagara', 'yadgir', 'koppal', 'vijayapura'],
+                    'region': 'South'
+                },
+                'kerala': {
+                    'name': 'Kerala',
+                    'hindi_name': 'केरल',
+                    'districts': ['thiruvananthapuram', 'kollam', 'pathanamthitta', 'alappuzha', 'kottayam', 'idukki', 'ernakulam', 'thrissur', 'palakkad', 'malappuram', 'kozhikode', 'wayanad', 'kannur', 'kasaragod'],
+                    'major_cities': ['thiruvananthapuram', 'kollam', 'pathanamthitta', 'alappuzha', 'kottayam', 'idukki', 'kochi', 'thrissur', 'palakkad', 'malappuram', 'kozhikode', 'kalpetta', 'kannur', 'kasaragod'],
+                    'region': 'South'
+                },
+                'madhya_pradesh': {
+                    'name': 'Madhya Pradesh',
+                    'hindi_name': 'मध्य प्रदेश',
+                    'districts': ['bhopal', 'indore', 'gwalior', 'jabalpur', 'ujjain', 'sagar', 'dewas', 'satna', 'ratlam', 'rewa', 'murwara', 'singrauli', 'burhanpur', 'khandwa', 'khargone', 'barwani', 'dhar', 'jhabua', 'alirajpur', 'mandsaur', 'neemuch', 'mhow', 'sehore', 'raisen', 'vidisha', 'guna', 'ashoknagar', 'shivpuri', 'guna', 'datia', 'sheopur', 'morena', 'bhind', 'gwalior', 'shivpuri', 'tikamgarh', 'chhatarpur', 'panna', 'damoh', 'sagar', 'chhindwara', 'betul', 'harda', 'hoshangabad', 'narsinghpur', 'seoni', 'balaghat', 'mandla', 'dindori', 'anuppur', 'shahdol', 'umaria', 'sidhi', 'singrauli'],
+                    'major_cities': ['bhopal', 'indore', 'gwalior', 'jabalpur', 'ujjain', 'sagar', 'dewas', 'satna', 'ratlam', 'rewa', 'katni', 'singrauli', 'burhanpur', 'khandwa', 'khargone', 'barwani', 'dhar', 'jhabua', 'alirajpur', 'mandsaur', 'neemuch', 'mhow', 'sehore', 'raisen', 'vidisha', 'guna', 'ashoknagar', 'shivpuri', 'datia', 'sheopur', 'morena', 'bhind', 'tikamgarh', 'chhatarpur', 'panna', 'damoh', 'chhindwara', 'betul', 'harda', 'hoshangabad', 'narsinghpur', 'seoni', 'balaghat', 'mandla', 'dindori', 'anuppur', 'shahdol', 'umaria', 'sidhi'],
+                    'region': 'Central'
+                },
+                'maharashtra': {
+                    'name': 'Maharashtra',
+                    'hindi_name': 'महाराष्ट्र',
+                    'districts': ['mumbai', 'pune', 'nagpur', 'thane', 'nashik', 'aurangabad', 'solapur', 'amravati', 'kolhapur', 'sangli', 'satara', 'ratnagiri', 'sindhudurg', 'raigad', 'palghar', 'dhule', 'nandurbar', 'jalgaon', 'buldhana', 'akola', 'washim', 'amravati', 'yavatmal', 'wardha', 'nagpur', 'bhandara', 'gondia', 'gadchiroli', 'chandrapur', 'nanded', 'hingoli', 'parbhani', 'jalna', 'beed', 'osmanabad', 'latur', 'ahmednagar', 'pune', 'satara', 'sangli', 'kolhapur', 'solapur', 'osmanabad', 'latur', 'beed', 'jalna', 'parbhani', 'nanded', 'hingoli'],
+                    'major_cities': ['mumbai', 'pune', 'nagpur', 'thane', 'nashik', 'aurangabad', 'solapur', 'amravati', 'kolhapur', 'sangli', 'satara', 'ratnagiri', 'sindhudurg', 'alibag', 'palghar', 'dhule', 'nandurbar', 'jalgaon', 'buldhana', 'akola', 'washim', 'yavatmal', 'wardha', 'bhandara', 'gondia', 'gadchiroli', 'chandrapur', 'nanded', 'hingoli', 'parbhani', 'jalna', 'beed', 'osmanabad', 'latur', 'ahmednagar'],
+                    'region': 'West'
+                },
+                'manipur': {
+                    'name': 'Manipur',
+                    'hindi_name': 'मणिपुर',
+                    'districts': ['imphal_east', 'imphal_west', 'bishnupur', 'thoubal', 'kakching', 'ukhrul', 'senapati', 'tamenglong', 'churachandpur', 'chandel', 'jiribam', 'noney', 'pherzawl', 'tengnoupal', 'kamjong'],
+                    'major_cities': ['imphal', 'bishnupur', 'thoubal', 'kakching', 'ukhrul', 'senapati', 'tamenglong', 'churachandpur', 'chandel', 'jiribam', 'noney', 'pherzawl', 'tengnoupal', 'kamjong'],
+                    'region': 'East'
+                },
+                'meghalaya': {
+                    'name': 'Meghalaya',
+                    'hindi_name': 'मेघालय',
+                    'districts': ['east_garo_hills', 'west_garo_hills', 'south_garo_hills', 'north_garo_hills', 'east_khasi_hills', 'west_khasi_hills', 'south_west_khasi_hills', 'ri_bhoi', 'jaintia_hills'],
+                    'major_cities': ['shillong', 'tura', 'jowai', 'nongstoin', 'williamnagar', 'baghmara', 'resubelpara', 'nongpoh', 'khliehriat'],
+                    'region': 'East'
+                },
+                'mizoram': {
+                    'name': 'Mizoram',
+                    'hindi_name': 'मिजोरम',
+                    'districts': ['aizawl', 'lunglei', 'champhai', 'serchhip', 'kolasib', 'mamit', 'saiha', 'lawngtlai', 'saitual', 'hnahthial', 'khawzawl'],
+                    'major_cities': ['aizawl', 'lunglei', 'champhai', 'serchhip', 'kolasib', 'mamit', 'saiha', 'lawngtlai', 'saitual', 'hnahthial', 'khawzawl'],
+                    'region': 'East'
+                },
+                'nagaland': {
+                    'name': 'Nagaland',
+                    'hindi_name': 'नागालैंड',
+                    'districts': ['kohima', 'dimapur', 'mokokchung', 'tuensang', 'wokha', 'zunheboto', 'phek', 'mon', 'longleng', 'peren', 'kiphire', 'noklak'],
+                    'major_cities': ['kohima', 'dimapur', 'mokokchung', 'tuensang', 'wokha', 'zunheboto', 'phek', 'mon', 'longleng', 'peren', 'kiphire', 'noklak'],
+                    'region': 'East'
+                },
+                'odisha': {
+                    'name': 'Odisha',
+                    'hindi_name': 'ओडिशा',
+                    'districts': ['bhubaneswar', 'cuttack', 'rourkela', 'berhampur', 'sambalpur', 'puri', 'balasore', 'bhadrak', 'jajpur', 'kendrapada', 'jagatsinghpur', 'kendrapara', 'khordha', 'nayagarh', 'gajapati', 'ganjam', 'kandhamal', 'boudh', 'sonepur', 'balangir', 'nuapada', 'kalahandi', 'rayagada', 'nabarangpur', 'koraput', 'malkangiri', 'sundargarh', 'jharsuguda', 'debagarh', 'angul', 'dhenkanal', 'keonjhar', 'mayurbhanj'],
+                    'major_cities': ['bhubaneswar', 'cuttack', 'rourkela', 'berhampur', 'sambalpur', 'puri', 'balasore', 'bhadrak', 'jajpur', 'kendrapada', 'jagatsinghpur', 'khordha', 'nayagarh', 'paralakhemundi', 'berhampur', 'phulbani', 'boudh', 'sonepur', 'balangir', 'nuapada', 'bhawanipatna', 'rayagada', 'nabarangpur', 'koraput', 'malkangiri', 'sundargarh', 'jharsuguda', 'debagarh', 'angul', 'dhenkanal', 'keonjhar', 'baripada'],
+                    'region': 'East'
+                },
+                'punjab': {
+                    'name': 'Punjab',
+                    'hindi_name': 'पंजाब',
+                    'districts': ['amritsar', 'ludhiana', 'jalandhar', 'patiala', 'bathinda', 'moga', 'firozpur', 'sangrur', 'faridkot', 'fatehgarh_sahib', 'muktsar', 'mohali', 'ropar', 'gurdaspur', 'hoshiarpur', 'kapurthala', 'nawanshahr', 'tarn_taran', 'barnala', 'mansa', 'muktsar'],
+                    'major_cities': ['amritsar', 'ludhiana', 'jalandhar', 'patiala', 'bathinda', 'moga', 'firozpur', 'sangrur', 'faridkot', 'fatehgarh_sahib', 'muktsar', 'mohali', 'ropar', 'gurdaspur', 'hoshiarpur', 'kapurthala', 'nawanshahr', 'tarn_taran', 'barnala', 'mansa'],
+                    'region': 'North'
+                },
+                'rajasthan': {
+                    'name': 'Rajasthan',
+                    'hindi_name': 'राजस्थान',
+                    'districts': ['jaipur', 'jodhpur', 'udaipur', 'kota', 'bikaner', 'ajmer', 'bharatpur', 'alwar', 'banswara', 'baran', 'barmer', 'bundi', 'chittorgarh', 'churu', 'dausa', 'dholpur', 'dungarpur', 'hanumangarh', 'jaisalmer', 'jalor', 'jhalawar', 'jhunjhunu', 'jodhpur', 'karauli', 'kota', 'nagaur', 'pali', 'pratapgarh', 'rajsamand', 'sawai_madhopur', 'sikar', 'sirohi', 'tonk', 'udaipur'],
+                    'major_cities': ['jaipur', 'jodhpur', 'udaipur', 'kota', 'bikaner', 'ajmer', 'bharatpur', 'alwar', 'banswara', 'baran', 'barmer', 'bundi', 'chittorgarh', 'churu', 'dausa', 'dholpur', 'dungarpur', 'hanumangarh', 'jaisalmer', 'jalor', 'jhalawar', 'jhunjhunu', 'karauli', 'nagaur', 'pali', 'pratapgarh', 'rajsamand', 'sawai_madhopur', 'sikar', 'sirohi', 'tonk'],
+                    'region': 'North'
+                },
+                'sikkim': {
+                    'name': 'Sikkim',
+                    'hindi_name': 'सिक्किम',
+                    'districts': ['east_sikkim', 'west_sikkim', 'north_sikkim', 'south_sikkim'],
+                    'major_cities': ['gangtok', 'gyalshing', 'mangan', 'namchi'],
+                    'region': 'East'
+                },
+                'tamil_nadu': {
+                    'name': 'Tamil Nadu',
+                    'hindi_name': 'तमिलनाडु',
+                    'districts': ['chennai', 'coimbatore', 'madurai', 'tiruchirappalli', 'salem', 'tirunelveli', 'tiruppur', 'erode', 'vellore', 'thoothukudi', 'dindigul', 'thanjavur', 'ranipet', 'sivaganga', 'karur', 'tenkasi', 'nagapattinam', 'namakkal', 'perambalur', 'pudukkottai', 'ramanathapuram', 'virudhunagar', 'cuddalore', 'dharmapuri', 'kanchipuram', 'krishnagiri', 'mayiladuthurai', 'nilgiris', 'tiruvallur', 'tiruvannamalai', 'tiruvarur', 'tiruppur', 'villupuram', 'ariyalur', 'chengalpattu', 'kallakurichi', 'ranipet', 'tenkasi', 'tirupathur', 'tiruppur'],
+                    'major_cities': ['chennai', 'coimbatore', 'madurai', 'tiruchirappalli', 'salem', 'tirunelveli', 'tiruppur', 'erode', 'vellore', 'thoothukudi', 'dindigul', 'thanjavur', 'ranipet', 'sivaganga', 'karur', 'tenkasi', 'nagapattinam', 'namakkal', 'perambalur', 'pudukkottai', 'ramanathapuram', 'virudhunagar', 'cuddalore', 'dharmapuri', 'kanchipuram', 'krishnagiri', 'mayiladuthurai', 'ooty', 'tiruvallur', 'tiruvannamalai', 'tiruvarur', 'villupuram', 'ariyalur', 'chengalpattu', 'kallakurichi', 'tirupathur'],
+                    'region': 'South'
+                },
+                'telangana': {
+                    'name': 'Telangana',
+                    'hindi_name': 'तेलंगाना',
+                    'districts': ['hyderabad', 'rangareddy', 'medchal_malkajgiri', 'vikarabad', 'sangareddy', 'kamareddy', 'nizamabad', 'jagtial', 'peddapalli', 'karimnagar', 'rajanna_sircilla', 'siddipet', 'yadadri_bhuvanagiri', 'medak', 'suryapet', 'nalgonda', 'jangaon', 'jayashankar_bhupalpally', 'mulugu', 'bhadradri_kothagudem', 'khammam', 'mahabubabad', 'warangal_urban', 'warangal_rural', 'mahabubnagar', 'nagarkurnool', 'wanaparthy', 'gadwal', 'jogulamba_gadwal', 'kumaram_bheem_asifabad', 'adilabad', 'komaram_bheem_asifabad', 'mancherial', 'nirmal'],
+                    'major_cities': ['hyderabad', 'rangareddy', 'medchal', 'vikarabad', 'sangareddy', 'kamareddy', 'nizamabad', 'jagtial', 'peddapalli', 'karimnagar', 'sircilla', 'siddipet', 'yadadri', 'medak', 'suryapet', 'nalgonda', 'jangaon', 'bhupalpally', 'mulugu', 'kothagudem', 'khammam', 'mahabubabad', 'warangal', 'mahabubnagar', 'nagarkurnool', 'wanaparthy', 'gadwal', 'asifabad', 'adilabad', 'mancherial', 'nirmal'],
+                    'region': 'South'
+                },
+                'tripura': {
+                    'name': 'Tripura',
+                    'hindi_name': 'त्रिपुरा',
+                    'districts': ['west_tripura', 'south_tripura', 'dhalai', 'north_tripura', 'khowai', 'sepahijala', 'unakoti', 'gomati'],
+                    'major_cities': ['agartala', 'udaypur', 'ambassa', 'kailashahar', 'khowai', 'bishramganj', 'kumarghat', 'santirbazar'],
+                    'region': 'East'
+                },
+                'uttar_pradesh': {
+                    'name': 'Uttar Pradesh',
+                    'hindi_name': 'उत्तर प्रदेश',
+                    'districts': ['lucknow', 'kanpur', 'agra', 'varanasi', 'meerut', 'allahabad', 'bareilly', 'ghaziabad', 'aligarh', 'moradabad', 'saharanpur', 'gorakhpur', 'firozabad', 'muzaffarnagar', 'mathura', 'shahjahanpur', 'etawah', 'mirzapur', 'bulandshahr', 'sambhal', 'amroha', 'hardoi', 'fatehpur', 'raebareli', 'sitapur', 'budaun', 'mainpuri', 'etah', 'kasganj', 'farrukhabad', 'kannauj', 'auraliya', 'hathras', 'pilibhit', 'shahjahanpur', 'kheri', 'siddharthnagar', 'basti', 'sant_kabir_nagar', 'mahrajganj', 'gorakhpur', 'kushinagar', 'deoria', 'azamgarh', 'mau', 'ballia', 'jaunpur', 'ghazipur', 'chandauli', 'varanasi', 'sant_ravidas_nagar', 'mirzapur', 'sonbhadra', 'allahabad', 'kaushambi', 'fatehpur', 'banda', 'hamirpur', 'mahoba', 'chitrakoot', 'jalaun', 'jhansi', 'lalitpur', 'agra', 'firozabad', 'mainpuri', 'mathura', 'aligarh', 'hathras', 'kasganj', 'etah', 'etawah', 'auraliya', 'kanpur', 'kanpur_dehat', 'unnao', 'lucknow', 'raebareli', 'sitapur', 'hardoi', 'lakhimpur_kheri', 'siddharthnagar', 'basti', 'sant_kabir_nagar', 'mahrajganj', 'gorakhpur', 'kushinagar', 'deoria', 'azamgarh', 'mau', 'ballia', 'jaunpur', 'ghazipur', 'chandauli', 'varanasi', 'sant_ravidas_nagar', 'mirzapur', 'sonbhadra'],
+                    'major_cities': ['lucknow', 'kanpur', 'agra', 'varanasi', 'meerut', 'allahabad', 'bareilly', 'ghaziabad', 'aligarh', 'moradabad', 'saharanpur', 'gorakhpur', 'firozabad', 'muzaffarnagar', 'mathura', 'shahjahanpur', 'etawah', 'mirzapur', 'bulandshahr', 'sambhal', 'amroha', 'hardoi', 'fatehpur', 'raebareli', 'sitapur', 'budaun', 'mainpuri', 'etah', 'kasganj', 'farrukhabad', 'kannauj', 'auraliya', 'hathras', 'pilibhit', 'kheri', 'siddharthnagar', 'basti', 'sant_kabir_nagar', 'mahrajganj', 'kushinagar', 'deoria', 'azamgarh', 'mau', 'ballia', 'jaunpur', 'ghazipur', 'chandauli', 'sant_ravidas_nagar', 'sonbhadra', 'kaushambi', 'banda', 'hamirpur', 'mahoba', 'chitrakoot', 'jalaun', 'jhansi', 'lalitpur', 'kanpur_dehat', 'unnao', 'lakhimpur_kheri'],
+                    'region': 'Central'
+                },
+                'uttarakhand': {
+                    'name': 'Uttarakhand',
+                    'hindi_name': 'उत्तराखंड',
+                    'districts': ['dehradun', 'haridwar', 'roorkee', 'kashipur', 'rudrapur', 'ramnagar', 'haldwani', 'nainital', 'udham_singh_nagar', 'champawat', 'pithoragarh', 'bageshwar', 'almora', 'ranikhet', 'chamoli', 'rudraprayag', 'tehri_garhwal', 'uttarkashi', 'pauri_garhwal'],
+                    'major_cities': ['dehradun', 'haridwar', 'roorkee', 'kashipur', 'rudrapur', 'ramnagar', 'haldwani', 'nainital', 'rudrapur', 'champawat', 'pithoragarh', 'bageshwar', 'almora', 'ranikhet', 'chamoli', 'rudraprayag', 'tehri', 'uttarkashi', 'pauri'],
+                    'region': 'North'
+                },
+                'west_bengal': {
+                    'name': 'West Bengal',
+                    'hindi_name': 'पश्चिम बंगाल',
+                    'districts': ['kolkata', 'howrah', 'hooghly', 'bardhaman', 'birbhum', 'bankura', 'purulia', 'paschim_medinipur', 'purba_medinipur', 'north_24_parganas', 'south_24_parganas', 'jalpaiguri', 'darjeeling', 'cooch_behar', 'alipurduar', 'malda', 'murshidabad', 'nadia', 'north_24_parganas', 'south_24_parganas', 'kolkata'],
+                    'major_cities': ['kolkata', 'howrah', 'hooghly', 'bardhaman', 'birbhum', 'bankura', 'purulia', 'medinipur', 'tamluk', 'barasat', 'alipore', 'jalpaiguri', 'darjeeling', 'cooch_behar', 'alipurduar', 'malda', 'murshidabad', 'nadia', 'barasat', 'alipore'],
+                    'region': 'East'
+                }
+            },
+            
+            # Common village patterns and suffixes
+            'village_patterns': [
+                'pur', 'pura', 'pore', 'ore', 'garh', 'nagar', 'bad', 'ganj', 'li', 'gaon', 'gaun', 'gram', 'kheda', 'khedi', 'khera', 'kheri', 'khurd', 'kalan', 'chak', 'chakki', 'majra', 'majri', 'khas', 'khurd', 'kalan', 'chhota', 'bada', 'naya', 'purana', 'tanda', 'dera', 'basti', 'nagar', 'colony', 'settlement', 'abadi', 'mohalla', 'patti', 'patti', 'tehsil', 'block', 'panchayat', 'gram_panchayat'
+            ],
+            
+            # Common city patterns
+            'city_patterns': [
+                'nagar', 'pur', 'pura', 'bad', 'ganj', 'garh', 'nagar', 'city', 'town', 'municipality', 'corporation', 'metro', 'urban', 'suburban'
+            ]
+        }
+        
+    def detect_location_comprehensive(self, query: str) -> Dict[str, Any]:
+        """Comprehensive location detection using API and fallback database"""
+        query_lower = query.lower().strip()
+        
+        # Check cache first
+        cache_key = f"location_{query_lower}"
+        if cache_key in self.location_cache:
+            return self.location_cache[cache_key]
+        
+        result = {
+            'location': None,
+            'state': None,
+            'district': None,
+            'region': None,
+            'coordinates': None,
+            'confidence': 0,
+            'source': 'none',
+            'type': 'unknown'
+        }
+        
+        # Try India Location Hub API first
+        if self.location_api_enabled:
+            api_result = self._detect_location_via_api(query_lower)
+            if api_result['confidence'] > 0.7:
+                result.update(api_result)
+                result['source'] = 'api'
+                self.location_cache[cache_key] = result
+                return result
+        
+        # Fallback to comprehensive database search
+        db_result = self._detect_location_via_database(query_lower)
+        if db_result['confidence'] > 0.5:
+            result.update(db_result)
+            result['source'] = 'database'
+        
+        # Enhanced pattern matching for villages and small locations
+        pattern_result = self._detect_location_via_patterns(query_lower)
+        if pattern_result['confidence'] > result['confidence']:
+            result.update(pattern_result)
+            result['source'] = 'pattern'
+        
+        self.location_cache[cache_key] = result
+        return result
+    
+    def _detect_location_via_api(self, query_lower: str) -> Dict[str, Any]:
+        """Detect location using India Location Hub API"""
+        try:
+            # Search API endpoint
+            search_url = f"{INDIA_LOCATION_API_BASE}/search"
+            params = {
+                'q': query_lower,
+                'limit': 5,
+                'format': 'json'
+            }
+            
+            response = self.session.get(search_url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if data.get('results') and len(data['results']) > 0:
+                    best_match = data['results'][0]
+                    
+                    return {
+                        'location': best_match.get('name', query_lower.title()),
+                        'state': best_match.get('state', 'Unknown'),
+                        'district': best_match.get('district', 'Unknown'),
+                        'region': self._get_region_from_state(best_match.get('state', '')),
+                        'coordinates': {
+                            'lat': best_match.get('latitude', 0),
+                            'lng': best_match.get('longitude', 0)
+                        },
+                        'confidence': 0.9,
+                        'type': best_match.get('type', 'location')
+                    }
+            
+        except Exception as e:
+            logger.warning(f"API location detection failed: {e}")
+        
+        return {'confidence': 0}
+    
+    def _detect_location_via_database(self, query_lower: str) -> Dict[str, Any]:
+        """Detect location using comprehensive database"""
+        best_match = None
+        best_confidence = 0
+        
+        # Search in states
+        for state_key, state_data in self.indian_locations['states'].items():
+            state_name = state_data['name'].lower()
+            hindi_name = state_data['hindi_name'].lower()
+            
+            if query_lower == state_name or query_lower == hindi_name:
+                return {
+                    'location': state_data['name'],
+                    'state': state_data['name'],
+                    'district': 'Multiple',
+                    'region': state_data['region'],
+                    'coordinates': self._get_state_coordinates(state_data['name']),
+                    'confidence': 0.95,
+                    'type': 'state'
+                }
+            
+            # Search in districts
+            for district in state_data['districts']:
+                if query_lower == district.lower():
+                    return {
+                        'location': district.title(),
+                        'state': state_data['name'],
+                        'district': district.title(),
+                        'region': state_data['region'],
+                        'coordinates': self._get_district_coordinates(district, state_data['name']),
+                        'confidence': 0.9,
+                        'type': 'district'
+                    }
+            
+            # Search in major cities
+            for city in state_data['major_cities']:
+                if query_lower == city.lower():
+                    return {
+                        'location': city.title(),
+                        'state': state_data['name'],
+                        'district': city.title(),
+                        'region': state_data['region'],
+                        'coordinates': self._get_city_coordinates(city, state_data['name']),
+                        'confidence': 0.85,
+                        'type': 'city'
+                    }
+        
+        return {'confidence': 0}
+    
+    def _detect_location_via_patterns(self, query_lower: str) -> Dict[str, Any]:
+        """Detect location using pattern matching for villages and small locations"""
+        # Check for village patterns
+        for pattern in self.indian_locations['village_patterns']:
+            if query_lower.endswith(pattern):
+                base_name = query_lower[:-len(pattern)].strip()
+                if len(base_name) > 2:
+                    return {
+                        'location': query_lower.title(),
+                        'state': 'Unknown',
+                        'district': 'Unknown',
+                        'region': 'Unknown',
+                        'coordinates': None,
+                        'confidence': 0.6,
+                        'type': 'village'
+                    }
+        
+        # Check for city patterns
+        for pattern in self.indian_locations['city_patterns']:
+            if query_lower.endswith(pattern):
+                base_name = query_lower[:-len(pattern)].strip()
+                if len(base_name) > 2:
+                    return {
+                        'location': query_lower.title(),
+                        'state': 'Unknown',
+                        'district': 'Unknown',
+                        'region': 'Unknown',
+                        'coordinates': None,
+                        'confidence': 0.7,
+                        'type': 'city'
+                    }
+        
+        return {'confidence': 0}
+    
+    def _get_region_from_state(self, state: str) -> str:
+        """Get region from state name"""
+        state_lower = state.lower()
+        
+        if any(keyword in state_lower for keyword in ['delhi', 'punjab', 'haryana', 'rajasthan', 'himachal', 'uttarakhand', 'jammu', 'kashmir']):
+            return 'North'
+        elif any(keyword in state_lower for keyword in ['maharashtra', 'gujarat', 'goa', 'dadra', 'nagar']):
+            return 'West'
+        elif any(keyword in state_lower for keyword in ['karnataka', 'tamil nadu', 'kerala', 'andhra pradesh', 'telangana']):
+            return 'South'
+        elif any(keyword in state_lower for keyword in ['west bengal', 'odisha', 'bihar', 'jharkhand', 'assam', 'tripura', 'manipur', 'meghalaya', 'mizoram', 'nagaland', 'sikkim', 'arunachal']):
+            return 'East'
+        elif any(keyword in state_lower for keyword in ['madhya pradesh', 'chhattisgarh', 'uttar pradesh']):
+            return 'Central'
+        else:
+            return 'Unknown'
+    
+    def _get_state_coordinates(self, state: str) -> Dict[str, float]:
+        """Get approximate coordinates for state"""
+        state_coords = {
+            'andhra pradesh': {'lat': 15.9129, 'lng': 79.7400},
+            'assam': {'lat': 26.2006, 'lng': 92.9376},
+            'bihar': {'lat': 25.0961, 'lng': 85.3131},
+            'chhattisgarh': {'lat': 21.2787, 'lng': 81.8661},
+            'delhi': {'lat': 28.7041, 'lng': 77.1025},
+            'gujarat': {'lat': 23.0225, 'lng': 72.5714},
+            'haryana': {'lat': 29.0588, 'lng': 76.0856},
+            'himachal pradesh': {'lat': 31.1048, 'lng': 77.1734},
+            'jammu and kashmir': {'lat': 34.0837, 'lng': 74.7973},
+            'jharkhand': {'lat': 23.6102, 'lng': 85.2799},
+            'karnataka': {'lat': 15.3173, 'lng': 75.7139},
+            'kerala': {'lat': 10.8505, 'lng': 76.2711},
+            'madhya pradesh': {'lat': 22.9734, 'lng': 78.6569},
+            'maharashtra': {'lat': 19.7515, 'lng': 75.7139},
+            'manipur': {'lat': 24.6637, 'lng': 93.9063},
+            'meghalaya': {'lat': 25.4670, 'lng': 91.3662},
+            'mizoram': {'lat': 23.1645, 'lng': 92.9376},
+            'nagaland': {'lat': 26.1584, 'lng': 94.5624},
+            'odisha': {'lat': 20.9517, 'lng': 85.0985},
+            'punjab': {'lat': 31.1471, 'lng': 75.3412},
+            'rajasthan': {'lat': 27.0238, 'lng': 74.2179},
+            'sikkim': {'lat': 27.5330, 'lng': 88.5122},
+            'tamil nadu': {'lat': 11.1271, 'lng': 78.6569},
+            'telangana': {'lat': 18.1124, 'lng': 79.0193},
+            'tripura': {'lat': 23.9408, 'lng': 91.9882},
+            'uttar pradesh': {'lat': 26.8467, 'lng': 80.9462},
+            'uttarakhand': {'lat': 30.0668, 'lng': 79.0193},
+            'west bengal': {'lat': 22.9868, 'lng': 87.8550}
+        }
+        return state_coords.get(state.lower(), {'lat': 20.5937, 'lng': 78.9629})
+    
+    def _get_district_coordinates(self, district: str, state: str) -> Dict[str, float]:
+        """Get approximate coordinates for district"""
+        # For now, return state coordinates
+        return self._get_state_coordinates(state)
+    
+    def _get_city_coordinates(self, city: str, state: str) -> Dict[str, float]:
+        """Get approximate coordinates for city"""
+        # For now, return state coordinates
+        return self._get_state_coordinates(state)
         
     def _load_fallback_data(self) -> Dict[str, Any]:
         """Load comprehensive fallback data with realistic prices and schemes"""
@@ -257,7 +706,7 @@ class EnhancedGovernmentAPI:
                     'profit_margin': '₹35,000/hectare'
                 }
             ]
-            
+        
             result = {
                 'location': location,
                 'season': season or 'kharif',
@@ -801,7 +1250,7 @@ class EnhancedGovernmentAPI:
             # Generate historical weather analysis
             historical_analysis = self._generate_historical_analysis(weather_profile, location)
             
-            return {
+                return {
                 'temperature': temperature,
                 'humidity': humidity,
                 'wind_speed': wind_speed,

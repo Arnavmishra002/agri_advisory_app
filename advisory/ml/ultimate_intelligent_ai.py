@@ -190,7 +190,27 @@ class UltimateIntelligentAI:
             'madhya pradesh': ['madhya pradesh', 'मध्य प्रदेश', 'mp', 'एमपी', 'madhya pradesh state'],
             'raebareli': ['raebareli', 'rae bareli', 'रायबरेली', 'राय बरेली', 'raebareli mandi', 'रायबरेली मंडी'],
             'bareilly': ['bareilly', 'बरेली', 'bareilly mandi', 'बरेली मंडी'],
-            'gorakhpur': ['gorakhpur', 'गोरखपुर', 'gorakhpur mandi', 'गोरखपुर मंडी']
+            'gorakhpur': ['gorakhpur', 'गोरखपुर', 'gorakhpur mandi', 'गोरखपुर मंडी'],
+            # Northeastern States
+            'assam': ['assam', 'असम', 'assam state', 'असम राज्य', 'guwahati', 'गुवाहाटी'],
+            'manipur': ['manipur', 'मणिपुर', 'manipur state', 'मणिपुर राज्य', 'imphal', 'इंफाल'],
+            'meghalaya': ['meghalaya', 'मेघालय', 'meghalaya state', 'मेघालय राज्य', 'shillong', 'शिलांग'],
+            'mizoram': ['mizoram', 'मिजोरम', 'mizoram state', 'मिजोरम राज्य', 'aizawl', 'आइजोल'],
+            'nagaland': ['nagaland', 'नागालैंड', 'nagaland state', 'नागालैंड राज्य', 'kohima', 'कोहिमा'],
+            'tripura': ['tripura', 'त्रिपुरा', 'tripura state', 'त्रिपुरा राज्य', 'agartala', 'अगरतला'],
+            'arunachal pradesh': ['arunachal pradesh', 'अरुणाचल प्रदेश', 'arunachal', 'अरुणाचल', 'itanagar', 'ईटानगर'],
+            'sikkim': ['sikkim', 'सिक्किम', 'sikkim state', 'सिक्किम राज्य', 'gangtok', 'गंगटोक'],
+            # Other major states missing
+            'andhra pradesh': ['andhra pradesh', 'आंध्र प्रदेश', 'andhra', 'आंध्र', 'andhra state'],
+            'telangana': ['telangana', 'तेलंगाना', 'telangana state', 'तेलंगाना राज्य'],
+            'kerala': ['kerala', 'केरल', 'kerala state', 'केरल राज्य', 'kochi', 'कोच्चि', 'thiruvananthapuram', 'तिरुवनंतपुरम'],
+            'odisha': ['odisha', 'ओडिशा', 'orissa', 'ओरिसा', 'odisha state', 'ओडिशा राज्य', 'bhubaneswar', 'भुवनेश्वर'],
+            'jharkhand': ['jharkhand', 'झारखंड', 'jharkhand state', 'झारखंड राज्य', 'ranchi', 'रांची'],
+            'chhattisgarh': ['chhattisgarh', 'छत्तीसगढ़', 'chhattisgarh state', 'छत्तीसगढ़ राज्य', 'raipur', 'रायपुर'],
+            'uttarakhand': ['uttarakhand', 'उत्तराखंड', 'uttarakhand state', 'उत्तराखंड राज्य', 'dehradun', 'देहरादून'],
+            'himachal pradesh': ['himachal pradesh', 'हिमाचल प्रदेश', 'himachal', 'हिमाचल', 'shimla', 'शिमला'],
+            'haryana': ['haryana', 'हरियाणा', 'haryana state', 'हरियाणा राज्य', 'chandigarh', 'चंडीगढ़'],
+            'goa': ['goa', 'गोवा', 'goa state', 'गोवा राज्य', 'panaji', 'पणजी']
         }
     
     def _load_response_templates(self):
@@ -456,8 +476,21 @@ class UltimateIntelligentAI:
         return entities
     
     def _extract_dynamic_location(self, query_lower: str) -> str:
-        """Dynamically extract ANY location/mandi from query - UNIVERSAL VERSION"""
+        """Dynamically extract ANY location/mandi from query - ENHANCED VERSION with comprehensive Indian location detection"""
         
+        # First try comprehensive location detection
+        try:
+            from ..services.enhanced_government_api import EnhancedGovernmentAPI
+            gov_api = EnhancedGovernmentAPI()
+            location_result = gov_api.detect_location_comprehensive(query_lower)
+            
+            if location_result['confidence'] > 0.6:
+                logger.info(f"Comprehensive location detection found: {location_result['location']} (confidence: {location_result['confidence']})")
+                return location_result['location']
+        except Exception as e:
+            logger.warning(f"Comprehensive location detection failed: {e}")
+        
+        # Fallback to original method
         # First check predefined locations
         for location, variations in self.location_mappings.items():
             for variation in variations:
