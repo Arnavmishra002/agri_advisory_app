@@ -22,6 +22,9 @@
 - **Real-time government data**: IMD weather, Agmarknet prices, ICAR recommendations
 
 ### 🤖 **Enhanced AI System**
+- **Open Source AI Integration**: Ollama/Llama3 for general queries
+- **Smart Query Routing**: Automatic routing between AI and government APIs
+- **Real-time Government AI**: Priority routing for farming queries
 - **ChatGPT-level intelligence**: Understands all query types (farming + general)
 - **Multilingual support**: Hindi, English, Hinglish with 95%+ accuracy
 - **Government API integration**: 100% real-time official data
@@ -71,6 +74,29 @@
 - **ChatGPT-level Intelligence**: Handles all query types
 - **Context-Aware Responses**: Remembers conversation history
 - **Multilingual Support**: Hindi, English, Hinglish
+
+## 🤖 **Open Source AI Setup (Optional)**
+
+### **For Enhanced General Query Responses:**
+
+```bash
+# 1. Install Ollama
+# Download from: https://ollama.ai/
+
+# 2. Pull the Llama3 model
+ollama pull llama3:8b
+
+# 3. Start Ollama server
+ollama serve
+
+# 4. System will automatically use Ollama for general queries!
+```
+
+**Benefits:**
+- 🤖 **ChatGPT-level responses** for non-farming queries
+- 🔒 **Local processing** - no external API calls
+- 🆓 **Free and open source** - no API costs
+- 🚀 **Fallback system** - works even without Ollama
 
 ## 🚀 **Quick Start**
 
