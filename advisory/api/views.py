@@ -129,30 +129,33 @@ class ChatbotViewSet(viewsets.ViewSet):
             crop_data = gov_api.get_enhanced_crop_recommendations(location_name, language=language)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
-                response = f"🌾 {location_name} के लिए वास्तविक समय फसल सुझाव (सरकारी डेटा):\n\n"
+                response = f"🌾 **आपके क्षेत्र के लिए फसल सुझाव**\n\n"
+                response += f"📍 **स्थान**: {location_name}\n"
+                response += f"🌱 **सीजन**: मौजूदा मौसम के अनुसार\n\n"
                 
                 if crop_data and crop_data.get('recommendations') and len(crop_data['recommendations']) > 0:
                     recommendations = crop_data['recommendations']
-                    response += "🥇 **सर्वोत्तम फसल सुझाव** (सभी फसलों का विश्लेषण):\n\n"
+                    response += f"🥇 **अनुशंसित फसलें**:\n\n"
                     
-                    for i, crop in enumerate(recommendations[:8], 1):
+                    for i, crop in enumerate(recommendations[:5], 1):  # Show only top 5 crops
                         score = crop.get('score', 0)
-                        response += f"**{i}. {crop.get('name', 'फसल')}** (स्कोर: {score}/100)\n"
-                        response += f"   • मौसम: {crop.get('season', 'N/A')}\n"
-                        response += f"   • बुवाई का समय: {crop.get('sowing_time', 'N/A')}\n"
-                        response += f"   • अपेक्षित उपज: {crop.get('expected_yield', 'N/A')}\n"
-                        response += f"   • न्यूनतम समर्थन मूल्य: ₹{crop.get('msp', 'N/A')}/क्विंटल\n"
-                        response += f"   • वर्तमान बाजार मूल्य: ₹{crop.get('market_price', 'N/A')}/क्विंटल\n"
-                        response += f"   • लाभप्रदता: {crop.get('profitability', 'N/A')}%\n"
-                        response += f"   • मिट्टी अनुकूलता: {crop.get('soil_suitability', 'N/A')}/100\n"
-                        response += f"   • मौसम अनुकूलता: {crop.get('weather_suitability', 'N/A')}/100\n"
-                        response += f"   • सरकारी सहायता: {crop.get('government_support', 'N/A')}\n"
-                        response += f"   • जोखिम स्तर: {crop.get('risk_level', 'N/A')}\n"
-                        response += f"   • निवेश आवश्यक: {crop.get('investment_required', 'N/A')}\n\n"
+                        crop_name = crop.get('name', 'फसल')
+                        season = crop.get('season', 'N/A')
+                        suitability = "बहुत अच्छा" if score >= 90 else "अच्छा" if score >= 80 else "सामान्य" if score >= 70 else "कम"
+                        
+                        response += f"**{i}. {crop_name}** - {suitability}\n"
+                        response += f"   • मौसम: {season}\n"
+                        response += f"   • MSP: ₹{crop.get('msp', 'N/A')}/क्विंटल\n"
+                        response += f"   • उपज: {crop.get('expected_yield', 'N/A')}\n"
+                        response += f"   • लाभ: {crop.get('profitability', 'N/A')}%\n\n"
                     
-                    response += f"💡 **स्थानीय सुझाव**: {recommendations[0].get('local_advice', 'स्थानीय कृषि विशेषज्ञ से सलाह लें')}\n"
-                    response += f"📊 **स्रोत**: {crop_data.get('source', 'सरकारी कृषि विभाग')}\n"
-                    response += f"🔍 **विश्लेषण**: {len(recommendations)} फसलों का व्यापक विश्लेषण किया गया"
+                    response += f"💡 **सुझाव**: {recommendations[0].get('local_advice', 'स्थानीय कृषि विशेषज्ञ से सलाह लें')}\n\n"
+                    response += f"🔍 **अन्य फसलों के बारे में पूछें**:\n"
+                    response += f"• गेहूं, चावल, मक्का, कपास, गन्ना\n"
+                    response += f"• टमाटर, प्याज, आलू, बैंगन\n"
+                    response += f"• आम, केला, संतरा, पपीता\n"
+                    response += f"• हल्दी, अदरक, मिर्च, धनिया\n\n"
+                    response += f"📞 **मदद के लिए**: कोई भी फसल के बारे में विस्तार से पूछें!"
                 else:
                     # Fallback with enhanced static data
                     response += "🥇 **शीर्ष फसलें**:\n"
@@ -161,30 +164,33 @@ class ChatbotViewSet(viewsets.ViewSet):
                     response += "3. **मक्का** - खरीफ सीजन (जून-सितंबर)\n   • MSP: ₹2,090/क्विंटल\n   • उपज: 50-80 क्विंटल/हेक्टेयर\n\n"
                     response += "💡 **सुझाव**: मिट्टी की जांच कराएं और स्थानीय जलवायु के अनुसार फसल चुनें।"
             else:
-                response = f"🌾 Real-time Crop Recommendations for {location_name} (Government Data):\n\n"
+                response = f"🌾 **Crop Recommendations for {location_name}**\n\n"
                 
                 if crop_data and crop_data.get('recommendations') and len(crop_data['recommendations']) > 0:
                     recommendations = crop_data['recommendations']
-                    response += "🥇 **Best Crop Recommendations** (Comprehensive Analysis):\n\n"
+                    response += f"📍 **Location**: {location_name}\n"
+                    response += f"🌱 **Season**: Current season\n\n"
+                    response += "🥇 **Recommended Crops**:\n\n"
                     
-                    for i, crop in enumerate(recommendations[:8], 1):
+                    for i, crop in enumerate(recommendations[:5], 1):  # Show only top 5 crops
                         score = crop.get('score', 0)
-                        response += f"**{i}. {crop.get('name', 'Crop')}** (Score: {score}/100)\n"
-                        response += f"   • Season: {crop.get('season', 'N/A')}\n"
-                        response += f"   • Sowing Time: {crop.get('sowing_time', 'N/A')}\n"
-                        response += f"   • Expected Yield: {crop.get('expected_yield', 'N/A')}\n"
-                        response += f"   • MSP Price: ₹{crop.get('msp', 'N/A')}/quintal\n"
-                        response += f"   • Current Market Price: ₹{crop.get('market_price', 'N/A')}/quintal\n"
-                        response += f"   • Profitability: {crop.get('profitability', 'N/A')}%\n"
-                        response += f"   • Soil Suitability: {crop.get('soil_suitability', 'N/A')}/100\n"
-                        response += f"   • Weather Suitability: {crop.get('weather_suitability', 'N/A')}/100\n"
-                        response += f"   • Government Support: {crop.get('government_support', 'N/A')}\n"
-                        response += f"   • Risk Level: {crop.get('risk_level', 'N/A')}\n"
-                        response += f"   • Investment Required: {crop.get('investment_required', 'N/A')}\n\n"
+                        crop_name = crop.get('name', 'Crop')
+                        season = crop.get('season', 'N/A')
+                        suitability = "Excellent" if score >= 90 else "Good" if score >= 80 else "Fair" if score >= 70 else "Poor"
+                        
+                        response += f"**{i}. {crop_name}** - {suitability}\n"
+                        response += f"   • Season: {season}\n"
+                        response += f"   • MSP: ₹{crop.get('msp', 'N/A')}/quintal\n"
+                        response += f"   • Yield: {crop.get('expected_yield', 'N/A')}\n"
+                        response += f"   • Profit: {crop.get('profitability', 'N/A')}%\n\n"
                     
-                    response += f"💡 **Local Advice**: {recommendations[0].get('local_advice', 'Consult local agricultural experts')}\n"
-                    response += f"📊 **Source**: {crop_data.get('source', 'Government Agriculture Department')}\n"
-                    response += f"🔍 **Analysis**: Comprehensive analysis of {len(recommendations)} crops performed"
+                    response += f"💡 **Advice**: {recommendations[0].get('local_advice', 'Consult local agricultural experts')}\n\n"
+                    response += f"🔍 **Ask about other crops**:\n"
+                    response += f"• Wheat, Rice, Maize, Cotton, Sugarcane\n"
+                    response += f"• Tomato, Onion, Potato, Brinjal\n"
+                    response += f"• Mango, Banana, Orange, Papaya\n"
+                    response += f"• Turmeric, Ginger, Chili, Coriander\n\n"
+                    response += f"📞 **Need help?** Ask detailed questions about any crop!"
                 else:
                     # Fallback with enhanced static data
                     response += "🥇 **Top Crops**:\n"
@@ -274,40 +280,29 @@ class ChatbotViewSet(viewsets.ViewSet):
             weather_data = gov_api.get_enhanced_weather_data(location_name, language)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
-                response = f"🌤️ {location_name} का आज का मौसम (सरकारी डेटा):\n\n"
+                response = f"🌤️ **{location_name} का मौसम**\n\n"
                 
                 if weather_data and weather_data.get('temperature'):
-                    response += f"📅 **वर्तमान मौसम**:\n"
-                    response += f"• तापमान: {weather_data.get('temperature', 'N/A')}°C\n"
-                    response += f"• आर्द्रता: {weather_data.get('humidity', 'N/A')}%\n"
-                    response += f"• हवा की गति: {weather_data.get('wind_speed', 'N/A')} km/h\n"
-                    response += f"• मौसम की स्थिति: {weather_data.get('condition', 'सामान्य')}\n"
-                    response += f"• बारिश की संभावना: {weather_data.get('rainfall_probability', 'N/A')}%\n\n"
+                    response += f"📍 **स्थान**: {location_name}\n"
+                    response += f"🌡️ **तापमान**: {weather_data.get('temperature', 'N/A')}°C\n"
+                    response += f"💧 **आर्द्रता**: {weather_data.get('humidity', 'N/A')}%\n"
+                    response += f"🌪️ **हवा**: {weather_data.get('wind_speed', 'N/A')} km/h\n"
+                    response += f"☁️ **स्थिति**: {weather_data.get('condition', 'सामान्य')}\n"
+                    response += f"🌧️ **बारिश**: {weather_data.get('rainfall_probability', 'N/A')}% संभावना\n\n"
                     
-                    # Add 7-day forecast
+                    # Add simple forecast
                     forecast_7day = weather_data.get('forecast_7day', [])
                     if forecast_7day:
-                        response += f"📊 **7-दिन का पूर्वानुमान**:\n"
+                        response += f"📅 **अगले 3 दिन**:\n"
                         for i, day in enumerate(forecast_7day[:3]):  # Show first 3 days
-                            response += f"• {day.get('day', 'N/A')}: {day.get('temperature', 'N/A')}°C, {day.get('description', 'N/A')}\n"
-                        response += f"• और {len(forecast_7day)-3} दिनों का विस्तृत पूर्वानुमान उपलब्ध\n\n"
+                            response += f"• {day.get('day', 'N/A')}: {day.get('temperature', 'N/A')}°C\n"
+                        response += f"\n"
                     
-                    # Add historical data
-                    historical_analysis = weather_data.get('historical_analysis', {})
-                    if historical_analysis:
-                        response += f"📈 **ऐतिहासिक विश्लेषण**:\n"
-                        response += f"• पिछले वर्ष का औसत तापमान: {historical_analysis.get('last_year_temp', 'N/A')}\n"
-                        response += f"• पिछले वर्ष की बारिश: {historical_analysis.get('last_year_rainfall', 'N/A')}\n"
-                        response += f"• मौसमी पैटर्न: {weather_data.get('seasonal_pattern', 'N/A')}\n"
-                        response += f"• मॉनसून अवधि: {weather_data.get('monsoon_period', 'N/A')}\n\n"
-                    
-                    # Add enhanced advisories
+                    # Add simple farmer advice
                     response += f"🌾 **किसानों के लिए सुझाव**:\n"
                     response += f"• {weather_data.get('farmer_advisory', 'फसल की सुरक्षा के लिए तैयार रहें')}\n"
-                    response += f"• फसल सुझाव: {weather_data.get('crop_advisory', 'N/A')}\n"
-                    response += f"• सिंचाई सुझाव: {weather_data.get('irrigation_advisory', 'N/A')}\n"
-                    response += f"• कीट सुझाव: {weather_data.get('pest_advisory', 'N/A')}\n"
-                    response += f"📊 **स्रोत**: {weather_data.get('source', 'सरकारी मौसम विभाग')}"
+                    response += f"• {weather_data.get('crop_advisory', 'मौसम के अनुसार फसल की देखभाल करें')}\n\n"
+                    response += f"📞 **अधिक जानकारी के लिए**: मौसम या फसल के बारे में विस्तार से पूछें!"
                 else:
                     response += f"📅 **आज का मौसम**:\n"
                     response += f"• तापमान: 25-35°C\n"

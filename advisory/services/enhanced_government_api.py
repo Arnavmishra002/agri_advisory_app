@@ -237,6 +237,195 @@ class EnhancedGovernmentAPI:
         
         return result
     
+    def _generate_crop_recommendations(self, location: str, season: str, language: str) -> List[Dict[str, Any]]:
+        """Generate comprehensive crop recommendations comparing ALL crops using government data"""
+        season = season or 'kharif'
+        
+        try:
+            # Get comprehensive government data for analysis
+            weather_data = self._fetch_weather_from_imd(location)
+            soil_data = self._get_comprehensive_soil_data(location)
+            market_data = self._get_comprehensive_market_data(location)
+            
+            # Get ALL available crops for comparison
+            all_crops = self._get_comprehensive_crop_database()
+            
+            # Analyze each crop using government data
+            crop_scores = self._analyze_all_crops_comprehensive(
+                all_crops, location, season, weather_data, soil_data, market_data
+            )
+            
+            # Sort by score and return top recommendations
+            sorted_crops = sorted(crop_scores.items(), key=lambda x: x[1]['total_score'], reverse=True)
+            
+            recommendations = []
+            for crop_name, crop_analysis in sorted_crops[:8]:  # Top 8 crops
+                recommendations.append({
+                    'name': crop_name.title(),
+                    'crop': crop_name,
+                    'score': round(crop_analysis['total_score'], 1),
+                    'suitability': round(crop_analysis['total_score'], 1),
+                    'season': crop_analysis['best_season'],
+                    'sowing_time': crop_analysis['sowing_period'],
+                    'expected_yield': crop_analysis['expected_yield'],
+                    'msp': crop_analysis['msp_price'],
+                    'market_price': crop_analysis['current_market_price'],
+                    'profitability': crop_analysis['profitability_score'],
+                    'soil_suitability': crop_analysis['soil_score'],
+                    'weather_suitability': crop_analysis['weather_score'],
+                    'government_support': crop_analysis['government_support'],
+                    'risk_level': crop_analysis['risk_level'],
+                    'investment_required': crop_analysis['investment_required'],
+                    'source': 'Comprehensive Government Analysis',
+                    'timestamp': datetime.now().isoformat(),
+                    'confidence': crop_analysis['confidence'],
+                    'local_advice': crop_analysis['local_advice']
+                })
+            
+            logger.info(f"Generated comprehensive recommendations for {location} - analyzed {len(all_crops)} crops")
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Error in comprehensive crop analysis: {e}")
+            return self._generate_enhanced_fallback_recommendations(location, season, language)
+    
+    def _generate_enhanced_fallback_recommendations(self, location: str, season: str, language: str) -> List[Dict[str, Any]]:
+        """Generate enhanced fallback recommendations when main system fails"""
+        try:
+            # Enhanced fallback with more crops and better data
+            fallback_crops = {
+                'kharif': [
+                    {'name': 'Rice', 'score': 95, 'season': 'kharif', 'profitability': 120},
+                    {'name': 'Maize', 'score': 90, 'season': 'kharif', 'profitability': 110},
+                    {'name': 'Cotton', 'score': 85, 'season': 'kharif', 'profitability': 150},
+                    {'name': 'Groundnut', 'score': 80, 'season': 'kharif', 'profitability': 100}
+                ],
+                'rabi': [
+                    {'name': 'Wheat', 'score': 95, 'season': 'rabi', 'profitability': 100},
+                    {'name': 'Mustard', 'score': 90, 'season': 'rabi', 'profitability': 120},
+                    {'name': 'Potato', 'score': 85, 'season': 'rabi', 'profitability': 130},
+                    {'name': 'Onion', 'score': 80, 'season': 'rabi', 'profitability': 140}
+                ]
+            }
+            
+            crops = fallback_crops.get(season, fallback_crops['kharif'])
+            recommendations = []
+            
+            for i, crop in enumerate(crops):
+                recommendations.append({
+                    'name': crop['name'],
+                    'crop': crop['name'].lower(),
+                    'score': crop['score'] - i,
+                    'suitability': crop['score'] - i,
+                    'season': crop['season'],
+                    'sowing_time': f"{crop['season'].title()} season",
+                    'expected_yield': f"3-5 tons/hectare",
+                    'msp': 2500,
+                    'market_price': 3000,
+                    'profitability': crop['profitability'],
+                    'soil_suitability': 85,
+                    'weather_suitability': 80,
+                    'government_support': 'high',
+                    'risk_level': 'medium',
+                    'investment_required': 25000,
+                    'source': 'Enhanced Fallback Data',
+                    'timestamp': datetime.now().isoformat(),
+                    'confidence': 70,
+                    'local_advice': f"Recommended for {location} based on seasonal conditions"
+                })
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Error in fallback recommendations: {e}")
+            return []
+    
+    def search_specific_crop(self, crop_name: str, location: str, language: str = 'en') -> Dict[str, Any]:
+        """Search for specific crop information"""
+        try:
+            # Get comprehensive crop database
+            all_crops = self._get_comprehensive_crop_database()
+            
+            # Find the crop
+            crop_info = None
+            for crop_key, crop_data in all_crops.items():
+                if crop_name.lower() in crop_key.lower() or crop_name.lower() in crop_data.get('name', '').lower():
+                    crop_info = crop_data
+                    crop_key_found = crop_key
+                    break
+            
+            if not crop_info:
+                return {
+                    'found': False,
+                    'message': f'Crop "{crop_name}" not found in database',
+                    'suggestions': self._get_crop_suggestions(crop_name, all_crops)
+                }
+            
+            # Get location-specific data
+            weather_data = self._fetch_weather_from_imd(location)
+            soil_data = self._get_comprehensive_soil_data(location)
+            market_data = self._get_comprehensive_market_data(location)
+            
+            # Calculate comprehensive analysis for this specific crop
+            crop_analysis = self._calculate_comprehensive_crop_score(
+                crop_key_found, crop_info, location, 'kharif', weather_data, soil_data, market_data
+            )
+            
+            # Generate detailed crop information
+            detailed_info = {
+                'crop_name': crop_info['name'],
+                'crop_type': crop_info['type'],
+                'seasons': crop_info['seasons'],
+                'score': round(crop_analysis['total_score'], 1),
+                'suitability': "Excellent" if crop_analysis['total_score'] >= 90 else "Good" if crop_analysis['total_score'] >= 80 else "Fair" if crop_analysis['total_score'] >= 70 else "Poor",
+                'priority': "high" if crop_analysis['total_score'] >= 85 else "medium" if crop_analysis['total_score'] >= 75 else "low",
+                'sowing_time': crop_info['seasons'][0] if crop_info['seasons'] else 'N/A',
+                'expected_yield': f"{crop_info['yield_range'][0]}-{crop_info['yield_range'][1]} tons/hectare",
+                'msp': crop_info.get('msp_2024', 0),
+                'market_price': market_data.get(crop_key_found, {}).get('current_price', crop_info.get('msp_2024', 0)),
+                'profitability': crop_analysis['profitability_score'],
+                'soil_suitability': crop_analysis['soil_score'],
+                'weather_suitability': crop_analysis['weather_score'],
+                'government_support': crop_info.get('government_support', 'medium'),
+                'risk_level': crop_info.get('risk_level', 'medium'),
+                'investment_required': crop_info.get('investment_per_acre', 25000),
+                'duration_days': crop_info.get('duration_days', 120),
+                'soil_types': crop_info.get('soil_types', []),
+                'ph_range': crop_info.get('ph_range', []),
+                'temp_range': crop_info.get('temp_range', []),
+                'rainfall_range': crop_info.get('rainfall_range', []),
+                'market_demand': crop_info.get('market_demand', 'medium'),
+                'export_potential': crop_info.get('export_potential', 'medium'),
+                'source': 'Comprehensive Government Analysis',
+                'timestamp': datetime.now().isoformat(),
+                'confidence': crop_analysis['confidence'],
+                'local_advice': crop_analysis.get('local_advice', f"Recommended for {location} based on analysis"),
+                'found': True
+            }
+            
+            return detailed_info
+            
+        except Exception as e:
+            logger.error(f"Error searching for crop {crop_name}: {e}")
+            return {
+                'found': False,
+                'message': f'Error searching for crop "{crop_name}"',
+                'error': str(e)
+            }
+    
+    def _get_crop_suggestions(self, crop_name: str, all_crops: Dict) -> List[str]:
+        """Get similar crop suggestions"""
+        suggestions = []
+        crop_name_lower = crop_name.lower()
+        
+        for crop_key, crop_data in all_crops.items():
+            if (crop_name_lower in crop_key.lower() or 
+                crop_name_lower in crop_data.get('name', '').lower() or
+                any(crop_name_lower in season.lower() for season in crop_data.get('seasons', []))):
+                suggestions.append(crop_data['name'])
+        
+        return suggestions[:5]  # Return top 5 suggestions
+    
     def get_government_schemes(self, location: str = None, state: str = None, 
                               language: str = 'en') -> Dict[str, Any]:
         """Get government schemes data"""
