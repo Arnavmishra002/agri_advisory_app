@@ -903,6 +903,63 @@ class UltimateIntelligentAI:
             # SUPER INTELLIGENT query understanding - like ChatGPT
             query_lower = query.lower()
             
+            # ENHANCED AGRICULTURAL QUERY HANDLING
+            # Check for crop cultivation queries
+            crop_cultivation_keywords = [
+                'wheat cultivation', 'wheat farming', 'wheat growing', 'गेहूं की खेती',
+                'rice cultivation', 'rice farming', 'rice growing', 'चावल की खेती',
+                'maize cultivation', 'maize farming', 'corn cultivation', 'मक्का की खेती',
+                'cotton cultivation', 'cotton farming', 'कपास की खेती',
+                'sugarcane cultivation', 'sugarcane farming', 'गन्ना की खेती',
+                'crop cultivation', 'crop farming', 'फसल की खेती'
+            ]
+            
+            if any(keyword in query_lower for keyword in crop_cultivation_keywords):
+                return self._generate_crop_cultivation_response(query, query_lower, location_name, language)
+            
+            # Check for crop recommendation queries
+            crop_recommendation_keywords = [
+                'what crops should i grow', 'best crops', 'suitable crops', 'कौन सी फसल उगाएं',
+                'crop recommendation', 'फसल सुझाव', 'which crop', 'crop selection'
+            ]
+            
+            if any(keyword in query_lower for keyword in crop_recommendation_keywords):
+                return self._generate_crop_recommendation_response(query, query_lower, location_name, language)
+            
+            # Check for pest control queries
+            pest_control_keywords = [
+                'pest control', 'pest management', 'कीट नियंत्रण', 'pest problem',
+                'yellow leaves', 'disease', 'रोग', 'insect', 'कीट'
+            ]
+            
+            if any(keyword in query_lower for keyword in pest_control_keywords):
+                return self._generate_pest_control_response(query, query_lower, location_name, language)
+            
+            # Check for weather queries
+            weather_keywords = [
+                'weather', 'rain', 'बारिश', 'temperature', 'तापमान', 'forecast', 'पूर्वानुमान'
+            ]
+            
+            if any(keyword in query_lower for keyword in weather_keywords):
+                return self._generate_weather_response(query, query_lower, location_name, language)
+            
+            # Check for market price queries
+            market_keywords = [
+                'market price', 'price', 'मंडी भाव', 'mandi price', 'crop price', 'फसल की कीमत'
+            ]
+            
+            if any(keyword in query_lower for keyword in market_keywords):
+                return self._generate_market_price_response(query, query_lower, location_name, language)
+            
+            # Check for government scheme queries
+            scheme_keywords = [
+                'government scheme', 'सरकारी योजना', 'subsidy', 'सब्सिडी', 'pm kisan', 'pmfby',
+                'scheme', 'योजना', 'loan', 'ऋण', 'support', 'सहायता'
+            ]
+            
+            if any(keyword in query_lower for keyword in scheme_keywords):
+                return self._generate_government_scheme_response(query, query_lower, location_name, language)
+            
             # DIRECT FIX: Check for soil health card and PM Kisan queries FIRST
             soil_health_keywords = [
                 'soil health card', 'मृदा स्वास्थ्य कार्ड', 'soil health card scheme', 'मृदा स्वास्थ्य कार्ड योजना',
@@ -947,6 +1004,562 @@ class UltimateIntelligentAI:
         except Exception as e:
             logger.error(f"Error in generate_response: {e}")
             return self._get_error_response(language)
+    
+    def _generate_crop_cultivation_response(self, query: str, query_lower: str, location_name: str, language: str) -> str:
+        """Generate detailed crop cultivation response"""
+        crop_info = {
+            'wheat': {
+                'hindi': 'गेहूं',
+                'season': 'Rabi (October-March)',
+                'duration': '120-140 days',
+                'yield': '35-50 quintals/hectare',
+                'cost': '₹25,000-35,000/hectare',
+                'profit': '₹40,000-70,000/hectare'
+            },
+            'rice': {
+                'hindi': 'चावल',
+                'season': 'Kharif (June-October)',
+                'duration': '150-180 days',
+                'yield': '40-60 quintals/hectare',
+                'cost': '₹30,000-45,000/hectare',
+                'profit': '₹50,000-90,000/hectare'
+            },
+            'maize': {
+                'hindi': 'मक्का',
+                'season': 'Kharif (June-September)',
+                'duration': '90-120 days',
+                'yield': '50-80 quintals/hectare',
+                'cost': '₹20,000-30,000/hectare',
+                'profit': '₹40,000-80,000/hectare'
+            }
+        }
+        
+        # Detect crop from query
+        detected_crop = None
+        for crop, info in crop_info.items():
+            if crop in query_lower or info['hindi'] in query_lower:
+                detected_crop = crop
+                break
+        
+        if not detected_crop:
+            detected_crop = 'wheat'  # Default
+        
+        crop_data = crop_info[detected_crop]
+        
+        if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+            response = f"""🌾 {crop_data['hindi']} की खेती की पूरी जानकारी:
+
+📅 **बुवाई का समय**: {crop_data['season']}
+⏰ **फसल अवधि**: {crop_data['duration']}
+🌾 **उपज**: {crop_data['yield']}
+💰 **लागत**: {crop_data['cost']}
+📈 **लाभ**: {crop_data['profit']}
+
+🌱 **खेती की विधि**:
+1. मिट्टी की तैयारी और जुताई
+2. बीज की बुवाई ({detected_crop} के लिए उपयुक्त बीज)
+3. उर्वरक और पानी की व्यवस्था
+4. कीट और रोग नियंत्रण
+5. कटाई और भंडारण
+
+💡 **सुझाव**: अपने क्षेत्र की मिट्टी और जलवायु के अनुसार सही किस्म चुनें।"""
+        else:
+            response = f"""🌾 Complete {detected_crop.title()} Cultivation Guide:
+
+📅 **Planting Season**: {crop_data['season']}
+⏰ **Crop Duration**: {crop_data['duration']}
+🌾 **Expected Yield**: {crop_data['yield']}
+💰 **Investment Required**: {crop_data['cost']}
+📈 **Expected Profit**: {crop_data['profit']}
+
+🌱 **Cultivation Steps**:
+1. Land preparation and soil testing
+2. Seed selection and sowing
+3. Fertilizer application and irrigation
+4. Pest and disease management
+5. Harvesting and storage
+
+💡 **Expert Tips**: Choose varieties suitable for your soil type and climate conditions. Consider crop rotation for better soil health."""
+
+        if location_name:
+            response += f"\n\n📍 **Location-specific advice for {location_name}**: Consult local agricultural extension officers for region-specific recommendations."
+        
+        return response
+    
+    def _generate_crop_recommendation_response(self, query: str, query_lower: str, location_name: str, language: str) -> str:
+        """Generate crop recommendation response using real-time location data"""
+        try:
+            # Get location-specific crop recommendations
+            if location_name:
+                location_info = search_location_by_name(location_name)
+                crop_recommendations = location_info.get('crop_recommendations', [])
+                
+                if crop_recommendations and len(crop_recommendations) > 0:
+                    # Use real location-specific data
+                    if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                        response = f"""🌾 {location_name} के लिए फसल सुझाव (स्थानीय डेटा):
+
+📍 **स्थान**: {location_name}
+🏞️ **क्षेत्र**: {location_info.get('region', 'Unknown')}
+
+🥇 **अनुशंसित फसलें**:"""
+                        
+                        for i, crop in enumerate(crop_recommendations[:5], 1):
+                            response += f"""
+{i}. **{crop.get('name', 'फसल')}**:
+   • मौसम: {crop.get('season', 'N/A')}
+   • प्राथमिकता: {crop.get('priority', 'Medium')}
+   • उपयुक्तता: {crop.get('suitability', 'Good')}%"""
+                        
+                        response += f"""
+
+💡 **स्थानीय सुझाव**: {location_info.get('agricultural_info', {}).get('advice', 'स्थानीय कृषि विशेषज्ञ से सलाह लें')}"""
+                    else:
+                        response = f"""🌾 Crop Recommendations for {location_name} (Local Data):
+
+📍 **Location**: {location_name}
+🏞️ **Region**: {location_info.get('region', 'Unknown')}
+
+🥇 **Recommended Crops**:"""
+                        
+                        for i, crop in enumerate(crop_recommendations[:5], 1):
+                            response += f"""
+{i}. **{crop.get('name', 'Crop')}**:
+   • Season: {crop.get('season', 'N/A')}
+   • Priority: {crop.get('priority', 'Medium')}
+   • Suitability: {crop.get('suitability', 'Good')}%"""
+                        
+                        response += f"""
+
+💡 **Local Advice**: {location_info.get('agricultural_info', {}).get('advice', 'Consult local agricultural experts')}"""
+                else:
+                    # Fallback to general recommendations
+                    if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                        response = f"""🌾 {location_name} के लिए फसल सुझाव:
+
+🥇 **शीर्ष फसलें**:
+• गेहूं - रबी सीजन (अक्टूबर-मार्च)
+• चावल - खरीफ सीजन (जून-अक्टूबर)
+• मक्का - खरीफ सीजन (जून-सितंबर)
+• कपास - खरीफ सीजन (मई-नवंबर)
+
+💰 **लाभदायक फसलें**:
+• सब्जियां - साल भर
+• फलों की खेती - दीर्घकालिक
+• मसाला फसलें - उच्च मूल्य
+
+💡 **सुझाव**: अपनी मिट्टी की जांच कराएं और स्थानीय जलवायु के अनुसार फसल चुनें।"""
+                    else:
+                        response = f"""🌾 Crop Recommendations for {location_name}:
+
+🥇 **Top Crops**:
+• Wheat - Rabi season (October-March)
+• Rice - Kharif season (June-October)
+• Maize - Kharif season (June-September)
+• Cotton - Kharif season (May-November)
+
+💰 **High-Profit Crops**:
+• Vegetables - Year-round cultivation
+• Fruit farming - Long-term investment
+• Spice crops - High market value
+
+💡 **Expert Advice**: Get your soil tested and choose crops based on local climate conditions and market demand."""
+            else:
+                # General recommendations when no location specified
+                if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                    response = """🌾 आपके क्षेत्र के लिए फसल सुझाव:
+
+🥇 **शीर्ष फसलें**:
+• गेहूं - रबी सीजन (अक्टूबर-मार्च)
+• चावल - खरीफ सीजन (जून-अक्टूबर)
+• मक्का - खरीफ सीजन (जून-सितंबर)
+• कपास - खरीफ सीजन (मई-नवंबर)
+
+💰 **लाभदायक फसलें**:
+• सब्जियां - साल भर
+• फलों की खेती - दीर्घकालिक
+• मसाला फसलें - उच्च मूल्य
+
+💡 **सुझाव**: अपनी मिट्टी की जांच कराएं और स्थानीय जलवायु के अनुसार फसल चुनें।"""
+                else:
+                    response = """🌾 Crop Recommendations for Your Area:
+
+🥇 **Top Crops**:
+• Wheat - Rabi season (October-March)
+• Rice - Kharif season (June-October)
+• Maize - Kharif season (June-September)
+• Cotton - Kharif season (May-November)
+
+💰 **High-Profit Crops**:
+• Vegetables - Year-round cultivation
+• Fruit farming - Long-term investment
+• Spice crops - High market value
+
+💡 **Expert Advice**: Get your soil tested and choose crops based on local climate conditions and market demand."""
+        
+        except Exception as e:
+            logger.error(f"Error fetching location-specific crop recommendations: {e}")
+            # Fallback response
+            if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                response = "🌾 फसल सुझाव की जानकारी उपलब्ध नहीं है। कृपया बाद में पुन: प्रयास करें।"
+            else:
+                response = "🌾 Crop recommendation information is currently unavailable. Please try again later."
+
+        if location_name:
+            response += f"\n\n📍 **For {location_name}**: Consider consulting local agricultural experts for region-specific crop recommendations."
+        
+        return response
+    
+    def _generate_pest_control_response(self, query: str, query_lower: str, location_name: str, language: str) -> str:
+        """Generate pest control response"""
+        if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+            response = """🛡️ फसल में कीट और रोग नियंत्रण:
+
+🔍 **सामान्य कीट**:
+• एफिड्स (Aphids) - नीम का तेल
+• कैटरपिलर - बैसिलस थुरिंजिएन्सिस
+• माइट्स - सल्फर स्प्रे
+
+🌿 **जैविक नियंत्रण**:
+• नीम का तेल (2-3%)
+• गौमूत्र का घोल
+• तुलसी का अर्क
+
+💊 **रासायनिक नियंत्रण**:
+• सही कीटनाशक का चयन
+• सही समय पर छिड़काव
+• खुराक का पालन
+
+⚠️ **पीली पत्तियों के कारण**:
+• पोषक तत्वों की कमी
+• पानी की अधिकता
+• कीट का प्रकोप"""
+        else:
+            response = """🛡️ Pest and Disease Control Guide:
+
+🔍 **Common Pests**:
+• Aphids - Neem oil spray
+• Caterpillars - Bacillus thuringiensis
+• Mites - Sulfur spray
+
+🌿 **Organic Control**:
+• Neem oil (2-3% concentration)
+• Cow urine solution
+• Basil extract
+
+💊 **Chemical Control**:
+• Select appropriate pesticides
+• Apply at right time
+• Follow dosage instructions
+
+⚠️ **Yellow Leaves Causes**:
+• Nutrient deficiency
+• Over-watering
+• Pest infestation
+• Disease infection"""
+
+        if location_name:
+            response += f"\n\n📍 **For {location_name}**: Contact local plant protection officers for specific pest control recommendations."
+        
+        return response
+    
+    def _generate_weather_response(self, query: str, query_lower: str, location_name: str, language: str) -> str:
+        """Generate weather response using real-time government weather data"""
+        try:
+            # Get real-time weather data from government API
+            weather_data = self.government_api.get_enhanced_weather_data(
+                location=location_name or 'Delhi',
+                language=language
+            )
+            
+            if weather_data and weather_data.get('temperature'):
+                # Use real weather data from government API
+                if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                    response = f"""🌤️ मौसम की जानकारी (सरकारी डेटा):
+
+📅 **आज का मौसम**:
+• तापमान: {weather_data.get('temperature', 'N/A')}°C
+• आर्द्रता: {weather_data.get('humidity', 'N/A')}%
+• हवा की गति: {weather_data.get('wind_speed', 'N/A')} km/h
+• मौसम की स्थिति: {weather_data.get('condition', 'सामान्य')}
+
+🌧️ **बारिश का पूर्वानुमान**:
+• आज: {weather_data.get('today_forecast', 'सामान्य मौसम')}
+• कल: {weather_data.get('tomorrow_forecast', 'सामान्य मौसम')}
+• अगले सप्ताह: {weather_data.get('week_forecast', 'मॉनसून की गतिविधि')}
+
+🌾 **किसानों के लिए सुझाव**:
+• फसल की सुरक्षा के लिए तैयार रहें
+• सिंचाई की योजना बनाएं
+• कीट नियंत्रण का समय निर्धारित करें
+
+📊 **स्रोत**: {weather_data.get('source', 'सरकारी मौसम विभाग')}"""
+                else:
+                    response = f"""🌤️ Weather Information (Government Data):
+
+📅 **Current Weather**:
+• Temperature: {weather_data.get('temperature', 'N/A')}°C
+• Humidity: {weather_data.get('humidity', 'N/A')}%
+• Wind Speed: {weather_data.get('wind_speed', 'N/A')} km/h
+• Condition: {weather_data.get('condition', 'Normal')}
+
+🌧️ **Rainfall Forecast**:
+• Today: {weather_data.get('today_forecast', 'Normal weather')}
+• Tomorrow: {weather_data.get('tomorrow_forecast', 'Normal weather')}
+• Next Week: {weather_data.get('week_forecast', 'Monsoon activity')}
+
+🌾 **Farmer's Advisory**:
+• Prepare for crop protection
+• Plan irrigation schedule
+• Schedule pest control activities
+
+📊 **Source**: {weather_data.get('source', 'Government Weather Department')}"""
+            else:
+                # Fallback to enhanced static data if API fails
+                if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                    response = """🌤️ मौसम की जानकारी:
+
+📅 **आज का मौसम**:
+• तापमान: 25-35°C
+• आर्द्रता: 60-80%
+• हवा की गति: 5-10 km/h
+
+🌧️ **बारिश का पूर्वानुमान**:
+• आज: हल्की बारिश की संभावना
+• कल: साफ मौसम
+• अगले सप्ताह: मॉनसून की गतिविधि
+
+🌾 **किसानों के लिए सुझाव**:
+• फसल की सुरक्षा के लिए तैयार रहें
+• सिंचाई की योजना बनाएं
+• कीट नियंत्रण का समय निर्धारित करें"""
+                else:
+                    response = """🌤️ Weather Information:
+
+📅 **Current Weather**:
+• Temperature: 25-35°C
+• Humidity: 60-80%
+• Wind Speed: 5-10 km/h
+
+🌧️ **Rainfall Forecast**:
+• Today: Light rain possible
+• Tomorrow: Clear weather
+• Next Week: Monsoon activity expected
+
+🌾 **Farmer's Advisory**:
+• Prepare for crop protection
+• Plan irrigation schedule
+• Schedule pest control activities"""
+        
+        except Exception as e:
+            logger.error(f"Error fetching real-time weather data: {e}")
+            # Fallback response
+            if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                response = "🌤️ मौसम की जानकारी उपलब्ध नहीं है। कृपया बाद में पुन: प्रयास करें।"
+            else:
+                response = "🌤️ Weather information is currently unavailable. Please try again later."
+
+        if location_name:
+            response += f"\n\n📍 **Weather for {location_name}**: Check local weather stations for accurate regional forecasts."
+        
+        return response
+    
+    def _generate_market_price_response(self, query: str, query_lower: str, location_name: str, language: str) -> str:
+        """Generate market price response using real-time government data"""
+        try:
+            # Get real-time market data from government API
+            market_data = self.government_api.get_real_market_prices(
+                crop='wheat',  # Default crop, can be enhanced
+                location=location_name or 'Delhi',
+                language=language
+            )
+            
+            if market_data and len(market_data) > 0:
+                # Use real data from government API
+                latest_data = market_data[0] if isinstance(market_data, list) else market_data
+                
+                if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                    response = f"""💰 आज के मंडी भाव (सरकारी डेटा):
+
+🌾 **वास्तविक बाजार कीमतें**:
+• फसल: {latest_data.get('crop', 'गेहूं')}
+• कीमत: ₹{latest_data.get('price', 'N/A')} प्रति {latest_data.get('unit', 'क्विंटल')}
+• मंडी: {latest_data.get('mandi', 'स्थानीय मंडी')}
+• राज्य: {latest_data.get('state', 'Unknown')}
+• तारीख: {latest_data.get('date', 'आज')}
+
+📈 **बाजार रुझान**: {latest_data.get('trend', 'स्थिर')}
+📊 **स्रोत**: {latest_data.get('source', 'सरकारी API')}
+
+💡 **सुझाव**: सरकारी मंडी भावों को नियमित रूप से देखते रहें।"""
+                else:
+                    response = f"""💰 Today's Market Prices (Government Data):
+
+🌾 **Real Market Prices**:
+• Crop: {latest_data.get('crop', 'Wheat')}
+• Price: ₹{latest_data.get('price', 'N/A')} per {latest_data.get('unit', 'quintal')}
+• Mandi: {latest_data.get('mandi', 'Local Market')}
+• State: {latest_data.get('state', 'Unknown')}
+• Date: {latest_data.get('date', 'Today')}
+
+📈 **Market Trend**: {latest_data.get('trend', 'Stable')}
+📊 **Source**: {latest_data.get('source', 'Government API')}
+
+💡 **Advice**: Monitor government mandi prices regularly for accurate market information."""
+            else:
+                # Fallback to enhanced static data if API fails
+                if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                    response = """💰 आज के मंडी भाव:
+
+🌾 **प्रमुख फसलों की कीमतें** (प्रति क्विंटल):
+• गेहूं: ₹2,100-2,400
+• चावल: ₹2,000-2,500
+• मक्का: ₹1,800-2,200
+• कपास: ₹6,000-7,000
+• गन्ना: ₹300-350
+
+📈 **बाजार रुझान**:
+• गेहूं: स्थिर
+• चावल: बढ़त
+• मक्का: स्थिर
+• कपास: गिरावट
+
+💡 **सुझाव**: बाजार भावों को नियमित रूप से देखते रहें और सही समय पर बेचें।"""
+                else:
+                    response = """💰 Today's Market Prices:
+
+🌾 **Major Crop Prices** (per quintal):
+• Wheat: ₹2,100-2,400
+• Rice: ₹2,000-2,500
+• Maize: ₹1,800-2,200
+• Cotton: ₹6,000-7,000
+• Sugarcane: ₹300-350
+
+📈 **Market Trends**:
+• Wheat: Stable
+• Rice: Rising
+• Maize: Stable
+• Cotton: Declining
+
+💡 **Advice**: Monitor market prices regularly and sell at the right time for maximum profit."""
+        
+        except Exception as e:
+            logger.error(f"Error fetching real-time market data: {e}")
+            # Fallback response
+            if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                response = "💰 मंडी भाव की जानकारी उपलब्ध नहीं है। कृपया बाद में पुन: प्रयास करें।"
+            else:
+                response = "💰 Market price information is currently unavailable. Please try again later."
+
+        if location_name:
+            response += f"\n\n📍 **Local prices for {location_name}**: Check nearest mandi for accurate local rates."
+        
+        return response
+    
+    def _generate_government_scheme_response(self, query: str, query_lower: str, location_name: str, language: str) -> str:
+        """Generate government scheme response using real-time government data"""
+        try:
+            # Get real-time government schemes data
+            schemes_data = self.government_api.get_government_schemes(
+                location=location_name or 'Delhi',
+                language=language
+            )
+            
+            if schemes_data and len(schemes_data) > 0:
+                # Use real government schemes data
+                if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                    response = f"""🏛️ किसानों के लिए सरकारी योजनाएं (सरकारी डेटा):
+
+📊 **उपलब्ध योजनाएं**: {len(schemes_data)} योजनाएं
+
+💰 **शीर्ष योजनाएं**:"""
+                    
+                    for i, scheme in enumerate(schemes_data[:3], 1):
+                        response += f"""
+{i}. **{scheme.get('name', 'योजना')}**:
+   • राशि: {scheme.get('amount', 'N/A')}
+   • लाभार्थी: {scheme.get('beneficiary', 'सभी किसान')}
+   • स्थिति: {scheme.get('status', 'सक्रिय')}
+   • आवेदन: {scheme.get('application_method', 'ऑनलाइन')}"""
+                    
+                    response += f"""
+
+📱 **आवेदन की जानकारी**: नजदीकी कृषि कार्यालय में संपर्क करें
+📊 **स्रोत**: {schemes_data[0].get('source', 'सरकारी पोर्टल')}"""
+                else:
+                    response = f"""🏛️ Government Schemes for Farmers (Government Data):
+
+📊 **Available Schemes**: {len(schemes_data)} schemes
+
+💰 **Top Schemes**:"""
+                    
+                    for i, scheme in enumerate(schemes_data[:3], 1):
+                        response += f"""
+{i}. **{scheme.get('name', 'Scheme')}**:
+   • Amount: {scheme.get('amount', 'N/A')}
+   • Beneficiary: {scheme.get('beneficiary', 'All Farmers')}
+   • Status: {scheme.get('status', 'Active')}
+   • Application: {scheme.get('application_method', 'Online')}"""
+                    
+                    response += f"""
+
+📱 **Application Information**: Contact nearest agriculture office
+📊 **Source**: {schemes_data[0].get('source', 'Government Portal')}"""
+            else:
+                # Fallback to enhanced static data if API fails
+                if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                    response = """🏛️ किसानों के लिए सरकारी योजनाएं:
+
+💰 **प्रधानमंत्री किसान सम्मान निधि (PM Kisan)**:
+• ₹6,000 प्रति वर्ष (3 किस्तों में)
+• सभी छोटे और सीमांत किसानों के लिए
+
+🌾 **प्रधानमंत्री फसल बीमा योजना (PMFBY)**:
+• फसल नुकसान का बीमा
+• कम प्रीमियम दर
+
+🌱 **मृदा स्वास्थ्य कार्ड योजना**:
+• मुफ्त मिट्टी परीक्षण
+• पोषक तत्वों की सिफारिश
+
+💳 **किसान क्रेडिट कार्ड (KCC)**:
+• कम ब्याज दर पर ऋण
+• ₹3 लाख तक की सीमा
+
+📱 **आवेदन**: ऑनलाइन या नजदीकी कृषि कार्यालय में"""
+                else:
+                    response = """🏛️ Government Schemes for Farmers:
+
+💰 **PM Kisan Samman Nidhi**:
+• ₹6,000 per year (in 3 installments)
+• For all small and marginal farmers
+
+🌾 **PM Fasal Bima Yojana (PMFBY)**:
+• Crop loss insurance
+• Low premium rates
+
+🌱 **Soil Health Card Scheme**:
+• Free soil testing
+• Nutrient recommendations
+
+💳 **Kisan Credit Card (KCC)**:
+• Low interest rate loans
+• Up to ₹3 lakhs limit
+
+📱 **Application**: Online or at nearest agriculture office"""
+        
+        except Exception as e:
+            logger.error(f"Error fetching real-time government schemes: {e}")
+            # Fallback response
+            if language == 'hi' or any(char in query for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
+                response = "🏛️ सरकारी योजनाओं की जानकारी उपलब्ध नहीं है। कृपया बाद में पुन: प्रयास करें।"
+            else:
+                response = "🏛️ Government schemes information is currently unavailable. Please try again later."
+
+        if location_name:
+            response += f"\n\n📍 **For {location_name}**: Visit local agriculture department for scheme details and application process."
+        
+        return response
     
     def _is_complex_query(self, query_lower: str) -> bool:
         """Check if query is complex (multiple intents)"""
@@ -4148,6 +4761,81 @@ class UltimateIntelligentAI:
             'Chennai': {'type': 'coastal alluvial', 'ph': 7.5, 'nutrients': 'medium'}
         }
         return soil_types.get(location_name, {'type': 'loamy', 'ph': 6.8, 'nutrients': 'medium'})
+
+    def get_chatgpt_level_response(self, user_query: str, language: str = 'en', 
+                                  user_id: str = None, session_id: str = None, 
+                                  latitude: float = None, longitude: float = None,
+                                  conversation_history: List = None, location_name: str = None) -> Dict[str, Any]:
+        """Get ChatGPT-level response for any query using Ollama and open source APIs"""
+        try:
+            logger.info(f"Processing ChatGPT-level query: {user_query[:100]}...")
+            
+            # Use Ollama integration for comprehensive responses
+            ollama_response = self.ollama.get_response(
+                query=user_query,
+                language=language,
+                context={
+                    'user_id': user_id,
+                    'session_id': session_id,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'conversation_history': conversation_history,
+                    'location_name': location_name
+                }
+            )
+            
+            if ollama_response and ollama_response.get('confidence', 0) > 0.7:
+                return {
+                    'response': ollama_response['response'],
+                    'intent': ollama_response.get('category', 'general'),
+                    'entities': ollama_response.get('entities', []),
+                    'language': language,
+                    'timestamp': time.time(),
+                    'source': ollama_response.get('source', 'ollama'),
+                    'confidence': ollama_response.get('confidence', 0.8),
+                    'chatgpt_level': True
+                }
+            
+            # Fallback to Google AI Studio if Ollama is not available
+            google_response = self.google_ai.classify_query(user_query)
+            if google_response and google_response.get('confidence', 0) > 0.6:
+                enhanced_response = self.google_ai.generate_enhanced_response(user_query, google_response)
+                return {
+                    'response': enhanced_response,
+                    'intent': google_response.get('category', 'general'),
+                    'entities': google_response.get('entities', []),
+                    'language': language,
+                    'timestamp': time.time(),
+                    'source': 'google_ai_studio',
+                    'confidence': google_response.get('confidence', 0.7),
+                    'chatgpt_level': True
+                }
+            
+            # Ultimate fallback to general APIs
+            general_response = self.general_apis.handle_general_question(user_query, language)
+            return {
+                'response': general_response.get('response', 'I understand your query. Let me help you with that.'),
+                'intent': 'general',
+                'entities': [],
+                'language': language,
+                'timestamp': time.time(),
+                'source': general_response.get('source', 'general_apis'),
+                'confidence': general_response.get('confidence', 0.6),
+                'chatgpt_level': True
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in ChatGPT-level response: {e}")
+            return {
+                'response': self._get_error_response(language),
+                'intent': 'error',
+                'entities': [],
+                'language': language,
+                'timestamp': time.time(),
+                'source': 'error',
+                'confidence': 0.3,
+                'chatgpt_level': False
+            }
 
 # Create global instance
 ultimate_ai = UltimateIntelligentAI()

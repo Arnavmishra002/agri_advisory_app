@@ -513,3 +513,4 @@ def enhance_response_to_chatgpt_level(base_response: str, query: str, intent: st
 def calculate_response_quality_metrics(response: str, query: str, intent: str) -> Dict[str, float]:
     """Convenience function to calculate response quality"""
     return chatgpt_enhancer.calculate_response_quality(response, query, intent)
+
