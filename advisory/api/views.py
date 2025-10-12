@@ -13,6 +13,7 @@ import uuid
 import random
 from ..services.clean_government_api import CleanGovernmentAPI
 from ..services.enhanced_government_api import EnhancedGovernmentAPI
+from ..services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
 from ..services.accurate_location_api import get_accurate_location
 from ..services.real_time_government_api import RealTimeGovernmentAPI
 from ..services.pest_detection import PestDetectionSystem
@@ -58,6 +59,9 @@ class ChatbotViewSet(viewsets.ViewSet):
         except ImportError:
             from ..ml.intelligent_chatbot import IntelligentAgriculturalChatbot
             self.chatbot = IntelligentAgriculturalChatbot()
+        
+        # Initialize ultra-dynamic government API for farming queries
+        self.ultra_gov_api = UltraDynamicGovernmentAPI()
     
     def _get_enhanced_response(self, message: str, language: str, latitude: float = None, 
                               longitude: float = None, location_name: str = None) -> str:
@@ -4901,7 +4905,9 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from ..services.enhanced_government_api import EnhancedGovernmentAPI
+        from ..services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
         self.gov_api = EnhancedGovernmentAPI()
+        self.ultra_gov_api = UltraDynamicGovernmentAPI()
     
     @action(detail=False, methods=['get'])
     def suggestions(self, request):
@@ -4985,5 +4991,103 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
             return Response({
                 'error': 'Failed to get location recommendations',
                 'recommendations': [],
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def comprehensive_government_data(self, request):
+        """Get comprehensive real-time government data for farming queries"""
+        try:
+            latitude = float(request.query_params.get('lat', 28.7041))
+            longitude = float(request.query_params.get('lon', 77.1025))
+            location = request.query_params.get('location', 'Delhi')
+            commodity = request.query_params.get('commodity', None)
+            
+            # Get comprehensive government data using ultra-dynamic API
+            gov_data = self.ultra_gov_api.get_comprehensive_government_data(
+                latitude, longitude, location, commodity
+            )
+            
+            return Response({
+                'government_data': gov_data['government_data'],
+                'data_reliability': gov_data['data_reliability'],
+                'response_time': gov_data['response_time'],
+                'location': gov_data['location'],
+                'commodity': commodity,
+                'timestamp': gov_data['timestamp'],
+                'status': 'comprehensive_government_data',
+                'sources': gov_data['sources']
+            })
+            
+        except Exception as e:
+            logger.error(f"Comprehensive government data error: {e}")
+            return Response({
+                'error': 'Failed to get comprehensive government data',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def real_time_weather(self, request):
+        """Get ultra-real-time weather data from IMD"""
+        try:
+            latitude = float(request.query_params.get('lat', 28.7041))
+            longitude = float(request.query_params.get('lon', 77.1025))
+            
+            weather_data = self.ultra_gov_api.get_ultra_real_time_weather(latitude, longitude)
+            
+            return Response({
+                'weather': weather_data,
+                'timestamp': time.time(),
+                'status': 'real_time_weather'
+            })
+            
+        except Exception as e:
+            logger.error(f"Real-time weather error: {e}")
+            return Response({
+                'error': 'Failed to get real-time weather data',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def real_time_market_prices(self, request):
+        """Get ultra-real-time market prices from Agmarknet and e-NAM"""
+        try:
+            commodity = request.query_params.get('commodity', None)
+            state = request.query_params.get('state', None)
+            
+            market_data = self.ultra_gov_api.get_ultra_real_time_market_prices(commodity, state)
+            
+            return Response({
+                'market_prices': market_data,
+                'timestamp': time.time(),
+                'status': 'real_time_market_prices'
+            })
+            
+        except Exception as e:
+            logger.error(f"Real-time market prices error: {e}")
+            return Response({
+                'error': 'Failed to get real-time market prices',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def real_time_crop_recommendations(self, request):
+        """Get crop recommendations from ICAR"""
+        try:
+            location = request.query_params.get('location', 'Delhi')
+            season = request.query_params.get('season', None)
+            
+            crop_data = self.ultra_gov_api.get_ultra_real_time_crop_recommendations(location, season)
+            
+            return Response({
+                'crop_recommendations': crop_data,
+                'timestamp': time.time(),
+                'status': 'real_time_crop_recommendations'
+            })
+            
+        except Exception as e:
+            logger.error(f"Real-time crop recommendations error: {e}")
+            return Response({
+                'error': 'Failed to get real-time crop recommendations',
                 'details': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

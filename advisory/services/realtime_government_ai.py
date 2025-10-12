@@ -11,6 +11,7 @@ from typing import Dict, List, Any, Tuple, Optional
 from datetime import datetime, timedelta
 import requests
 from .enhanced_government_api import EnhancedGovernmentAPI
+from .ultra_dynamic_government_api import UltraDynamicGovernmentAPI
 from .deep_ai_understanding import analyze_query_deeply
 from .ollama_integration import OllamaIntegration
 
@@ -21,6 +22,7 @@ class RealTimeGovernmentAI:
     
     def __init__(self):
         self.gov_api = EnhancedGovernmentAPI()
+        self.ultra_gov_api = UltraDynamicGovernmentAPI()  # Ultra-dynamic government API
         self.deep_ai = analyze_query_deeply
         self.ollama = OllamaIntegration()  # Open source AI for general queries
         self.real_time_cache = {}
@@ -42,8 +44,8 @@ class RealTimeGovernmentAI:
             is_farming = self._is_farming_related_query(deep_analysis)
             
             if is_farming:
-                # Step 3: Get real-time government data
-                real_time_data = self._get_real_time_government_data(
+                # Step 3: Get ultra-real-time government data
+                real_time_data = self._get_ultra_real_time_government_data(
                     deep_analysis, query, language, location
                 )
                 
@@ -119,8 +121,85 @@ class RealTimeGovernmentAI:
         
         return False
     
+    def _get_ultra_real_time_government_data(self, deep_analysis: Dict[str, Any], query: str, language: str, location: str) -> Dict[str, Any]:
+        """Get ultra-real-time data from government APIs using ultra-dynamic system"""
+        # Get location coordinates for ultra-real-time data
+        latitude, longitude = 28.7041, 77.1025  # Default to Delhi
+        if location:
+            try:
+                location_info = self.gov_api.detect_location_comprehensive(location)
+                if location_info.get('coordinates'):
+                    latitude = location_info['coordinates']['lat']
+                    longitude = location_info['coordinates']['lon']
+            except Exception as e:
+                logger.warning(f"Could not get coordinates for {location}: {e}")
+        
+        try:
+            # Get comprehensive ultra-real-time government data
+            comprehensive_data = self.ultra_gov_api.get_comprehensive_government_data(
+                latitude, longitude, location
+            )
+            
+            real_time_data = {
+                'weather_data': comprehensive_data['government_data'].get('weather'),
+                'market_data': comprehensive_data['government_data'].get('market_prices'),
+                'crop_data': comprehensive_data['government_data'].get('crop_recommendations'),
+                'soil_data': comprehensive_data['government_data'].get('soil_health'),
+                'government_schemes': comprehensive_data['government_data'].get('government_schemes'),
+                'data_reliability': comprehensive_data['data_reliability'],
+                'response_time': comprehensive_data['response_time'],
+                'sources': comprehensive_data['sources'],
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            logger.info(f"Ultra-real-time government data fetched with {real_time_data['data_reliability']['reliability_score']} reliability")
+            return real_time_data
+            
+        except Exception as e:
+            logger.error(f"Error getting ultra-real-time government data: {e}")
+            # Fallback to enhanced government API
+            return self._get_real_time_government_data_fallback(deep_analysis, query, language, location)
+    
+    def _get_real_time_government_data_fallback(self, deep_analysis: Dict[str, Any], query: str, language: str, location: str) -> Dict[str, Any]:
+        """Fallback method when ultra-dynamic API fails"""
+        real_time_data = {
+            'weather_data': None,
+            'market_data': None,
+            'crop_data': None,
+            'soil_data': None,
+            'government_schemes': None,
+            'timestamp': datetime.now().isoformat(),
+            'fallback': True
+        }
+        
+        intent = deep_analysis.get('intent', '')
+        entities = deep_analysis.get('entities', {})
+        
+        try:
+            # Basic weather data fallback
+            if location:
+                weather_data = self.gov_api._fetch_weather_from_imd(location)
+                real_time_data['weather_data'] = weather_data
+            
+            # Basic market data fallback
+            if intent in ['price_inquiry']:
+                market_data = self.gov_api.get_real_market_prices(location or 'Delhi')
+                real_time_data['market_data'] = market_data
+            
+            # Basic crop data fallback
+            if intent in ['crop_recommendation']:
+                crop_data = self.gov_api.get_enhanced_crop_recommendations(location or 'Delhi', 'kharif', language)
+                real_time_data['crop_data'] = crop_data
+            
+            logger.info(f"Fallback government data fetched for {location}")
+            
+        except Exception as e:
+            logger.error(f"Fallback government data fetch failed: {e}")
+        
+        return real_time_data
+    
     def _get_real_time_government_data(self, deep_analysis: Dict[str, Any], query: str, language: str, location: str) -> Dict[str, Any]:
-        """Get real-time data from government APIs"""
+        """Fallback method for real-time data from government APIs"""
         real_time_data = {
             'weather_data': None,
             'market_data': None,
