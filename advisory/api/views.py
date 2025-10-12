@@ -11,10 +11,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
 import logging
+from datetime import datetime
 
 from ..services.enhanced_government_api import EnhancedGovernmentAPI
 from ..services.realtime_government_ai import RealTimeGovernmentAI
 from ..services.enhanced_multilingual import EnhancedMultilingualSupport
+from ..services.real_government_data_analysis import RealGovernmentDataAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -102,13 +104,48 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def crop_recommendations(self, request):
-        """Get location-based crop recommendations using government APIs"""
+        """Get comprehensive crop recommendations using real government data analysis"""
         try:
             location = request.query_params.get('location', 'Delhi')
             season = request.query_params.get('season', 'current')
             
-            recommendations = self.gov_api.get_crop_recommendations(location, season)
-            return Response(recommendations, status=status.HTTP_200_OK)
+            # Use comprehensive real government data analysis
+            analysis_service = RealGovernmentDataAnalysis()
+            crop_analyses = analysis_service.get_comprehensive_crop_recommendations(location, season)
+            
+            # Convert analyses to API response format
+            recommendations = []
+            for analysis in crop_analyses:
+                recommendation = {
+                    'name': analysis.crop_name,
+                    'season': season,
+                    'historical_yield_trend': analysis.historical_yield_trend,
+                    'historical_price_trend': analysis.historical_price_trend,
+                    'current_yield_prediction': analysis.current_yield_prediction,
+                    'future_yield_prediction': analysis.future_yield_prediction,
+                    'current_market_price': analysis.current_market_price,
+                    'predicted_future_price': analysis.predicted_future_price,
+                    'input_cost_analysis': analysis.input_cost_analysis,
+                    'profitability_score': analysis.profitability_score,
+                    'risk_assessment': analysis.risk_assessment,
+                    'government_support': analysis.government_support,
+                    'confidence_level': analysis.confidence_level,
+                    'data_source': 'Real Government APIs',
+                    'timestamp': datetime.now().isoformat()
+                }
+                recommendations.append(recommendation)
+            
+            return Response({
+                'location': location,
+                'season': season,
+                'recommendations': recommendations,
+                'analysis_summary': {
+                    'total_crops_analyzed': len(recommendations),
+                    'data_sources': ['IMD', 'Agmarknet', 'e-NAM', 'ICAR', 'Soil Health Card', 'KVK'],
+                    'analysis_period': '5-10 years historical + current + future predictions'
+                }
+            }, status=status.HTTP_200_OK)
+            
         except Exception as e:
             logger.error(f"Crop recommendations API error: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

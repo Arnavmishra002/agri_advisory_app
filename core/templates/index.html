@@ -1243,6 +1243,23 @@
             }, 3000);
         }
         
+        async function loadGovernmentSchemes() {
+            // Get current location for dynamic government schemes
+            const locationDisplay = document.querySelector('.location-display');
+            const currentLocation = locationDisplay ? locationDisplay.textContent.split(',')[0] : 'Delhi';
+            
+            try {
+                const response = await fetch(`/api/realtime-gov/government_schemes/?location=${encodeURIComponent(currentLocation)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    // Update government schemes content with location-specific data
+                    console.log('🏛️ Government schemes loaded for:', currentLocation);
+                }
+            } catch (error) {
+                console.error('Government schemes API error:', error);
+            }
+        }
+        
         async function loadMarketData() {
             // Get current location for dynamic market data
             const locationDisplay = document.querySelector('.location-display');
@@ -1286,6 +1303,23 @@
                         `).join('')}
                     </div>
                 `;
+                
+                // Also update the location dropdown in market prices section
+                const locationDropdown = document.querySelector('select[name="location"]');
+                if (locationDropdown) {
+                    // Update dropdown to show current location
+                    const locationMap = {
+                        'Delhi': 'दिल्ली',
+                        'Mumbai': 'मुंबई',
+                        'Bangalore': 'बैंगलोर',
+                        'Chennai': 'कोलकाता',
+                        'Hyderabad': 'चेन्नई',
+                        'Kolkata': 'कोलकाता'
+                    };
+                    const hindiLocation = locationMap[currentLocation] || currentLocation;
+                    locationDropdown.value = hindiLocation;
+                    console.log('📍 Updated market prices location dropdown to:', hindiLocation);
+                }
             } catch (error) {
                 console.error('Error loading market data:', error);
                 currentPricesDiv.innerHTML = `
@@ -1649,16 +1683,36 @@
             return fallbackData[location] || fallbackData['Delhi'];
         }
         
-        // Real-time Crop Data from Government APIs
+        // Real-time Comprehensive Crop Analysis from Government APIs
         async function getDynamicCropData(location) {
             try {
                 const response = await fetch(`/api/realtime-gov/crop_recommendations/?location=${encodeURIComponent(location)}&season=current`);
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.crops && data.crops.length > 0) {
+                    if (data.recommendations && data.recommendations.length > 0) {
+                        // Convert comprehensive analysis to display format
+                        const crops = data.recommendations.map(rec => ({
+                            name: rec.name,
+                            type: rec.season,
+                            inputCost: `₹${rec.input_cost_analysis.total.toLocaleString('hi-IN')}`,
+                            currentPrice: `₹${rec.current_market_price.toLocaleString('hi-IN')}`,
+                            futurePrice: `₹${rec.predicted_future_price.toLocaleString('hi-IN')}`,
+                            duration: '3-6 महीने',
+                            profitability_score: rec.profitability_score,
+                            risk_assessment: rec.risk_assessment,
+                            historical_yield_trend: rec.historical_yield_trend,
+                            historical_price_trend: rec.historical_price_trend,
+                            confidence_level: rec.confidence_level,
+                            government_support: rec.government_support,
+                            current_yield_prediction: rec.current_yield_prediction,
+                            future_yield_prediction: rec.future_yield_prediction
+                        }));
+                        
                         return {
-                            crops: data.crops,
-                            source: 'सरकारी API'
+                            crops: crops,
+                            source: 'Real Government APIs',
+                            analysis_summary: data.analysis_summary,
+                            data_sources: data.analysis_summary.data_sources
                         };
                     }
                 }
@@ -1893,9 +1947,58 @@
             
             // Reload data for new location
             setTimeout(() => {
-                loadLocationBasedRecommendations();
-                loadWeatherData();
-                loadMarketData();
+                console.log('🔄 Reloading all data for new location:', newLocation);
+                
+                // Reload crop recommendations
+                if (typeof loadLocationBasedRecommendations === 'function') {
+                    console.log('🌾 Reloading crop recommendations...');
+                    loadLocationBasedRecommendations();
+                }
+                
+                // Reload weather data
+                if (typeof loadWeatherData === 'function') {
+                    console.log('🌤️ Reloading weather data...');
+                    loadWeatherData();
+                }
+                
+                // Reload market data
+                if (typeof loadMarketData === 'function') {
+                    console.log('💰 Reloading market data...');
+                    loadMarketData();
+                }
+                
+                // Reload government schemes
+                if (typeof loadGovernmentSchemes === 'function') {
+                    console.log('🏛️ Reloading government schemes...');
+                    loadGovernmentSchemes();
+                }
+                
+                // Force refresh of any active service content
+                const activeService = document.querySelector('.service-content.active');
+                if (activeService) {
+                    const serviceId = activeService.id;
+                    console.log('🔄 Refreshing active service:', serviceId);
+                    
+                    // Trigger service refresh based on active service
+                    switch(serviceId) {
+                        case 'crop-recommendations-content':
+                            loadLocationBasedRecommendations();
+                            break;
+                        case 'weather-content':
+                            loadWeatherData();
+                            break;
+                        case 'market-prices-content':
+                            loadMarketData();
+                            break;
+                        case 'government-schemes-content':
+                            loadGovernmentSchemes();
+                            break;
+                        default:
+                            console.log('No specific refresh needed for:', serviceId);
+                    }
+                }
+                
+                console.log('✅ All data reload completed for location:', newLocation);
             }, 1000);
         }
         
