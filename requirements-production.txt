@@ -42,3 +42,17 @@ gtts>=2.3.0
 pyttsx3>=2.90
 # Additional dependencies
 geopy>=2.3.0
+
+# Ultra-Dynamic Government API System
+aiohttp>=3.8.0
+concurrent-futures>=3.1.1
+xmltodict>=0.13.0
+python-dotenv>=1.0.0
+cryptography>=41.0.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Production Monitoring
+sentry-sdk>=1.32.0
+django-storages>=1.14.0
+boto3>=1.28.0
