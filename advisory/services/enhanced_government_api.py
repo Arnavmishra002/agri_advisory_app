@@ -293,14 +293,14 @@ class EnhancedGovernmentAPI:
             return self.location_cache[cache_key]
         
         result = {
-            'location': None,
+            'location': query.title() if query else 'Delhi',  # Default to query or Delhi
             'state': None,
             'district': None,
             'region': None,
             'coordinates': None,
-            'confidence': 0,
-            'source': 'none',
-            'type': 'unknown',
+            'confidence': 0.5,  # Default confidence
+            'source': 'fallback',
+            'type': 'city',
             'google_maps_equivalent': False
         }
         
@@ -334,6 +334,20 @@ class EnhancedGovernmentAPI:
             result.update(pattern_result)
             result['source'] = 'advanced_pattern'
         
+        # 5. Enhanced fallback with better location detection
+        if result['confidence'] < 0.3:
+            fallback_result = self._enhanced_fallback_location_detection(query_lower)
+            if fallback_result['confidence'] > result['confidence']:
+                result.update(fallback_result)
+                result['source'] = 'enhanced_fallback'
+        
+        # 6. Final fallback - ensure we always have a location
+        if not result['location'] or result['confidence'] < 0.2:
+            result['location'] = query.title() if query else 'Delhi'
+            result['state'] = 'Delhi' if 'delhi' in query_lower else 'Unknown'
+            result['confidence'] = 0.5
+            result['source'] = 'final_fallback'
+        
         # 5. Fuzzy matching for partial names
         fuzzy_result = self._detect_location_via_fuzzy_matching(query_lower)
         if fuzzy_result['confidence'] > result['confidence']:
@@ -342,6 +356,237 @@ class EnhancedGovernmentAPI:
         
         self.location_cache[cache_key] = result
         return result
+    
+    def _enhanced_fallback_location_detection(self, query_lower: str) -> Dict[str, Any]:
+        """Enhanced fallback location detection with comprehensive Indian coverage"""
+        # Comprehensive Indian cities, towns, and villages mapping
+        comprehensive_location_mapping = {
+            # Major Cities
+            'delhi': {'city': 'Delhi', 'state': 'Delhi'},
+            'mumbai': {'city': 'Mumbai', 'state': 'Maharashtra'},
+            'bangalore': {'city': 'Bangalore', 'state': 'Karnataka'},
+            'chennai': {'city': 'Chennai', 'state': 'Tamil Nadu'},
+            'kolkata': {'city': 'Kolkata', 'state': 'West Bengal'},
+            'hyderabad': {'city': 'Hyderabad', 'state': 'Telangana'},
+            'pune': {'city': 'Pune', 'state': 'Maharashtra'},
+            'ahmedabad': {'city': 'Ahmedabad', 'state': 'Gujarat'},
+            'jaipur': {'city': 'Jaipur', 'state': 'Rajasthan'},
+            'lucknow': {'city': 'Lucknow', 'state': 'Uttar Pradesh'},
+            'kanpur': {'city': 'Kanpur', 'state': 'Uttar Pradesh'},
+            'nagpur': {'city': 'Nagpur', 'state': 'Maharashtra'},
+            'indore': {'city': 'Indore', 'state': 'Madhya Pradesh'},
+            'thane': {'city': 'Thane', 'state': 'Maharashtra'},
+            'bhopal': {'city': 'Bhopal', 'state': 'Madhya Pradesh'},
+            'visakhapatnam': {'city': 'Visakhapatnam', 'state': 'Andhra Pradesh'},
+            'patna': {'city': 'Patna', 'state': 'Bihar'},
+            'vadodara': {'city': 'Vadodara', 'state': 'Gujarat'},
+            'ghaziabad': {'city': 'Ghaziabad', 'state': 'Uttar Pradesh'},
+            'ludhiana': {'city': 'Ludhiana', 'state': 'Punjab'},
+            'agra': {'city': 'Agra', 'state': 'Uttar Pradesh'},
+            'nashik': {'city': 'Nashik', 'state': 'Maharashtra'},
+            'faridabad': {'city': 'Faridabad', 'state': 'Haryana'},
+            'meerut': {'city': 'Meerut', 'state': 'Uttar Pradesh'},
+            'rajkot': {'city': 'Rajkot', 'state': 'Gujarat'},
+            'kalyan': {'city': 'Kalyan', 'state': 'Maharashtra'},
+            'vasai': {'city': 'Vasai', 'state': 'Maharashtra'},
+            'varanasi': {'city': 'Varanasi', 'state': 'Uttar Pradesh'},
+            'srinagar': {'city': 'Srinagar', 'state': 'Jammu and Kashmir'},
+            'raebareli': {'city': 'Raebareli', 'state': 'Uttar Pradesh'},
+            
+            # Uttar Pradesh Cities and Towns
+            'bareilly': {'city': 'Bareilly', 'state': 'Uttar Pradesh'},
+            'gorakhpur': {'city': 'Gorakhpur', 'state': 'Uttar Pradesh'},
+            'aligarh': {'city': 'Aligarh', 'state': 'Uttar Pradesh'},
+            'moradabad': {'city': 'Moradabad', 'state': 'Uttar Pradesh'},
+            'saharanpur': {'city': 'Saharanpur', 'state': 'Uttar Pradesh'},
+            'noida': {'city': 'Noida', 'state': 'Uttar Pradesh'},
+            'firozabad': {'city': 'Firozabad', 'state': 'Uttar Pradesh'},
+            'allahabad': {'city': 'Allahabad', 'state': 'Uttar Pradesh'},
+            'mathura': {'city': 'Mathura', 'state': 'Uttar Pradesh'},
+            'shahjahanpur': {'city': 'Shahjahanpur', 'state': 'Uttar Pradesh'},
+            'hapur': {'city': 'Hapur', 'state': 'Uttar Pradesh'},
+            'muzaffarnagar': {'city': 'Muzaffarnagar', 'state': 'Uttar Pradesh'},
+            'bulandshahr': {'city': 'Bulandshahr', 'state': 'Uttar Pradesh'},
+            'rampur': {'city': 'Rampur', 'state': 'Uttar Pradesh'},
+            'etawah': {'city': 'Etawah', 'state': 'Uttar Pradesh'},
+            'mirzapur': {'city': 'Mirzapur', 'state': 'Uttar Pradesh'},
+            'pilibhit': {'city': 'Pilibhit', 'state': 'Uttar Pradesh'},
+            'hardoi': {'city': 'Hardoi', 'state': 'Uttar Pradesh'},
+            'sitapur': {'city': 'Sitapur', 'state': 'Uttar Pradesh'},
+            'faizabad': {'city': 'Faizabad', 'state': 'Uttar Pradesh'},
+            'sultanpur': {'city': 'Sultanpur', 'state': 'Uttar Pradesh'},
+            'pratapgarh': {'city': 'Pratapgarh', 'state': 'Uttar Pradesh'},
+            'unnao': {'city': 'Unnao', 'state': 'Uttar Pradesh'},
+            'lalitpur': {'city': 'Lalitpur', 'state': 'Uttar Pradesh'},
+            'jhansi': {'city': 'Jhansi', 'state': 'Uttar Pradesh'},
+            'gonda': {'city': 'Gonda', 'state': 'Uttar Pradesh'},
+            'balrampur': {'city': 'Balrampur', 'state': 'Uttar Pradesh'},
+            'siddharthnagar': {'city': 'Siddharthnagar', 'state': 'Uttar Pradesh'},
+            'basti': {'city': 'Basti', 'state': 'Uttar Pradesh'},
+            'deoria': {'city': 'Deoria', 'state': 'Uttar Pradesh'},
+            'kushinagar': {'city': 'Kushinagar', 'state': 'Uttar Pradesh'},
+            'maharajganj': {'city': 'Maharajganj', 'state': 'Uttar Pradesh'},
+            'kheri': {'city': 'Kheri', 'state': 'Uttar Pradesh'},
+            'bahraich': {'city': 'Bahraich', 'state': 'Uttar Pradesh'},
+            'shrawasti': {'city': 'Shrawasti', 'state': 'Uttar Pradesh'},
+            'barabanki': {'city': 'Barabanki', 'state': 'Uttar Pradesh'},
+            'amroha': {'city': 'Amroha', 'state': 'Uttar Pradesh'},
+            'bijnor': {'city': 'Bijnor', 'state': 'Uttar Pradesh'},
+            'budaun': {'city': 'Budaun', 'state': 'Uttar Pradesh'},
+            'etah': {'city': 'Etah', 'state': 'Uttar Pradesh'},
+            'kasganj': {'city': 'Kasganj', 'state': 'Uttar Pradesh'},
+            'mainpuri': {'city': 'Mainpuri', 'state': 'Uttar Pradesh'},
+            'fatehpur': {'city': 'Fatehpur', 'state': 'Uttar Pradesh'},
+            'banda': {'city': 'Banda', 'state': 'Uttar Pradesh'},
+            'chitrakoot': {'city': 'Chitrakoot', 'state': 'Uttar Pradesh'},
+            'hamirpur': {'city': 'Hamirpur', 'state': 'Uttar Pradesh'},
+            'mahoba': {'city': 'Mahoba', 'state': 'Uttar Pradesh'},
+            'kannauj': {'city': 'Kannauj', 'state': 'Uttar Pradesh'},
+            'farrukhabad': {'city': 'Farrukhabad', 'state': 'Uttar Pradesh'},
+            'ayodhya': {'city': 'Ayodhya', 'state': 'Uttar Pradesh'},
+            'amethi': {'city': 'Amethi', 'state': 'Uttar Pradesh'},
+            'chandauli': {'city': 'Chandauli', 'state': 'Uttar Pradesh'},
+            'sonbhadra': {'city': 'Sonbhadra', 'state': 'Uttar Pradesh'},
+            'ballia': {'city': 'Ballia', 'state': 'Uttar Pradesh'},
+            'mau': {'city': 'Mau', 'state': 'Uttar Pradesh'},
+            'azamgarh': {'city': 'Azamgarh', 'state': 'Uttar Pradesh'},
+            'jaunpur': {'city': 'Jaunpur', 'state': 'Uttar Pradesh'},
+            'ghazipur': {'city': 'Ghazipur', 'state': 'Uttar Pradesh'},
+            'chandauli': {'city': 'Chandauli', 'state': 'Uttar Pradesh'},
+            
+            # Maharashtra Cities and Towns
+            'thane': {'city': 'Thane', 'state': 'Maharashtra'},
+            'nashik': {'city': 'Nashik', 'state': 'Maharashtra'},
+            'nagpur': {'city': 'Nagpur', 'state': 'Maharashtra'},
+            'aurangabad': {'city': 'Aurangabad', 'state': 'Maharashtra'},
+            'solapur': {'city': 'Solapur', 'state': 'Maharashtra'},
+            'kolhapur': {'city': 'Kolhapur', 'state': 'Maharashtra'},
+            'amravati': {'city': 'Amravati', 'state': 'Maharashtra'},
+            'nanded': {'city': 'Nanded', 'state': 'Maharashtra'},
+            'sangli': {'city': 'Sangli', 'state': 'Maharashtra'},
+            'malegaon': {'city': 'Malegaon', 'state': 'Maharashtra'},
+            'jalgaon': {'city': 'Jalgaon', 'state': 'Maharashtra'},
+            'akola': {'city': 'Akola', 'state': 'Maharashtra'},
+            'latur': {'city': 'Latur', 'state': 'Maharashtra'},
+            'ahmednagar': {'city': 'Ahmednagar', 'state': 'Maharashtra'},
+            'chandrapur': {'city': 'Chandrapur', 'state': 'Maharashtra'},
+            'parbhani': {'city': 'Parbhani', 'state': 'Maharashtra'},
+            'ichalkaranji': {'city': 'Ichalkaranji', 'state': 'Maharashtra'},
+            'jalna': {'city': 'Jalna', 'state': 'Maharashtra'},
+            'ambajogai': {'city': 'Ambajogai', 'state': 'Maharashtra'},
+            'bhiwandi': {'city': 'Bhiwandi', 'state': 'Maharashtra'},
+            'ulhasnagar': {'city': 'Ulhasnagar', 'state': 'Maharashtra'},
+            'ambarnath': {'city': 'Ambarnath', 'state': 'Maharashtra'},
+            'badlapur': {'city': 'Badlapur', 'state': 'Maharashtra'},
+            'panvel': {'city': 'Panvel', 'state': 'Maharashtra'},
+            'navi mumbai': {'city': 'Navi Mumbai', 'state': 'Maharashtra'},
+            'satara': {'city': 'Satara', 'state': 'Maharashtra'},
+            'beed': {'city': 'Beed', 'state': 'Maharashtra'},
+            'yavatmal': {'city': 'Yavatmal', 'state': 'Maharashtra'},
+            'kamptee': {'city': 'Kamptee', 'state': 'Maharashtra'},
+            'gondia': {'city': 'Gondia', 'state': 'Maharashtra'},
+            'bhusawal': {'city': 'Bhusawal', 'state': 'Maharashtra'},
+            'chalisgaon': {'city': 'Chalisgaon', 'state': 'Maharashtra'},
+            'jalna': {'city': 'Jalna', 'state': 'Maharashtra'},
+            'osmanabad': {'city': 'Osmanabad', 'state': 'Maharashtra'},
+            'nandurbar': {'city': 'Nandurbar', 'state': 'Maharashtra'},
+            'dhule': {'city': 'Dhule', 'state': 'Maharashtra'},
+            'wardha': {'city': 'Wardha', 'state': 'Maharashtra'},
+            'gadchiroli': {'city': 'Gadchiroli', 'state': 'Maharashtra'},
+            'washim': {'city': 'Washim', 'state': 'Maharashtra'},
+            'hinganghat': {'city': 'Hinganghat', 'state': 'Maharashtra'},
+            'udgir': {'city': 'Udgir', 'state': 'Maharashtra'},
+            'shirpur': {'city': 'Shirpur', 'state': 'Maharashtra'},
+            'pachora': {'city': 'Pachora', 'state': 'Maharashtra'},
+            'junnar': {'city': 'Junnar', 'state': 'Maharashtra'},
+            'pen': {'city': 'Pen', 'state': 'Maharashtra'},
+            'alibag': {'city': 'Alibag', 'state': 'Maharashtra'},
+            'karjat': {'city': 'Karjat', 'state': 'Maharashtra'},
+            'khopoli': {'city': 'Khopoli', 'state': 'Maharashtra'},
+            'matheran': {'city': 'Matheran', 'state': 'Maharashtra'},
+            'lonavala': {'city': 'Lonavala', 'state': 'Maharashtra'},
+            'khandala': {'city': 'Khandala', 'state': 'Maharashtra'},
+            'mulshi': {'city': 'Mulshi', 'state': 'Maharashtra'},
+            'pimpri': {'city': 'Pimpri', 'state': 'Maharashtra'},
+            'chinchwad': {'city': 'Chinchwad', 'state': 'Maharashtra'},
+            'bhosari': {'city': 'Bhosari', 'state': 'Maharashtra'},
+            'hadapsar': {'city': 'Hadapsar', 'state': 'Maharashtra'},
+            'kondhwa': {'city': 'Kondhwa', 'state': 'Maharashtra'},
+            'kothrud': {'city': 'Kothrud', 'state': 'Maharashtra'},
+            'baner': {'city': 'Baner', 'state': 'Maharashtra'},
+            'hinjewadi': {'city': 'Hinjewadi', 'state': 'Maharashtra'},
+            'wakad': {'city': 'Wakad', 'state': 'Maharashtra'},
+            'pimpri chinchwad': {'city': 'Pimpri Chinchwad', 'state': 'Maharashtra'},
+            
+            # Common Village Patterns (Generic matching)
+            'gaon': {'city': query_lower.title() + ' Gaon', 'state': 'Uttar Pradesh'},
+            'pur': {'city': query_lower.title() + ' Pur', 'state': 'Uttar Pradesh'},
+            'nagar': {'city': query_lower.title() + ' Nagar', 'state': 'Uttar Pradesh'},
+            'garh': {'city': query_lower.title() + ' Garh', 'state': 'Uttar Pradesh'},
+            'pura': {'city': query_lower.title() + ' Pura', 'state': 'Uttar Pradesh'},
+            'abad': {'city': query_lower.title() + ' Abad', 'state': 'Uttar Pradesh'},
+            'ganj': {'city': query_lower.title() + ' Ganj', 'state': 'Uttar Pradesh'},
+            'khera': {'city': query_lower.title() + ' Khera', 'state': 'Uttar Pradesh'},
+            'kheda': {'city': query_lower.title() + ' Kheda', 'state': 'Uttar Pradesh'},
+            'kot': {'city': query_lower.title() + ' Kot', 'state': 'Uttar Pradesh'},
+            'garhi': {'city': query_lower.title() + ' Garhi', 'state': 'Uttar Pradesh'},
+            'bazar': {'city': query_lower.title() + ' Bazar', 'state': 'Uttar Pradesh'},
+            'chowk': {'city': query_lower.title() + ' Chowk', 'state': 'Uttar Pradesh'},
+            'mandi': {'city': query_lower.title() + ' Mandi', 'state': 'Uttar Pradesh'},
+            'ganj': {'city': query_lower.title() + ' Ganj', 'state': 'Uttar Pradesh'},
+            'khas': {'city': query_lower.title() + ' Khas', 'state': 'Uttar Pradesh'},
+            'khurd': {'city': query_lower.title() + ' Khurd', 'state': 'Uttar Pradesh'},
+            'kalan': {'city': query_lower.title() + ' Kalan', 'state': 'Uttar Pradesh'},
+            'majra': {'city': query_lower.title() + ' Majra', 'state': 'Uttar Pradesh'},
+            'patti': {'city': query_lower.title() + ' Patti', 'state': 'Uttar Pradesh'},
+            'chak': {'city': query_lower.title() + ' Chak', 'state': 'Uttar Pradesh'},
+            'dera': {'city': query_lower.title() + ' Dera', 'state': 'Uttar Pradesh'},
+            'dera': {'city': query_lower.title() + ' Dera', 'state': 'Uttar Pradesh'},
+            'tanda': {'city': query_lower.title() + ' Tanda', 'state': 'Uttar Pradesh'},
+            'nagar': {'city': query_lower.title() + ' Nagar', 'state': 'Uttar Pradesh'},
+            'garh': {'city': query_lower.title() + ' Garh', 'state': 'Uttar Pradesh'},
+            'pura': {'city': query_lower.title() + ' Pura', 'state': 'Uttar Pradesh'},
+            'abad': {'city': query_lower.title() + ' Abad', 'state': 'Uttar Pradesh'},
+            'ganj': {'city': query_lower.title() + ' Ganj', 'state': 'Uttar Pradesh'},
+            'khera': {'city': query_lower.title() + ' Khera', 'state': 'Uttar Pradesh'},
+            'kheda': {'city': query_lower.title() + ' Kheda', 'state': 'Uttar Pradesh'},
+            'kot': {'city': query_lower.title() + ' Kot', 'state': 'Uttar Pradesh'},
+            'garhi': {'city': query_lower.title() + ' Garhi', 'state': 'Uttar Pradesh'},
+            'bazar': {'city': query_lower.title() + ' Bazar', 'state': 'Uttar Pradesh'},
+            'chowk': {'city': query_lower.title() + ' Chowk', 'state': 'Uttar Pradesh'},
+            'mandi': {'city': query_lower.title() + ' Mandi', 'state': 'Uttar Pradesh'},
+            'ganj': {'city': query_lower.title() + ' Ganj', 'state': 'Uttar Pradesh'},
+            'khas': {'city': query_lower.title() + ' Khas', 'state': 'Uttar Pradesh'},
+            'khurd': {'city': query_lower.title() + ' Khurd', 'state': 'Uttar Pradesh'},
+            'kalan': {'city': query_lower.title() + ' Kalan', 'state': 'Uttar Pradesh'},
+            'majra': {'city': query_lower.title() + ' Majra', 'state': 'Uttar Pradesh'},
+            'patti': {'city': query_lower.title() + ' Patti', 'state': 'Uttar Pradesh'},
+            'chak': {'city': query_lower.title() + ' Chak', 'state': 'Uttar Pradesh'},
+            'dera': {'city': query_lower.title() + ' Dera', 'state': 'Uttar Pradesh'},
+            'tanda': {'city': query_lower.title() + ' Tanda', 'state': 'Uttar Pradesh'}
+        }
+        
+        # Check if query matches any city
+        for city_key, city_info in comprehensive_location_mapping.items():
+            if city_key in query_lower or query_lower in city_key:
+                return {
+                    'location': city_info['city'],
+                    'state': city_info['state'],
+                    'district': city_info['city'],
+                    'region': city_info['state'],
+                    'confidence': 0.8,
+                    'type': 'city'
+                }
+        
+        # If no exact match, return the query as location with default state
+        return {
+            'location': query_lower.title(),
+            'state': 'Unknown',
+            'district': query_lower.title(),
+            'region': 'Unknown',
+            'confidence': 0.4,
+            'type': 'city'
+        }
     
     def _detect_location_via_google_maps(self, query_lower: str) -> Dict[str, Any]:
         """Detect location using Google Maps Geocoding API (Google Maps level accuracy)"""

@@ -270,15 +270,20 @@ class EnhancedMultilingualSupport:
             
             response = f"🌱 {location} के लिए फसल सुझाव:\n\n"
             
-            for i, crop in enumerate(crops[:3], 1):
+            for i, crop in enumerate(crops[:5], 1):
                 crop_name = crop.get('crop', crop.get('name', 'फसल'))
                 crop_score = crop.get('score', crop.get('suitability', 0))
-                response += f"{i}. 🌾 {crop_name} (सुझाव: {crop_score}%)\n"
-                if 'price' in crop:
-                    response += f"   💰 MSP: {crop['price']}\n"
-                if 'subsidy' in crop:
-                    response += f"   🎁 सब्सिडी: {crop['subsidy']}\n"
-                response += "\n"
+                
+                # Create clean, simple box for each crop in Hindi
+                response += f"┌─────────────────────────────────────┐\n"
+                response += f"│ 🌾 {i}. {crop_name}\n"
+                response += f"├─────────────────────────────────────┤\n"
+                response += f"│ 💰 MSP: ₹{crop.get('msp', 'N/A')}/क्विंटल\n"
+                response += f"│ 📈 बाजार मूल्य: ₹{crop.get('market_price', 'N/A')}/क्विंटल\n"
+                response += f"│ 💵 अपेक्षित उपज: {crop.get('expected_yield', 'N/A')}\n"
+                response += f"│ 🏆 लाभ: {crop.get('profitability', 'N/A')}%\n"
+                response += f"│ 📅 बुवाई समय: {crop.get('sowing_time', 'N/A')}\n"
+                response += f"└─────────────────────────────────────┘\n\n"
             
             return response
         
@@ -311,15 +316,20 @@ class EnhancedMultilingualSupport:
             
             response = f"🌱 Crop recommendations for {location}:\n\n"
             
-            for i, crop in enumerate(crops[:3], 1):
+            for i, crop in enumerate(crops[:5], 1):
                 crop_name = crop.get('crop', crop.get('name', 'Unknown Crop'))
                 crop_score = crop.get('score', crop.get('suitability', 0))
-                response += f"{i}. 🌾 {crop_name} (Recommendation: {crop_score}%)\n"
-                if 'price' in crop:
-                    response += f"   💰 MSP: {crop['price']}\n"
-                if 'subsidy' in crop:
-                    response += f"   🎁 Subsidy: {crop['subsidy']}\n"
-                response += "\n"
+                
+                # Create clean, simple box for each crop
+                response += f"┌─────────────────────────────────────┐\n"
+                response += f"│ 🌾 {i}. {crop_name}\n"
+                response += f"├─────────────────────────────────────┤\n"
+                response += f"│ 💰 MSP: ₹{crop.get('msp', 'N/A')}/quintal\n"
+                response += f"│ 📈 Market Price: ₹{crop.get('market_price', 'N/A')}/quintal\n"
+                response += f"│ 💵 Expected Yield: {crop.get('expected_yield', 'N/A')}\n"
+                response += f"│ 🏆 Profit: {crop.get('profitability', 'N/A')}%\n"
+                response += f"│ 📅 Sowing Time: {crop.get('sowing_time', 'N/A')}\n"
+                response += f"└─────────────────────────────────────┘\n\n"
             
             return response
         

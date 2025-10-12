@@ -5213,3 +5213,97 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 'error': 'Failed to get location suggestions',
                 'details': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class LocationRecommendationViewSet(viewsets.ViewSet):
+    """Location recommendation and search services"""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from ..services.enhanced_government_api import EnhancedGovernmentAPI
+        self.gov_api = EnhancedGovernmentAPI()
+    
+    @action(detail=False, methods=['get'])
+    def suggestions(self, request):
+        """Get location suggestions while typing (autocomplete)"""
+        try:
+            query = request.query_params.get('q', '')
+            limit = int(request.query_params.get('limit', 10))
+            
+            if not query or len(query) < 2:
+                return Response({
+                    'suggestions': [],
+                    'query': query,
+                    'message': 'Please enter at least 2 characters'
+                })
+            
+            # Use enhanced government API for location detection
+            location_info = self.gov_api.detect_location_comprehensive(query)
+            
+            suggestions = []
+            if location_info['location']:
+                suggestions.append({
+                    'name': location_info['location'],
+                    'state': location_info.get('state', 'Unknown'),
+                    'district': location_info.get('district', location_info['location']),
+                    'confidence': location_info.get('confidence', 0.5),
+                    'type': location_info.get('type', 'city')
+                })
+            
+            return Response({
+                'suggestions': suggestions[:limit],
+                'query': query,
+                'count': len(suggestions),
+                'timestamp': time.time()
+            })
+            
+        except Exception as e:
+            logger.error(f"Location suggestions error: {e}")
+            return Response({
+                'error': 'Failed to get location suggestions',
+                'suggestions': [],
+                'query': query,
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def list(self, request):
+        """Get location recommendations"""
+        try:
+            query = request.query_params.get('query', '')
+            limit = int(request.query_params.get('limit', 5))
+            
+            if not query:
+                return Response({
+                    'error': 'Query parameter is required',
+                    'recommendations': []
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Use enhanced government API for location detection
+            location_info = self.gov_api.detect_location_comprehensive(query)
+            
+            recommendations = []
+            if location_info['location']:
+                recommendations.append({
+                    'location': location_info['location'],
+                    'state': location_info.get('state', 'Unknown'),
+                    'district': location_info.get('district', location_info['location']),
+                    'confidence': location_info.get('confidence', 0.5),
+                    'type': location_info.get('type', 'city'),
+                    'coordinates': location_info.get('coordinates'),
+                    'source': location_info.get('source', 'government_api')
+                })
+            
+            return Response({
+                'recommendations': recommendations[:limit],
+                'query': query,
+                'count': len(recommendations),
+                'timestamp': time.time()
+            })
+            
+        except Exception as e:
+            logger.error(f"Location recommendations error: {e}")
+            return Response({
+                'error': 'Failed to get location recommendations',
+                'recommendations': [],
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

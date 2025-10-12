@@ -1,4 +1,5 @@
 from django.urls import path, include
+from django.http import HttpResponse
 from rest_framework.routers import DefaultRouter
 from .views import CropAdvisoryViewSet, WeatherViewSet, MarketPricesViewSet, TrendingCropsViewSet, CropViewSet, SMSIVRViewSet, PestDetectionViewSet, UserViewSet, TextToSpeechViewSet, ForumPostViewSet, GovernmentSchemesViewSet, ChatbotViewSet, LocationRecommendationViewSet
 
@@ -19,4 +20,6 @@ router.register(r'locations', LocationRecommendationViewSet, basename='locations
 
 urlpatterns = [
     path('', include(router.urls)),
+    # Health check endpoint
+    path('health/', lambda request: HttpResponse('OK', status=200), name='health'),
 ]

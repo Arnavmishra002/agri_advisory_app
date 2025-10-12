@@ -235,10 +235,16 @@ class RealTimeGovernmentAI:
                 response += f"🥇 **सरकारी डेटा के आधार पर अनुशंसित फसलें**:\n\n"
                 
                 for i, crop in enumerate(recommendations, 1):
-                    response += f"**{i}. {crop.get('name', 'फसल')}**\n"
-                    response += f"   • MSP: ₹{crop.get('msp', 'N/A')}/क्विंटल\n"
-                    response += f"   • उपज: {crop.get('expected_yield', 'N/A')}\n"
-                    response += f"   • लाभ: {crop.get('profitability', 'N/A')}%\n\n"
+                    # Create clean, simple box for each crop
+                    response += f"┌─────────────────────────────────────┐\n"
+                    response += f"│ 🌾 {i}. {crop.get('name', 'फसल')}\n"
+                    response += f"├─────────────────────────────────────┤\n"
+                    response += f"│ 💰 MSP: ₹{crop.get('msp', 'N/A')}/क्विंटल\n"
+                    response += f"│ 📈 बाजार मूल्य: ₹{crop.get('market_price', 'N/A')}/क्विंटल\n"
+                    response += f"│ 💵 अपेक्षित उपज: {crop.get('expected_yield', 'N/A')}\n"
+                    response += f"│ 🏆 लाभ: {crop.get('profitability', 'N/A')}%\n"
+                    response += f"│ 📅 बुवाई समय: {crop.get('sowing_time', 'N/A')}\n"
+                    response += f"└─────────────────────────────────────┘\n\n"
                 
                 response += f"📊 **डेटा स्रोत**: ICAR, IMD, सरकारी कृषि विभाग (वास्तविक समय)\n"
                 response += f"✅ **गारंटी**: 100% सरकारी डेटा पर आधारित\n"
@@ -263,10 +269,16 @@ class RealTimeGovernmentAI:
                 response += f"🥇 **Government Data-Based Recommended Crops**:\n\n"
                 
                 for i, crop in enumerate(recommendations, 1):
-                    response += f"**{i}. {crop.get('name', 'Crop')}**\n"
-                    response += f"   • MSP: ₹{crop.get('msp', 'N/A')}/quintal\n"
-                    response += f"   • Yield: {crop.get('expected_yield', 'N/A')}\n"
-                    response += f"   • Profit: {crop.get('profitability', 'N/A')}%\n\n"
+                    # Create clean, simple box for each crop
+                    response += f"┌─────────────────────────────────────┐\n"
+                    response += f"│ 🌾 {i}. {crop.get('name', 'Crop')}\n"
+                    response += f"├─────────────────────────────────────┤\n"
+                    response += f"│ 💰 MSP: ₹{crop.get('msp', 'N/A')}/quintal\n"
+                    response += f"│ 📈 Market Price: ₹{crop.get('market_price', 'N/A')}/quintal\n"
+                    response += f"│ 💵 Expected Yield: {crop.get('expected_yield', 'N/A')}\n"
+                    response += f"│ 🏆 Profit: {crop.get('profitability', 'N/A')}%\n"
+                    response += f"│ 📅 Sowing Time: {crop.get('sowing_time', 'N/A')}\n"
+                    response += f"└─────────────────────────────────────┘\n\n"
                 
                 response += f"📊 **Data Source**: ICAR, IMD, Government Agriculture Department (Real-time)\n"
                 response += f"✅ **Guaranteed**: 100% Government Data Based\n"
