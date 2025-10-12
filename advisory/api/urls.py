@@ -23,6 +23,3 @@ urlpatterns = [
     # Health check endpoint
     path('health/', lambda request: HttpResponse('OK', status=200), name='health'),
 ]
-
-    path('health/', lambda request: HttpResponse('OK', status=200), name='health'),
-]
