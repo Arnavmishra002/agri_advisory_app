@@ -21,14 +21,19 @@ logger = logging.getLogger(__name__)
 class ChatbotViewSet(viewsets.ViewSet):
     """AI Chatbot for agricultural queries"""
     
-    def __init__(self):
-        self.enhanced_api = EnhancedGovernmentAPI()
-        self.realtime_ai = RealTimeGovernmentAI()
-        self.multilingual = EnhancedMultilingualSupport()
-    
     def create(self, request):
         """Process chatbot queries"""
         try:
+            # Initialize services for this request
+            try:
+                realtime_ai = RealTimeGovernmentAI()
+            except Exception as init_error:
+                logger.error(f"Service initialization error: {init_error}")
+                return Response({
+                    'response': 'Service temporarily unavailable. Please try again later.',
+                    'data_source': 'error_fallback'
+                }, status=status.HTTP_200_OK)
+            
             data = request.data
             query = data.get('query', '')
             language = data.get('language', 'hindi')
@@ -42,7 +47,7 @@ class ChatbotViewSet(viewsets.ViewSet):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             # Process the query using real-time AI
-            result = self.realtime_ai.process_farming_query(
+            result = realtime_ai.process_farming_query(
                 query=query,
                 language=language,
                 location=location,
@@ -63,13 +68,20 @@ class ChatbotViewSet(viewsets.ViewSet):
 class LocationRecommendationViewSet(viewsets.ViewSet):
     """Location detection and recommendations"""
     
-    def __init__(self):
-        self.enhanced_api = EnhancedGovernmentAPI()
-    
     @action(detail=False, methods=['get'])
     def suggestions(self, request):
         """Get location suggestions"""
         try:
+            # Initialize service for this request
+            try:
+                enhanced_api = EnhancedGovernmentAPI()
+            except Exception as init_error:
+                logger.error(f"Service initialization error: {init_error}")
+                return Response({
+                    'suggestions': [],
+                    'error': 'Service temporarily unavailable'
+                }, status=status.HTTP_200_OK)
+            
             query = request.GET.get('q', '')
             if not query:
                 return Response({
@@ -78,7 +90,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             # Get location suggestions
-            result = self.enhanced_api.detect_location_comprehensive(query)
+            result = enhanced_api.detect_location_comprehensive(query)
             
             suggestions = [{
                 'name': result.get('location', query),
@@ -100,7 +112,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
             return Response({
                 'suggestions': [],
                 'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            }, status=status.HTTP_200_OK)
 
 class CropViewSet(viewsets.ViewSet):
     """Crop-related endpoints"""
