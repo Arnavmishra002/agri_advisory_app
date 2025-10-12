@@ -4,9 +4,9 @@ from rest_framework.routers import DefaultRouter
 from .views import CropAdvisoryViewSet, WeatherViewSet, MarketPricesViewSet, TrendingCropsViewSet, CropViewSet, SMSIVRViewSet, PestDetectionViewSet, UserViewSet, TextToSpeechViewSet, ForumPostViewSet, GovernmentSchemesViewSet, ChatbotViewSet, LocationRecommendationViewSet
 
 router = DefaultRouter()
-router.register(r'users', UserViewSet)
-router.register(r'advisories', CropAdvisoryViewSet)
-router.register(r'crops', CropViewSet)
+router.register(r'users', UserViewSet, basename='users')
+router.register(r'advisories', CropAdvisoryViewSet, basename='advisories')
+router.register(r'crops', CropViewSet, basename='crops')
 router.register(r'weather', WeatherViewSet, basename='weather')
 router.register(r'market-prices', MarketPricesViewSet, basename='market-prices')
 router.register(r'trending-crops', TrendingCropsViewSet, basename='trending-crops')
