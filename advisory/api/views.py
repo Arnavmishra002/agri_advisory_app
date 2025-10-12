@@ -133,8 +133,10 @@ class ChatbotViewSet(viewsets.ViewSet):
             from ..services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
             gov_api = UltraDynamicGovernmentAPI()
             
-            # Get ultra-real-time crop recommendations from government data
-            crop_data = gov_api.get_ultra_real_time_crop_recommendations(location_name)
+            # Get comprehensive crop recommendations from enhanced government API
+            from ..services.enhanced_government_api import EnhancedGovernmentAPI
+            enhanced_gov_api = EnhancedGovernmentAPI()
+            crop_data = enhanced_gov_api.get_enhanced_crop_recommendations(location_name, language=language)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
                 response = f"🌾 **आपके क्षेत्र के लिए फसल सुझाव**\n\n"
@@ -379,8 +381,10 @@ class ChatbotViewSet(viewsets.ViewSet):
             crop = self._extract_crop_from_message(message)
             location = location_name or "Delhi"  # Default location
             
-            # Get ultra-real-time market data
-            market_data = self.ultra_gov_api.get_ultra_real_time_market_prices(crop, location)
+            # Get comprehensive market data from enhanced government API
+            from ..services.enhanced_government_api import EnhancedGovernmentAPI
+            enhanced_gov_api = EnhancedGovernmentAPI()
+            market_data = enhanced_gov_api.get_enhanced_market_data(crop, location)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
                 response = f"💰 {crop.title()} के आज के मंडी भाव (सरकारी डेटा):\n\n"
@@ -436,8 +440,10 @@ class ChatbotViewSet(viewsets.ViewSet):
             if not location_name:
                 location_name = "Delhi"
             
-            # Get ultra-real-time weather data from IMD
-            weather_data = self.ultra_gov_api.get_ultra_real_time_weather(latitude or 28.7041, longitude or 77.1025)
+            # Get comprehensive weather data from enhanced government API
+            from ..services.enhanced_government_api import EnhancedGovernmentAPI
+            enhanced_gov_api = EnhancedGovernmentAPI()
+            weather_data = enhanced_gov_api.get_enhanced_weather_data(location_name, language)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
                 response = f"🌤️ **{location_name} का मौसम**\n\n"

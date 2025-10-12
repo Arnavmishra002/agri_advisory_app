@@ -3922,10 +3922,21 @@
                 return;
             }
 
-            const queryLower = query.toLowerCase().trim();
-            
-            // Smart search with multiple matching strategies
-            const scoredLocations = locationData.map(location => {
+            // Use our enhanced location API for real-time suggestions
+            fetch(`/api/locations/suggestions/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.suggestions && data.suggestions.length > 0) {
+                    displayLocationSuggestions(data.suggestions);
+                } else {
+                    hideLocationSuggestions();
+                }
+            })
+            .catch(error => {
+                console.error('Location search error:', error);
+                // Fallback to local search
+                const queryLower = query.toLowerCase().trim();
+                const scoredLocations = locationData.map(location => {
                 let score = 0;
                 const nameLower = location.name.toLowerCase();
                 const stateLower = location.state.toLowerCase();
@@ -4267,6 +4278,53 @@
 
         function hideLocationSuggestions() {
             document.getElementById('locationSuggestions').classList.remove('show');
+        }
+
+        function displayLocationSuggestions(suggestions) {
+            const container = document.getElementById('locationSuggestions');
+            if (!container || !suggestions || suggestions.length === 0) {
+                hideLocationSuggestions();
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            suggestions.forEach(suggestion => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.innerHTML = `
+                    <div class="suggestion-main">${suggestion.name}</div>
+                    <div class="suggestion-sub">${suggestion.state}</div>
+                `;
+                item.onclick = () => selectLocationSuggestion(suggestion);
+                container.appendChild(item);
+            });
+            
+            container.classList.add('show');
+        }
+
+        function selectLocationSuggestion(suggestion) {
+            const input = document.getElementById('locationSearchInput');
+            if (input) {
+                input.value = `${suggestion.name}, ${suggestion.state}`;
+            }
+            
+            // Update current location
+            currentLocation = {
+                lat: 28.7041, // Default coordinates, will be updated by API
+                lon: 77.1025,
+                name: suggestion.name,
+                state: suggestion.state
+            };
+            
+            // Update location display
+            updateGlobalLocationDisplay(`${suggestion.name}, ${suggestion.state}`);
+            
+            // Load data for new location
+            loadCropDataForLocation(suggestion.name);
+            
+            hideLocationSuggestions();
+            showNotification(`📍 स्थान अपडेट: ${suggestion.name}, ${suggestion.state}`, 'success');
         }
 
         // Mandi search functionality
