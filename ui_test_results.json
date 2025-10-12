@@ -1,0 +1,168 @@
+{
+  "timestamp": "2025-10-12T19:53:10.777836",
+  "base_url": "https://krishmitra-zrk4.onrender.com",
+  "summary": {
+    "total_tests": 26,
+    "passed": 23,
+    "failed": 3,
+    "success_rate": 88.46153846153845
+  },
+  "results": [
+    {
+      "test_name": "Homepage Loading",
+      "status": "PASS",
+      "details": "All key elements found",
+      "timestamp": "2025-10-12T19:52:28.450039"
+    },
+    {
+      "test_name": "API Health Check (GET)",
+      "status": "PASS",
+      "details": "HTTP 200",
+      "timestamp": "2025-10-12T19:52:29.411304"
+    },
+    {
+      "test_name": "API Weather API (GET)",
+      "status": "PASS",
+      "details": "HTTP 200",
+      "timestamp": "2025-10-12T19:52:30.381262"
+    },
+    {
+      "test_name": "API Market Prices API (GET)",
+      "status": "PASS",
+      "details": "HTTP 200",
+      "timestamp": "2025-10-12T19:52:30.858641"
+    },
+    {
+      "test_name": "API Government Schemes API (GET)",
+      "status": "PASS",
+      "details": "HTTP 200",
+      "timestamp": "2025-10-12T19:52:31.836854"
+    },
+    {
+      "test_name": "API Crop Recommendations API (GET)",
+      "status": "PASS",
+      "details": "HTTP 405",
+      "timestamp": "2025-10-12T19:52:32.347084"
+    },
+    {
+      "test_name": "API Crop Recommendations API",
+      "status": "FAIL",
+      "details": "HTTPSConnectionPool(host='krishmitra-zrk4.onrender.com', port=443): Read timed out. (read timeout=10)",
+      "timestamp": "2025-10-12T19:52:42.555086"
+    },
+    {
+      "test_name": "API Chatbot API",
+      "status": "FAIL",
+      "details": "HTTPSConnectionPool(host='krishmitra-zrk4.onrender.com', port=443): Read timed out. (read timeout=10)",
+      "timestamp": "2025-10-12T19:52:52.719830"
+    },
+    {
+      "test_name": "API Rate Limit Status API (GET)",
+      "status": "PASS",
+      "details": "HTTP 200",
+      "timestamp": "2025-10-12T19:52:59.901231"
+    },
+    {
+      "test_name": "Service government-schemes Content",
+      "status": "PASS",
+      "details": "Content section found",
+      "timestamp": "2025-10-12T19:53:00.911102"
+    },
+    {
+      "test_name": "Service government-schemes Card",
+      "status": "PASS",
+      "details": "Card with data-service found",
+      "timestamp": "2025-10-12T19:53:00.912123"
+    },
+    {
+      "test_name": "Service crop-recommendations Content",
+      "status": "PASS",
+      "details": "Content section found",
+      "timestamp": "2025-10-12T19:53:01.910661"
+    },
+    {
+      "test_name": "Service crop-recommendations Card",
+      "status": "PASS",
+      "details": "Card with data-service found",
+      "timestamp": "2025-10-12T19:53:01.911096"
+    },
+    {
+      "test_name": "Service weather Content",
+      "status": "PASS",
+      "details": "Content section found",
+      "timestamp": "2025-10-12T19:53:03.305742"
+    },
+    {
+      "test_name": "Service weather Card",
+      "status": "PASS",
+      "details": "Card with data-service found",
+      "timestamp": "2025-10-12T19:53:03.306531"
+    },
+    {
+      "test_name": "Service market-prices Content",
+      "status": "PASS",
+      "details": "Content section found",
+      "timestamp": "2025-10-12T19:53:04.924843"
+    },
+    {
+      "test_name": "Service market-prices Card",
+      "status": "PASS",
+      "details": "Card with data-service found",
+      "timestamp": "2025-10-12T19:53:04.925490"
+    },
+    {
+      "test_name": "Service pest-control Content",
+      "status": "PASS",
+      "details": "Content section found",
+      "timestamp": "2025-10-12T19:53:05.437960"
+    },
+    {
+      "test_name": "Service pest-control Card",
+      "status": "PASS",
+      "details": "Card with data-service found",
+      "timestamp": "2025-10-12T19:53:05.439700"
+    },
+    {
+      "test_name": "Service ai-assistant Content",
+      "status": "PASS",
+      "details": "Content section found",
+      "timestamp": "2025-10-12T19:53:06.447433"
+    },
+    {
+      "test_name": "Service ai-assistant Card",
+      "status": "PASS",
+      "details": "Card with data-service found",
+      "timestamp": "2025-10-12T19:53:06.447963"
+    },
+    {
+      "test_name": "JavaScript Functionality",
+      "status": "PASS",
+      "details": "All JS functions present",
+      "timestamp": "2025-10-12T19:53:08.175082"
+    },
+    {
+      "test_name": "CSS Styling",
+      "status": "FAIL",
+      "details": "CSS issues: ['Display none removal']",
+      "timestamp": "2025-10-12T19:53:09.430632"
+    },
+    {
+      "test_name": "Responsive Design",
+      "status": "PASS",
+      "details": "4/4 responsive elements found",
+      "timestamp": "2025-10-12T19:53:10.253599"
+    },
+    {
+      "test_name": "Page Load Performance",
+      "status": "PASS",
+      "details": "Loaded in 0.51s",
+      "timestamp": "2025-10-12T19:53:10.770154"
+    },
+    {
+      "test_name": "Page Size",
+      "status": "PASS",
+      "details": "Size: 276.0KB",
+      "timestamp": "2025-10-12T19:53:10.770746"
+    }
+  ]
+}

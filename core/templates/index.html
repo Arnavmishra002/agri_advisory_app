@@ -261,7 +261,7 @@
         }
         
         .service-content {
-            display: none !important;
+            display: none;
             background: white;
             border-radius: 20px;
             padding: 40px;
@@ -1908,26 +1908,47 @@
                 c.classList.remove('active');
             });
             
-            // Show the selected service
+            // Show the selected service with multiple methods to ensure visibility
+            console.log('Showing content for:', serviceName);
             content.style.display = 'block';
+            content.style.visibility = 'visible';
+            content.style.opacity = '1';
             content.classList.add('active');
+            
             if (card) {
                 card.classList.add('active');
             }
             
+            // Force display with setTimeout to ensure CSS is applied
+            setTimeout(() => {
+                content.style.display = 'block';
+                console.log('Content display style after timeout:', content.style.display);
+            }, 50);
+            
             // Scroll to the content
-            content.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
             
             // Load specific data based on service
             switch(serviceName) {
                 case 'crop-recommendations':
-                    loadCropData();
+                    if (typeof loadCropData === 'function') loadCropData();
                     break;
                 case 'weather':
-                    loadWeatherData();
+                    if (typeof loadWeatherData === 'function') loadWeatherData();
                     break;
                 case 'market-prices':
-                    loadMarketPrices();
+                    if (typeof loadMarketPrices === 'function') loadMarketPrices();
+                    break;
+                case 'government-schemes':
+                    if (typeof loadGovernmentSchemes === 'function') loadGovernmentSchemes();
+                    break;
+                case 'pest-control':
+                    if (typeof loadPestControl === 'function') loadPestControl();
+                    break;
+                case 'ai-assistant':
+                    if (typeof loadAIAssistant === 'function') loadAIAssistant();
                     break;
             }
             
@@ -1957,37 +1978,40 @@
         // Initialize service cards
         function initializeServiceCards() {
             console.log('🎯 Initializing Service Cards...');
-            
+
             // Add service card handlers using data attributes
             const serviceCards = document.querySelectorAll('.service-card[data-service]');
             console.log(`Found ${serviceCards.length} service cards with data-service`);
-            
+
             serviceCards.forEach((card, index) => {
                 const serviceName = card.getAttribute('data-service');
                 console.log(`Setting up card ${index + 1}: ${serviceName}`);
-                
+
                 // Make sure the card is clickable
                 card.style.cursor = 'pointer';
                 card.style.userSelect = 'none';
-                
+
                 // Remove any existing event listeners to prevent duplicates
                 card.removeEventListener('click', handleServiceCardClick);
-                
+
                 // Add click event listener
                 card.addEventListener('click', handleServiceCardClick);
-                
+
                 // Add visual feedback
                 card.addEventListener('mouseenter', function() {
                     this.style.transform = 'translateY(-5px) scale(1.02)';
                     this.style.boxShadow = '0 15px 35px rgba(0,0,0,0.2)';
                 });
-                
+
                 card.addEventListener('mouseleave', function() {
                     this.style.transform = '';
                     this.style.boxShadow = '';
                 });
+                
+                // Test click functionality immediately
+                console.log(`Card ${index + 1} (${serviceName}) click handler added`);
             });
-            
+
             // Verify service content elements exist
             const serviceNames = ['government-schemes', 'crop-recommendations', 'weather', 'market-prices', 'pest-control', 'ai-assistant'];
             serviceNames.forEach(serviceName => {
@@ -1999,8 +2023,19 @@
                     console.warn(`⚠️ Service ${serviceName}: Content ${content ? '✓' : '✗'} Card ${card ? '✓' : '✗'}`);
                 }
             });
-            
+
             console.log('🎯 Service cards initialization complete!');
+            
+            // Test first card immediately
+            if (serviceCards.length > 0) {
+                console.log('🧪 Testing first service card click...');
+                setTimeout(() => {
+                    const firstCard = serviceCards[0];
+                    const serviceName = firstCard.getAttribute('data-service');
+                    console.log(`Testing click on: ${serviceName}`);
+                    showService(serviceName);
+                }, 1000);
+            }
         }
         
         // Unified click handler for service cards
