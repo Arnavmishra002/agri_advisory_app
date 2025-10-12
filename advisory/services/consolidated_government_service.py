@@ -59,6 +59,9 @@ class ConsolidatedGovernmentService:
         
         # Indian locations database
         self.indian_locations = self._initialize_indian_locations()
+        
+        # Initialize weather API (self-referencing for method calls)
+        self.weather_api = self
     
     def _initialize_api_endpoints(self) -> Dict[str, Dict]:
         """Initialize government API endpoints"""
@@ -473,8 +476,8 @@ class ConsolidatedGovernmentService:
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             # Weather data
-            futures.append(executor.submit(self.weather_api.get_current_weather, location))
-            futures.append(executor.submit(self.weather_api.get_forecast_weather, location, days=7))
+            futures.append(executor.submit(self.get_weather_data, location))
+            futures.append(executor.submit(self.get_weather_forecast, location, days=7))
             # Market prices
             futures.append(executor.submit(get_market_prices, latitude, longitude, 'en', commodity or 'wheat'))
             futures.append(executor.submit(get_trending_crops, latitude, longitude, 'en'))
@@ -506,6 +509,45 @@ class ConsolidatedGovernmentService:
         }
         self._set_cached_data(cache_key, final_data)
         return final_data
+    
+    def get_weather_data(self, location: str) -> Dict[str, Any]:
+        """Get current weather data for a location"""
+        try:
+            # Use IMD weather API or fallback
+            weather_data = self._get_imd_weather_data(location)
+            return {
+                'current': weather_data,
+                'location': location,
+                'timestamp': datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error getting weather data: {e}")
+            return {
+                'current': self.fallback_data['weather'],
+                'location': location,
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e)
+            }
+    
+    def get_weather_forecast(self, location: str, days: int = 7) -> Dict[str, Any]:
+        """Get weather forecast for a location"""
+        try:
+            forecast_data = self._get_imd_forecast_data(location, days)
+            return {
+                'forecast': forecast_data,
+                'location': location,
+                'days': days,
+                'timestamp': datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error getting weather forecast: {e}")
+            return {
+                'forecast': [self.fallback_data['weather'] for _ in range(days)],
+                'location': location,
+                'days': days,
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e)
+            }
     
     def _get_cached_data(self, key: str, max_age_seconds: int) -> Optional[Dict[str, Any]]:
         """Retrieves data from cache if valid."""

@@ -351,8 +351,14 @@ class ConsolidatedCropService:
             
             # Make prediction using trained model
             if self.models.get('yield_prediction') and hasattr(self.models['yield_prediction'], 'predict'):
-                yield_per_hectare = self.models['yield_prediction'].predict([features])[0]
-                total_yield = yield_per_hectare * area_hectares
+                try:
+                    yield_per_hectare = self.models['yield_prediction'].predict([features])[0]
+                    total_yield = yield_per_hectare * area_hectares
+                except AttributeError as e:
+                    logger.warning(f"Model prediction failed: {e}. Using fallback prediction.")
+                    # Fallback to rule-based prediction
+                    yield_per_hectare = self._get_fallback_yield(crop_type)
+                    total_yield = yield_per_hectare * area_hectares
                 
                 return {
                     'crop_type': crop_type,
@@ -373,6 +379,24 @@ class ConsolidatedCropService:
                 'details': str(e),
                 'crop_type': crop_type
             }
+    
+    def _get_fallback_yield(self, crop_type: str) -> float:
+        """
+        Get fallback yield prediction based on crop type
+        """
+        fallback_yields = {
+            'wheat': 4500,  # kg per hectare
+            'rice': 4000,
+            'maize': 7000,
+            'sugarcane': 80000,
+            'cotton': 500,
+            'tomato': 25000,
+            'potato': 20000,
+            'onion': 15000,
+            'chickpea': 1200,
+            'mustard': 1200
+        }
+        return fallback_yields.get(crop_type.lower(), 3000)
     
     def _prepare_yield_features(self, crop_type: str, area: float, 
                               soil_data: Dict, weather_data: Dict) -> List[float]:

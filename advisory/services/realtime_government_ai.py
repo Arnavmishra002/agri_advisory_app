@@ -28,9 +28,16 @@ class RealTimeGovernmentAI:
         self.real_time_cache = {}
         self.cache_duration = 300  # 5 minutes cache
         
-    def process_farming_query(self, query: str, language: str = 'en', location: str = '') -> Dict[str, Any]:
+    def process_farming_query(self, query: str, language: str = 'en', location: str = '', latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Process farming query with real-time government data"""
         try:
+            # Check cache first for quick response
+            cache_key = f"{query}_{language}_{location}"
+            if cache_key in self.real_time_cache:
+                cached_data, timestamp = self.real_time_cache[cache_key]
+                if time.time() - timestamp < self.cache_duration:
+                    logger.info(f"Returning cached response for: {query}")
+                    return cached_data
             # Step 1: Deep AI Analysis
             deep_analysis = self.deep_ai(query, {
                 'location': location,
@@ -69,7 +76,7 @@ class RealTimeGovernmentAI:
                 # Determine if Ollama was used successfully
                 data_source = 'open_source_ai' if len(response) > 200 else 'general_ai'
                 
-                return {
+                result = {
                     'response': response,
                     'data_source': data_source,
                     'confidence': deep_analysis.get('confidence', 0.8),
@@ -77,6 +84,11 @@ class RealTimeGovernmentAI:
                     'deep_analysis': deep_analysis,
                     'ai_model': 'ollama_llama3' if data_source == 'open_source_ai' else 'hardcoded'
                 }
+                
+                # Cache the result
+                self.real_time_cache[cache_key] = (result, time.time())
+                
+                return result
                 
         except Exception as e:
             logger.error(f"Error processing farming query: {e}")
@@ -887,9 +899,9 @@ Please try again later."""
 # Global instance for easy access
 realtime_gov_ai = RealTimeGovernmentAI()
 
-def process_farming_query_realtime(query: str, language: str = 'en', location: str = '') -> Dict[str, Any]:
+def process_farming_query_realtime(query: str, language: str = 'en', location: str = '', latitude: float = None, longitude: float = None) -> Dict[str, Any]:
     """
     External function to process farming queries with real-time government data.
     This acts as the entry point for other modules.
     """
-    return realtime_gov_ai.process_farming_query(query, language, location)
+    return realtime_gov_ai.process_farming_query(query, language, location, latitude, longitude)

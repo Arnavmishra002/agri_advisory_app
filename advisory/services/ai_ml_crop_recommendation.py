@@ -46,6 +46,7 @@ except ImportError:
     class RandomForestRegressor:
         def __init__(self, **kwargs):
             self.trained = False
+            self.estimators_ = []  # Add missing estimators_ attribute
         
         def fit(self, X, y):
             self.trained = True
