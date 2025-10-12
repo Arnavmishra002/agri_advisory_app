@@ -293,6 +293,35 @@ class RealTimeGovernmentAI:
             logger.error(f"Error generating real-time response: {e}")
             return self._generate_fallback_response(query, language)
     
+    def _generate_fallback_response(self, query: str, language: str) -> str:
+        """Generate fallback response when real-time data is unavailable"""
+        if language in ['hi', 'hinglish']:
+            return f"""🌾 **कृषि सलाह**
+
+मुझे खेद है कि वर्तमान में वास्तविक समय डेटा उपलब्ध नहीं है।
+
+**सुझाव:**
+• स्थानीय कृषि विशेषज्ञ से सलाह लें
+• कृषि विभाग के कार्यालय में जाएं
+• मौसम विभाग की वेबसाइट देखें
+
+**आपकी जांच**: {query}
+
+कृपया कुछ समय बाद पुनः प्रयास करें।"""
+        else:
+            return f"""🌾 **Agricultural Advice**
+
+I apologize that real-time data is currently unavailable.
+
+**Suggestions:**
+• Consult local agricultural experts
+• Visit agriculture department office
+• Check weather department website
+
+**Your Query**: {query}
+
+Please try again later."""
+    
     def _generate_realtime_crop_response(self, real_time_data: Dict[str, Any], language: str, location: str) -> str:
         """Generate crop recommendation response with real-time data"""
         crop_data = real_time_data.get('crop_data', {})

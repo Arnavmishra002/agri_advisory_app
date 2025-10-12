@@ -341,15 +341,11 @@ WEATHER_API_BASE_URL = "https://api.weatherapi.com/v1"
 SENTRY_DSN = os.environ.get('SENTRY_DSN')
 
 if SENTRY_DSN:
-    try:
-        import sentry_sdk
-        from sentry_sdk.integrations.django import DjangoIntegration
-        
-        sentry_sdk.init(
-            dsn=SENTRY_DSN,
-            integrations=[
-                DjangoIntegration(),
-            ],
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+        ],
         # Set traces_sample_rate to 1.0 to capture 100% of transactions for performance monitoring.
         # We recommend adjusting this value in production.
         traces_sample_rate=1.0,
@@ -360,10 +356,7 @@ if SENTRY_DSN:
         # `send_default_pii=True` to send personally identifiable information (e.g., usernames).
         # `environment=os.environ.get('SENTRY_ENVIRONMENT', 'development')`
         # `server_name=os.environ.get('SENTRY_SERVER_NAME', 'django-app')`
-        )
-    except ImportError:
-        # Sentry not available, skip initialization
-        pass
+    )
 
 # Static files configuration for production
 STATIC_URL = '/static/'

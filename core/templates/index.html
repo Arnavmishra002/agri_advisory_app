@@ -967,7 +967,7 @@
                     <div class="current-location-info">
                         <div class="location-status">
                             <i class="fas fa-location-dot me-2"></i>
-                            <span id="globalCurrentLocation">डिटेक्ट हो रहा है...</span>
+                            <span id="globalCurrentLocation">दिल्ली, दिल्ली</span>
                         </div>
                         <button class="btn btn-success btn-sm mt-2" onclick="useCurrentLocationGlobal()">
                             <i class="fas fa-crosshairs me-1"></i>वर्तमान लोकेशन
@@ -4643,6 +4643,9 @@
         function detectLocationByIP() {
             showNotification('स्थान डिटेक्ट कर रहे हैं...', 'info');
             
+            // Immediately update global display to prevent stuck state
+            updateGlobalLocationDisplay('दिल्ली, दिल्ली');
+            
             // First try IP-based detection
             fetch('https://ipapi.co/json/')
             .then(response => response.json())
@@ -5280,4 +5283,3 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>

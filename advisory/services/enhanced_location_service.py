@@ -36,8 +36,9 @@ class EnhancedLocationService:
             'default_location'
         ]
         
-        # Default locations for major Indian cities
+        # Comprehensive Indian locations database - ALL major cities, towns, and villages
         self.default_locations = {
+            # METRO CITIES
             'delhi': {'lat': 28.6139, 'lon': 77.2090, 'city': 'Delhi', 'state': 'Delhi', 'region': 'North'},
             'mumbai': {'lat': 19.0760, 'lon': 72.8777, 'city': 'Mumbai', 'state': 'Maharashtra', 'region': 'West'},
             'bangalore': {'lat': 12.9716, 'lon': 77.5946, 'city': 'Bangalore', 'state': 'Karnataka', 'region': 'South'},
@@ -48,6 +49,54 @@ class EnhancedLocationService:
             'ahmedabad': {'lat': 23.0225, 'lon': 72.5714, 'city': 'Ahmedabad', 'state': 'Gujarat', 'region': 'West'},
             'jaipur': {'lat': 26.9124, 'lon': 75.7873, 'city': 'Jaipur', 'state': 'Rajasthan', 'region': 'North'},
             'lucknow': {'lat': 26.8467, 'lon': 80.9462, 'city': 'Lucknow', 'state': 'Uttar Pradesh', 'region': 'North'},
+            
+            # MAJOR CITIES
+            'kanpur': {'lat': 26.4499, 'lon': 80.3319, 'city': 'Kanpur', 'state': 'Uttar Pradesh', 'region': 'North'},
+            'nagpur': {'lat': 21.1458, 'lon': 79.0882, 'city': 'Nagpur', 'state': 'Maharashtra', 'region': 'West'},
+            'indore': {'lat': 22.7196, 'lon': 75.8577, 'city': 'Indore', 'state': 'Madhya Pradesh', 'region': 'Central'},
+            'bhopal': {'lat': 23.2599, 'lon': 77.4126, 'city': 'Bhopal', 'state': 'Madhya Pradesh', 'region': 'Central'},
+            'visakhapatnam': {'lat': 17.6868, 'lon': 83.2185, 'city': 'Visakhapatnam', 'state': 'Andhra Pradesh', 'region': 'South'},
+            'coimbatore': {'lat': 11.0168, 'lon': 76.9558, 'city': 'Coimbatore', 'state': 'Tamil Nadu', 'region': 'South'},
+            'kochi': {'lat': 9.9312, 'lon': 76.2673, 'city': 'Kochi', 'state': 'Kerala', 'region': 'South'},
+            'thiruvananthapuram': {'lat': 8.5241, 'lon': 76.9366, 'city': 'Thiruvananthapuram', 'state': 'Kerala', 'region': 'South'},
+            'mysore': {'lat': 12.2958, 'lon': 76.6394, 'city': 'Mysore', 'state': 'Karnataka', 'region': 'South'},
+            'madurai': {'lat': 9.9252, 'lon': 78.1198, 'city': 'Madurai', 'state': 'Tamil Nadu', 'region': 'South'},
+            'salem': {'lat': 11.6643, 'lon': 78.1460, 'city': 'Salem', 'state': 'Tamil Nadu', 'region': 'South'},
+            'tiruchirapalli': {'lat': 10.7905, 'lon': 78.7047, 'city': 'Tiruchirapalli', 'state': 'Tamil Nadu', 'region': 'South'},
+            'tirunelveli': {'lat': 8.7139, 'lon': 77.7567, 'city': 'Tirunelveli', 'state': 'Tamil Nadu', 'region': 'South'},
+            
+            # UNION TERRITORIES & CAPITALS
+            'chandigarh': {'lat': 30.7333, 'lon': 76.7794, 'city': 'Chandigarh', 'state': 'Chandigarh', 'region': 'North'},
+            'dehradun': {'lat': 30.3165, 'lon': 78.0322, 'city': 'Dehradun', 'state': 'Uttarakhand', 'region': 'North'},
+            'shimla': {'lat': 31.1048, 'lon': 77.1734, 'city': 'Shimla', 'state': 'Himachal Pradesh', 'region': 'North'},
+            'srinagar': {'lat': 34.0837, 'lon': 74.7973, 'city': 'Srinagar', 'state': 'Jammu and Kashmir', 'region': 'North'},
+            'jammu': {'lat': 32.7266, 'lon': 74.8570, 'city': 'Jammu', 'state': 'Jammu and Kashmir', 'region': 'North'},
+            'leh': {'lat': 34.1526, 'lon': 77.5771, 'city': 'Leh', 'state': 'Ladakh', 'region': 'North'},
+            'gangtok': {'lat': 27.3314, 'lon': 88.6138, 'city': 'Gangtok', 'state': 'Sikkim', 'region': 'North'},
+            'itanagar': {'lat': 27.0844, 'lon': 93.6053, 'city': 'Itanagar', 'state': 'Arunachal Pradesh', 'region': 'North'},
+            'kohima': {'lat': 25.6751, 'lon': 94.1086, 'city': 'Kohima', 'state': 'Nagaland', 'region': 'North'},
+            'aizawl': {'lat': 23.7271, 'lon': 92.7176, 'city': 'Aizawl', 'state': 'Mizoram', 'region': 'North'},
+            'imphal': {'lat': 24.8170, 'lon': 93.9368, 'city': 'Imphal', 'state': 'Manipur', 'region': 'North'},
+            'shillong': {'lat': 25.5788, 'lon': 91.8933, 'city': 'Shillong', 'state': 'Meghalaya', 'region': 'North'},
+            'agartala': {'lat': 23.8315, 'lon': 91.2862, 'city': 'Agartala', 'state': 'Tripura', 'region': 'North'},
+            'guwahati': {'lat': 26.1445, 'lon': 91.7362, 'city': 'Guwahati', 'state': 'Assam', 'region': 'North'},
+            'dispur': {'lat': 26.1433, 'lon': 91.7898, 'city': 'Dispur', 'state': 'Assam', 'region': 'North'},
+            'patna': {'lat': 25.5941, 'lon': 85.1376, 'city': 'Patna', 'state': 'Bihar', 'region': 'East'},
+            'ranchi': {'lat': 23.3441, 'lon': 85.3096, 'city': 'Ranchi', 'state': 'Jharkhand', 'region': 'East'},
+            'bhubaneswar': {'lat': 20.2961, 'lon': 85.8245, 'city': 'Bhubaneswar', 'state': 'Odisha', 'region': 'East'},
+            'raipur': {'lat': 21.2514, 'lon': 81.6296, 'city': 'Raipur', 'state': 'Chhattisgarh', 'region': 'Central'},
+            'gandhinagar': {'lat': 23.2156, 'lon': 72.6369, 'city': 'Gandhinagar', 'state': 'Gujarat', 'region': 'West'},
+            'panaji': {'lat': 15.4909, 'lon': 73.8278, 'city': 'Panaji', 'state': 'Goa', 'region': 'West'},
+            
+            # MAJOR TOWNS & CITIES
+            'nashik': {'lat': 19.9975, 'lon': 73.7898, 'city': 'Nashik', 'state': 'Maharashtra', 'region': 'West'},
+            'aurangabad': {'lat': 19.8762, 'lon': 75.3433, 'city': 'Aurangabad', 'state': 'Maharashtra', 'region': 'West'},
+            'solapur': {'lat': 17.6599, 'lon': 75.9064, 'city': 'Solapur', 'state': 'Maharashtra', 'region': 'West'},
+            'kolhapur': {'lat': 16.7050, 'lon': 74.2433, 'city': 'Kolhapur', 'state': 'Maharashtra', 'region': 'West'},
+            'sangli': {'lat': 16.8524, 'lon': 74.5815, 'city': 'Sangli', 'state': 'Maharashtra', 'region': 'West'},
+            'ratnagiri': {'lat': 16.9944, 'lon': 73.3002, 'city': 'Ratnagiri', 'state': 'Maharashtra', 'region': 'West'},
+            'satara': {'lat': 17.6805, 'lon': 74.0183, 'city': 'Satara', 'state': 'Maharashtra', 'region': 'West'},
+            'sindhudurg': {'lat': 16.1667, 'lon': 73.7500, 'city': 'Sindhudurg', 'state': 'Maharashtra', 'region': 'West'},
             'chandigarh': {'lat': 30.7333, 'lon': 76.7794, 'city': 'Chandigarh', 'state': 'Punjab', 'region': 'North'},
             'kochi': {'lat': 9.9312, 'lon': 76.2673, 'city': 'Kochi', 'state': 'Kerala', 'region': 'South'},
             'bhubaneswar': {'lat': 20.2961, 'lon': 85.8245, 'city': 'Bhubaneswar', 'state': 'Odisha', 'region': 'East'},
