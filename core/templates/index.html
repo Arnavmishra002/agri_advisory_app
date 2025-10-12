@@ -4476,8 +4476,8 @@
         // Parse location data from different geocoding services
         function parseLocationData(data) {
             let locationInfo = {
-                city: 'Unknown City',
-                state: 'Unknown State',
+                city: 'Delhi',
+                state: 'Delhi',
                 country: 'India',
                 village: null,
                 district: null,
@@ -4571,25 +4571,56 @@
             return R * c;
         }
 
-        // IP-based location detection as fallback
+        // Dynamic location detection using our enhanced API
         function detectLocationByIP() {
-            showNotification('IP से स्थान डिटेक्ट कर रहे हैं...', 'info');
+            showNotification('स्थान डिटेक्ट कर रहे हैं...', 'info');
             
+            // First try IP-based detection
             fetch('https://ipapi.co/json/')
             .then(response => response.json())
             .then(data => {
-                if (data.country_code === 'IN') {
-                    const locationInfo = {
-                        city: data.city || 'Unknown City',
-                        state: data.region || 'Unknown State',
-                        country: 'India',
-                        lat: data.latitude,
-                        lon: data.longitude
-                    };
-                    
-                    updateLocationWithDetails(locationInfo, data.latitude, data.longitude);
+                if (data.country_code === 'IN' && data.city) {
+                    // Use our enhanced location API to get accurate location info
+                    return fetch(`/api/locations/suggestions/?q=${encodeURIComponent(data.city)}`)
+                    .then(response => response.json())
+                    .then(locationData => {
+                        if (locationData.suggestions && locationData.suggestions.length > 0) {
+                            const suggestion = locationData.suggestions[0];
+                            const locationInfo = {
+                                city: suggestion.name || data.city,
+                                state: suggestion.state || data.region || 'Delhi',
+                                country: 'India',
+                                lat: data.latitude,
+                                lon: data.longitude,
+                                district: suggestion.district
+                            };
+                            updateLocationWithDetails(locationInfo, data.latitude, data.longitude);
+                        } else {
+                            // Fallback to IP data
+                            const locationInfo = {
+                                city: data.city || 'Delhi',
+                                state: data.region || 'Delhi',
+                                country: 'India',
+                                lat: data.latitude,
+                                lon: data.longitude
+                            };
+                            updateLocationWithDetails(locationInfo, data.latitude, data.longitude);
+                        }
+                    })
+                    .catch(apiError => {
+                        console.error('Location API failed:', apiError);
+                        // Fallback to IP data
+                        const locationInfo = {
+                            city: data.city || 'Delhi',
+                            state: data.region || 'Delhi',
+                            country: 'India',
+                            lat: data.latitude,
+                            lon: data.longitude
+                        };
+                        updateLocationWithDetails(locationInfo, data.latitude, data.longitude);
+                    });
                 } else {
-                    // Default to Delhi if not in India
+                    // Default to Delhi if not in India or no city data
                     updateLocationWithDetails({
                         city: 'Delhi',
                         state: 'Delhi',

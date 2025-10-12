@@ -368,7 +368,12 @@ class EnhancedGovernmentAPI:
             elif 'pune' in query_lower:
                 result['state'] = 'Maharashtra'
             else:
-                result['state'] = 'Unknown'
+                # Dynamic state detection based on location patterns
+                if any(pattern in query_lower for pattern in ['gaon', 'pur', 'nagar', 'abad', 'pura']):
+                    # Common village/town patterns - try to detect state from context
+                    result['state'] = self._detect_state_from_context(query_lower)
+                else:
+                    result['state'] = 'Delhi'  # Default fallback
             result['confidence'] = 0.5
             result['source'] = 'final_fallback'
         
@@ -381,6 +386,62 @@ class EnhancedGovernmentAPI:
         
         self.location_cache[cache_key] = result
         return result
+    
+    def _detect_state_from_context(self, query_lower: str) -> str:
+        """Detect state from location context and patterns"""
+        # Common state indicators in location names
+        state_indicators = {
+            'uttar pradesh': ['up', 'uttar', 'lucknow', 'kanpur', 'agra', 'varanasi', 'raebareli', 'meerut', 'ghaziabad'],
+            'maharashtra': ['maharashtra', 'mumbai', 'pune', 'nagpur', 'aurangabad', 'nashik'],
+            'karnataka': ['karnataka', 'bangalore', 'mysore', 'hubli', 'mangalore'],
+            'tamil nadu': ['tamil', 'chennai', 'madurai', 'coimbatore', 'salem'],
+            'west bengal': ['bengal', 'kolkata', 'howrah', 'durgapur'],
+            'telangana': ['telangana', 'hyderabad', 'warangal', 'nizamabad'],
+            'rajasthan': ['rajasthan', 'jaipur', 'jodhpur', 'udaipur', 'kota'],
+            'bihar': ['bihar', 'patna', 'gaya', 'bhagalpur'],
+            'gujarat': ['gujarat', 'ahmedabad', 'surat', 'vadodara', 'rajkot'],
+            'madhya pradesh': ['mp', 'madhya', 'bhopal', 'indore', 'gwalior', 'jabalpur'],
+            'punjab': ['punjab', 'chandigarh', 'ludhiana', 'amritsar'],
+            'haryana': ['haryana', 'gurgaon', 'faridabad', 'panipat'],
+            'delhi': ['delhi', 'new delhi'],
+            'kerala': ['kerala', 'thiruvananthapuram', 'kochi', 'kozhikode'],
+            'andhra pradesh': ['andhra', 'vishakhapatnam', 'vijayawada', 'tirupati'],
+            'odisha': ['odisha', 'orissa', 'bhubaneswar', 'cuttack'],
+            'assam': ['assam', 'guwahati', 'silchar', 'dibrugarh'],
+            'jharkhand': ['jharkhand', 'ranchi', 'jamshedpur', 'dhanbad'],
+            'chhattisgarh': ['chhattisgarh', 'raipur', 'bilaspur', 'durg'],
+            'himachal pradesh': ['himachal', 'shimla', 'manali', 'dharamshala'],
+            'uttarakhand': ['uttarakhand', 'dehradun', 'haridwar', 'rishikesh'],
+            'goa': ['goa', 'panaji', 'margao'],
+            'sikkim': ['sikkim', 'gangtok'],
+            'manipur': ['manipur', 'imphal'],
+            'mizoram': ['mizoram', 'aizawl'],
+            'nagaland': ['nagaland', 'kohima'],
+            'tripura': ['tripura', 'agartala'],
+            'meghalaya': ['meghalaya', 'shillong'],
+            'arunachal pradesh': ['arunachal', 'itanagar'],
+            'jammu and kashmir': ['jammu', 'kashmir', 'srinagar', 'leh'],
+            'ladakh': ['ladakh', 'leh', 'kargil']
+        }
+        
+        # Check for state indicators
+        for state, indicators in state_indicators.items():
+            if any(indicator in query_lower for indicator in indicators):
+                return state.title()
+        
+        # If no specific state found, try to detect from common patterns
+        if 'gaon' in query_lower or 'village' in query_lower:
+            # Default to Uttar Pradesh for villages (most populous state)
+            return 'Uttar Pradesh'
+        elif 'pur' in query_lower:
+            # Common in many states, default to Madhya Pradesh
+            return 'Madhya Pradesh'
+        elif 'nagar' in query_lower:
+            # Common in many states, default to Maharashtra
+            return 'Maharashtra'
+        else:
+            # Final fallback
+            return 'Delhi'
     
     def _enhanced_fallback_location_detection(self, query_lower: str) -> Dict[str, Any]:
         """Enhanced fallback location detection with comprehensive Indian coverage"""

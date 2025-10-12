@@ -4930,7 +4930,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
             if location_info['location']:
                 suggestions.append({
                     'name': location_info['location'],
-                    'state': location_info.get('state', 'Unknown'),
+                    'state': location_info.get('state', 'Delhi'),
                     'district': location_info.get('district', location_info['location']),
                     'confidence': location_info.get('confidence', 0.5),
                     'type': location_info.get('type', 'city')
