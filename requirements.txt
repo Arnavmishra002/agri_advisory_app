@@ -66,7 +66,7 @@ lxml>=4.9.0  # XML parsing for government APIs
 
 # Ultra-Dynamic Government API System
 aiohttp>=3.8.0  # Async HTTP requests for ultra-dynamic API calls
-concurrent-futures>=3.1.1  # Parallel processing for government APIs
+# concurrent-futures is built-in to Python 3.2+, no need to install separately
 xmltodict>=0.13.0  # XML to dict conversion for government data
 python-dotenv>=1.0.0  # Environment variable management
 cryptography>=41.0.0  # Secure API communications

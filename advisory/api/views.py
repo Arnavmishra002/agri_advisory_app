@@ -129,12 +129,12 @@ class ChatbotViewSet(viewsets.ViewSet):
             if not location_name:
                 location_name = "Delhi"
             
-            # Get real-time government data
-            from ..services.clean_government_api import CleanGovernmentAPI
-            gov_api = CleanGovernmentAPI()
+            # Get real-time government data using ultra-dynamic API
+            from ..services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
+            gov_api = UltraDynamicGovernmentAPI()
             
-            # Get crop recommendations from government data
-            crop_data = gov_api.get_enhanced_crop_recommendations(location_name, language=language)
+            # Get ultra-real-time crop recommendations from government data
+            crop_data = gov_api.get_ultra_real_time_crop_recommendations(location_name)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
                 response = f"🌾 **आपके क्षेत्र के लिए फसल सुझाव**\n\n"
@@ -375,15 +375,12 @@ class ChatbotViewSet(viewsets.ViewSet):
                                    longitude: float = None, location_name: str = None) -> str:
         """Get real-time market prices using government APIs"""
         try:
-            from ..services.clean_government_api import CleanGovernmentAPI
-            gov_api = CleanGovernmentAPI()
-            
-            # Extract crop from message
+            # Use ultra-dynamic government API for real-time market data
             crop = self._extract_crop_from_message(message)
-            
-            # Get real-time market data
             location = location_name or "Delhi"  # Default location
-            market_data = gov_api.get_real_market_prices(crop, location, crop, latitude, longitude)
+            
+            # Get ultra-real-time market data
+            market_data = self.ultra_gov_api.get_ultra_real_time_market_prices(crop, location)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
                 response = f"💰 {crop.title()} के आज के मंडी भाव (सरकारी डेटा):\n\n"
@@ -434,16 +431,13 @@ class ChatbotViewSet(viewsets.ViewSet):
                               longitude: float = None, location_name: str = None) -> str:
         """Get real-time weather using government APIs"""
         try:
-            from ..services.clean_government_api import CleanGovernmentAPI
-            gov_api = CleanGovernmentAPI()
-            
             if not location_name and latitude and longitude:
                 location_name = self._get_location_from_coordinates(latitude, longitude)
             if not location_name:
                 location_name = "Delhi"
             
-            # Get real-time weather data
-            weather_data = gov_api.get_enhanced_weather_data(location_name, language)
+            # Get ultra-real-time weather data from IMD
+            weather_data = self.ultra_gov_api.get_ultra_real_time_weather(latitude or 28.7041, longitude or 77.1025)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
                 response = f"🌤️ **{location_name} का मौसम**\n\n"
@@ -535,16 +529,13 @@ class ChatbotViewSet(viewsets.ViewSet):
                                         longitude: float = None, location_name: str = None) -> str:
         """Get real-time government schemes using government APIs"""
         try:
-            from ..services.clean_government_api import CleanGovernmentAPI
-            gov_api = CleanGovernmentAPI()
-            
             if not location_name and latitude and longitude:
                 location_name = self._get_location_from_coordinates(latitude, longitude)
             if not location_name:
                 location_name = "Delhi"
             
-            # Get real-time government schemes
-            schemes_data = gov_api.get_government_schemes(location_name, language)
+            # Get ultra-real-time government schemes from PM-Kisan
+            schemes_data = self.ultra_gov_api.get_ultra_real_time_government_schemes(location_name)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
                 response = f"🏛️ {location_name} में किसानों के लिए सरकारी योजनाएं (सरकारी डेटा):\n\n"
@@ -617,16 +608,13 @@ class ChatbotViewSet(viewsets.ViewSet):
                                            longitude: float = None, location_name: str = None) -> str:
         """Get real-time soil and fertilizer information using government APIs"""
         try:
-            from ..services.clean_government_api import CleanGovernmentAPI
-            gov_api = CleanGovernmentAPI()
-            
             if not location_name and latitude and longitude:
                 location_name = self._get_location_from_coordinates(latitude, longitude)
             if not location_name:
                 location_name = "Delhi"
             
-            # Get soil health data
-            soil_data = gov_api.get_soil_health_data(location_name, language)
+            # Get ultra-real-time soil health data from Soil Health Card
+            soil_data = self.ultra_gov_api.get_ultra_real_time_soil_health(location_name)
             
             if language in ['hi', 'hinglish'] or any(char in message for char in 'अआइईउऊएऐओऔकखगघचछजझटठडढणतथदधनपफबभमयरलवशषसह'):
                 response = f"🌱 {location_name} की मिट्टी और उर्वरक जानकारी (सरकारी डेटा):\n\n"
