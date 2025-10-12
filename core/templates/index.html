@@ -176,16 +176,16 @@
                 <div class="col-md-8">
                     <h5><i class="fas fa-map-marker-alt me-2"></i>अपनी लोकेशन अपडेट करें</h5>
                     <p>सभी सेवाएं आपकी लोकेशन के अनुसार काम करेंगी</p>
-                    <div class="input-group mb-3">
+                    <div class="input-group mb-3 location-update-section">
                         <input type="text" id="locationSearchInput" class="form-control" 
                                placeholder="शहर या गांव का नाम टाइप करें (जैसे: दिल्ली, मुंबई, पुणे, कानपुर...)" 
                                value="Delhi">
-                        <button class="btn btn-primary" type="button">
+                        <button class="btn btn-primary" type="button" onclick="updateLocation()">
                             <i class="fas fa-search me-2"></i>लोकेशन अपडेट करें
                         </button>
                     </div>
                     <div class="current-location">
-                        <span class="badge bg-success">
+                        <span class="badge bg-success location-display">
                             <i class="fas fa-map-marker-alt me-1"></i>दिल्ली, दिल्ली
                         </span>
                         <button class="btn btn-outline-light btn-sm ms-2">
@@ -1627,36 +1627,100 @@
                 </div>
             `;
             
+            // Show typing indicator
+            chatMessages.innerHTML += `
+                <div class="alert alert-light">
+                    <i class="fas fa-robot me-2"></i>
+                    <strong>AI सहायक:</strong> <i class="fas fa-spinner fa-spin me-2"></i>जवाब दे रहा हूँ...
+                </div>
+            `;
+            
             input.value = '';
             chatMessages.scrollTop = chatMessages.scrollHeight;
             
-            // Simulate AI response
-            setTimeout(() => {
-                const responses = {
-                    'फसल': 'फसल बोने के लिए सही समय और मिट्टी की तैयारी बहुत जरूरी है। कौन सी फसल के बारे में जानना चाहते हैं?',
-                    'कीट': 'कीट नियंत्रण के लिए नीम का तेल, हल्दी पाउडर और जैविक कीटनाशक का उपयोग करें।',
-                    'उर्वरक': 'उर्वरक का उपयोग मिट्टी की जांच के बाद करें। जैविक खाद को प्राथमिकता दें।',
-                    'सिंचाई': 'सिंचाई की आवश्यकता फसल और मौसम पर निर्भर करती है। बूंद-बूंद सिंचाई प्रणाली सबसे कुशल है।'
-                };
+            // Get current location
+            const locationDisplay = document.querySelector('.location-display');
+            const currentLocation = locationDisplay ? locationDisplay.textContent.split(',')[0] : 'Delhi';
+            
+            // Call backend AI API
+            const csrfToken = getCookie('csrftoken') || '';
+            fetch('/api/chatbot/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    query: message,
+                    language: 'hindi',
+                    location: currentLocation,
+                    latitude: 28.7041,
+                    longitude: 77.1025
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove typing indicator
+                const typingIndicator = chatMessages.querySelector('.fa-spinner');
+                if (typingIndicator) {
+                    typingIndicator.parentElement.parentElement.remove();
+                }
                 
-                let response = 'यह एक बहुत अच्छा सवाल है! मैं आपकी मदद करने के लिए यहाँ हूँ।';
+                // Add AI response
+                let aiResponse = data.response || 'मुझे खेद है, मैं आपके सवाल का जवाब नहीं दे सका।';
                 
-                for (let keyword in responses) {
-                    if (message.toLowerCase().includes(keyword.toLowerCase())) {
-                        response = responses[keyword];
-                        break;
-                    }
+                // Add data source indicator
+                let sourceInfo = '';
+                if (data.data_source === 'real_time_government_apis') {
+                    sourceInfo = '<br><small class="text-success">📊 सरकारी डेटा से</small>';
+                } else if (data.data_source === 'open_source_ai') {
+                    sourceInfo = '<br><small class="text-info">🤖 AI से</small>';
                 }
                 
                 chatMessages.innerHTML += `
                     <div class="alert alert-light">
                         <i class="fas fa-robot me-2"></i>
-                        <strong>AI सहायक:</strong> ${response}
+                        <strong>AI सहायक:</strong> ${aiResponse}${sourceInfo}
                     </div>
                 `;
                 
                 chatMessages.scrollTop = chatMessages.scrollHeight;
-            }, 1000);
+            })
+            .catch(error => {
+                console.error('AI API Error:', error);
+                
+                // Remove typing indicator
+                const typingIndicator = chatMessages.querySelector('.fa-spinner');
+                if (typingIndicator) {
+                    typingIndicator.parentElement.parentElement.remove();
+                }
+                
+                // Fallback response
+                chatMessages.innerHTML += `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-robot me-2"></i>
+                        <strong>AI सहायक:</strong> मुझे खेद है, वर्तमान में मैं आपके सवाल का जवाब नहीं दे सका। कृपया कुछ समय बाद पुनः प्रयास करें।
+                    </div>
+                `;
+                
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+        
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
         }
         
         function askQuestion(question) {
