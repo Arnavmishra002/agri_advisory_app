@@ -882,6 +882,19 @@
                     content.classList.add('active');
                     content.scrollIntoView({ behavior: 'smooth' });
                     console.log('✅ Service shown:', serviceName);
+                    
+                    // Special handling for AI Assistant
+                    if (serviceName === 'ai-assistant') {
+                        console.log('🤖 AI Assistant activated - Chat messages container:', document.getElementById('chat-messages'));
+                        // Ensure chat messages container is visible
+                        const chatMessages = document.getElementById('chat-messages');
+                        if (chatMessages) {
+                            chatMessages.style.display = 'block';
+                            console.log('✅ Chat messages container found and made visible');
+                        } else {
+                            console.error('❌ Chat messages container not found!');
+                        }
+                    }
                 } else {
                     console.error('Content not found:', serviceName);
                 }
@@ -1613,12 +1626,19 @@
         
         // AI Chat Functions
         function sendMessage() {
+            console.log('🤖 sendMessage() called');
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
             
-            if (!message) return;
+            console.log('📝 Message:', message);
+            
+            if (!message) {
+                console.log('❌ Empty message, returning');
+                return;
+            }
             
             const chatMessages = document.getElementById('chat-messages');
+            console.log('💬 Chat messages container:', chatMessages);
             
             // Add user message
             chatMessages.innerHTML += `
