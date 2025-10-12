@@ -1654,9 +1654,11 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Immediately show Delhi as fallback
+            updateGlobalLocationDisplay('दिल्ली, दिल्ली');
+            
             detectLocation();
             loadNearestMandis();
-            updateGlobalLocationDisplay();
             initializeAutocomplete();
         });
 
@@ -1670,26 +1672,31 @@
                             lon: position.coords.longitude
                         };
                         console.log('Location detected:', currentLocation);
+                        
+                        // Use our enhanced location detection API
+                        detectLocationByIP();
                         loadCropData();
                     },
                     function(error) {
                         console.log('Location detection failed:', error);
-                        // Use default location (Delhi)
+                        // Use default location (Delhi) and call our API
                         currentLocation = {
                             lat: 28.6139,
                             lon: 77.2090,
                             name: 'Delhi'
                         };
+                        detectLocationByIP();
                         loadCropData();
                     }
                 );
             } else {
-                // Use default location
+                // Use default location and call our API
                 currentLocation = {
                     lat: 28.6139,
                     lon: 77.2090,
                     name: 'Delhi'
                 };
+                detectLocationByIP();
                 loadCropData();
             }
         }
@@ -2153,7 +2160,7 @@
         function updateGlobalLocationDisplay(location) {
             const display = document.getElementById('globalCurrentLocation');
             if (display) {
-                display.textContent = location || 'दिल्ली';
+                display.textContent = location || 'दिल्ली, दिल्ली';
             }
         }
 
@@ -4534,6 +4541,9 @@
 
             // Update all services
             updateAllServicesWithLocation(locationDisplay, lat, lon);
+            
+            // Update global location display
+            updateGlobalLocationDisplay(locationDisplay);
             
             showNotification(`📍 स्थान डिटेक्ट हो गया: ${locationDisplay}`, 'success');
         }
