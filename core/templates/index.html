@@ -1110,6 +1110,11 @@
         <div class="services-section">
             <h2 class="services-title">किसानों के लिए आवश्यक सेवाएं</h2>
             
+            <!-- Test Button for JavaScript -->
+            <button onclick="testJavaScript()" style="background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin-bottom: 20px; cursor: pointer;">
+                🧪 Test JavaScript (Click to verify buttons work)
+            </button>
+            
             <div class="row">
                 <!-- Government Schemes -->
                 <div class="col-lg-4 col-md-6 mb-4">
@@ -1807,6 +1812,20 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Initializing services...');
+            
+            // Test if JavaScript is working
+            console.log('JavaScript is working! Service buttons should be clickable.');
+            
+            // Add click event listeners to all service cards as backup
+            document.querySelectorAll('.service-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const serviceName = this.classList[1].replace('-card', '');
+                    console.log('Service card clicked:', serviceName);
+                    showService(serviceName);
+                });
+            });
+            
             // Immediately show Delhi as fallback
             updateGlobalLocationDisplay('दिल्ली, दिल्ली');
             
@@ -1882,9 +1901,18 @@
             }
         }
 
+        // Test function to verify JavaScript is working
+        function testJavaScript() {
+            console.log('JavaScript is working!');
+            alert('JavaScript is working! Service buttons should be clickable.');
+        }
+
         // Show service function
         function showService(serviceName) {
             console.log('showService called with:', serviceName);
+            
+            // Add visual feedback
+            console.log('Attempting to show service:', serviceName);
             
             // Check if this service is already active
             const targetContent = document.getElementById(serviceName + '-content');
@@ -1925,11 +1953,17 @@
             if (targetContent) {
                 targetContent.classList.add('active');
                 targetContent.scrollIntoView({ behavior: 'smooth' });
+                console.log('Service content shown:', serviceName);
+            } else {
+                console.error('Service content not found:', serviceName + '-content');
             }
             
             // Add active class to selected card
             if (activeCard) {
                 activeCard.classList.add('active');
+                console.log('Service card activated:', serviceName);
+            } else {
+                console.error('Service card not found:', '.' + serviceName + '-card');
             }
             
             console.log('Service opened:', serviceName);
