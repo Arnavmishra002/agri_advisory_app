@@ -285,6 +285,8 @@
                 transform: translateY(0);
             }
         }
+        
+        .service-content {
             animation: fadeIn 0.5s ease-in;
         }
         
@@ -5205,27 +5207,27 @@
         // Real-time Comprehensive Weather Data from Government APIs
         async function getDynamicWeatherData(location) {
             try {
-                console.log('🌤️ Fetching weather data for:', location);
-                const response = await fetch(`/api/realtime-gov/weather/?location=${encodeURIComponent(location)}`);
+                console.log('Fetching weather data for:', location);
+                const response = await fetch('/api/realtime-gov/weather/?location=' + encodeURIComponent(location));
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('🌤️ Weather API response:', data);
+                    console.log('Weather API response:', data);
                     
                     if (data.weather_data) {
                         return {
-                            temperature: `${data.weather_data.temperature || 28}°C`,
-                            humidity: `${data.weather_data.humidity || 65}%`,
-                            wind_speed: `${data.weather_data.wind_speed || 12} km/h`,
+                            temperature: (data.weather_data.temperature || 28) + '°C',
+                            humidity: (data.weather_data.humidity || 65) + '%',
+                            wind_speed: (data.weather_data.wind_speed || 12) + ' km/h',
                             condition: data.weather_data.condition || data.weather_data.description || 'साफ आसमान',
                             source: data.data_source || 'IMD Government API',
                             timestamp: data.timestamp || new Date().toLocaleString('hi-IN')
                         };
                     }
                 } else {
-                    console.warn('🌤️ Weather API response not OK:', response.status);
+                    console.warn('Weather API response not OK:', response.status);
                 }
             } catch (error) {
-                console.error('🌤️ Weather API error:', error);
+                console.error('Weather API error:', error);
             }
             
             // Fallback data if API fails
@@ -5261,25 +5263,25 @@
         // Real-time Comprehensive Market Data from Government APIs
         async function getDynamicMarketData(location) {
             try {
-                console.log('💰 Fetching market data for:', location);
-                const response = await fetch(`/api/realtime-gov/market_prices/?location=${encodeURIComponent(location)}`);
+                console.log('Fetching market data for:', location);
+                const response = await fetch('/api/realtime-gov/market_prices/?location=' + encodeURIComponent(location));
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('💰 Market API response:', data);
+                    console.log('Market API response:', data);
                     
                     if (data.market_data) {
                         return {
-                            mandi: data.market_data.mandi || `${location} Mandi`,
+                            mandi: data.market_data.mandi || (location + ' Mandi'),
                             crops: data.market_data.crops || [],
                             source: data.data_source || 'Agmarknet + e-NAM Government APIs',
                             timestamp: data.timestamp || new Date().toLocaleString('hi-IN')
                         };
                     }
                 } else {
-                    console.warn('💰 Market API response not OK:', response.status);
+                    console.warn('Market API response not OK:', response.status);
                 }
             } catch (error) {
-                console.error('💰 Market API error:', error);
+                console.error('Market API error:', error);
             }
             
             // Fallback data if API fails
@@ -5311,43 +5313,45 @@
         // Real-time Comprehensive Crop Data from Government APIs
         async function getDynamicCropData(location) {
             try {
-                console.log('🌾 Fetching crop data for:', location);
-                const response = await fetch(`/api/realtime-gov/crop_recommendations/?location=${encodeURIComponent(location)}&season=current`);
+                console.log('Fetching crop data for:', location);
+                const response = await fetch('/api/realtime-gov/crop_recommendations/?location=' + encodeURIComponent(location) + '&season=current');
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('🌾 Crop API response:', data);
+                    console.log('Crop API response:', data);
                     
                     if (data.recommendations && data.recommendations.length > 0) {
                         // Convert comprehensive analysis to display format
-                        const crops = data.recommendations.map(rec => ({
-                            name: rec.name,
-                            type: rec.season,
-                            inputCost: `₹${rec.input_cost_analysis.total.toLocaleString('hi-IN')}`,
-                            currentPrice: `₹${rec.current_market_price.toLocaleString('hi-IN')}`,
-                            futurePrice: `₹${rec.predicted_future_price.toLocaleString('hi-IN')}`,
-                            duration: '3-6 महीने',
-                            profitability_score: rec.profitability_score,
-                            risk_assessment: rec.risk_assessment,
-                            historical_yield_trend: rec.historical_yield_trend,
-                            historical_price_trend: rec.historical_price_trend,
-                            confidence_level: rec.confidence_level,
-                            government_support: rec.government_support,
-                            current_yield_prediction: rec.current_yield_prediction,
-                            future_yield_prediction: rec.future_yield_prediction
-                        }));
+                        const crops = data.recommendations.map(function(rec) {
+                            return {
+                                name: rec.name,
+                                type: rec.season,
+                                inputCost: '₹' + (rec.input_cost_analysis ? rec.input_cost_analysis.total.toLocaleString('hi-IN') : '35,000'),
+                                currentPrice: '₹' + (rec.current_market_price ? rec.current_market_price.toLocaleString('hi-IN') : '2,500'),
+                                futurePrice: '₹' + (rec.predicted_future_price ? rec.predicted_future_price.toLocaleString('hi-IN') : '2,700'),
+                                duration: '3-6 महीने',
+                                profitability_score: rec.profitability_score,
+                                risk_assessment: rec.risk_assessment,
+                                historical_yield_trend: rec.historical_yield_trend,
+                                historical_price_trend: rec.historical_price_trend,
+                                confidence_level: rec.confidence_level,
+                                government_support: rec.government_support,
+                                current_yield_prediction: rec.current_yield_prediction,
+                                future_yield_prediction: rec.future_yield_prediction
+                            };
+                        });
                         
                         return {
                             crops: crops,
                             source: 'Real Government APIs',
                             analysis_summary: data.analysis_summary,
-                            data_sources: data.analysis_summary.data_sources
+                            data_sources: data.analysis_summary ? data.analysis_summary.data_sources : []
                         };
                     }
                 } else {
-                    console.warn('🌾 Crop API response not OK:', response.status);
+                    console.warn('Crop API response not OK:', response.status);
                 }
             } catch (error) {
-                console.error('🌾 Crop API error:', error);
+                console.error('Crop API error:', error);
             }
             
             // Fallback data if API fails
@@ -5384,27 +5388,23 @@
             try {
                 const weatherData = await getDynamicWeatherData(currentLocation);
                 
-                container.innerHTML = `
-                    <div class="weather-card">
-                        <h6>🌤️ ${currentLocation} का मौसम</h6>
-                        <div class="weather-info">
-                            <p><strong>तापमान:</strong> ${weatherData.temperature}</p>
-                            <p><strong>आर्द्रता:</strong> ${weatherData.humidity}</p>
-                            <p><strong>हवा की गति:</strong> ${weatherData.wind_speed}</p>
-                            <p><strong>मौसम:</strong> ${weatherData.condition}</p>
-                            <p><strong>स्रोत:</strong> ${weatherData.source}</p>
-                            <p><strong>अंतिम अपडेट:</strong> ${weatherData.timestamp}</p>
-                        </div>
-                    </div>
-                `;
+                container.innerHTML = '<div class="weather-card">' +
+                    '<h6>🌤️ ' + currentLocation + ' का मौसम</h6>' +
+                    '<div class="weather-info">' +
+                        '<p><strong>तापमान:</strong> ' + weatherData.temperature + '</p>' +
+                        '<p><strong>आर्द्रता:</strong> ' + weatherData.humidity + '</p>' +
+                        '<p><strong>हवा की गति:</strong> ' + weatherData.wind_speed + '</p>' +
+                        '<p><strong>मौसम:</strong> ' + weatherData.condition + '</p>' +
+                        '<p><strong>स्रोत:</strong> ' + weatherData.source + '</p>' +
+                        '<p><strong>अंतिम अपडेट:</strong> ' + weatherData.timestamp + '</p>' +
+                    '</div>' +
+                '</div>';
             } catch (error) {
                 console.error('Weather data error:', error);
-                container.innerHTML = `
-                    <div class="alert alert-warning">
-                        <h6>⚠️ मौसम की जानकारी उपलब्ध नहीं</h6>
-                        <p>कृपया बाद में कोशिश करें</p>
-                    </div>
-                `;
+                container.innerHTML = '<div class="alert alert-warning">' +
+                    '<h6>⚠️ मौसम की जानकारी उपलब्ध नहीं</h6>' +
+                    '<p>कृपया बाद में कोशिश करें</p>' +
+                '</div>';
             }
         }
 
