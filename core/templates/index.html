@@ -1118,7 +1118,7 @@
             <div class="row">
                 <!-- Government Schemes -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card government-schemes-card" onclick="toggleService('government-schemes'); return false;" style="cursor: pointer;">
+                    <div class="service-card government-schemes-card" onclick="showService('government-schemes'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1134,7 +1134,7 @@
 
                 <!-- Crop Recommendations -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card crop-recommendations-card" onclick="toggleService('crop-recommendations'); return false;" style="cursor: pointer;">
+                    <div class="service-card crop-recommendations-card" onclick="showService('crop-recommendations'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1150,7 +1150,7 @@
 
                 <!-- Weather -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card weather-card" onclick="toggleService('weather'); return false;" style="cursor: pointer;">
+                    <div class="service-card weather-card" onclick="showService('weather'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1166,7 +1166,7 @@
 
                 <!-- Market Prices -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card market-prices-card" onclick="toggleService('market-prices'); return false;" style="cursor: pointer;">
+                    <div class="service-card market-prices-card" onclick="showService('market-prices'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1182,7 +1182,7 @@
 
                 <!-- Pest Control -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card pest-control-card" onclick="toggleService('pest-control'); return false;" style="cursor: pointer;">
+                    <div class="service-card pest-control-card" onclick="showService('pest-control'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1198,7 +1198,7 @@
 
                 <!-- AI Assistant -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card ai-assistant-card" onclick="toggleService('ai-assistant'); return false;" style="cursor: pointer;">
+                    <div class="service-card ai-assistant-card" onclick="showService('ai-assistant'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1817,20 +1817,18 @@
             console.log('JavaScript test successful');
         }
 
-        // Simple service toggle function
-        function toggleService(serviceName) {
-            console.log('🎯 Toggling service:', serviceName);
+        // Simple service show function - NO TOGGLE
+        function showService(serviceName) {
+            console.log('🎯 Showing service:', serviceName);
             
             const content = document.getElementById(serviceName + '-content');
             const card = document.querySelector('.' + serviceName + '-card');
             
             if (!content) {
                 console.error('Content not found for:', serviceName);
+                alert('Service content not found: ' + serviceName);
                 return;
             }
-            
-            // Check if currently visible
-            const isVisible = content.style.display === 'block' || content.classList.contains('active');
             
             // Hide all service contents first
             document.querySelectorAll('.service-content').forEach(c => {
@@ -1843,17 +1841,17 @@
                 c.classList.remove('active');
             });
             
-            if (!isVisible) {
-                // Show the selected service
-                content.style.display = 'block';
-                content.classList.add('active');
-                if (card) {
-                    card.classList.add('active');
-                }
-                console.log('✅ Service opened:', serviceName);
-            } else {
-                console.log('✅ Service closed:', serviceName);
+            // Show the selected service
+            content.style.display = 'block';
+            content.classList.add('active');
+            if (card) {
+                card.classList.add('active');
             }
+            
+            // Scroll to the content
+            content.scrollIntoView({ behavior: 'smooth' });
+            
+            console.log('✅ Service shown:', serviceName);
         }
 
         // Initialize when page loads
@@ -1877,7 +1875,7 @@
                 
                 card.onclick = function() {
                     console.log(`🎯 Card clicked: ${serviceName}`);
-                    toggleService(serviceName);
+                    showService(serviceName);
                     return false;
                 };
             });
