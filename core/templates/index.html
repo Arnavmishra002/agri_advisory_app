@@ -1836,53 +1836,37 @@
             console.log(`Found ${serviceCards.length} service cards`);
             
             if (serviceCards.length > 0) {
-                // Run debug function
-                const debugInfo = debugServiceCards();
+                alert(`Found ${serviceCards.length} service cards with data-service attributes.\n\nClick on any service card to test functionality!`);
                 
-                alert(`Found ${serviceCards.length} service cards with data-service attributes.\n\nDebug Info:\n- Total cards: ${debugInfo.total}\n- With data-service: ${debugInfo.withDataService}\n\nTry clicking on any service card to test functionality!`);
-                
-                // Test first service card
+                // Test first service card immediately
                 const firstCard = serviceCards[0];
                 const serviceName = firstCard.getAttribute('data-service');
                 console.log(`Testing first service card: ${serviceName}`);
-                
-                // Simulate click
-                setTimeout(() => {
-                    console.log('Simulating click on first service card...');
-                    showService(serviceName);
-                }, 1000);
+                showService(serviceName);
             } else {
                 alert('No service cards found! Please check the HTML structure.');
-                // Run debug to see what's available
-                debugServiceCards();
             }
         }
 
-        // Unified service show function
+        // Simplified and robust service show function
         function showService(serviceName) {
-            console.log('🎯 Showing service:', serviceName);
-            
-            if (!serviceName) {
-                console.error('❌ No service name provided');
-                alert('Error: No service selected');
-                return;
-            }
-            
-            const content = document.getElementById(serviceName + '-content');
-            const card = document.querySelector('[data-service="' + serviceName + '"]');
-            
-            if (!content) {
-                console.error('Content not found for:', serviceName);
-                alert('Service content not found. Please try again.');
-                return;
-            }
-            
-            // Check if this service is already active
-            const isCurrentlyActive = content.classList.contains('active');
-            
-            // If already active, close it
-            if (isCurrentlyActive) {
-                // Hide all service contents
+            try {
+                console.log('🎯 Showing service:', serviceName);
+                
+                if (!serviceName) {
+                    alert('Error: No service selected');
+                    return;
+                }
+                
+                const content = document.getElementById(serviceName + '-content');
+                const card = document.querySelector('[data-service="' + serviceName + '"]');
+                
+                if (!content) {
+                    alert('Service content not found. Please try again.');
+                    return;
+                }
+                
+                // Hide all service contents first
                 document.querySelectorAll('.service-content').forEach(c => {
                     c.style.display = 'none';
                     c.classList.remove('active');
@@ -1893,66 +1877,37 @@
                     c.classList.remove('active');
                 });
                 
-                console.log('Service closed:', serviceName);
-                return;
-            }
-            
-            // Hide all service contents first
-            document.querySelectorAll('.service-content').forEach(c => {
-                c.style.display = 'none';
-                c.classList.remove('active');
-            });
-            
-            // Remove active class from all cards
-            document.querySelectorAll('.service-card').forEach(c => {
-                c.classList.remove('active');
-            });
-            
-            // Show the selected service with multiple methods to ensure visibility
-            console.log('Showing content for:', serviceName);
-            content.style.display = 'block';
-            content.style.visibility = 'visible';
-            content.style.opacity = '1';
-            content.classList.add('active');
-            
-            if (card) {
-                card.classList.add('active');
-            }
-            
-            // Force display with setTimeout to ensure CSS is applied
-            setTimeout(() => {
+                // Show the selected service
                 content.style.display = 'block';
-                console.log('Content display style after timeout:', content.style.display);
-            }, 50);
-            
-            // Scroll to the content
-            setTimeout(() => {
+                content.classList.add('active');
+                
+                if (card) {
+                    card.classList.add('active');
+                }
+                
+                // Scroll to the content
                 content.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
-            
-            // Load specific data based on service
-            switch(serviceName) {
-                case 'crop-recommendations':
-                    if (typeof loadCropData === 'function') loadCropData();
-                    break;
-                case 'weather':
-                    if (typeof loadWeatherData === 'function') loadWeatherData();
-                    break;
-                case 'market-prices':
-                    if (typeof loadMarketPrices === 'function') loadMarketPrices();
-                    break;
-                case 'government-schemes':
-                    if (typeof loadGovernmentSchemes === 'function') loadGovernmentSchemes();
-                    break;
-                case 'pest-control':
-                    if (typeof loadPestControl === 'function') loadPestControl();
-                    break;
-                case 'ai-assistant':
-                    if (typeof loadAIAssistant === 'function') loadAIAssistant();
-                    break;
+                
+                // Load specific data based on service
+                if (serviceName === 'crop-recommendations' && typeof loadCropData === 'function') {
+                    loadCropData();
+                } else if (serviceName === 'weather' && typeof loadWeatherData === 'function') {
+                    loadWeatherData();
+                } else if (serviceName === 'market-prices' && typeof loadMarketPrices === 'function') {
+                    loadMarketPrices();
+                } else if (serviceName === 'government-schemes' && typeof loadGovernmentSchemes === 'function') {
+                    loadGovernmentSchemes();
+                } else if (serviceName === 'pest-control' && typeof loadPestControl === 'function') {
+                    loadPestControl();
+                } else if (serviceName === 'ai-assistant' && typeof loadAIAssistant === 'function') {
+                    loadAIAssistant();
+                }
+                
+                console.log('✅ Service shown:', serviceName);
+            } catch (error) {
+                console.error('Error in showService:', error);
+                alert('An error occurred. Please try again.');
             }
-            
-            console.log('✅ Service shown:', serviceName);
         }
 
         // Initialize when page loads
@@ -1975,7 +1930,7 @@
             console.log('🎉 Complete initialization finished!');
         });
         
-        // Initialize service cards
+        // Simplified service card initialization
         function initializeServiceCards() {
             console.log('🎯 Initializing Service Cards...');
 
@@ -1985,76 +1940,25 @@
 
             serviceCards.forEach((card, index) => {
                 const serviceName = card.getAttribute('data-service');
-                console.log(`Setting up card ${index + 1}: ${serviceName}`);
-
+                
                 // Make sure the card is clickable
                 card.style.cursor = 'pointer';
                 card.style.userSelect = 'none';
 
-                // Remove any existing event listeners to prevent duplicates
-                card.removeEventListener('click', handleServiceCardClick);
+                // Simple click handler
+                card.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Service card clicked:', serviceName);
+                    showService(serviceName);
+                };
 
-                // Add click event listener
-                card.addEventListener('click', handleServiceCardClick);
-
-                // Add visual feedback
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-5px) scale(1.02)';
-                    this.style.boxShadow = '0 15px 35px rgba(0,0,0,0.2)';
-                });
-
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = '';
-                    this.style.boxShadow = '';
-                });
-                
-                // Test click functionality immediately
                 console.log(`Card ${index + 1} (${serviceName}) click handler added`);
             });
 
-            // Verify service content elements exist
-            const serviceNames = ['government-schemes', 'crop-recommendations', 'weather', 'market-prices', 'pest-control', 'ai-assistant'];
-            serviceNames.forEach(serviceName => {
-                const content = document.getElementById(serviceName + '-content');
-                const card = document.querySelector('[data-service="' + serviceName + '"]');
-                if (content && card) {
-                    console.log(`✅ Service ${serviceName}: Content ✓ Card ✓`);
-                } else {
-                    console.warn(`⚠️ Service ${serviceName}: Content ${content ? '✓' : '✗'} Card ${card ? '✓' : '✗'}`);
-                }
-            });
-
             console.log('🎯 Service cards initialization complete!');
-            
-            // Test first card immediately
-            if (serviceCards.length > 0) {
-                console.log('🧪 Testing first service card click...');
-                setTimeout(() => {
-                    const firstCard = serviceCards[0];
-                    const serviceName = firstCard.getAttribute('data-service');
-                    console.log(`Testing click on: ${serviceName}`);
-                    showService(serviceName);
-                }, 1000);
-            }
         }
         
-        // Unified click handler for service cards
-        function handleServiceCardClick(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const serviceName = this.getAttribute('data-service');
-            console.log(`🎯 Service card clicked: ${serviceName}`);
-            console.log('Clicked element:', this);
-            console.log('Event:', e);
-            
-            if (serviceName) {
-                showService(serviceName);
-            } else {
-                console.error('❌ No service name found for clicked card');
-                alert('Service not found. Please try again.');
-            }
-        }
         
         // Debug function to check service card status
         function debugServiceCards() {
