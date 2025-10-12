@@ -65,6 +65,76 @@ class ChatbotViewSet(viewsets.ViewSet):
                 'data_source': 'error_fallback'
             }, status=status.HTTP_200_OK)
 
+
+class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
+    """Real-time government data API endpoints"""
+    
+    def __init__(self):
+        self.gov_api = EnhancedGovernmentAPI()
+    
+    @action(detail=False, methods=['get'])
+    def weather(self, request):
+        """Get real-time weather data for location"""
+        try:
+            location = request.query_params.get('location', 'Delhi')
+            weather_data = self.gov_api.get_weather_data(location)
+            return Response(weather_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Weather API error: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def market_prices(self, request):
+        """Get real-time market prices for location"""
+        try:
+            location = request.query_params.get('location', 'Delhi')
+            crop = request.query_params.get('crop', '')
+            
+            if crop:
+                prices_data = self.gov_api.get_market_prices_for_crop(crop, location)
+            else:
+                prices_data = self.gov_api.get_market_prices(location)
+            
+            return Response(prices_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Market prices API error: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def crop_recommendations(self, request):
+        """Get location-based crop recommendations using government APIs"""
+        try:
+            location = request.query_params.get('location', 'Delhi')
+            season = request.query_params.get('season', 'current')
+            
+            recommendations = self.gov_api.get_crop_recommendations(location, season)
+            return Response(recommendations, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Crop recommendations API error: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def government_schemes(self, request):
+        """Get government schemes for farmers"""
+        try:
+            location = request.query_params.get('location', 'Delhi')
+            schemes = self.gov_api.get_government_schemes(location)
+            return Response(schemes, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Government schemes API error: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def soil_health(self, request):
+        """Get soil health data for location"""
+        try:
+            location = request.query_params.get('location', 'Delhi')
+            soil_data = self.gov_api.get_soil_health_data(location)
+            return Response(soil_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Soil health API error: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class LocationRecommendationViewSet(viewsets.ViewSet):
     """Location detection and recommendations"""
     
