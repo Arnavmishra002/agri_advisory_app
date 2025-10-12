@@ -1832,17 +1832,15 @@
             console.log('JavaScript test successful');
         }
 
-        // Simple service show function - NO TOGGLE
+        // Simple service show function
         function showService(serviceName) {
             console.log('🎯 Showing service:', serviceName);
-            alert('Button clicked! Service: ' + serviceName);
             
             const content = document.getElementById(serviceName + '-content');
             const card = document.querySelector('[data-service="' + serviceName + '"]');
             
             if (!content) {
                 console.error('Content not found for:', serviceName);
-                alert('Service content not found: ' + serviceName);
                 return;
             }
             
@@ -1868,7 +1866,6 @@
             content.scrollIntoView({ behavior: 'smooth' });
             
             console.log('✅ Service shown:', serviceName);
-            alert('Service content should now be visible!');
         }
 
         // Initialize when page loads
@@ -1895,49 +1892,13 @@
                     e.preventDefault();
                     e.stopPropagation();
                     console.log(`🎯 Card clicked: ${serviceName}`);
-                    alert(`Card clicked! Service: ${serviceName}`);
                     showService(serviceName);
-                });
-                
-                // Also add mouse events for debugging
-                card.addEventListener('mouseenter', function() {
-                    console.log(`Mouse entered: ${serviceName}`);
-                });
-                
-                card.addEventListener('mousedown', function() {
-                    console.log(`Mouse down on: ${serviceName}`);
                 });
             });
             
             console.log('🎉 All services initialized!');
         });
 
-        // Backup initialization after 2 seconds
-        setTimeout(function() {
-            console.log('🔄 Running backup initialization...');
-            
-            const serviceCards = document.querySelectorAll('.service-card[data-service]');
-            console.log(`Backup: Found ${serviceCards.length} service cards`);
-            
-            serviceCards.forEach((card, index) => {
-                const serviceName = card.getAttribute('data-service');
-                console.log(`Backup setup card ${index + 1}: ${serviceName}`);
-                
-                // Remove any existing event listeners
-                card.removeEventListener('click', function() {});
-                
-                // Add new click event listener
-                card.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log(`🎯 Backup card clicked: ${serviceName}`);
-                    alert(`BACKUP: Card clicked! Service: ${serviceName}`);
-                    showService(serviceName);
-                });
-            });
-            
-            console.log('✅ Backup initialization complete!');
-        }, 2000);
 
         // Location detection
         function detectLocation() {
@@ -5634,7 +5595,4 @@
             console.log('Initialization complete!');
         });
     </script>
-    
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

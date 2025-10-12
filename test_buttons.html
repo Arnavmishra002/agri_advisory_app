@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test - Krishimitra</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f8f0;
+        }
+        
+        .test-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            border: 2px solid #4a7c59;
+        }
+        
+        .test-card:hover {
+            background: #e8f5e8;
+            transform: translateY(-2px);
+        }
+        
+        .test-content {
+            display: none;
+            background: #d4edda;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .test-content.active {
+            display: block;
+        }
+        
+        .alert-box {
+            background: #dc3545;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .success-box {
+            background: #28a745;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Button Click Test Page</h1>
+    
+    <div class="alert-box">
+        <strong>TESTING:</strong> If you can see this page, HTML is working!
+    </div>
+    
+    <h2>Simple Button Tests:</h2>
+    
+    <!-- Test 1: Simple Button -->
+    <button onclick="alert('Simple button works!')" style="padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Test Simple Button
+    </button>
+    
+    <!-- Test 2: Card with onclick -->
+    <div class="test-card" onclick="alert('Card onclick works!')">
+        <h3>Test Card 1 - onclick</h3>
+        <p>Click this card - should show alert</p>
+    </div>
+    
+    <!-- Test 3: Card with addEventListener -->
+    <div class="test-card" id="test-card-2">
+        <h3>Test Card 2 - addEventListener</h3>
+        <p>Click this card - should show alert</p>
+    </div>
+    
+    <!-- Test 4: Service-like card -->
+    <div class="test-card" id="service-test">
+        <h3>🌾 Crop Recommendations</h3>
+        <p>AI द्वारा आपके क्षेत्र के लिए सर्वोत्तम फसलों की सिफारिश</p>
+        <button style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">फसल सुझाव प्राप्त करें</button>
+    </div>
+    
+    <!-- Test Content -->
+    <div id="test-content" class="test-content">
+        <h3>✅ Content is now visible!</h3>
+        <p>This content appeared when you clicked the service card above.</p>
+        <p>If you can see this, the show/hide functionality is working!</p>
+    </div>
+    
+    <div id="results" class="success-box" style="display: none;">
+        <h3>🎉 ALL TESTS PASSED!</h3>
+        <p>JavaScript is working perfectly on this page!</p>
+    </div>
+
+    <script>
+        console.log('🚀 Test page JavaScript loaded!');
+        
+        // Test if JavaScript is working
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM Content Loaded - JavaScript is working!');
+            
+            // Test 1: Simple addEventListener
+            document.getElementById('test-card-2').addEventListener('click', function() {
+                alert('addEventListener works!');
+                console.log('✅ addEventListener test passed');
+            });
+            
+            // Test 2: Service-like functionality
+            document.getElementById('service-test').addEventListener('click', function() {
+                alert('Service card clicked!');
+                console.log('✅ Service card test passed');
+                
+                // Show/hide content
+                const content = document.getElementById('test-content');
+                if (content.style.display === 'none' || !content.classList.contains('active')) {
+                    content.style.display = 'block';
+                    content.classList.add('active');
+                    console.log('✅ Content show/hide test passed');
+                } else {
+                    content.style.display = 'none';
+                    content.classList.remove('active');
+                    console.log('✅ Content hide test passed');
+                }
+                
+                // Show results
+                document.getElementById('results').style.display = 'block';
+            });
+            
+            console.log('🎉 All event listeners added successfully!');
+        });
+        
+        // Global function test
+        function globalTestFunction() {
+            alert('Global function works!');
+            console.log('✅ Global function test passed');
+        }
+        
+        // Test global function
+        setTimeout(function() {
+            console.log('🔄 Running delayed test...');
+            if (typeof globalTestFunction === 'function') {
+                console.log('✅ Global function exists and is callable');
+            }
+        }, 1000);
+    </script>
+    
+    <button onclick="globalTestFunction()" style="padding: 10px 20px; margin: 10px; background: #ffc107; color: black; border: none; border-radius: 5px; cursor: pointer;">
+        Test Global Function
+    </button>
+    
+    <hr>
+    <h3>🔍 Debugging Information:</h3>
+    <p><strong>If buttons work here but not on main site:</strong> There's a conflict on the main site</p>
+    <p><strong>If buttons don't work here:</strong> There's a browser/JavaScript issue</p>
+    <p><strong>Check browser console (F12)</strong> for any error messages</p>
+</body>
+</html>
