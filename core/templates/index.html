@@ -107,8 +107,27 @@
         
         .service-card.active {
             border-color: #2d5016;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
             transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(45, 80, 22, 0.2);
+        }
+        
+        .service-card.active .service-icon {
+            color: #2d5016;
+            transform: scale(1.1);
+        }
+        
+        .service-card.active .service-title {
+            color: #2d5016;
+        }
+        
+        .service-card.active .service-button {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
+        }
+        
+        .service-card.active .service-button:hover {
+            background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
         }
         
         .service-card.active::before {
@@ -132,6 +151,21 @@
         
         .status-indicator.active {
             color: #28a745;
+        }
+        
+        .service-card.active .status-indicator {
+            color: #dc3545;
+            animation: pulse-red 1.5s infinite;
+        }
+        
+        .service-card.active .status-text {
+            color: #dc3545;
+        }
+        
+        @keyframes pulse-red {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
         }
         
         .status-text {
@@ -1820,9 +1854,62 @@
             }
         }
 
+        // Update button text based on service state
+        function updateButtonText(serviceName, isOpen) {
+            const button = document.querySelector('.' + serviceName + '-card .service-button');
+            if (!button) return;
+            
+            const buttonTexts = {
+                'government-schemes': { open: 'योजनाएं देखें', close: 'बंद करें' },
+                'crop-recommendations': { open: 'फसल सुझाव प्राप्त करें', close: 'बंद करें' },
+                'weather': { open: 'मौसम देखें', close: 'बंद करें' },
+                'market-prices': { open: 'कीमतें देखें', close: 'बंद करें' },
+                'pest-control': { open: 'जांच करें', close: 'बंद करें' },
+                'ai-assistant': { open: 'बात करें', close: 'बंद करें' }
+            };
+            
+            const texts = buttonTexts[serviceName];
+            if (texts) {
+                button.textContent = isOpen ? texts.close : texts.open;
+            }
+        }
+
+        // Update status text based on service state
+        function updateStatusText(serviceName, isOpen) {
+            const statusText = document.querySelector('.' + serviceName + '-card .status-text');
+            if (statusText) {
+                statusText.textContent = isOpen ? 'खुला' : 'सक्रिय';
+            }
+        }
+
         // Show service function
         function showService(serviceName) {
             console.log('showService called with:', serviceName);
+            
+            // Check if this service is already active
+            const targetContent = document.getElementById(serviceName + '-content');
+            const activeCard = document.querySelector('.' + serviceName + '-card');
+            const isCurrentlyActive = targetContent && targetContent.classList.contains('active');
+            
+            // If already active, close it
+            if (isCurrentlyActive) {
+                // Hide all service contents
+                document.querySelectorAll('.service-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // Remove active class from all cards
+                document.querySelectorAll('.service-card').forEach(card => {
+                    card.classList.remove('active');
+                });
+                
+                console.log('Service closed:', serviceName);
+                
+                // Update button text and status back to open option
+                updateButtonText(serviceName, false);
+                updateStatusText(serviceName, false);
+                return;
+            }
             
             // Hide all service contents
             document.querySelectorAll('.service-content').forEach(content => {
@@ -1835,17 +1922,21 @@
             });
             
             // Show selected service content
-            const targetContent = document.getElementById(serviceName + '-content');
             if (targetContent) {
                 targetContent.classList.add('active');
                 targetContent.scrollIntoView({ behavior: 'smooth' });
             }
             
             // Add active class to selected card
-            const activeCard = document.querySelector('.' + serviceName + '-card');
             if (activeCard) {
                 activeCard.classList.add('active');
             }
+            
+            console.log('Service opened:', serviceName);
+            
+            // Update button text and status to show close option
+            updateButtonText(serviceName, true);
+            updateStatusText(serviceName, true);
             
             // Load specific data based on service
             switch(serviceName) {
