@@ -886,9 +886,21 @@
                     
                     // Special handling for AI Assistant
                     if (serviceName === 'ai-assistant') {
-                        console.log('🤖 AI Assistant activated - Chat messages container:', document.getElementById('chat-messages'));
-                        // Ensure chat messages container is visible
-                        const chatMessages = document.getElementById('chat-messages');
+                        console.log('🤖 AI Assistant activated');
+                        
+                        // Try to find the chat messages container - check multiple possible selectors
+                        let chatMessages = document.getElementById('chat-messages');
+                        if (!chatMessages) {
+                            // Try to find by class or other attributes
+                            chatMessages = document.querySelector('#ai-assistant-content .card-body div[style*="height: 300px"]');
+                        }
+                        if (!chatMessages) {
+                            // Try to find any scrollable div in AI Assistant section
+                            chatMessages = document.querySelector('#ai-assistant-content div[style*="overflow-y: auto"]');
+                        }
+                        
+                        console.log('🤖 AI Assistant activated - Chat messages container:', chatMessages);
+                        
                         if (chatMessages) {
                             chatMessages.style.display = 'block';
                             console.log('✅ Chat messages container found and made visible');
@@ -1632,9 +1644,28 @@
         // AI Chat Functions
         function sendMessage() {
             console.log('🤖 sendMessage() called');
-            const input = document.getElementById('chat-input');
-            const message = input.value.trim();
             
+            // Try to find the input element - check multiple possible selectors
+            let input = document.getElementById('chat-input');
+            if (!input) {
+                // Try to find by placeholder text
+                input = document.querySelector('input[placeholder*="अपना सवाल टाइप करें"]');
+            }
+            if (!input) {
+                // Try to find any text input in the AI Assistant section
+                const aiSection = document.querySelector('#ai-assistant-content');
+                if (aiSection) {
+                    input = aiSection.querySelector('input[type="text"]');
+                }
+            }
+            
+            if (!input) {
+                console.error('❌ Input element not found!');
+                alert('इनपुट फील्ड नहीं मिला। कृपया पेज को रिफ्रेश करें।');
+                return;
+            }
+            
+            const message = input.value.trim();
             console.log('📝 Message:', message);
             
             if (!message) {
@@ -1642,8 +1673,27 @@
                 return;
             }
             
-            const chatMessages = document.getElementById('chat-messages');
+            // Try to find the chat messages container - check multiple possible selectors
+            let chatMessages = document.getElementById('chat-messages');
+            if (!chatMessages) {
+                // Try to find by class or other attributes
+                chatMessages = document.querySelector('#ai-assistant-content .card-body div[style*="height: 300px"]');
+            }
+            if (!chatMessages) {
+                // Try to find any scrollable div in AI Assistant section
+                const aiSection = document.querySelector('#ai-assistant-content');
+                if (aiSection) {
+                    chatMessages = aiSection.querySelector('div[style*="overflow-y: auto"]');
+                }
+            }
+            
             console.log('💬 Chat messages container:', chatMessages);
+            
+            if (!chatMessages) {
+                console.error('❌ Chat messages container not found!');
+                alert('चैट कंटेनर नहीं मिला। कृपया पेज को रिफ्रेश करें।');
+                return;
+            }
             
             // Add user message
             chatMessages.innerHTML += `
@@ -1749,8 +1799,26 @@
         }
         
         function askQuestion(question) {
-            document.getElementById('chat-input').value = question;
-            sendMessage();
+            // Try to find the input element - check multiple possible selectors
+            let input = document.getElementById('chat-input');
+            if (!input) {
+                // Try to find by placeholder text
+                input = document.querySelector('input[placeholder*="अपना सवाल टाइप करें"]');
+            }
+            if (!input) {
+                // Try to find any text input in the AI Assistant section
+                const aiSection = document.querySelector('#ai-assistant-content');
+                if (aiSection) {
+                    input = aiSection.querySelector('input[type="text"]');
+                }
+            }
+            
+            if (input) {
+                input.value = question;
+                sendMessage();
+            } else {
+                console.error('❌ Input element not found for askQuestion!');
+            }
         }
         
         // Open Government Scheme Function
@@ -1781,10 +1849,35 @@
                 return;
             }
             
-            // Update location display
+            // Update location display with proper state mapping
             const locationDisplay = document.querySelector('.location-display');
             if (locationDisplay) {
-                locationDisplay.textContent = newLocation + ', ' + newLocation;
+                // Map cities to their states for proper display
+                const cityStateMap = {
+                    'Delhi': 'दिल्ली',
+                    'Mumbai': 'महाराष्ट्र',
+                    'Pune': 'महाराष्ट्र',
+                    'Bangalore': 'कर्नाटक',
+                    'Chennai': 'तमिलनाडु',
+                    'Hyderabad': 'तेलंगाना',
+                    'Kolkata': 'पश्चिम बंगाल',
+                    'Ahmedabad': 'गुजरात',
+                    'Jaipur': 'राजस्थान',
+                    'Lucknow': 'उत्तर प्रदेश',
+                    'Kanpur': 'उत्तर प्रदेश',
+                    'Nagpur': 'महाराष्ट्र',
+                    'Indore': 'मध्य प्रदेश',
+                    'Bhopal': 'मध्य प्रदेश',
+                    'Patna': 'बिहार',
+                    'Chandigarh': 'चंडीगढ़',
+                    'Kochi': 'केरल',
+                    'Coimbatore': 'तमिलनाडु',
+                    'Vadodara': 'गुजरात',
+                    'Visakhapatnam': 'आंध्र प्रदेश'
+                };
+                
+                const state = cityStateMap[newLocation] || newLocation;
+                locationDisplay.textContent = `${newLocation}, ${state}`;
             }
             
             // Show success message
