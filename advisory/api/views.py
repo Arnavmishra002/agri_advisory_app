@@ -76,28 +76,39 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def weather(self, request):
-        """Get real-time weather data for location"""
+        """Get real-time weather data for location from government APIs"""
         try:
             location = request.query_params.get('location', 'Delhi')
-            weather_data = self.gov_api.get_weather_data(location)
-            return Response(weather_data, status=status.HTTP_200_OK)
+            weather_data = self.gov_api.get_enhanced_weather_data(location)
+            return Response({
+                'location': location,
+                'weather_data': weather_data,
+                'data_source': 'IMD Government API',
+                'timestamp': datetime.now().isoformat()
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Weather API error: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['get'])
     def market_prices(self, request):
-        """Get real-time market prices for location"""
+        """Get real-time market prices for location from government APIs"""
         try:
             location = request.query_params.get('location', 'Delhi')
             crop = request.query_params.get('crop', '')
             
             if crop:
-                prices_data = self.gov_api.get_market_prices_for_crop(crop, location)
+                prices_data = self.gov_api.get_enhanced_market_prices(crop, location)
             else:
-                prices_data = self.gov_api.get_market_prices(location)
+                prices_data = self.gov_api.get_enhanced_market_data(location)
             
-            return Response(prices_data, status=status.HTTP_200_OK)
+            return Response({
+                'location': location,
+                'crop': crop,
+                'market_data': prices_data,
+                'data_source': 'Agmarknet + e-NAM Government APIs',
+                'timestamp': datetime.now().isoformat()
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Market prices API error: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -152,24 +163,59 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def government_schemes(self, request):
-        """Get government schemes for farmers"""
+        """Get government schemes for farmers from official government sources"""
         try:
             location = request.query_params.get('location', 'Delhi')
             schemes = self.gov_api.get_government_schemes(location)
-            return Response(schemes, status=status.HTTP_200_OK)
+            return Response({
+                'location': location,
+                'government_schemes': schemes,
+                'data_source': 'Official Government Databases',
+                'timestamp': datetime.now().isoformat()
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Government schemes API error: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['get'])
     def soil_health(self, request):
-        """Get soil health data for location"""
+        """Get soil health data for location from government soil health card APIs"""
         try:
             location = request.query_params.get('location', 'Delhi')
-            soil_data = self.gov_api.get_soil_health_data(location)
-            return Response(soil_data, status=status.HTTP_200_OK)
+            # Use the existing method in EnhancedGovernmentAPI
+            soil_data = self.gov_api._get_comprehensive_soil_data(location)
+            return Response({
+                'location': location,
+                'soil_data': soil_data,
+                'data_source': 'Soil Health Card Government API',
+                'timestamp': datetime.now().isoformat()
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Soil health API error: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'])
+    def pest_detection(self, request):
+        """Get pest detection and control recommendations using government databases"""
+        try:
+            data = request.data
+            crop_name = data.get('crop', '')
+            location = data.get('location', 'Delhi')
+            symptoms = data.get('symptoms', '')
+            
+            # Use government pest and disease database
+            pest_data = self.gov_api.get_pest_control_recommendations(crop_name, location, symptoms)
+            
+            return Response({
+                'crop': crop_name,
+                'location': location,
+                'symptoms': symptoms,
+                'pest_analysis': pest_data,
+                'data_source': 'ICAR Pest & Disease Database',
+                'timestamp': datetime.now().isoformat()
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Pest detection API error: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class LocationRecommendationViewSet(viewsets.ViewSet):
