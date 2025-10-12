@@ -1878,6 +1878,7 @@
                 
                 const state = cityStateMap[newLocation] || newLocation;
                 locationDisplay.textContent = `${newLocation}, ${state}`;
+                console.log(`📍 Location updated: ${newLocation} -> ${state}`);
             }
             
             // Show success message
