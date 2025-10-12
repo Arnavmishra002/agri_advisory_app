@@ -470,3 +470,4 @@ def get_performance_summary() -> Dict[str, Any]:
 def record_user_activity(user_id: str, activity_type: str, details: Dict[str, Any] = None):
     """Record user activity"""
     performance_monitor.record_user_activity(user_id, activity_type, details)
+

@@ -439,3 +439,4 @@ def get_ai_response(query: str, language: str = 'auto', location: str = '') -> D
     """Convenience function to get AI response"""
     ai_service = ConsolidatedAIService()
     return ai_service.process_query(query, language, location)
+
