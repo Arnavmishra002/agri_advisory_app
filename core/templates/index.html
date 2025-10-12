@@ -650,21 +650,256 @@
             
             setTimeout(() => {
                 locationDiv.innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>🌾 दिल्ली क्षेत्र के लिए सुझाव</h6>
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item">🌾 गेहूं (रबी) - सर्वोत्तम</li>
-                                <li class="list-group-item">🌽 मक्का (खरीफ) - अच्छा</li>
-                                <li class="list-group-item">🍅 टमाटर (जायद) - लाभदायक</li>
-                            </ul>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6>📊 दिल्ली क्षेत्र की मौसम स्थिति</h6>
+                            <div class="alert alert-info">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <strong>तापमान:</strong> 25-35°C
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>आर्द्रता:</strong> 60-70%
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>मिट्टी:</strong> दोमट मिट्टी
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>सिंचाई:</strong> ट्यूबवेल उपलब्ध
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <h6>📊 मौसम स्थिति</h6>
-                            <p><strong>तापमान:</strong> 25-35°C</p>
-                            <p><strong>आर्द्रता:</strong> 60-70%</p>
-                            <p><strong>मिट्टी:</strong> दोमट मिट्टी</p>
-                            <p><strong>सिंचाई:</strong> ट्यूबवेल उपलब्ध</p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">🌾 गेहूं (रबी) - सर्वोत्तम</h6>
+                                    <small>रबी फसल | अक्टूबर-मार्च</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>समय अवधि:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            5-6 महीने
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>बुवाई समय:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            अक्टूबर-नवंबर
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>कटाई समय:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            मार्च-अप्रैल
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>इनपुट लागत:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            ₹35,000/हेक्टेयर
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>वर्तमान कीमत:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            ₹2,500/क्विंटल
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>भविष्य कीमत:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            ₹2,700/क्विंटल
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>अनुमानित उत्पादन:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            45-55 क्विंटल/हेक्टेयर
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="alert alert-success mb-0">
+                                        <strong>अनुमानित लाभ:</strong> ₹75,000-1,10,000/हेक्टेयर
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">🌽 मक्का (खरीफ) - अच्छा</h6>
+                                    <small>खरीफ फसल | जून-सितंबर</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>समय अवधि:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            3-4 महीने
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>बुवाई समय:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            जून-जुलाई
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>कटाई समय:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            सितंबर-अक्टूबर
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>इनपुट लागत:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            ₹28,000/हेक्टेयर
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>वर्तमान कीमत:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            ₹2,000/क्विंटल
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>भविष्य कीमत:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            ₹2,100/क्विंटल
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>अनुमानित उत्पादन:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            60-80 क्विंटल/हेक्टेयर
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="alert alert-info mb-0">
+                                        <strong>अनुमानित लाभ:</strong> ₹92,000-1,40,000/हेक्टेयर
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">🍅 टमाटर (जायद) - लाभदायक</h6>
+                                    <small>जायद फसल | मार्च-जून</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>समय अवधि:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            3-4 महीने
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>बुवाई समय:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            मार्च-अप्रैल
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>कटाई समय:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            जून-जुलाई
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>इनपुट लागत:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            ₹45,000/हेक्टेयर
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>वर्तमान कीमत:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            ₹15/किलो
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>भविष्य कीमत:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            ₹18/किलो
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <strong>अनुमानित उत्पादन:</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            400-600 क्विंटल/हेक्टेयर
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="alert alert-warning mb-0">
+                                        <strong>अनुमानित लाभ:</strong> ₹5,55,000-10,35,000/हेक्टेयर
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="alert alert-light">
+                                <h6>💡 सुझाव:</h6>
+                                <ul class="mb-0">
+                                    <li><strong>गेहूं:</strong> सबसे सुरक्षित और स्थिर लाभ देने वाली फसल</li>
+                                    <li><strong>मक्का:</strong> तेजी से बढ़ने वाली फसल, कम समय में अच्छा लाभ</li>
+                                    <li><strong>टमाटर:</strong> सबसे ज्यादा लाभदायक लेकिन जोखिम भरा, बाजार कीमतों पर निर्भर</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 `;
