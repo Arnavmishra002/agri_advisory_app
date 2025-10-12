@@ -86,3 +86,4 @@ document.addEventListener('DOMContentLoaded', function() {
 // Make testJavaScript available globally
 window.testJavaScript = testJavaScript;
 
+
