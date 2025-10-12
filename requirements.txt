@@ -62,3 +62,4 @@ uvloop>=0.17.0  # Fast event loop for async operations
 
 # Enhanced Data Processing
 beautifulsoup4>=4.12.0  # Web scraping for government data
+lxml>=4.9.0  # XML parsing for government APIs

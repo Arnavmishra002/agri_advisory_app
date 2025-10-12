@@ -76,11 +76,26 @@
             margin-bottom: 25px;
             box-shadow: 0 8px 25px rgba(0,0,0,0.1);
             transition: all 0.4s ease;
-            cursor: pointer;
+            cursor: pointer !important;
             border: 3px solid transparent;
             position: relative;
             overflow: hidden;
             height: 100%;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            border-color: #4a7c59;
+        }
+        
+        .service-card:active {
+            transform: translateY(-4px) scale(0.98);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
         
         .service-card::before {
@@ -1118,7 +1133,7 @@
             <div class="row">
                 <!-- Government Schemes -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card government-schemes-card" onclick="showService('government-schemes'); return false;" style="cursor: pointer;">
+                    <div class="service-card government-schemes-card" data-service="government-schemes" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1134,7 +1149,7 @@
 
                 <!-- Crop Recommendations -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card crop-recommendations-card" onclick="showService('crop-recommendations'); return false;" style="cursor: pointer;">
+                    <div class="service-card crop-recommendations-card" data-service="crop-recommendations" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1150,7 +1165,7 @@
 
                 <!-- Weather -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card weather-card" onclick="showService('weather'); return false;" style="cursor: pointer;">
+                    <div class="service-card weather-card" data-service="weather" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1166,7 +1181,7 @@
 
                 <!-- Market Prices -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card market-prices-card" onclick="showService('market-prices'); return false;" style="cursor: pointer;">
+                    <div class="service-card market-prices-card" data-service="market-prices" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1182,7 +1197,7 @@
 
                 <!-- Pest Control -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card pest-control-card" onclick="showService('pest-control'); return false;" style="cursor: pointer;">
+                    <div class="service-card pest-control-card" data-service="pest-control" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1198,7 +1213,7 @@
 
                 <!-- AI Assistant -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card ai-assistant-card" onclick="showService('ai-assistant'); return false;" style="cursor: pointer;">
+                    <div class="service-card ai-assistant-card" data-service="ai-assistant" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1820,9 +1835,10 @@
         // Simple service show function - NO TOGGLE
         function showService(serviceName) {
             console.log('🎯 Showing service:', serviceName);
+            alert('Button clicked! Service: ' + serviceName);
             
             const content = document.getElementById(serviceName + '-content');
-            const card = document.querySelector('.' + serviceName + '-card');
+            const card = document.querySelector('[data-service="' + serviceName + '"]');
             
             if (!content) {
                 console.error('Content not found for:', serviceName);
@@ -1852,6 +1868,7 @@
             content.scrollIntoView({ behavior: 'smooth' });
             
             console.log('✅ Service shown:', serviceName);
+            alert('Service content should now be visible!');
         }
 
         // Initialize when page loads
@@ -1865,23 +1882,62 @@
                 console.log('✅ Test button handler added');
             }
             
-            // Add service card handlers
-            const serviceCards = document.querySelectorAll('.service-card');
-            console.log(`Found ${serviceCards.length} service cards`);
+            // Add service card handlers using data attributes
+            const serviceCards = document.querySelectorAll('.service-card[data-service]');
+            console.log(`Found ${serviceCards.length} service cards with data-service`);
             
             serviceCards.forEach((card, index) => {
-                const serviceName = card.classList[1].replace('-card', '');
+                const serviceName = card.getAttribute('data-service');
                 console.log(`Setting up card ${index + 1}: ${serviceName}`);
                 
-                card.onclick = function() {
+                // Add click event listener
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     console.log(`🎯 Card clicked: ${serviceName}`);
+                    alert(`Card clicked! Service: ${serviceName}`);
                     showService(serviceName);
-                    return false;
-                };
+                });
+                
+                // Also add mouse events for debugging
+                card.addEventListener('mouseenter', function() {
+                    console.log(`Mouse entered: ${serviceName}`);
+                });
+                
+                card.addEventListener('mousedown', function() {
+                    console.log(`Mouse down on: ${serviceName}`);
+                });
             });
             
             console.log('🎉 All services initialized!');
         });
+
+        // Backup initialization after 2 seconds
+        setTimeout(function() {
+            console.log('🔄 Running backup initialization...');
+            
+            const serviceCards = document.querySelectorAll('.service-card[data-service]');
+            console.log(`Backup: Found ${serviceCards.length} service cards`);
+            
+            serviceCards.forEach((card, index) => {
+                const serviceName = card.getAttribute('data-service');
+                console.log(`Backup setup card ${index + 1}: ${serviceName}`);
+                
+                // Remove any existing event listeners
+                card.removeEventListener('click', function() {});
+                
+                // Add new click event listener
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`🎯 Backup card clicked: ${serviceName}`);
+                    alert(`BACKUP: Card clicked! Service: ${serviceName}`);
+                    showService(serviceName);
+                });
+            });
+            
+            console.log('✅ Backup initialization complete!');
+        }, 2000);
 
         // Location detection
         function detectLocation() {
