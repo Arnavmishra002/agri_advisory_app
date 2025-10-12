@@ -14,6 +14,14 @@ from pathlib import Path
 import os
 from datetime import timedelta
 
+# Import sentry_sdk for error monitoring
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+except ImportError:
+    sentry_sdk = None
+    DjangoIntegration = None
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -58,6 +66,9 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware', # Add CorsMiddleware
+    'advisory.middleware.rate_limiting.UserRateLimitMiddleware',  # User rate limiting
+    'advisory.middleware.rate_limiting.IPWhitelistMiddleware',    # IP whitelist
+    'advisory.middleware.rate_limiting.RateLimitMiddleware',      # Rate limiting
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -337,10 +348,39 @@ CORS_ALLOWED_ORIGINS = [
 WEATHER_API_KEY = "YOUR_WEATHER_API_KEY"
 WEATHER_API_BASE_URL = "https://api.weatherapi.com/v1"
 
+# Rate Limiting Configuration
+RATE_LIMIT_WHITELIST = [
+    '127.0.0.1',
+    '::1',
+    'localhost'
+]
+
+RATE_LIMIT_WHITELIST_NETWORKS = [
+    '10.0.0.0/8',
+    '172.16.0.0/12',
+    '192.168.0.0/16'
+]
+
+# Performance Monitoring Configuration
+PERFORMANCE_MONITORING = {
+    'ENABLED': True,
+    'ALERT_THRESHOLDS': {
+        'response_time_ms': 2000,
+        'cpu_percent': 80,
+        'memory_percent': 85,
+        'error_rate_percent': 5
+    },
+    'METRICS_RETENTION_DAYS': {
+        'api_metrics': 7,
+        'system_metrics': 1,
+        'user_metrics': 30
+    }
+}
+
 # Sentry Configuration
 SENTRY_DSN = os.environ.get('SENTRY_DSN')
 
-if SENTRY_DSN:
+if SENTRY_DSN and sentry_sdk and DjangoIntegration:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[

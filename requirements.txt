@@ -17,6 +17,7 @@ scikit-learn>=1.3.0
 numpy>=1.24.0
 pandas>=2.0.0
 nltk>=3.8.0
+joblib>=1.3.0
 
 # HTTP Requests
 requests>=2.31.0
@@ -41,6 +42,13 @@ drf-spectacular>=0.26.0
 
 # Security
 django-ratelimit>=4.0.0
+djangorestframework-simplejwt>=5.3.0
+
+# System Monitoring
+psutil>=5.9.0
+
+# Error Monitoring
+sentry-sdk>=1.32.0
 
 # Streamlit Frontend
 streamlit>=1.28.0
@@ -50,6 +58,13 @@ Pillow>=10.0.0
 # Google AI Studio Integration
 google-generativeai>=0.3.0
 google-ai-generativelanguage>=0.4.0
+
+# Text-to-Speech
+gtts>=2.3.0
+pyttsx3>=2.90
+
+# Geolocation
+geopy>=2.3.0
 
 # Open Source AI Integration (Optional)
 # Note: Ollama is installed separately, not via pip

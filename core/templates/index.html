@@ -1828,19 +1828,72 @@
 
         // Simple function to test if JavaScript is working
         function testJavaScript() {
-            alert('✅ JavaScript is working! Service buttons should be clickable now.');
+            alert('JavaScript is working! ✅\n\nTesting service cards...');
             console.log('JavaScript test successful');
+            
+            // Test service cards
+            const serviceCards = document.querySelectorAll('.service-card[data-service]');
+            console.log(`Found ${serviceCards.length} service cards`);
+            
+            if (serviceCards.length > 0) {
+                // Run debug function
+                const debugInfo = debugServiceCards();
+                
+                alert(`Found ${serviceCards.length} service cards with data-service attributes.\n\nDebug Info:\n- Total cards: ${debugInfo.total}\n- With data-service: ${debugInfo.withDataService}\n\nTry clicking on any service card to test functionality!`);
+                
+                // Test first service card
+                const firstCard = serviceCards[0];
+                const serviceName = firstCard.getAttribute('data-service');
+                console.log(`Testing first service card: ${serviceName}`);
+                
+                // Simulate click
+                setTimeout(() => {
+                    console.log('Simulating click on first service card...');
+                    showService(serviceName);
+                }, 1000);
+            } else {
+                alert('No service cards found! Please check the HTML structure.');
+                // Run debug to see what's available
+                debugServiceCards();
+            }
         }
 
-        // Simple service show function
+        // Unified service show function
         function showService(serviceName) {
             console.log('🎯 Showing service:', serviceName);
+            
+            if (!serviceName) {
+                console.error('❌ No service name provided');
+                alert('Error: No service selected');
+                return;
+            }
             
             const content = document.getElementById(serviceName + '-content');
             const card = document.querySelector('[data-service="' + serviceName + '"]');
             
             if (!content) {
                 console.error('Content not found for:', serviceName);
+                alert('Service content not found. Please try again.');
+                return;
+            }
+            
+            // Check if this service is already active
+            const isCurrentlyActive = content.classList.contains('active');
+            
+            // If already active, close it
+            if (isCurrentlyActive) {
+                // Hide all service contents
+                document.querySelectorAll('.service-content').forEach(c => {
+                    c.style.display = 'none';
+                    c.classList.remove('active');
+                });
+                
+                // Remove active class from all cards
+                document.querySelectorAll('.service-card').forEach(c => {
+                    c.classList.remove('active');
+                });
+                
+                console.log('Service closed:', serviceName);
                 return;
             }
             
@@ -1865,6 +1918,19 @@
             // Scroll to the content
             content.scrollIntoView({ behavior: 'smooth' });
             
+            // Load specific data based on service
+            switch(serviceName) {
+                case 'crop-recommendations':
+                    loadCropData();
+                    break;
+                case 'weather':
+                    loadWeatherData();
+                    break;
+                case 'market-prices':
+                    loadMarketPrices();
+                    break;
+            }
+            
             console.log('✅ Service shown:', serviceName);
         }
 
@@ -1879,6 +1945,19 @@
                 console.log('✅ Test button handler added');
             }
             
+            // Initialize service cards first
+            initializeServiceCards();
+            
+            // Initialize app data
+            initializeAppData();
+            
+            console.log('🎉 Complete initialization finished!');
+        });
+        
+        // Initialize service cards
+        function initializeServiceCards() {
+            console.log('🎯 Initializing Service Cards...');
+            
             // Add service card handlers using data attributes
             const serviceCards = document.querySelectorAll('.service-card[data-service]');
             console.log(`Found ${serviceCards.length} service cards with data-service`);
@@ -1887,17 +1966,98 @@
                 const serviceName = card.getAttribute('data-service');
                 console.log(`Setting up card ${index + 1}: ${serviceName}`);
                 
+                // Make sure the card is clickable
+                card.style.cursor = 'pointer';
+                card.style.userSelect = 'none';
+                
+                // Remove any existing event listeners to prevent duplicates
+                card.removeEventListener('click', handleServiceCardClick);
+                
                 // Add click event listener
-                card.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log(`🎯 Card clicked: ${serviceName}`);
-                    showService(serviceName);
+                card.addEventListener('click', handleServiceCardClick);
+                
+                // Add visual feedback
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px) scale(1.02)';
+                    this.style.boxShadow = '0 15px 35px rgba(0,0,0,0.2)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
                 });
             });
             
-            console.log('🎉 All services initialized!');
-        });
+            // Verify service content elements exist
+            const serviceNames = ['government-schemes', 'crop-recommendations', 'weather', 'market-prices', 'pest-control', 'ai-assistant'];
+            serviceNames.forEach(serviceName => {
+                const content = document.getElementById(serviceName + '-content');
+                const card = document.querySelector('[data-service="' + serviceName + '"]');
+                if (content && card) {
+                    console.log(`✅ Service ${serviceName}: Content ✓ Card ✓`);
+                } else {
+                    console.warn(`⚠️ Service ${serviceName}: Content ${content ? '✓' : '✗'} Card ${card ? '✓' : '✗'}`);
+                }
+            });
+            
+            console.log('🎯 Service cards initialization complete!');
+        }
+        
+        // Unified click handler for service cards
+        function handleServiceCardClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const serviceName = this.getAttribute('data-service');
+            console.log(`🎯 Service card clicked: ${serviceName}`);
+            console.log('Clicked element:', this);
+            console.log('Event:', e);
+            
+            if (serviceName) {
+                showService(serviceName);
+            } else {
+                console.error('❌ No service name found for clicked card');
+                alert('Service not found. Please try again.');
+            }
+        }
+        
+        // Debug function to check service card status
+        function debugServiceCards() {
+            console.log('🔍 Debugging Service Cards...');
+            
+            const allCards = document.querySelectorAll('.service-card');
+            const dataServiceCards = document.querySelectorAll('.service-card[data-service]');
+            
+            console.log(`Total service cards: ${allCards.length}`);
+            console.log(`Cards with data-service: ${dataServiceCards.length}`);
+            
+            allCards.forEach((card, index) => {
+                const hasDataService = card.hasAttribute('data-service');
+                const serviceName = card.getAttribute('data-service');
+                const classes = card.className;
+                
+                console.log(`Card ${index + 1}:`);
+                console.log(`  - Classes: ${classes}`);
+                console.log(`  - Has data-service: ${hasDataService}`);
+                console.log(`  - Service name: ${serviceName}`);
+                console.log(`  - Computed cursor: ${window.getComputedStyle(card).cursor}`);
+                console.log(`  - Computed pointer-events: ${window.getComputedStyle(card).pointerEvents}`);
+            });
+            
+            return {
+                total: allCards.length,
+                withDataService: dataServiceCards.length,
+                cards: Array.from(allCards).map(card => ({
+                    classes: card.className,
+                    hasDataService: card.hasAttribute('data-service'),
+                    serviceName: card.getAttribute('data-service'),
+                    cursor: window.getComputedStyle(card).cursor
+                }))
+            };
+        }
+        
+        // Make debug function available globally
+        window.debugServiceCards = debugServiceCards;
 
 
         // Location detection
@@ -1968,94 +2128,16 @@
         }
 
         // Test function to verify JavaScript is working
-        function testJavaScript() {
-            console.log('JavaScript is working!');
-            alert('JavaScript is working! Service buttons should be clickable.');
-        }
 
-        // Show service function
-        function showService(serviceName) {
-            console.log('🎯 showService called with:', serviceName);
-            
-            if (!serviceName) {
-                console.error('❌ No service name provided');
-                alert('Error: No service selected');
-                return;
-            }
-            
-            // Add visual feedback
-            console.log('📋 Attempting to show service:', serviceName);
-            
-            // Check if this service is already active
-            const targetContent = document.getElementById(serviceName + '-content');
-            const activeCard = document.querySelector('.' + serviceName + '-card');
-            const isCurrentlyActive = targetContent && targetContent.classList.contains('active');
-            
-            // If already active, close it
-            if (isCurrentlyActive) {
-                // Hide all service contents
-                document.querySelectorAll('.service-content').forEach(content => {
-                    content.classList.remove('active');
-                });
-                
-                // Remove active class from all cards
-                document.querySelectorAll('.service-card').forEach(card => {
-                    card.classList.remove('active');
-                });
-                
-                console.log('Service closed:', serviceName);
-                
-                // Update button text and status back to open option
-                updateButtonText(serviceName, false);
-                updateStatusText(serviceName, false);
-                return;
-            }
-            
-            // Hide all service contents
-            document.querySelectorAll('.service-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Remove active class from all cards
-            document.querySelectorAll('.service-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            
-            // Show selected service content
-            if (targetContent) {
-                targetContent.classList.add('active');
-                targetContent.scrollIntoView({ behavior: 'smooth' });
-                console.log('Service content shown:', serviceName);
-            } else {
-                console.error('Service content not found:', serviceName + '-content');
-            }
-            
-            // Add active class to selected card
-            if (activeCard) {
-                activeCard.classList.add('active');
-                console.log('Service card activated:', serviceName);
-            } else {
-                console.error('Service card not found:', '.' + serviceName + '-card');
-            }
-            
-            console.log('Service opened:', serviceName);
-            
-            // Update button text and status to show close option
-            updateButtonText(serviceName, true);
-            updateStatusText(serviceName, true);
-            
-            // Load specific data based on service
-            switch(serviceName) {
-                case 'crop-recommendations':
-                    loadCropData();
-                    break;
-                case 'weather':
-                    loadWeatherData();
-                    break;
-                case 'market-prices':
-                    loadMarketPrices();
-                    break;
-            }
+        // Additional service functions (updateButtonText and updateStatusText)
+        function updateButtonText(serviceName, isActive) {
+            // Implementation for button text updates
+            console.log(`Button text update for ${serviceName}: ${isActive ? 'Close' : 'Open'}`);
+        }
+        
+        function updateStatusText(serviceName, isActive) {
+            // Implementation for status text updates
+            console.log(`Status text update for ${serviceName}: ${isActive ? 'Active' : 'Inactive'}`);
         }
 
         // Load crop recommendations
@@ -5553,9 +5635,9 @@
             }, 3000);
         }
         
-        // DOM Content Loaded Event
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded - Initializing...');
+        // Initialize session and location data
+        function initializeAppData() {
+            console.log('🔧 Initializing App Data...');
             
             // Initialize session ID
             sessionId = 'session_' + Date.now();
@@ -5592,7 +5674,7 @@
                 });
             });
             
-            console.log('Initialization complete!');
-        });
+            console.log('App data initialization complete!');
+        }
     </script>
 </body>
