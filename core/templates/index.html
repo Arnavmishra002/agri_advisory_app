@@ -71,31 +71,93 @@
         
         .service-card {
             background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.4s ease;
             cursor: pointer;
-            border: 2px solid transparent;
+            border: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #2d5016, #4a7c59, #6c9c6c);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
         
         .service-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
             border-color: #4a7c59;
+        }
+        
+        .service-card:hover::before {
+            transform: scaleX(1);
         }
         
         .service-card.active {
             border-color: #2d5016;
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            transform: translateY(-5px);
+        }
+        
+        .service-card.active::before {
+            transform: scaleX(1);
+        }
+        
+        .service-status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-indicator {
+            font-size: 1.2rem;
+            color: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.active {
+            color: #28a745;
+        }
+        
+        .status-text {
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
         
         .service-icon {
-            font-size: 2.5rem;
+            font-size: 3rem;
             color: #4a7c59;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             text-align: center;
+            transition: all 0.3s ease;
+            display: block;
+        }
+        
+        .service-card:hover .service-icon {
+            transform: scale(1.1) rotate(5deg);
+            color: #2d5016;
         }
         
         .service-title {
@@ -117,30 +179,63 @@
             background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%);
             color: white;
             border: none;
-            border-radius: 25px;
-            padding: 10px 20px;
+            border-radius: 30px;
+            padding: 12px 25px;
             font-weight: 600;
             width: 100%;
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
+            font-size: 1rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(45, 80, 22, 0.3);
+        }
+        
+        .service-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s ease;
         }
         
         .service-button:hover {
             background: linear-gradient(135deg, #1e3a0f 0%, #3a6b49 100%);
-            transform: translateY(-2px);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(45, 80, 22, 0.4);
+        }
+        
+        .service-button:hover::before {
+            left: 100%;
         }
         
         .service-content {
             display: none;
             background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-top: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             border: 2px solid #e9ecef;
+            animation: fadeInUp 0.5s ease-out;
         }
         
         .service-content.active {
             display: block;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
             animation: fadeIn 0.5s ease-in;
         }
         
@@ -985,6 +1080,10 @@
                 <!-- Government Schemes -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="service-card government-schemes-card" onclick="showService('government-schemes')">
+                        <div class="service-status">
+                            <span class="status-indicator active">●</span>
+                            <span class="status-text">सक्रिय</span>
+                        </div>
                         <div class="service-icon">
                             <i class="fas fa-landmark"></i>
                         </div>
@@ -997,6 +1096,10 @@
                 <!-- Crop Recommendations -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="service-card crop-recommendations-card" onclick="showService('crop-recommendations')">
+                        <div class="service-status">
+                            <span class="status-indicator active">●</span>
+                            <span class="status-text">सक्रिय</span>
+                        </div>
                         <div class="service-icon">
                             <i class="fas fa-seedling"></i>
                         </div>
@@ -1009,6 +1112,10 @@
                 <!-- Weather -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="service-card weather-card" onclick="showService('weather')">
+                        <div class="service-status">
+                            <span class="status-indicator active">●</span>
+                            <span class="status-text">सक्रिय</span>
+                        </div>
                         <div class="service-icon">
                             <i class="fas fa-cloud-sun"></i>
                         </div>
@@ -1021,6 +1128,10 @@
                 <!-- Market Prices -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="service-card market-prices-card" onclick="showService('market-prices')">
+                        <div class="service-status">
+                            <span class="status-indicator active">●</span>
+                            <span class="status-text">सक्रिय</span>
+                        </div>
                         <div class="service-icon">
                             <i class="fas fa-chart-line"></i>
                         </div>
@@ -1033,6 +1144,10 @@
                 <!-- Pest Control -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="service-card pest-control-card" onclick="showService('pest-control')">
+                        <div class="service-status">
+                            <span class="status-indicator active">●</span>
+                            <span class="status-text">सक्रिय</span>
+                        </div>
                         <div class="service-icon">
                             <i class="fas fa-bug"></i>
                         </div>
@@ -1045,6 +1160,10 @@
                 <!-- AI Assistant -->
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="service-card ai-assistant-card" onclick="showService('ai-assistant')">
+                        <div class="service-status">
+                            <span class="status-indicator active">●</span>
+                            <span class="status-text">सक्रिय</span>
+                        </div>
                         <div class="service-icon">
                             <i class="fas fa-robot"></i>
                         </div>
