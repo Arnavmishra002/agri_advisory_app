@@ -457,6 +457,67 @@ class ConsolidatedGovernmentService:
                 stats['newest_entry'] = key
         
         return stats
+    
+    def get_comprehensive_government_data(self, location: str, latitude: float, longitude: float, commodity: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Fetches comprehensive real-time data from various government sources in parallel.
+        """
+        cache_key = f"comprehensive_data_{location}_{latitude}_{longitude}_{commodity}"
+        cached_data = self._get_cached_data(cache_key, self.cache_duration['default'])
+        if cached_data:
+            logger.info(f"Serving comprehensive data from cache for {location}")
+            return cached_data
+
+        results = {}
+        # Using ThreadPoolExecutor for parallel blocking I/O calls
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = []
+            # Weather data
+            futures.append(executor.submit(self.weather_api.get_current_weather, location))
+            futures.append(executor.submit(self.weather_api.get_forecast_weather, location, days=7))
+            # Market prices
+            futures.append(executor.submit(get_market_prices, latitude, longitude, 'en', commodity or 'wheat'))
+            futures.append(executor.submit(get_trending_crops, latitude, longitude, 'en'))
+            # Government schemes (using enhanced_gov_api for now)
+            futures.append(executor.submit(self.enhanced_gov_api.get_government_schemes, location))
+
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    if 'current' in result: # Heuristic for weather
+                        results['current_weather'] = result
+                    elif 'forecast' in result:
+                        results['forecast_weather'] = result
+                    elif 'price_info' in result: # Heuristic for market prices
+                        results['market_prices'] = result
+                    elif 'trending_crops' in result:
+                        results['trending_crops'] = result
+                    elif 'schemes' in result: # Heuristic for schemes
+                        results['government_schemes'] = result
+                except Exception as e:
+                    logger.error(f"Error fetching data in parallel: {e}")
+
+        final_data = {
+            'location': location,
+            'latitude': latitude,
+            'longitude': longitude,
+            'timestamp': datetime.now().isoformat(),
+            **results
+        }
+        self._set_cached_data(cache_key, final_data)
+        return final_data
+    
+    def _get_cached_data(self, key: str, max_age_seconds: int) -> Optional[Dict[str, Any]]:
+        """Retrieves data from cache if valid."""
+        if key in self.cache:
+            cached_item = self.cache[key]
+            if (datetime.now() - cached_item['timestamp']).total_seconds() < max_age_seconds:
+                return cached_item['data']
+        return None
+
+    def _set_cached_data(self, key: str, data: Dict[str, Any]):
+        """Stores data in cache with a timestamp."""
+        self.cache[key] = {'data': data, 'timestamp': datetime.now()}
 
 
 # Convenience functions for backward compatibility

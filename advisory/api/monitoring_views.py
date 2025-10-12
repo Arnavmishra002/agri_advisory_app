@@ -129,7 +129,7 @@ class MonitoringViewSet(viewsets.ViewSet):
 class RateLimitViewSet(viewsets.ViewSet):
     """Rate limiting management endpoints"""
     
-    permission_classes = [IsAuthenticated]  # Require authentication for rate limit management
+    permission_classes = [AllowAny]  # Allow anonymous access for rate limit status
     
     @action(detail=False, methods=['get'])
     def status(self, request):

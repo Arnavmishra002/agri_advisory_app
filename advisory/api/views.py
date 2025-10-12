@@ -123,6 +123,31 @@ class CropViewSet(viewsets.ViewSet):
             'message': 'Crop list endpoint',
             'crops': []
         }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], url_path='recommendations')
+    def recommendations(self, request):
+        """Get crop recommendations"""
+        try:
+            from advisory.services.consolidated_crop_service import ConsolidatedCropService
+            
+            data = request.data
+            location = data.get('location', 'Delhi')
+            season = data.get('season')
+            soil_type = data.get('soil_type')
+            
+            crop_service = ConsolidatedCropService()
+            recommendations = crop_service.get_crop_recommendations(location, season, soil_type)
+            
+            return Response({
+                'message': 'Crop recommendations generated successfully',
+                'data': recommendations
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': 'Failed to get crop recommendations',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class WeatherViewSet(viewsets.ViewSet):
     """Weather-related endpoints"""

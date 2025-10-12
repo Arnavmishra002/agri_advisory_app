@@ -7,7 +7,7 @@ Implements rate limiting for API endpoints to prevent abuse
 import time
 import logging
 import ipaddress
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin

@@ -350,7 +350,7 @@ class ConsolidatedCropService:
             features = self._prepare_yield_features(crop_type, area_hectares, soil_data, weather_data)
             
             # Make prediction using trained model
-            if self.models.get('yield_prediction'):
+            if self.models.get('yield_prediction') and hasattr(self.models['yield_prediction'], 'predict'):
                 yield_per_hectare = self.models['yield_prediction'].predict([features])[0]
                 total_yield = yield_per_hectare * area_hectares
                 
