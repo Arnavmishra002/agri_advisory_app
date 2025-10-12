@@ -306,7 +306,7 @@ class EnhancedGovernmentAPI:
         
         # 1. Try Google Maps API first (most accurate like Google Maps)
         google_result = self._detect_location_via_google_maps(query_lower)
-        if google_result['confidence'] > 0.8:
+        if google_result['confidence'] > 0.8 and google_result.get('state') != 'Unknown':
             result.update(google_result)
             result['source'] = 'google_maps'
             result['google_maps_equivalent'] = True
@@ -324,7 +324,7 @@ class EnhancedGovernmentAPI:
         
         # 3. Enhanced comprehensive database search (Google Maps level coverage)
         db_result = self._detect_location_via_enhanced_database(query_lower)
-        if db_result['confidence'] > 0.6:
+        if db_result['confidence'] > result['confidence']:
             result.update(db_result)
             result['source'] = 'enhanced_database'
         
@@ -344,15 +344,40 @@ class EnhancedGovernmentAPI:
         # 6. Final fallback - ensure we always have a location
         if not result['location'] or result['confidence'] < 0.2:
             result['location'] = query.title() if query else 'Delhi'
-            result['state'] = 'Delhi' if 'delhi' in query_lower else 'Unknown'
+            # Better state detection for common cities
+            if 'delhi' in query_lower:
+                result['state'] = 'Delhi'
+            elif 'mumbai' in query_lower or 'maharashtra' in query_lower:
+                result['state'] = 'Maharashtra'
+            elif 'bangalore' in query_lower or 'karnataka' in query_lower:
+                result['state'] = 'Karnataka'
+            elif 'chennai' in query_lower or 'tamil' in query_lower:
+                result['state'] = 'Tamil Nadu'
+            elif 'kolkata' in query_lower or 'west bengal' in query_lower:
+                result['state'] = 'West Bengal'
+            elif 'hyderabad' in query_lower or 'telangana' in query_lower:
+                result['state'] = 'Telangana'
+            elif 'lucknow' in query_lower or 'kanpur' in query_lower or 'agra' in query_lower or 'varanasi' in query_lower or 'raebareli' in query_lower:
+                result['state'] = 'Uttar Pradesh'
+            elif 'jaipur' in query_lower or 'rajasthan' in query_lower:
+                result['state'] = 'Rajasthan'
+            elif 'patna' in query_lower or 'bihar' in query_lower:
+                result['state'] = 'Bihar'
+            elif 'ahmedabad' in query_lower or 'gujarat' in query_lower:
+                result['state'] = 'Gujarat'
+            elif 'pune' in query_lower:
+                result['state'] = 'Maharashtra'
+            else:
+                result['state'] = 'Unknown'
             result['confidence'] = 0.5
             result['source'] = 'final_fallback'
         
-        # 5. Fuzzy matching for partial names
-        fuzzy_result = self._detect_location_via_fuzzy_matching(query_lower)
-        if fuzzy_result['confidence'] > result['confidence']:
-            result.update(fuzzy_result)
-            result['source'] = 'fuzzy_matching'
+        # 5. Fuzzy matching for partial names (only if confidence is still low)
+        if result['confidence'] < 0.7:
+            fuzzy_result = self._detect_location_via_fuzzy_matching(query_lower)
+            if fuzzy_result['confidence'] > result['confidence']:
+                result.update(fuzzy_result)
+                result['source'] = 'fuzzy_matching'
         
         self.location_cache[cache_key] = result
         return result
@@ -578,12 +603,34 @@ class EnhancedGovernmentAPI:
                     'type': 'city'
                 }
         
-        # If no exact match, return the query as location with default state
+        # If no exact match, try to determine state from query
+        state = 'Unknown'
+        if 'delhi' in query_lower:
+            state = 'Delhi'
+        elif 'mumbai' in query_lower or 'maharashtra' in query_lower or 'pune' in query_lower:
+            state = 'Maharashtra'
+        elif 'bangalore' in query_lower or 'karnataka' in query_lower:
+            state = 'Karnataka'
+        elif 'lucknow' in query_lower or 'kanpur' in query_lower or 'agra' in query_lower or 'varanasi' in query_lower or 'raebareli' in query_lower or 'bareilly' in query_lower:
+            state = 'Uttar Pradesh'
+        elif 'chennai' in query_lower or 'tamil' in query_lower:
+            state = 'Tamil Nadu'
+        elif 'kolkata' in query_lower or 'west bengal' in query_lower:
+            state = 'West Bengal'
+        elif 'hyderabad' in query_lower or 'telangana' in query_lower:
+            state = 'Telangana'
+        elif 'jaipur' in query_lower or 'rajasthan' in query_lower:
+            state = 'Rajasthan'
+        elif 'patna' in query_lower or 'bihar' in query_lower:
+            state = 'Bihar'
+        elif 'ahmedabad' in query_lower or 'gujarat' in query_lower:
+            state = 'Gujarat'
+        
         return {
             'location': query_lower.title(),
-            'state': 'Unknown',
+            'state': state,
             'district': query_lower.title(),
-            'region': 'Unknown',
+            'region': state,
             'confidence': 0.4,
             'type': 'city'
         }
@@ -686,6 +733,11 @@ class EnhancedGovernmentAPI:
             
             # Determine the main location name
             location_name = result.get('formatted_address', '').split(',')[0].strip()
+            
+            # Special case for Delhi
+            if 'delhi' in location_name.lower() or 'delhi' in result.get('formatted_address', '').lower():
+                state = 'Delhi'
+                district = 'Delhi'
             
             return {
                 'location': location_name,

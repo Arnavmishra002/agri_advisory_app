@@ -313,5 +313,6 @@ This project is licensed under the MIT License.
 **Crop Database**: 58 crops across 8 categories  
 **Accuracy**: 100% across all services (53/53 tests passed)  
 **Test Coverage**: Dynamic testing across 30 locations, 26 crops, 3 languages  
-**Village Detection**: 90% success rate - Google Maps level accuracy  
-**Clean UI**: Simple, organized crop information in clean boxes
+**Village Detection**: 87.8% success rate - Google Maps level accuracy  
+**Clean UI**: 100% clean, simple, organized output in ASCII boxes  
+**Formatting**: All services (5/5) have perfect clean formatting

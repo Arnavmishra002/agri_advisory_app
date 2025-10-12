@@ -226,9 +226,29 @@ class RealTimeGovernmentAI:
             
             if weather_data:
                 response += f"🌤️ **वर्तमान मौसम**:\n"
-                response += f"• तापमान: {weather_data.get('temperature', 'N/A')}°C\n"
-                response += f"• आर्द्रता: {weather_data.get('humidity', 'N/A')}%\n"
-                response += f"• हवा: {weather_data.get('wind_speed', 'N/A')} km/h\n\n"
+                temp = weather_data.get('temperature', 'N/A')
+                humidity = weather_data.get('humidity', 'N/A')
+                wind = weather_data.get('wind_speed', 'N/A')
+                
+                # Clean units to avoid duplication
+                if isinstance(temp, str) and '°C' in temp:
+                    temp_display = temp
+                else:
+                    temp_display = f"{temp}°C" if temp != 'N/A' else 'N/A'
+                    
+                if isinstance(humidity, str) and '%' in humidity:
+                    humidity_display = humidity
+                else:
+                    humidity_display = f"{humidity}%" if humidity != 'N/A' else 'N/A'
+                    
+                if isinstance(wind, str) and 'km/h' in wind:
+                    wind_display = wind
+                else:
+                    wind_display = f"{wind} km/h" if wind != 'N/A' else 'N/A'
+                
+                response += f"• तापमान: {temp_display}\n"
+                response += f"• आर्द्रता: {humidity_display}\n"
+                response += f"• हवा: {wind_display}\n\n"
             
             if crop_data and crop_data.get('recommendations'):
                 recommendations = crop_data['recommendations'][:5]
@@ -260,18 +280,54 @@ class RealTimeGovernmentAI:
             
             if weather_data:
                 response += f"🌤️ **Current Weather**:\n"
-                response += f"• Temperature: {weather_data.get('temperature', 'N/A')}°C\n"
-                response += f"• Humidity: {weather_data.get('humidity', 'N/A')}%\n"
-                response += f"• Wind: {weather_data.get('wind_speed', 'N/A')} km/h\n\n"
+                temp = weather_data.get('temperature', 'N/A')
+                humidity = weather_data.get('humidity', 'N/A')
+                wind = weather_data.get('wind_speed', 'N/A')
+                
+                # Clean units to avoid duplication
+                if isinstance(temp, str) and '°C' in temp:
+                    temp_display = temp
+                else:
+                    temp_display = f"{temp}°C" if temp != 'N/A' else 'N/A'
+                    
+                if isinstance(humidity, str) and '%' in humidity:
+                    humidity_display = humidity
+                else:
+                    humidity_display = f"{humidity}%" if humidity != 'N/A' else 'N/A'
+                    
+                if isinstance(wind, str) and 'km/h' in wind:
+                    wind_display = wind
+                else:
+                    wind_display = f"{wind} km/h" if wind != 'N/A' else 'N/A'
+                
+                response += f"• Temperature: {temp_display}\n"
+                response += f"• Humidity: {humidity_display}\n"
+                response += f"• Wind: {wind_display}\n\n"
             
             if crop_data and crop_data.get('recommendations'):
                 recommendations = crop_data['recommendations'][:5]
                 response += f"🥇 **Government Data-Based Recommended Crops**:\n\n"
                 
                 for i, crop in enumerate(recommendations, 1):
-                    # Create clean, simple box for each crop
+                    # Create clean, simple box for each crop with English names
+                    crop_name = crop.get('name', 'Crop')
+                    
+                    # Convert Hindi crop names to English for English output
+                    english_crop_names = {
+                        'गेहूं': 'Wheat',
+                        'चावल': 'Rice', 
+                        'मक्का': 'Maize',
+                        'कपास': 'Cotton',
+                        'गन्ना': 'Sugarcane',
+                        'टमाटर': 'Tomato',
+                        'आलू': 'Potato',
+                        'प्याज': 'Onion'
+                    }
+                    
+                    english_crop_name = english_crop_names.get(crop_name, crop_name)
+                    
                     response += f"┌─────────────────────────────────────┐\n"
-                    response += f"│ 🌾 {i}. {crop.get('name', 'Crop')}\n"
+                    response += f"│ 🌾 {i}. {english_crop_name}\n"
                     response += f"├─────────────────────────────────────┤\n"
                     response += f"│ 💰 MSP: ₹{crop.get('msp', 'N/A')}/quintal\n"
                     response += f"│ 📈 Market Price: ₹{crop.get('market_price', 'N/A')}/quintal\n"
@@ -298,9 +354,15 @@ class RealTimeGovernmentAI:
             
             if market_data:
                 response += f"📈 **वर्तमान मंडी भाव**:\n\n"
-                for commodity, data in list(market_data.items())[:5]:
-                    response += f"• {commodity}: ₹{data.get('current_price', 'N/A')}/क्विंटल\n"
-                    response += f"  (MSP: ₹{data.get('msp', 'N/A')}, स्रोत: {data.get('source', 'सरकारी')})\n\n"
+                for i, (commodity, data) in enumerate(list(market_data.items())[:5], 1):
+                    response += f"┌─────────────────────────────────────┐\n"
+                    response += f"│ 💰 {i}. {commodity}\n"
+                    response += f"├─────────────────────────────────────┤\n"
+                    response += f"│ 📈 बाजार भाव: ₹{data.get('current_price', 'N/A')}/क्विंटल\n"
+                    response += f"│ 🏛️ MSP: ₹{data.get('msp', 'N/A')}/क्विंटल\n"
+                    response += f"│ 📊 स्रोत: {data.get('source', 'सरकारी')}\n"
+                    response += f"│ 📅 अपडेट: {data.get('date', 'आज')}\n"
+                    response += f"└─────────────────────────────────────┘\n\n"
                 
                 response += f"📊 **डेटा स्रोत**: Agmarknet, e-NAM, सरकारी मंडी (वास्तविक समय)\n"
                 response += f"✅ **गारंटी**: 100% सरकारी मंडी डेटा\n"
@@ -316,9 +378,15 @@ class RealTimeGovernmentAI:
             
             if market_data:
                 response += f"📈 **Current Market Prices**:\n\n"
-                for commodity, data in list(market_data.items())[:5]:
-                    response += f"• {commodity}: ₹{data.get('current_price', 'N/A')}/quintal\n"
-                    response += f"  (MSP: ₹{data.get('msp', 'N/A')}, Source: {data.get('source', 'Government')})\n\n"
+                for i, (commodity, data) in enumerate(list(market_data.items())[:5], 1):
+                    response += f"┌─────────────────────────────────────┐\n"
+                    response += f"│ 💰 {i}. {commodity}\n"
+                    response += f"├─────────────────────────────────────┤\n"
+                    response += f"│ 📈 Market Price: ₹{data.get('current_price', 'N/A')}/quintal\n"
+                    response += f"│ 🏛️ MSP: ₹{data.get('msp', 'N/A')}/quintal\n"
+                    response += f"│ 📊 Source: {data.get('source', 'Government')}\n"
+                    response += f"│ 📅 Updated: {data.get('date', 'Today')}\n"
+                    response += f"└─────────────────────────────────────┘\n\n"
                 
                 response += f"📊 **Data Source**: Agmarknet, e-NAM, Government Mandis (Real-time)\n"
                 response += f"✅ **Guaranteed**: 100% Government Mandi Data\n"
@@ -338,18 +406,36 @@ class RealTimeGovernmentAI:
             
             if weather_data:
                 response += f"🌡️ **वर्तमान स्थिति**:\n"
-                response += f"• तापमान: {weather_data.get('temperature', 'N/A')}°C\n"
-                response += f"• आर्द्रता: {weather_data.get('humidity', 'N/A')}%\n"
-                response += f"• हवा की गति: {weather_data.get('wind_speed', 'N/A')} km/h\n"
+                
+                # Clean units to avoid duplication
+                temp = weather_data.get('temperature', 'N/A')
+                humidity = weather_data.get('humidity', 'N/A')
+                wind = weather_data.get('wind_speed', 'N/A')
+                rain_prob = weather_data.get('rainfall_probability', 'N/A')
+                
+                temp_display = temp if isinstance(temp, str) and '°C' in temp else f"{temp}°C" if temp != 'N/A' else 'N/A'
+                humidity_display = humidity if isinstance(humidity, str) and '%' in humidity else f"{humidity}%" if humidity != 'N/A' else 'N/A'
+                wind_display = wind if isinstance(wind, str) and 'km/h' in wind else f"{wind} km/h" if wind != 'N/A' else 'N/A'
+                rain_display = rain_prob if isinstance(rain_prob, str) and '%' in rain_prob else f"{rain_prob}%" if rain_prob != 'N/A' else 'N/A'
+                
+                response += f"• तापमान: {temp_display}\n"
+                response += f"• आर्द्रता: {humidity_display}\n"
+                response += f"• हवा की गति: {wind_display}\n"
                 response += f"• मौसम: {weather_data.get('condition', 'सामान्य')}\n"
-                response += f"• बारिश की संभावना: {weather_data.get('rainfall_probability', 'N/A')}%\n\n"
+                response += f"• बारिश की संभावना: {rain_display}\n\n"
                 
                 # 3-day forecast
                 forecast = weather_data.get('forecast_7day', [])
                 if forecast:
                     response += f"📅 **अगले 3 दिन का पूर्वानुमान**:\n"
                     for i, day in enumerate(forecast[:3]):
-                        response += f"• {day.get('day', f'Day {i+1}')}: {day.get('temperature', 'N/A')}°C\n"
+                        temp = day.get('temperature', 'N/A')
+                        # Clean forecast temperature units
+                        if isinstance(temp, str) and '°C' in temp:
+                            temp_display = temp
+                        else:
+                            temp_display = f"{temp}°C" if temp != 'N/A' else 'N/A'
+                        response += f"• {day.get('day', f'Day {i+1}')}: {temp_display}\n"
                     response += f"\n"
                 
                 response += f"🌾 **किसान सलाह**: {weather_data.get('farmer_advisory', 'मौसम के अनुसार फसल की देखभाल करें')}\n\n"
@@ -367,18 +453,36 @@ class RealTimeGovernmentAI:
             
             if weather_data:
                 response += f"🌡️ **Current Conditions**:\n"
-                response += f"• Temperature: {weather_data.get('temperature', 'N/A')}°C\n"
-                response += f"• Humidity: {weather_data.get('humidity', 'N/A')}%\n"
-                response += f"• Wind Speed: {weather_data.get('wind_speed', 'N/A')} km/h\n"
+                
+                # Clean units to avoid duplication
+                temp = weather_data.get('temperature', 'N/A')
+                humidity = weather_data.get('humidity', 'N/A')
+                wind = weather_data.get('wind_speed', 'N/A')
+                rain_prob = weather_data.get('rainfall_probability', 'N/A')
+                
+                temp_display = temp if isinstance(temp, str) and '°C' in temp else f"{temp}°C" if temp != 'N/A' else 'N/A'
+                humidity_display = humidity if isinstance(humidity, str) and '%' in humidity else f"{humidity}%" if humidity != 'N/A' else 'N/A'
+                wind_display = wind if isinstance(wind, str) and 'km/h' in wind else f"{wind} km/h" if wind != 'N/A' else 'N/A'
+                rain_display = rain_prob if isinstance(rain_prob, str) and '%' in rain_prob else f"{rain_prob}%" if rain_prob != 'N/A' else 'N/A'
+                
+                response += f"• Temperature: {temp_display}\n"
+                response += f"• Humidity: {humidity_display}\n"
+                response += f"• Wind Speed: {wind_display}\n"
                 response += f"• Condition: {weather_data.get('condition', 'Normal')}\n"
-                response += f"• Rain Probability: {weather_data.get('rainfall_probability', 'N/A')}%\n\n"
+                response += f"• Rain Probability: {rain_display}\n\n"
                 
                 # 3-day forecast
                 forecast = weather_data.get('forecast_7day', [])
                 if forecast:
                     response += f"📅 **3-Day Forecast**:\n"
                     for i, day in enumerate(forecast[:3]):
-                        response += f"• {day.get('day', f'Day {i+1}')}: {day.get('temperature', 'N/A')}°C\n"
+                        temp = day.get('temperature', 'N/A')
+                        # Clean forecast temperature units
+                        if isinstance(temp, str) and '°C' in temp:
+                            temp_display = temp
+                        else:
+                            temp_display = f"{temp}°C" if temp != 'N/A' else 'N/A'
+                        response += f"• {day.get('day', f'Day {i+1}')}: {temp_display}\n"
                     response += f"\n"
                 
                 response += f"🌾 **Farmer Advisory**: {weather_data.get('farmer_advisory', 'Take care of crops according to weather')}\n\n"
@@ -400,11 +504,15 @@ class RealTimeGovernmentAI:
             
             if schemes_data:
                 response += f"📋 **उपलब्ध सरकारी योजनाएं**:\n\n"
-                for scheme_name, scheme_info in list(schemes_data.items())[:5]:
-                    response += f"• **{scheme_name}**\n"
-                    response += f"  - लाभ: {scheme_info.get('benefit', 'N/A')}\n"
-                    response += f"  - पात्रता: {scheme_info.get('eligibility', 'N/A')}\n"
-                    response += f"  - आवेदन: {scheme_info.get('application', 'N/A')}\n\n"
+                for i, (scheme_name, scheme_info) in enumerate(list(schemes_data.items())[:5], 1):
+                    response += f"┌─────────────────────────────────────┐\n"
+                    response += f"│ 🏛️ {i}. {scheme_name}\n"
+                    response += f"├─────────────────────────────────────┤\n"
+                    response += f"│ 💰 लाभ: {scheme_info.get('benefit', 'N/A')}\n"
+                    response += f"│ ✅ पात्रता: {scheme_info.get('eligibility', 'N/A')}\n"
+                    response += f"│ 📝 आवेदन: {scheme_info.get('application', 'N/A')}\n"
+                    response += f"│ 🏛️ विभाग: {scheme_info.get('department', 'कृषि विभाग')}\n"
+                    response += f"└─────────────────────────────────────┘\n\n"
                 
                 response += f"📊 **डेटा स्रोत**: सरकारी पोर्टल, PM-KISAN, कृषि विभाग (वास्तविक समय)\n"
                 response += f"✅ **गारंटी**: 100% सरकारी योजना डेटा\n"
@@ -420,11 +528,15 @@ class RealTimeGovernmentAI:
             
             if schemes_data:
                 response += f"📋 **Available Government Schemes**:\n\n"
-                for scheme_name, scheme_info in list(schemes_data.items())[:5]:
-                    response += f"• **{scheme_name}**\n"
-                    response += f"  - Benefit: {scheme_info.get('benefit', 'N/A')}\n"
-                    response += f"  - Eligibility: {scheme_info.get('eligibility', 'N/A')}\n"
-                    response += f"  - Application: {scheme_info.get('application', 'N/A')}\n\n"
+                for i, (scheme_name, scheme_info) in enumerate(list(schemes_data.items())[:5], 1):
+                    response += f"┌─────────────────────────────────────┐\n"
+                    response += f"│ 🏛️ {i}. {scheme_name}\n"
+                    response += f"├─────────────────────────────────────┤\n"
+                    response += f"│ 💰 Benefit: {scheme_info.get('benefit', 'N/A')}\n"
+                    response += f"│ ✅ Eligibility: {scheme_info.get('eligibility', 'N/A')}\n"
+                    response += f"│ 📝 Application: {scheme_info.get('application', 'N/A')}\n"
+                    response += f"│ 🏛️ Department: {scheme_info.get('department', 'Agriculture Department')}\n"
+                    response += f"└─────────────────────────────────────┘\n\n"
                 
                 response += f"📊 **Data Source**: Government Portals, PM-KISAN, Agriculture Department (Real-time)\n"
                 response += f"✅ **Guaranteed**: 100% Government Scheme Data\n"
