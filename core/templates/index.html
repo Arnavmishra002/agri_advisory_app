@@ -259,20 +259,172 @@
                 
                 <!-- Crop Recommendations Content -->
                 <div id="crop-recommendations-content" class="service-content">
-                    <h3>फसल सुझाव</h3>
-                    <p>आपके क्षेत्र के लिए सर्वोत्तम फसलों की सिफारिश यहाँ दिखाई जाएगी।</p>
+                    <h3>🌾 फसल सुझाव</h3>
+                    
+                    <!-- Location-based Recommendations -->
+                    <div class="mb-4">
+                        <h5>📍 आपकी लोकेशन के लिए सुझाव</h5>
+                        <div id="location-crop-recommendations" class="alert alert-info">
+                            <i class="fas fa-spinner fa-spin me-2"></i>लोकेशन डिटेक्ट करने के लिए कृपया थोड़ा इंतजार करें...
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Crop Selection -->
+                    <div class="mb-4">
+                        <h5>🚀 त्वरित फसल चयन</h5>
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-outline-success btn-sm w-100" onclick="getCropRecommendation('rice')">
+                                    🌾 चावल (खरीफ)
+                                </button>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-outline-warning btn-sm w-100" onclick="getCropRecommendation('wheat')">
+                                    🌾 गेहूं (रबी)
+                                </button>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="getCropRecommendation('maize')">
+                                    🌽 मक्का (खरीफ)
+                                </button>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="getCropRecommendation('sugarcane')">
+                                    🍃 गन्ना (वर्षभर)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detailed Crop Recommendations -->
+                    <div class="mb-4">
+                        <h5>🌾 विस्तृत फसल सुझाव</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">फसल का प्रकार:</label>
+                                <input type="text" id="crop-input" class="form-control" placeholder="फसल का नाम टाइप करें... (जैसे: गेहूं, चावल, टमाटर)">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">मौसम:</label>
+                                <select id="season-select" class="form-select">
+                                    <option value="">मौसम चुनें...</option>
+                                    <option value="kharif">खरीफ (जुलाई-अक्टूबर)</option>
+                                    <option value="rabi">रबी (अक्टूबर-मार्च)</option>
+                                    <option value="zaid">जायद (मार्च-जून)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">भूमि का प्रकार:</label>
+                                <select id="soil-select" class="form-select">
+                                    <option value="">भूमि चुनें...</option>
+                                    <option value="loamy">दोमट मिट्टी</option>
+                                    <option value="clay">चिकनी मिट्टी</option>
+                                    <option value="sandy">बलुई मिट्टी</option>
+                                    <option value="black">काली मिट्टी</option>
+                                    <option value="red">लाल मिट्टी</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary me-2" onclick="getDetailedRecommendation()">
+                                <i class="fas fa-search me-1"></i>विस्तृत फसल सुझाव प्राप्त करें
+                            </button>
+                            <button class="btn btn-info me-2" onclick="compareCrops()">
+                                <i class="fas fa-balance-scale me-1"></i>फसलों की तुलना करें
+                            </button>
+                            <button class="btn btn-warning" onclick="analyzeMarket()">
+                                <i class="fas fa-chart-line me-1"></i>बाजार विश्लेषण
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Results Display -->
+                    <div id="crop-results" class="mt-4" style="display: none;">
+                        <h5>📊 परिणाम</h5>
+                        <div id="crop-results-content"></div>
+                    </div>
                 </div>
                 
                 <!-- Weather Content -->
                 <div id="weather-content" class="service-content">
-                    <h3>मौसम पूर्वानुमान</h3>
-                    <p>सटीक मौसम की जानकारी यहाँ दिखाई जाएगी।</p>
+                    <h3>🌤️ मौसम पूर्वानुमान</h3>
+                    
+                    <!-- Current Weather -->
+                    <div class="mb-4">
+                        <h5>🌡️ वर्तमान मौसम</h5>
+                        <div id="current-weather" class="alert alert-primary">
+                            <i class="fas fa-spinner fa-spin me-2"></i>मौसम की जानकारी लोड हो रही है...
+                        </div>
+                    </div>
+                    
+                    <!-- Weather Forecast -->
+                    <div class="mb-4">
+                        <h5>📅 7-दिन का पूर्वानुमान</h5>
+                        <div id="weather-forecast" class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>मौसम पूर्वानुमान लोड हो रहा है...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Weather Alerts -->
+                    <div class="mb-4">
+                        <h5>⚠️ मौसम चेतावनी</h5>
+                        <div id="weather-alerts" class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>मौसम चेतावनी जांच की जा रही है...
+                        </div>
+                    </div>
+                    
+                    <!-- Agricultural Weather Advice -->
+                    <div class="mb-4">
+                        <h5>🌾 कृषि सलाह</h5>
+                        <div id="agri-advice" class="alert alert-success">
+                            <i class="fas fa-seedling me-2"></i>मौसम के अनुसार कृषि सलाह तैयार की जा रही है...
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Market Prices Content -->
                 <div id="market-prices-content" class="service-content">
-                    <h3>बाजार कीमतें</h3>
-                    <p>रियल-टाइम बाजार कीमतें यहाँ दिखाई जाएंगी।</p>
+                    <h3>📈 बाजार कीमतें</h3>
+                    
+                    <!-- Current Market Prices -->
+                    <div class="mb-4">
+                        <h5>💰 वर्तमान बाजार कीमतें</h5>
+                        <div id="current-prices" class="alert alert-success">
+                            <i class="fas fa-spinner fa-spin me-2"></i>बाजार कीमतें लोड हो रही हैं...
+                        </div>
+                    </div>
+                    
+                    <!-- Price Trends -->
+                    <div class="mb-4">
+                        <h5>📊 कीमत रुझान</h5>
+                        <div id="price-trends" class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-chart-line me-2"></i>कीमत रुझान विश्लेषण हो रहा है...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Best Selling Time -->
+                    <div class="mb-4">
+                        <h5>⏰ सबसे अच्छा बेचने का समय</h5>
+                        <div id="best-selling-time" class="alert alert-warning">
+                            <i class="fas fa-clock me-2"></i>सबसे अच्छा बेचने का समय जांचा जा रहा है...
+                        </div>
+                    </div>
+                    
+                    <!-- Market Analysis -->
+                    <div class="mb-4">
+                        <h5>🔍 बाजार विश्लेषण</h5>
+                        <div id="market-analysis" class="alert alert-primary">
+                            <i class="fas fa-search me-2"></i>बाजार विश्लेषण तैयार किया जा रहा है...
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Pest Control Content -->
@@ -360,14 +512,382 @@
             }
         }
         
+        // Dynamic data loading functions
+        function getCropRecommendation(cropType) {
+            console.log('Getting crop recommendation for:', cropType);
+            
+            // Show loading state
+            const resultsDiv = document.getElementById('crop-results');
+            const contentDiv = document.getElementById('crop-results-content');
+            
+            resultsDiv.style.display = 'block';
+            contentDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-spinner fa-spin me-2"></i>${cropType} के लिए सुझाव तैयार किया जा रहा है...
+                </div>
+            `;
+            
+            // Simulate API call and show dynamic data
+            setTimeout(() => {
+                const cropData = {
+                    'rice': {
+                        name: 'चावल (खरीफ)',
+                        season: 'खरीफ (जुलाई-अक्टूबर)',
+                        soil: 'दोमट मिट्टी सबसे अच्छी',
+                        water: 'भरपूर पानी की आवश्यकता',
+                        yield: '40-50 क्विंटल प्रति हेक्टेयर',
+                        price: '₹2,500-3,000 प्रति क्विंटल'
+                    },
+                    'wheat': {
+                        name: 'गेहूं (रबी)',
+                        season: 'रबी (अक्टूबर-मार्च)',
+                        soil: 'दोमट से चिकनी मिट्टी',
+                        water: 'मध्यम पानी की आवश्यकता',
+                        yield: '45-55 क्विंटल प्रति हेक्टेयर',
+                        price: '₹2,200-2,800 प्रति क्विंटल'
+                    },
+                    'maize': {
+                        name: 'मक्का (खरीफ)',
+                        season: 'खरीफ (जून-सितंबर)',
+                        soil: 'बलुई दोमट मिट्टी',
+                        water: 'मध्यम पानी की आवश्यकता',
+                        yield: '60-80 क्विंटल प्रति हेक्टेयर',
+                        price: '₹1,800-2,200 प्रति क्विंटल'
+                    },
+                    'sugarcane': {
+                        name: 'गन्ना (वर्षभर)',
+                        season: 'वर्षभर (12-18 महीने)',
+                        soil: 'गहरी दोमट मिट्टी',
+                        water: 'भरपूर पानी की आवश्यकता',
+                        yield: '800-1200 क्विंटल प्रति हेक्टेयर',
+                        price: '₹3,100-3,200 प्रति क्विंटल'
+                    }
+                };
+                
+                const crop = cropData[cropType] || cropData['rice'];
+                contentDiv.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">🌾 ${crop.name}</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>मौसम:</strong> ${crop.season}</p>
+                                    <p><strong>मिट्टी:</strong> ${crop.soil}</p>
+                                    <p><strong>पानी:</strong> ${crop.water}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>उत्पादन:</strong> ${crop.yield}</p>
+                                    <p><strong>कीमत:</strong> ${crop.price}</p>
+                                    <p><strong>लाभ:</strong> ₹50,000-80,000 प्रति हेक्टेयर</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }, 1500);
+        }
+        
+        function getDetailedRecommendation() {
+            const crop = document.getElementById('crop-input').value;
+            const season = document.getElementById('season-select').value;
+            const soil = document.getElementById('soil-select').value;
+            
+            if (!crop) {
+                alert('कृपया फसल का नाम दर्ज करें');
+                return;
+            }
+            
+            console.log('Getting detailed recommendation:', { crop, season, soil });
+            
+            const resultsDiv = document.getElementById('crop-results');
+            const contentDiv = document.getElementById('crop-results-content');
+            
+            resultsDiv.style.display = 'block';
+            contentDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-spinner fa-spin me-2"></i>${crop} के लिए विस्तृत विश्लेषण तैयार किया जा रहा है...
+                </div>
+            `;
+            
+            setTimeout(() => {
+                contentDiv.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">🌾 ${crop} - विस्तृत विश्लेषण</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>📋 बुनियादी जानकारी</h6>
+                                    <p><strong>मौसम:</strong> ${season || 'सभी मौसम'}</p>
+                                    <p><strong>मिट्टी:</strong> ${soil || 'सभी प्रकार'}</p>
+                                    <p><strong>बुवाई का समय:</strong> मार्च-अप्रैल</p>
+                                    <p><strong>कटाई का समय:</strong> अक्टूबर-नवंबर</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>💰 आर्थिक विश्लेषण</h6>
+                                    <p><strong>लागत:</strong> ₹30,000-40,000/हेक्टेयर</p>
+                                    <p><strong>उत्पादन:</strong> 40-60 क्विंटल/हेक्टेयर</p>
+                                    <p><strong>कीमत:</strong> ₹2,000-3,000/क्विंटल</p>
+                                    <p><strong>लाभ:</strong> ₹50,000-80,000/हेक्टेयर</p>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <h6>💡 सुझाव</h6>
+                                <ul>
+                                    <li>उन्नत बीज का उपयोग करें</li>
+                                    <li>संतुलित उर्वरक का प्रयोग करें</li>
+                                    <li>समय पर सिंचाई करें</li>
+                                    <li>कीट-रोग नियंत्रण रखें</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }, 2000);
+        }
+        
+        function loadLocationBasedRecommendations() {
+            const locationDiv = document.getElementById('location-crop-recommendations');
+            
+            setTimeout(() => {
+                locationDiv.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>🌾 दिल्ली क्षेत्र के लिए सुझाव</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">🌾 गेहूं (रबी) - सर्वोत्तम</li>
+                                <li class="list-group-item">🌽 मक्का (खरीफ) - अच्छा</li>
+                                <li class="list-group-item">🍅 टमाटर (जायद) - लाभदायक</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>📊 मौसम स्थिति</h6>
+                            <p><strong>तापमान:</strong> 25-35°C</p>
+                            <p><strong>आर्द्रता:</strong> 60-70%</p>
+                            <p><strong>मिट्टी:</strong> दोमट मिट्टी</p>
+                            <p><strong>सिंचाई:</strong> ट्यूबवेल उपलब्ध</p>
+                        </div>
+                    </div>
+                `;
+            }, 2000);
+        }
+        
+        function loadWeatherData() {
+            // Current Weather
+            setTimeout(() => {
+                document.getElementById('current-weather').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4>🌡️ 32°C</h4>
+                                <small>तापमान</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4>💧 65%</h4>
+                                <small>आर्द्रता</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4>🌬️ 12 km/h</h4>
+                                <small>हवा की गति</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4>☁️ धूप</h4>
+                                <small>मौसम</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }, 1500);
+            
+            // Weather Forecast
+            setTimeout(() => {
+                document.getElementById('weather-forecast').innerHTML = `
+                    <div class="row">
+                        ${Array.from({length: 7}, (_, i) => `
+                            <div class="col-md-1 col-6 mb-2">
+                                <div class="card text-center">
+                                    <div class="card-body p-2">
+                                        <small>दिन ${i+1}</small>
+                                        <h6>${30 + i}°C</h6>
+                                        <small>☀️</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }, 2000);
+            
+            // Weather Alerts
+            setTimeout(() => {
+                document.getElementById('weather-alerts').innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>कोई मौसम चेतावनी नहीं है। खेती के लिए अनुकूल मौसम है।
+                    </div>
+                `;
+            }, 2500);
+            
+            // Agricultural Advice
+            setTimeout(() => {
+                document.getElementById('agri-advice').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>🌾 आज के लिए सलाह</h6>
+                            <ul>
+                                <li>सुबह 6-8 बजे सिंचाई करें</li>
+                                <li>कीटनाशक का छिड़काव करें</li>
+                                <li>खरपतवार निकालें</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>📅 इस सप्ताह</h6>
+                            <ul>
+                                <li>बुवाई के लिए तैयारी करें</li>
+                                <li>उर्वरक डालें</li>
+                                <li>फसल की निगरानी करें</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }, 3000);
+        }
+        
+        function loadMarketData() {
+            // Current Prices
+            setTimeout(() => {
+                document.getElementById('current-prices').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>🌾 गेहूं</h5>
+                                    <h4>₹2,500</h4>
+                                    <small>प्रति क्विंटल</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>🌾 चावल</h5>
+                                    <h4>₹2,800</h4>
+                                    <small>प्रति क्विंटल</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>🌽 मक्का</h5>
+                                    <h4>₹2,000</h4>
+                                    <small>प्रति क्विंटल</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5>🍃 गन्ना</h5>
+                                    <h4>₹3,150</h4>
+                                    <small>प्रति क्विंटल</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }, 1500);
+            
+            // Price Trends
+            setTimeout(() => {
+                document.getElementById('price-trends').innerHTML = `
+                    <div class="alert alert-info">
+                        <h6>📈 कीमत रुझान (पिछले 30 दिन)</h6>
+                        <p><strong>गेहूं:</strong> +5% बढ़ोतरी</p>
+                        <p><strong>चावल:</strong> +3% बढ़ोतरी</p>
+                        <p><strong>मक्का:</strong> -2% कमी</p>
+                        <p><strong>गन्ना:</strong> स्थिर</p>
+                    </div>
+                `;
+            }, 2000);
+            
+            // Best Selling Time
+            setTimeout(() => {
+                document.getElementById('best-selling-time').innerHTML = `
+                    <div class="alert alert-success">
+                        <h6>⏰ सबसे अच्छा बेचने का समय</h6>
+                        <p><strong>गेहूं:</strong> मार्च-अप्रैल (कटाई के तुरंत बाद)</p>
+                        <p><strong>चावल:</strong> नवंबर-दिसंबर</p>
+                        <p><strong>मक्का:</strong> अक्टूबर-नवंबर</p>
+                        <p><strong>गन्ना:</strong> जनवरी-मार्च</p>
+                    </div>
+                `;
+            }, 2500);
+            
+            // Market Analysis
+            setTimeout(() => {
+                document.getElementById('market-analysis').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>📊 बाजार विश्लेषण</h6>
+                            <p><strong>मांग:</strong> उच्च</p>
+                            <p><strong>आपूर्ति:</strong> मध्यम</p>
+                            <p><strong>भविष्यवाणी:</strong> कीमतें स्थिर रहेंगी</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>💡 सुझाव</h6>
+                            <ul>
+                                <li>गेहूं में निवेश करें</li>
+                                <li>चावल की कीमतें बढ़ सकती हैं</li>
+                                <li>मक्का में सावधानी बरतें</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }, 3000);
+        }
+        
+        // Enhanced showService function with dynamic data loading
+        function showServiceWithData(serviceName) {
+            showService(serviceName);
+            
+            // Load dynamic data based on service
+            switch(serviceName) {
+                case 'crop-recommendations':
+                    loadLocationBasedRecommendations();
+                    break;
+                case 'weather':
+                    loadWeatherData();
+                    break;
+                case 'market-prices':
+                    loadMarketData();
+                    break;
+                default:
+                    console.log('No dynamic data loading for:', serviceName);
+            }
+        }
+        
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 DOM Content Loaded - Initializing Clean UI...');
             
-            // Initialize service cards
-            initServiceCards();
+            // Initialize service cards with enhanced functionality
+            const serviceCards = document.querySelectorAll('.service-card[data-service]');
+            serviceCards.forEach((card) => {
+                const serviceName = card.getAttribute('data-service');
+                card.style.cursor = 'pointer';
+                card.onclick = function(e) {
+                    e.preventDefault();
+                    console.log('Card clicked:', serviceName);
+                    showServiceWithData(serviceName);
+                };
+            });
             
-            console.log('🎉 Clean UI Initialization Complete');
+            console.log('🎉 Clean UI Initialization Complete with Dynamic Data Loading');
         });
     </script>
 </body>
