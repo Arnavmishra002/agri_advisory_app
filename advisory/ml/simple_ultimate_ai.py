@@ -306,3 +306,4 @@ simple_ultimate_ai = SimpleUltimateAI()
 def process_query_simple(query: str, language: str = 'en') -> Dict[str, Any]:
     """Process query with simple ultimate AI"""
     return simple_ultimate_ai.generate_response(query, language)
+

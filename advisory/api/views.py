@@ -11,6 +11,7 @@ from ..ml.intelligent_chatbot import IntelligentAgriculturalChatbot
 from ..ml.ultimate_intelligent_ai import ultimate_ai
 import uuid
 import random
+from ..services.clean_government_api import CleanGovernmentAPI
 from ..services.enhanced_government_api import EnhancedGovernmentAPI
 from ..services.accurate_location_api import get_accurate_location
 from ..services.real_time_government_api import RealTimeGovernmentAPI
@@ -125,8 +126,8 @@ class ChatbotViewSet(viewsets.ViewSet):
                 location_name = "Delhi"
             
             # Get real-time government data
-            from ..services.enhanced_government_api import EnhancedGovernmentAPI
-            gov_api = EnhancedGovernmentAPI()
+            from ..services.clean_government_api import CleanGovernmentAPI
+            gov_api = CleanGovernmentAPI()
             
             # Get crop recommendations from government data
             crop_data = gov_api.get_enhanced_crop_recommendations(location_name, language=language)
@@ -370,8 +371,8 @@ class ChatbotViewSet(viewsets.ViewSet):
                                    longitude: float = None, location_name: str = None) -> str:
         """Get real-time market prices using government APIs"""
         try:
-            from ..services.enhanced_government_api import EnhancedGovernmentAPI
-            gov_api = EnhancedGovernmentAPI()
+            from ..services.clean_government_api import CleanGovernmentAPI
+            gov_api = CleanGovernmentAPI()
             
             # Extract crop from message
             crop = self._extract_crop_from_message(message)
@@ -429,8 +430,8 @@ class ChatbotViewSet(viewsets.ViewSet):
                               longitude: float = None, location_name: str = None) -> str:
         """Get real-time weather using government APIs"""
         try:
-            from ..services.enhanced_government_api import EnhancedGovernmentAPI
-            gov_api = EnhancedGovernmentAPI()
+            from ..services.clean_government_api import CleanGovernmentAPI
+            gov_api = CleanGovernmentAPI()
             
             if not location_name and latitude and longitude:
                 location_name = self._get_location_from_coordinates(latitude, longitude)
@@ -530,8 +531,8 @@ class ChatbotViewSet(viewsets.ViewSet):
                                         longitude: float = None, location_name: str = None) -> str:
         """Get real-time government schemes using government APIs"""
         try:
-            from ..services.enhanced_government_api import EnhancedGovernmentAPI
-            gov_api = EnhancedGovernmentAPI()
+            from ..services.clean_government_api import CleanGovernmentAPI
+            gov_api = CleanGovernmentAPI()
             
             if not location_name and latitude and longitude:
                 location_name = self._get_location_from_coordinates(latitude, longitude)
@@ -612,8 +613,8 @@ class ChatbotViewSet(viewsets.ViewSet):
                                            longitude: float = None, location_name: str = None) -> str:
         """Get real-time soil and fertilizer information using government APIs"""
         try:
-            from ..services.enhanced_government_api import EnhancedGovernmentAPI
-            gov_api = EnhancedGovernmentAPI()
+            from ..services.clean_government_api import CleanGovernmentAPI
+            gov_api = CleanGovernmentAPI()
             
             if not location_name and latitude and longitude:
                 location_name = self._get_location_from_coordinates(latitude, longitude)
@@ -1198,7 +1199,7 @@ Health is the greatest wealth. Good health improves the quality of life.
                     # Process query with real-time government data
                     realtime_response = process_farming_query_realtime(
                         query=message,
-                        language=language,
+                            language=language,
                         location=location_name
                     )
                     
@@ -1254,10 +1255,11 @@ Health is the greatest wealth. Good health improves the quality of life.
             from ..services.enhanced_government_api import EnhancedGovernmentAPI
             gov_api = EnhancedGovernmentAPI()
             
-            # Search for crops
+            # Search for crops using comprehensive database
             results = gov_api.search_crops(query, limit)
             
             return Response({
+                'crops': results,
                 'results': results,
                 'query': query,
                 'count': len(results),
@@ -1414,7 +1416,7 @@ class CropAdvisoryViewSet(viewsets.ModelViewSet):
         super().__init__(*args, **kwargs)
         self.ml_system = AgriculturalMLSystem()
         self.feedback_analytics = FeedbackAnalytics()
-        self.weather_api = EnhancedGovernmentAPI() # Use the enhanced government API
+        self.weather_api = CleanGovernmentAPI() # Use the enhanced government API
         self.intelligent_chatbot = IntelligentAgriculturalChatbot() # Initialize the intelligent chatbot
         self.pest_detection_system = PestDetectionSystem() # Initialize the pest detection system
         self.real_time_api = RealTimeGovernmentAPI()
@@ -4274,9 +4276,9 @@ class WeatherViewSet(viewsets.ViewSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from ..services.real_time_government_api import RealTimeGovernmentAPI
-        from ..services.enhanced_government_api import EnhancedGovernmentAPI
+        from ..services.clean_government_api import CleanGovernmentAPI
         self.real_time_api = RealTimeGovernmentAPI()
-        self.weather_api = EnhancedGovernmentAPI()
+        self.weather_api = CleanGovernmentAPI()
     @action(detail=False, methods=['get'])
     def current(self, request):
         latitude = request.query_params.get('lat', None)
@@ -4481,7 +4483,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
         super().__init__(*args, **kwargs)
         self.government_api = EnhancedGovernmentAPI()
         self.real_time_api = RealTimeGovernmentAPI()
-        self.weather_api = EnhancedGovernmentAPI()
+        self.weather_api = CleanGovernmentAPI()
     
     @action(detail=False, methods=['get'])
     def prices(self, request):
@@ -5027,8 +5029,8 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 crop_info = crop_data.get('crop_info', {})
                 
                 # Get market prices from government API
-                from ..services.enhanced_government_api import EnhancedGovernmentAPI
-                government_api = EnhancedGovernmentAPI()
+                from ..services.clean_government_api import CleanGovernmentAPI
+                government_api = CleanGovernmentAPI()
                 
                 try:
                     market_data = government_api.get_real_market_prices(crop_name.lower())
@@ -5125,8 +5127,8 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
             # Get weather data for the location
             weather_data = None
             try:
-                from ..services.enhanced_government_api import EnhancedGovernmentAPI
-                government_api = EnhancedGovernmentAPI()
+                from ..services.clean_government_api import CleanGovernmentAPI
+                government_api = CleanGovernmentAPI()
                 
                 if latitude and longitude:
                     weather_data = government_api.get_real_weather_data(f"{latitude},{longitude}", 'en')
