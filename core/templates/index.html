@@ -1111,14 +1111,14 @@
             <h2 class="services-title">किसानों के लिए आवश्यक सेवाएं</h2>
             
             <!-- Test Button for JavaScript -->
-            <button onclick="testJavaScript()" style="background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin-bottom: 20px; cursor: pointer;">
+            <button id="test-js-btn" style="background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin-bottom: 20px; cursor: pointer;">
                 🧪 Test JavaScript (Click to verify buttons work)
             </button>
             
             <div class="row">
                 <!-- Government Schemes -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card government-schemes-card" onclick="showService('government-schemes')">
+                    <div class="service-card government-schemes-card" onclick="showService('government-schemes'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1134,7 +1134,7 @@
 
                 <!-- Crop Recommendations -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card crop-recommendations-card" onclick="showService('crop-recommendations')">
+                    <div class="service-card crop-recommendations-card" onclick="showService('crop-recommendations'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1150,7 +1150,7 @@
 
                 <!-- Weather -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card weather-card" onclick="showService('weather')">
+                    <div class="service-card weather-card" onclick="showService('weather'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1166,7 +1166,7 @@
 
                 <!-- Market Prices -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card market-prices-card" onclick="showService('market-prices')">
+                    <div class="service-card market-prices-card" onclick="showService('market-prices'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1182,7 +1182,7 @@
 
                 <!-- Pest Control -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card pest-control-card" onclick="showService('pest-control')">
+                    <div class="service-card pest-control-card" onclick="showService('pest-control'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1198,7 +1198,7 @@
 
                 <!-- AI Assistant -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card ai-assistant-card" onclick="showService('ai-assistant')">
+                    <div class="service-card ai-assistant-card" onclick="showService('ai-assistant'); return false;" style="cursor: pointer;">
                         <div class="service-status">
                             <span class="status-indicator active">●</span>
                             <span class="status-text">सक्रिय</span>
@@ -1811,19 +1811,49 @@
             }
         }
 
+        // Simple function to test if JavaScript is working
+        function testJavaScript() {
+            alert('✅ JavaScript is working! Service buttons should be clickable now.');
+            console.log('JavaScript test successful');
+        }
+
+        // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded - Initializing services...');
+            console.log('🚀 DOM Content Loaded - Initializing services...');
             
             // Test if JavaScript is working
-            console.log('JavaScript is working! Service buttons should be clickable.');
+            console.log('✅ JavaScript is working! Service buttons should be clickable.');
             
-            // Add click event listeners to all service cards as backup
-            document.querySelectorAll('.service-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    const serviceName = this.classList[1].replace('-card', '');
-                    console.log('Service card clicked:', serviceName);
+            // Add test button click handler
+            const testBtn = document.getElementById('test-js-btn');
+            if (testBtn) {
+                testBtn.addEventListener('click', testJavaScript);
+                console.log('✅ Test button handler added');
+            }
+            
+            // Add click event listeners to all service cards
+            const serviceCards = document.querySelectorAll('.service-card');
+            console.log(`Found ${serviceCards.length} service cards`);
+            
+            serviceCards.forEach((card, index) => {
+                // Remove any existing onclick attributes
+                card.removeAttribute('onclick');
+                
+                // Add event listener
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Get service name from class list
+                    const classList = Array.from(this.classList);
+                    const serviceClass = classList.find(cls => cls.includes('-card'));
+                    const serviceName = serviceClass ? serviceClass.replace('-card', '') : 'unknown';
+                    
+                    console.log(`🎯 Service card clicked: ${serviceName}`);
                     showService(serviceName);
                 });
+                
+                console.log(`✅ Event listener added to card ${index + 1}: ${serviceCards[index].classList[1]}`);
             });
             
             // Immediately show Delhi as fallback
@@ -1832,7 +1862,34 @@
             detectLocation();
             loadNearestMandis();
             initializeAutocomplete();
+            
+            console.log('🎉 All services initialized successfully!');
         });
+
+        // Fallback initialization if DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            console.log('📝 Document still loading...');
+        } else {
+            console.log('📝 Document already loaded, initializing immediately...');
+            // Re-run initialization
+            setTimeout(function() {
+                const serviceCards = document.querySelectorAll('.service-card');
+                serviceCards.forEach((card) => {
+                    card.removeAttribute('onclick');
+                    card.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const serviceName = this.classList[1].replace('-card', '');
+                        console.log(`🎯 Fallback click: ${serviceName}`);
+                        showService(serviceName);
+                    });
+                });
+                
+                const testBtn = document.getElementById('test-js-btn');
+                if (testBtn) {
+                    testBtn.addEventListener('click', testJavaScript);
+                }
+            }, 100);
+        }
 
         // Location detection
         function detectLocation() {
@@ -1909,10 +1966,16 @@
 
         // Show service function
         function showService(serviceName) {
-            console.log('showService called with:', serviceName);
+            console.log('🎯 showService called with:', serviceName);
+            
+            if (!serviceName) {
+                console.error('❌ No service name provided');
+                alert('Error: No service selected');
+                return;
+            }
             
             // Add visual feedback
-            console.log('Attempting to show service:', serviceName);
+            console.log('📋 Attempting to show service:', serviceName);
             
             // Check if this service is already active
             const targetContent = document.getElementById(serviceName + '-content');
