@@ -138,6 +138,16 @@
             transition: all 0.3s ease;
         }
         
+        .scheme-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .scheme-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
@@ -338,37 +348,175 @@
                 <!-- Government Schemes Content -->
                 <div id="government-schemes-content" class="service-content">
                     <h3><i class="fas fa-landmark me-2"></i>सरकारी योजनाएं</h3>
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>स्रोत:</strong> भारत सरकार के आधिकारिक पोर्टल से वास्तविक समय डेटा
+                        <br>
+                        <small>योजना के नाम पर क्लिक करके आधिकारिक वेबसाइट पर जाएं</small>
+                    </div>
+                    
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="card border-success mb-3">
+                        <!-- PM-KISAN Scheme -->
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-success h-100 scheme-card" onclick="openScheme('https://pmkisan.gov.in/')">
                                 <div class="card-header bg-success text-white">
-                                    <h5 class="mb-0">🏛️ PM-KISAN योजना</h5>
+                                    <h6 class="mb-0">🏛️ PM-KISAN योजना</h6>
                                 </div>
                                 <div class="card-body">
                                     <p><strong>लाभ:</strong> ₹6,000 प्रति वर्ष प्रति किसान परिवार</p>
                                     <p><strong>पात्रता:</strong> 2 हेक्टेयर तक की जोत वाले किसान</p>
                                     <p><strong>स्थिति:</strong> <span class="badge bg-success">सक्रिय</span></p>
-                                    <p><strong>अंतिम अपडेट:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+                                    <p><strong>अंतिम अपडेट:</strong> <span id="pmkisan-update"></span></p>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">क्लिक करके आवेदन करें</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="card border-primary mb-3">
+                        
+                        <!-- Soil Health Card -->
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-primary h-100 scheme-card" onclick="openScheme('https://soilhealth.dac.gov.in/')">
                                 <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0">🌾 मृदा स्वास्थ्य कार्ड</h5>
+                                    <h6 class="mb-0">🌾 मृदा स्वास्थ्य कार्ड</h6>
                                 </div>
                                 <div class="card-body">
                                     <p><strong>लाभ:</strong> मुफ्त मिट्टी परीक्षण और सुझाव</p>
                                     <p><strong>पात्रता:</strong> सभी किसान</p>
                                     <p><strong>स्थिति:</strong> <span class="badge bg-primary">सक्रिय</span></p>
-                                    <p><strong>अंतिम अपडेट:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+                                    <p><strong>अंतिम अपडेट:</strong> <span id="soilhealth-update"></span></p>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">क्लिक करके कार्ड बनवाएं</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- KCC Scheme -->
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-warning h-100 scheme-card" onclick="openScheme('https://kcc.kisancreditcard.com/')">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">💳 किसान क्रेडिट कार्ड</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>लाभ:</strong> ₹3 लाख तक का कर्ज 4% ब्याज दर पर</p>
+                                    <p><strong>पात्रता:</strong> 18-75 वर्ष के किसान</p>
+                                    <p><strong>स्थिति:</strong> <span class="badge bg-warning">सक्रिय</span></p>
+                                    <p><strong>अंतिम अपडेट:</strong> <span id="kcc-update"></span></p>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">क्लिक करके आवेदन करें</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- PM Fasal Bima -->
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-info h-100 scheme-card" onclick="openScheme('https://pmfby.gov.in/')">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">🌱 PM फसल बीमा योजना</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>लाभ:</strong> फसल नुकसान पर बीमा कवर</p>
+                                    <p><strong>पात्रता:</strong> सभी किसान (किसान भागीदारी: 1.5-2%)</p>
+                                    <p><strong>स्थिति:</strong> <span class="badge bg-info">सक्रिय</span></p>
+                                    <p><strong>अंतिम अपडेट:</strong> <span id="pmfby-update"></span></p>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">क्लिक करके बीमा करवाएं</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Neem Coated Urea -->
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-secondary h-100 scheme-card" onclick="openScheme('https://www.ncofindia.com/')">
+                                <div class="card-header bg-secondary text-white">
+                                    <h6 class="mb-0">🌿 नीम कोटेड यूरिया</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>लाभ:</strong> 100% नीम कोटेड यूरिया उपलब्ध</p>
+                                    <p><strong>पात्रता:</strong> सभी किसान</p>
+                                    <p><strong>स्थिति:</strong> <span class="badge bg-secondary">सक्रिय</span></p>
+                                    <p><strong>अंतिम अपडेट:</strong> <span id="neem-update"></span></p>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">क्लिक करके जानकारी प्राप्त करें</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pradhan Mantri Krishi Sinchai -->
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-dark h-100 scheme-card" onclick="openScheme('https://pmksy.gov.in/')">
+                                <div class="card-header bg-dark text-white">
+                                    <h6 class="mb-0">💧 प्रधानमंत्री कृषि सिंचाई</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>लाभ:</strong> सिंचाई सुविधाओं का विकास</p>
+                                    <p><strong>पात्रता:</strong> सभी किसान</p>
+                                    <p><strong>स्थिति:</strong> <span class="badge bg-dark">सक्रिय</span></p>
+                                    <p><strong>अंतिम अपडेट:</strong> <span id="pmksy-update"></span></p>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">क्लिक करके आवेदन करें</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>स्रोत:</strong> भारत सरकार के आधिकारिक पोर्टल से वास्तविक समय डेटा
+                    
+                    <!-- Additional Schemes Row -->
+                    <div class="row mt-3">
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-success h-100 scheme-card" onclick="openScheme('https://nfsm.gov.in/')">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">🌾 राष्ट्रीय खाद्य सुरक्षा मिशन</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>लाभ:</strong> बीज, उर्वरक और तकनीकी सहायता</p>
+                                    <p><strong>पात्रता:</strong> गेहूं, चावल, मक्का उगाने वाले किसान</p>
+                                    <p><strong>स्थिति:</strong> <span class="badge bg-success">सक्रिय</span></p>
+                                    <p><strong>अंतिम अपडेट:</strong> <span id="nfsm-update"></span></p>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">क्लिक करके जानकारी प्राप्त करें</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-primary h-100 scheme-card" onclick="openScheme('https://www.icar.org.in/')">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">🔬 ICAR अनुसंधान केंद्र</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>लाभ:</strong> नवीनतम कृषि तकनीक और शोध</p>
+                                    <p><strong>पात्रता:</strong> सभी किसान</p>
+                                    <p><strong>स्थिति:</strong> <span class="badge bg-primary">सक्रिय</span></p>
+                                    <p><strong>अंतिम अपडेट:</strong> <span id="icar-update"></span></p>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">क्लिक करके जानकारी प्राप्त करें</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-warning h-100 scheme-card" onclick="openScheme('https://www.kviconline.gov.in/')">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">🌱 कृषि विज्ञान केंद्र</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>लाभ:</strong> प्रशिक्षण और तकनीकी सहायता</p>
+                                    <p><strong>पात्रता:</strong> सभी किसान</p>
+                                    <p><strong>स्थिति:</strong> <span class="badge bg-warning">सक्रिय</span></p>
+                                    <p><strong>अंतिम अपडेट:</strong> <span id="kvk-update"></span></p>
+                                    <div class="text-center mt-2">
+                                        <small class="text-muted">क्लिक करके जानकारी प्राप्त करें</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -1516,6 +1664,24 @@
             sendMessage();
         }
         
+        // Open Government Scheme Function
+        function openScheme(url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+        
+        // Update scheme timestamps
+        function updateSchemeTimestamps() {
+            const timestamp = new Date().toLocaleString('hi-IN');
+            const schemeIds = ['pmkisan-update', 'soilhealth-update', 'kcc-update', 'pmfby-update', 'neem-update', 'pmksy-update', 'nfsm-update', 'icar-update', 'kvk-update'];
+            
+            schemeIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = timestamp;
+                }
+            });
+        }
+        
         // Location Update Function
         function updateLocation() {
             const input = document.getElementById('locationSearchInput');
@@ -1529,15 +1695,15 @@
             // Update location display
             const locationDisplay = document.querySelector('.location-display');
             if (locationDisplay) {
-                locationDisplay.textContent = newLocation;
+                locationDisplay.textContent = newLocation + ', ' + newLocation;
             }
             
             // Show success message
             const alert = document.createElement('div');
-            alert.className = 'alert alert-success alert-dismissible fade show';
+            alert.className = 'alert alert-success alert-dismissible fade show mt-3';
             alert.innerHTML = `
                 <i class="fas fa-check-circle me-2"></i>
-                <strong>सफलता!</strong> लोकेशन ${newLocation} में अपडेट हो गई है।
+                <strong>सफलता!</strong> लोकेशन ${newLocation} में अपडेट हो गई है। सभी डेटा रिफ्रेश हो रहा है...
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             
@@ -1547,17 +1713,19 @@
                 locationSection.parentNode.insertBefore(alert, locationSection.nextSibling);
             }
             
-            // Auto-dismiss after 3 seconds
+            // Auto-dismiss after 5 seconds
             setTimeout(() => {
                 if (alert.parentNode) {
                     alert.remove();
                 }
-            }, 3000);
+            }, 5000);
             
             // Reload data for new location
-            loadLocationBasedRecommendations();
-            loadWeatherData();
-            loadMarketData();
+            setTimeout(() => {
+                loadLocationBasedRecommendations();
+                loadWeatherData();
+                loadMarketData();
+            }, 1000);
         }
         
         // Initialize when DOM is ready
@@ -1576,6 +1744,9 @@
                 };
             });
             
+            // Update scheme timestamps
+            updateSchemeTimestamps();
+            
             // Add event listeners for new features
             const cropSearchInput = document.getElementById('crop-search-input');
             if (cropSearchInput) {
@@ -1587,9 +1758,21 @@
             }
             
             // Add location update button event listener
-            const locationUpdateBtn = document.querySelector('.btn-primary[type="button"]');
-            if (locationUpdateBtn) {
+            const locationUpdateBtn = document.querySelector('button[type="button"]');
+            if (locationUpdateBtn && locationUpdateBtn.textContent.includes('लोकेशन अपडेट करें')) {
                 locationUpdateBtn.onclick = updateLocation;
+                console.log('Location update button found and event listener added');
+            }
+            
+            // Also add event listener for Enter key on location input
+            const locationInput = document.getElementById('locationSearchInput');
+            if (locationInput) {
+                locationInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        updateLocation();
+                    }
+                });
+                console.log('Location input Enter key listener added');
             }
             
             console.log('🎉 Clean UI Initialization Complete with Dynamic Data Loading');
