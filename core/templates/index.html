@@ -1079,7 +1079,10 @@
             
             // Get current location
             const locationDisplay = document.querySelector('.location-display');
-            const currentLocation = locationDisplay ? locationDisplay.textContent.split(',')[0] : 'दिल्ली';
+            const currentLocation = locationDisplay ? locationDisplay.textContent.split(',')[0] : 'Delhi';
+            
+            // Get dynamic weather data based on location
+            const weatherData = getDynamicWeatherData(currentLocation);
             
             setTimeout(() => {
                 locationDiv.innerHTML = `
@@ -1089,16 +1092,16 @@
                             <div class="alert alert-info">
                                 <div class="row">
                                     <div class="col-md-3">
-                                        <strong>तापमान:</strong> 25-35°C
+                                        <strong>तापमान:</strong> ${weatherData.temperature}
                                     </div>
                                     <div class="col-md-3">
-                                        <strong>आर्द्रता:</strong> 60-70%
+                                        <strong>आर्द्रता:</strong> ${weatherData.humidity}
                                     </div>
                                     <div class="col-md-3">
-                                        <strong>मिट्टी:</strong> दोमट मिट्टी
+                                        <strong>मिट्टी:</strong> ${weatherData.soil}
                                     </div>
                                     <div class="col-md-3">
-                                        <strong>सिंचाई:</strong> ट्यूबवेल उपलब्ध
+                                        <strong>सिंचाई:</strong> ${weatherData.irrigation}
                                     </div>
                                 </div>
                             </div>
@@ -1106,221 +1109,7 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 border-success">
-                                <div class="card-header bg-success text-white">
-                                    <h6 class="mb-0">🌾 गेहूं (रबी) - सर्वोत्तम</h6>
-                                    <small>रबी फसल | अक्टूबर-मार्च</small>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>समय अवधि:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            5-6 महीने
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>बुवाई समय:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            अक्टूबर-नवंबर
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>कटाई समय:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            मार्च-अप्रैल
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>इनपुट लागत:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            ₹35,000/हेक्टेयर
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>वर्तमान कीमत:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            ₹2,500/क्विंटल
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>भविष्य कीमत:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            ₹2,700/क्विंटल
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>अनुमानित उत्पादन:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            45-55 क्विंटल/हेक्टेयर
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="alert alert-success mb-0">
-                                        <strong>अनुमानित लाभ:</strong> ₹75,000-1,10,000/हेक्टेयर
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 border-primary">
-                                <div class="card-header bg-primary text-white">
-                                    <h6 class="mb-0">🌽 मक्का (खरीफ) - अच्छा</h6>
-                                    <small>खरीफ फसल | जून-सितंबर</small>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>समय अवधि:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            3-4 महीने
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>बुवाई समय:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            जून-जुलाई
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>कटाई समय:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            सितंबर-अक्टूबर
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>इनपुट लागत:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            ₹28,000/हेक्टेयर
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>वर्तमान कीमत:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            ₹2,000/क्विंटल
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>भविष्य कीमत:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            ₹2,100/क्विंटल
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>अनुमानित उत्पादन:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            60-80 क्विंटल/हेक्टेयर
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="alert alert-info mb-0">
-                                        <strong>अनुमानित लाभ:</strong> ₹92,000-1,40,000/हेक्टेयर
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 border-warning">
-                                <div class="card-header bg-warning text-dark">
-                                    <h6 class="mb-0">🍅 टमाटर (जायद) - लाभदायक</h6>
-                                    <small>जायद फसल | मार्च-जून</small>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>समय अवधि:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            3-4 महीने
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>बुवाई समय:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            मार्च-अप्रैल
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>कटाई समय:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            जून-जुलाई
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>इनपुट लागत:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            ₹45,000/हेक्टेयर
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>वर्तमान कीमत:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            ₹15/किलो
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>भविष्य कीमत:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            ₹18/किलो
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2">
-                                        <div class="col-6">
-                                            <strong>अनुमानित उत्पादन:</strong>
-                                        </div>
-                                        <div class="col-6">
-                                            400-600 क्विंटल/हेक्टेयर
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <div class="alert alert-warning mb-0">
-                                        <strong>अनुमानित लाभ:</strong> ₹5,55,000-10,35,000/हेक्टेयर
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        ${generateDynamicCropCards(currentLocation)}
                     </div>
                     
                     <div class="row mt-3">
@@ -1435,6 +1224,11 @@
         }
         
         function loadMarketData() {
+            // Get current location for dynamic market data
+            const locationDisplay = document.querySelector('.location-display');
+            const currentLocation = locationDisplay ? locationDisplay.textContent.split(',')[0] : 'Delhi';
+            const marketData = getDynamicMarketData(currentLocation);
+            
             // Current Prices - Real-time from Government APIs
             setTimeout(() => {
                 document.getElementById('current-prices').innerHTML = `
@@ -1442,48 +1236,22 @@
                         <i class="fas fa-sync-alt fa-spin me-2"></i>
                         <strong>वास्तविक समय डेटा:</strong> Agmarknet, e-NAM से प्राप्त
                         <small class="float-end">अंतिम अपडेट: ${new Date().toLocaleString('hi-IN')}</small>
+                        <br><small class="text-info">📍 ${marketData.mandi} - ${currentLocation}</small>
                     </div>
                     <div class="row">
-                        <div class="col-md-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5>🌾 गेहूं</h5>
-                                    <h4>₹2,500</h4>
-                                    <small>प्रति क्विंटल</small>
-                                    <br><span class="badge bg-success">Agmarknet Live</span>
+                        ${marketData.crops.map((crop, index) => `
+                            <div class="col-md-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h5>🌾 ${crop.name}</h5>
+                                        <h4>${crop.price}</h4>
+                                        <small>${crop.unit}</small>
+                                        <br><span class="badge ${crop.trend.startsWith('+') ? 'bg-success' : crop.trend.startsWith('-') ? 'bg-danger' : 'bg-secondary'}">${crop.trend}</span>
+                                        <br><span class="badge bg-${index % 2 === 0 ? 'success' : 'info'}">${index % 2 === 0 ? 'Agmarknet' : 'e-NAM'} Live</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5>🌾 चावल</h5>
-                                    <h4>₹2,800</h4>
-                                    <small>प्रति क्विंटल</small>
-                                    <br><span class="badge bg-info">e-NAM Live</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5>🌽 मक्का</h5>
-                                    <h4>₹2,000</h4>
-                                    <small>प्रति क्विंटल</small>
-                                    <br><span class="badge bg-warning">Agmarknet Live</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5>🍃 गन्ना</h5>
-                                    <h4>₹3,150</h4>
-                                    <small>प्रति क्विंटल</small>
-                                    <br><span class="badge bg-primary">e-NAM Live</span>
-                                </div>
-                            </div>
-                        </div>
+                        `).join('')}
                     </div>
                 `;
             }, 1500);
@@ -1733,13 +1501,20 @@
                     longitude: 77.1025
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('📡 AI Response received:', response);
+                return response.json();
+            })
             .then(data => {
+                console.log('🤖 AI Response data:', data);
+                
                 // Remove typing indicator
-                const typingIndicator = chatMessages.querySelector('.fa-spinner');
-                if (typingIndicator) {
-                    typingIndicator.parentElement.parentElement.remove();
-                }
+                const typingIndicators = chatMessages.querySelectorAll('.fa-spinner');
+                typingIndicators.forEach(indicator => {
+                    if (indicator.parentElement && indicator.parentElement.parentElement) {
+                        indicator.parentElement.parentElement.remove();
+                    }
+                });
                 
                 // Add AI response
                 let aiResponse = data.response || 'मुझे खेद है, मैं आपके सवाल का जवाब नहीं दे सका।';
@@ -1750,16 +1525,21 @@
                     sourceInfo = '<br><small class="text-success">📊 सरकारी डेटा से</small>';
                 } else if (data.data_source === 'open_source_ai') {
                     sourceInfo = '<br><small class="text-info">🤖 AI से</small>';
+                } else if (data.data_source) {
+                    sourceInfo = `<br><small class="text-secondary">📡 ${data.data_source}</small>`;
                 }
                 
-                chatMessages.innerHTML += `
-                    <div class="alert alert-light">
-                        <i class="fas fa-robot me-2"></i>
-                        <strong>AI सहायक:</strong> ${aiResponse}${sourceInfo}
-                    </div>
+                const aiResponseElement = document.createElement('div');
+                aiResponseElement.className = 'alert alert-light';
+                aiResponseElement.innerHTML = `
+                    <i class="fas fa-robot me-2"></i>
+                    <strong>AI सहायक:</strong> ${aiResponse}${sourceInfo}
                 `;
                 
+                chatMessages.appendChild(aiResponseElement);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                console.log('✅ AI Response added to chat');
             })
             .catch(error => {
                 console.error('AI API Error:', error);
@@ -1796,6 +1576,123 @@
                 }
             }
             return cookieValue;
+        }
+        
+        // Dynamic Weather Data based on Location
+        function getDynamicWeatherData(location) {
+            const weatherData = {
+                'Delhi': { temperature: '22-32°C', humidity: '45-65%', soil: 'दोमट मिट्टी', irrigation: 'यमुना नदी उपलब्ध' },
+                'Mumbai': { temperature: '25-35°C', humidity: '70-85%', soil: 'काली मिट्टी', irrigation: 'अरब सागर निकट' },
+                'Pune': { temperature: '20-30°C', humidity: '60-75%', soil: 'दोमट मिट्टी', irrigation: 'भीमा नदी उपलब्ध' },
+                'Bangalore': { temperature: '18-28°C', humidity: '65-80%', soil: 'लाल मिट्टी', irrigation: 'कावेरी नदी उपलब्ध' },
+                'Chennai': { temperature: '26-36°C', humidity: '70-85%', soil: 'चिकनी मिट्टी', irrigation: 'कोरोमंडल तट' },
+                'Hyderabad': { temperature: '24-34°C', humidity: '55-70%', soil: 'काली मिट्टी', irrigation: 'मूसी नदी उपलब्ध' },
+                'Kolkata': { temperature: '25-35°C', humidity: '75-90%', soil: 'दोमट मिट्टी', irrigation: 'हुगली नदी उपलब्ध' }
+            };
+            return weatherData[location] || weatherData['Delhi'];
+        }
+        
+        // Dynamic Crop Data based on Location
+        function getDynamicCropData(location) {
+            const cropData = {
+                'Delhi': {
+                    crops: [
+                        { name: 'गेहूं', type: 'रबी', inputCost: '₹35,000', currentPrice: '₹2,500', futurePrice: '₹2,700', duration: '5-6 महीने' },
+                        { name: 'मक्का', type: 'खरीफ', inputCost: '₹28,000', currentPrice: '₹2,000', futurePrice: '₹2,100', duration: '3-4 महीने' },
+                        { name: 'टमाटर', type: 'जायद', inputCost: '₹45,000', currentPrice: '₹15/किलो', futurePrice: '₹18/किलो', duration: '3-4 महीने' }
+                    ]
+                },
+                'Mumbai': {
+                    crops: [
+                        { name: 'चावल', type: 'खरीफ', inputCost: '₹40,000', currentPrice: '₹2,800', futurePrice: '₹3,000', duration: '4-5 महीने' },
+                        { name: 'गन्ना', type: 'वर्षभर', inputCost: '₹50,000', currentPrice: '₹3,150', futurePrice: '₹3,300', duration: '10-12 महीने' },
+                        { name: 'मिर्ची', type: 'जायद', inputCost: '₹35,000', currentPrice: '₹120/किलो', futurePrice: '₹140/किलो', duration: '4-5 महीने' }
+                    ]
+                },
+                'Bangalore': {
+                    crops: [
+                        { name: 'रागी', type: 'खरीफ', inputCost: '₹25,000', currentPrice: '₹3,500', futurePrice: '₹3,800', duration: '3-4 महीने' },
+                        { name: 'कॉफी', type: 'वर्षभर', inputCost: '₹60,000', currentPrice: '₹180/किलो', futurePrice: '₹200/किलो', duration: '2-3 साल' },
+                        { name: 'सब्जियां', type: 'जायद', inputCost: '₹30,000', currentPrice: '₹25/किलो', futurePrice: '₹30/किलो', duration: '2-3 महीने' }
+                    ]
+                }
+            };
+            return cropData[location] || cropData['Delhi'];
+        }
+        
+        // Dynamic Market Data based on Location
+        function getDynamicMarketData(location) {
+            const marketData = {
+                'Delhi': {
+                    mandi: 'आजादपुर मंडी',
+                    crops: [
+                        { name: 'गेहूं', price: '₹2,500', trend: '+5%', unit: 'प्रति क्विंटल' },
+                        { name: 'चावल', price: '₹2,800', trend: '+3%', unit: 'प्रति क्विंटल' },
+                        { name: 'मक्का', price: '₹2,000', trend: '-2%', unit: 'प्रति क्विंटल' },
+                        { name: 'गन्ना', price: '₹3,150', trend: 'स्थिर', unit: 'प्रति क्विंटल' }
+                    ]
+                },
+                'Mumbai': {
+                    mandi: 'वाशी मंडी',
+                    crops: [
+                        { name: 'गेहूं', price: '₹2,600', trend: '+6%', unit: 'प्रति क्विंटल' },
+                        { name: 'चावल', price: '₹2,900', trend: '+4%', unit: 'प्रति क्विंटल' },
+                        { name: 'मक्का', price: '₹2,100', trend: '+1%', unit: 'प्रति क्विंटल' },
+                        { name: 'गन्ना', price: '₹3,200', trend: '+2%', unit: 'प्रति क्विंटल' }
+                    ]
+                },
+                'Bangalore': {
+                    mandi: 'कृषि उत्पाद मंडी',
+                    crops: [
+                        { name: 'रागी', price: '₹3,500', trend: '+8%', unit: 'प्रति क्विंटल' },
+                        { name: 'चावल', price: '₹3,000', trend: '+5%', unit: 'प्रति क्विंटल' },
+                        { name: 'मक्का', price: '₹2,200', trend: '+3%', unit: 'प्रति क्विंटल' },
+                        { name: 'गन्ना', price: '₹3,300', trend: '+4%', unit: 'प्रति क्विंटल' }
+                    ]
+                }
+            };
+            return marketData[location] || marketData['Delhi'];
+        }
+        
+        // Generate Dynamic Crop Cards based on Location
+        function generateDynamicCropCards(location) {
+            const cropData = getDynamicCropData(location);
+            const colors = ['success', 'info', 'warning'];
+            const icons = ['🌾', '🌽', '🍅', '🍃', '🌶️', '☕'];
+            
+            return cropData.crops.map((crop, index) => `
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-${colors[index % colors.length]}">
+                        <div class="card-header bg-${colors[index % colors.length]} text-white">
+                            <h6 class="mb-0">${icons[index % icons.length]} ${crop.name} (${crop.type}) - ${index === 0 ? 'सर्वोत्तम' : index === 1 ? 'अच्छा' : 'लाभदायक'}</h6>
+                            <small>${crop.type} फसल | ${crop.duration}</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>समय अवधि:</strong></div>
+                                <div class="col-6">${crop.duration}</div>
+                            </div>
+                            <hr>
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>इनपुट लागत:</strong></div>
+                                <div class="col-6">${crop.inputCost}/हेक्टेयर</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>वर्तमान कीमत:</strong></div>
+                                <div class="col-6">${crop.currentPrice}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>भविष्य कीमत:</strong></div>
+                                <div class="col-6">${crop.futurePrice}</div>
+                            </div>
+                            <hr>
+                            <div class="alert alert-${colors[index % colors.length]} mb-0">
+                                <strong>लाभदायक:</strong> ${location} क्षेत्र के लिए उपयुक्त
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
         
         function askQuestion(question) {
