@@ -17,6 +17,7 @@ from ..services.enhanced_government_api import EnhancedGovernmentAPI
 from ..services.realtime_government_ai import RealTimeGovernmentAI
 from ..services.enhanced_multilingual import EnhancedMultilingualSupport
 from ..services.real_government_data_analysis import RealGovernmentDataAnalysis
+from ..services.government_schemes_data import get_all_schemes, CENTRAL_GOVERNMENT_SCHEMES
 
 logger = logging.getLogger(__name__)
 
@@ -176,13 +177,23 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
         """Get government schemes for farmers from official government sources"""
         try:
             location = request.query_params.get('location', 'Delhi')
-            schemes = self.gov_api.get_government_schemes(location)
-            return Response({
+            
+            # Get all schemes (central + state-specific)
+            all_schemes = get_all_schemes(location)
+            
+            # Format response with clickable links
+            response_data = {
                 'location': location,
-                'government_schemes': schemes,
-                'data_source': 'Official Government Databases',
-                'timestamp': datetime.now().isoformat()
-            }, status=status.HTTP_200_OK)
+                'total_schemes': all_schemes['total_schemes'],
+                'central_schemes': all_schemes['central_schemes'],
+                'state_schemes': all_schemes['state_schemes'],
+                'data_source': 'Official Government Portals (PM-Kisan, PMFBY, etc.)',
+                'timestamp': datetime.now().isoformat(),
+                'note': 'All schemes have official government website links and apply links'
+            }
+            
+            logger.info(f"Government schemes fetched for {location}: {all_schemes['total_schemes']} schemes")
+            return Response(response_data, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Government schemes API error: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
