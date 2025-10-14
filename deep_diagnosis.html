@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Cards Diagnosis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .fail { border-left-color: #f44336; }
+        .warn { border-left-color: #ff9800; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        #results { margin-top: 20px; }
+        .code { background: #f0f0f0; padding: 10px; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Krishimitra AI - Service Cards Diagnostic Tool</h1>
+    <p>Open this page, then paste the code below into your browser console on <strong>https://krishmitra-zrk4.onrender.com/</strong></p>
+    
+    <h2>📋 Step-by-Step Instructions:</h2>
+    <ol>
+        <li>Go to <a href="https://krishmitra-zrk4.onrender.com/" target="_blank">https://krishmitra-zrk4.onrender.com/</a></li>
+        <li>Press <kbd>F12</kbd> to open Developer Tools</li>
+        <li>Click on the <strong>Console</strong> tab</li>
+        <li>Copy the code below and paste it into the console</li>
+        <li>Press <kbd>Enter</kbd></li>
+        <li>Read the results</li>
+    </ol>
+
+    <h2>🔧 Diagnostic Code:</h2>
+    <div class="code" id="diagnostic-code">
+<pre style="margin: 0;">
+// COMPREHENSIVE SERVICE CARDS DIAGNOSTIC
+console.clear();
+console.log('%c🔍 KRISHIMITRA AI - SERVICE CARDS DIAGNOSTIC', 'background: #4CAF50; color: white; padding: 10px; font-size: 16px; font-weight: bold;');
+console.log('Starting comprehensive diagnostic...\n');
+
+// Test 1: Check if service cards exist
+console.log('%c📦 TEST 1: Service Cards in DOM', 'background: #2196F3; color: white; padding: 5px;');
+const serviceCards = document.querySelectorAll('.service-card[data-service]');
+console.log(`Found ${serviceCards.length} service cards with [data-service]`);
+if (serviceCards.length === 6) {
+    console.log('%c✅ PASS: All 6 service cards found', 'color: green; font-weight: bold;');
+    serviceCards.forEach((card, i) => {
+        const service = card.getAttribute('data-service');
+        console.log(`  ${i+1}. ${service}`);
+    });
+} else {
+    console.log('%c❌ FAIL: Expected 6 cards, found ' + serviceCards.length, 'color: red; font-weight: bold;');
+}
+
+// Test 2: Check for pointer-events blocking
+console.log('\n%c🎯 TEST 2: Pointer Events Check', 'background: #2196F3; color: white; padding: 5px;');
+let blockingElements = 0;
+serviceCards.forEach((card, i) => {
+    const children = card.querySelectorAll('*');
+    children.forEach(child => {
+        const pointerEvents = window.getComputedStyle(child).pointerEvents;
+        if (pointerEvents !== 'none' && child !== card && child.querySelector('.service-card') === null) {
+            const zIndex = window.getComputedStyle(child).zIndex;
+            const position = window.getComputedStyle(child).position;
+            if (position === 'absolute' || parseInt(zIndex) > 0) {
+                console.log(`  ⚠️  Potential blocking element in card ${i+1}:`, child.className, {pointerEvents, zIndex, position});
+                blockingElements++;
+            }
+        }
+    });
+});
+if (blockingElements === 0) {
+    console.log('%c✅ PASS: No blocking elements detected', 'color: green; font-weight: bold;');
+} else {
+    console.log('%c⚠️  WARN: ' + blockingElements + ' potential blocking elements found', 'color: orange; font-weight: bold;');
+}
+
+// Test 3: Check for event listeners
+console.log('\n%c👂 TEST 3: Event Listeners', 'background: #2196F3; color: white; padding: 5px;');
+let hasListeners = false;
+serviceCards.forEach((card, i) => {
+    const listeners = getEventListeners(card);
+    if (listeners && listeners.click && listeners.click.length > 0) {
+        console.log(`  ✅ Card ${i+1} (${card.getAttribute('data-service')}) has ${listeners.click.length} click listener(s)`);
+        hasListeners = true;
+    } else {
+        console.log(`  ❌ Card ${i+1} (${card.getAttribute('data-service')}) has NO click listeners`);
+    }
+});
+if (!hasListeners) {
+    console.log('%c❌ FAIL: No click listeners found on any cards!', 'color: red; font-weight: bold;');
+    console.log('%c💡 This is the problem! JavaScript not initializing.', 'color: orange; font-weight: bold;');
+}
+
+// Test 4: Check for showService function
+console.log('\n%c⚙️  TEST 4: showService Function', 'background: #2196F3; color: white; padding: 5px;');
+if (typeof showService === 'function') {
+    console.log('%c✅ PASS: showService function exists', 'color: green; font-weight: bold;');
+} else {
+    console.log('%c❌ FAIL: showService function not found!', 'color: red; font-weight: bold;');
+}
+
+// Test 5: Check for JavaScript errors
+console.log('\n%c🐛 TEST 5: JavaScript Errors', 'background: #2196F3; color: white; padding: 5px;');
+console.log('Check the Console tab for any red error messages above this diagnostic.');
+console.log('Common errors: SyntaxError, ReferenceError, TypeError');
+
+// Test 6: Manual click test
+console.log('\n%c🖱️  TEST 6: Manual Click Test', 'background: #2196F3; color: white; padding: 5px;');
+console.log('Running simulated click on first card...');
+if (serviceCards.length > 0) {
+    const firstCard = serviceCards[0];
+    const serviceName = firstCard.getAttribute('data-service');
+    console.log(`Attempting to click: ${serviceName}`);
+    
+    // Try direct function call
+    try {
+        if (typeof showService === 'function') {
+            showService(serviceName);
+            console.log('%c✅ Direct function call successful', 'color: green; font-weight: bold;');
+            console.log('💡 Cards should work if you add event listeners manually!');
+        }
+    } catch (e) {
+        console.log('%c❌ Direct function call failed:', 'color: red; font-weight: bold;', e);
+    }
+}
+
+// SOLUTION: Add event listeners manually
+console.log('\n%c🔧 APPLYING FIX...', 'background: #FF5722; color: white; padding: 10px; font-size: 14px; font-weight: bold;');
+console.log('Adding click event listeners to all cards...');
+
+let fixedCount = 0;
+serviceCards.forEach((card, index) => {
+    const serviceName = card.getAttribute('data-service');
+    
+    // Remove any existing listeners by cloning
+    const newCard = card.cloneNode(true);
+    card.parentNode.replaceChild(newCard, card);
+    
+    // Add fresh click listener
+    newCard.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log(`🎯 Card clicked: ${serviceName}`);
+        if (typeof showService === 'function') {
+            showService(serviceName);
+        } else {
+            console.error('showService function not found!');
+        }
+    });
+    
+    // Also add cursor pointer
+    newCard.style.cursor = 'pointer';
+    
+    fixedCount++;
+});
+
+console.log(`%c✅ FIX APPLIED to ${fixedCount} cards!`, 'background: #4CAF50; color: white; padding: 10px; font-size: 14px; font-weight: bold;');
+console.log('%c🎉 Try clicking the service cards now!', 'background: #4CAF50; color: white; padding: 10px; font-size: 14px; font-weight: bold;');
+
+// Final summary
+console.log('\n%c📊 DIAGNOSTIC SUMMARY', 'background: #9C27B0; color: white; padding: 10px; font-size: 14px; font-weight: bold;');
+console.log(`Service Cards Found: ${serviceCards.length}/6`);
+console.log(`Blocking Elements: ${blockingElements}`);
+console.log(`Has Event Listeners: ${hasListeners ? 'Yes' : 'No'}`);
+console.log(`showService Function: ${typeof showService === 'function' ? 'Exists' : 'Missing'}`);
+console.log(`Fix Applied: Yes - ${fixedCount} cards updated`);
+
+console.log('\n%c📝 RECOMMENDATION:', 'background: #FF9800; color: white; padding: 5px; font-weight: bold;');
+if (!hasListeners && typeof showService === 'function') {
+    console.log('%c💡 Issue: Event listeners not attaching on page load', 'color: orange; font-weight: bold;');
+    console.log('%c💡 Cause: DOMContentLoaded event may have fired before script loaded', 'color: orange;');
+    console.log('%c💡 Quick Fix: The fix has been applied! Cards should work now.', 'color: green; font-weight: bold;');
+    console.log('%c💡 Permanent Fix: Move JavaScript to end of <body> or use defer attribute', 'color: blue;');
+} else if (typeof showService !== 'function') {
+    console.log('%c💡 Issue: showService function missing - JavaScript not loaded', 'color: red; font-weight: bold;');
+    console.log('%c💡 Fix: Check if there are JavaScript errors preventing script execution', 'color: orange;');
+}
+</pre>
+    </div>
+
+    <button onclick="copyCode()">📋 Copy Diagnostic Code</button>
+    
+    <h2>🎯 What This Does:</h2>
+    <ul>
+        <li>✅ Checks if all 6 service cards exist in the page</li>
+        <li>✅ Detects elements that might be blocking clicks</li>
+        <li>✅ Verifies if event listeners are attached</li>
+        <li>✅ Checks if the showService function exists</li>
+        <li>✅ Looks for JavaScript errors</li>
+        <li>✅ <strong>AUTOMATICALLY FIXES the cards by adding event listeners!</strong></li>
+    </ul>
+
+    <h2>✅ Expected Result:</h2>
+    <p style="background: #e8f5e9; padding: 15px; border-radius: 5px;">
+        After running this code, the service cards should become <strong>clickable immediately</strong>.
+        If they work after running this code, it means the event listeners aren't being attached on page load.
+    </p>
+
+    <h2>🔧 Permanent Fix Needed:</h2>
+    <p style="background: #fff3e0; padding: 15px; border-radius: 5px;">
+        If the diagnostic fix works, the problem is that the JavaScript is loading after DOMContentLoaded fires.
+        The permanent solution is to ensure the script executes after the DOM is ready.
+    </p>
+
+    <script>
+        function copyCode() {
+            const code = document.querySelector('#diagnostic-code pre').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('✅ Code copied! Now paste it in the browser console on the live site.');
+            });
+        }
+    </script>
+</body>
+</html>
+

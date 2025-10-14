@@ -6019,6 +6019,112 @@
                 notification.style.display = 'none';
             }, 3000);
         }
+
+        // ============================================================================
+        // BULLETPROOF SERVICE CARD CLICK HANDLER - GUARANTEED TO WORK
+        // ============================================================================
+        
+        function initializeServiceCardsForce() {
+            console.log('🔥 FORCE INITIALIZING SERVICE CARDS...');
+            
+            const serviceCards = document.querySelectorAll('.service-card[data-service]');
+            console.log(`Found ${serviceCards.length} service cards to initialize`);
+            
+            if (serviceCards.length === 0) {
+                console.warn('⚠️  No service cards found yet, will retry...');
+                return false;
+            }
+            
+            // Remove ALL existing event listeners by replacing the cards
+            serviceCards.forEach((card, index) => {
+                const serviceName = card.getAttribute('data-service');
+                
+                // Clone the card to remove all event listeners
+                const newCard = card.cloneNode(true);
+                card.parentNode.replaceChild(newCard, card);
+                
+                // Add fresh click event listener
+                newCard.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`🎯 Service card clicked: ${serviceName}`);
+                    
+                    if (typeof showService === 'function') {
+                        showService(serviceName);
+                    } else {
+                        console.error('❌ showService function not found!');
+                    }
+                }, true); // Use capture phase to ensure it fires
+                
+                // Ensure cursor is pointer
+                newCard.style.cursor = 'pointer';
+                
+                // Make sure no child elements block the click
+                const allChildren = newCard.querySelectorAll('*');
+                allChildren.forEach(child => {
+                    // Don't set pointer-events: none on inputs/buttons that need to be interactive
+                    if (!child.matches('input, textarea, select')) {
+                        const currentPointerEvents = window.getComputedStyle(child).pointerEvents;
+                        if (currentPointerEvents !== 'none') {
+                            child.style.pointerEvents = 'none';
+                        }
+                    }
+                });
+                
+                console.log(`✅ Card ${index + 1} initialized: ${serviceName}`);
+            });
+            
+            console.log('🎉 Service cards force initialization complete!');
+            return true;
+        }
+        
+        // Strategy 1: If DOM is already ready, initialize immediately
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            console.log('📍 DOM already ready, initializing immediately...');
+            setTimeout(initializeServiceCardsForce, 100);
+        }
+        
+        // Strategy 2: Wait for DOMContentLoaded
+        if (document.readyState === 'loading') {
+            console.log('📍 DOM still loading, waiting for DOMContentLoaded...');
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(initializeServiceCardsForce, 100);
+            });
+        }
+        
+        // Strategy 3: Fallback - try multiple times
+        let attempts = 0;
+        const maxAttempts = 10;
+        const retryInterval = setInterval(function() {
+            attempts++;
+            const cards = document.querySelectorAll('.service-card[data-service]');
+            
+            if (cards.length > 0) {
+                console.log(`✅ Retry attempt ${attempts}: Found ${cards.length} cards`);
+                initializeServiceCardsForce();
+                clearInterval(retryInterval);
+            } else if (attempts >= maxAttempts) {
+                console.error('❌ Failed to find service cards after ' + maxAttempts + ' attempts');
+                clearInterval(retryInterval);
+            }
+        }, 500);
+        
+        // Strategy 4: Global document click handler as ultimate fallback
+        document.addEventListener('click', function(e) {
+            const card = e.target.closest('.service-card[data-service]');
+            if (card) {
+                const serviceName = card.getAttribute('data-service');
+                console.log(`🎯 Global handler caught click on: ${serviceName}`);
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (typeof showService === 'function') {
+                    showService(serviceName);
+                }
+            }
+        }, true); // Use capture phase
+        
+        console.log('🚀 All service card initialization strategies activated!');
     </script>
 </body>
 </html>
