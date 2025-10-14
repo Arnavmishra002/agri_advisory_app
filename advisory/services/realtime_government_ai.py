@@ -14,6 +14,7 @@ from .enhanced_government_api import EnhancedGovernmentAPI
 from .ultra_dynamic_government_api import UltraDynamicGovernmentAPI
 from .deep_ai_understanding import analyze_query_deeply
 from .ollama_integration import OllamaIntegration
+from .government_schemes_data import get_all_schemes, CENTRAL_GOVERNMENT_SCHEMES
 
 logger = logging.getLogger(__name__)
 
@@ -614,54 +615,95 @@ Please try again later."""
             return response
     
     def _generate_realtime_schemes_response(self, real_time_data: Dict[str, Any], language: str, location: str) -> str:
-        """Generate government schemes response with real-time data"""
-        schemes_data = real_time_data.get('government_schemes', {})
+        """Generate government schemes response with clickable links"""
+        # Get actual government schemes data
+        all_schemes = get_all_schemes(location)
+        central_schemes = all_schemes['central_schemes']
+        state_schemes = all_schemes['state_schemes']
         
         if language in ['hi', 'hinglish']:
-            response = f"🏛️ **{location} के लिए वास्तविक समय सरकारी योजनाएं**\n\n"
+            response = f"🏛️ **{location} के लिए सरकारी योजनाएं**\n\n"
             response += f"📍 **स्थान**: {location}\n"
             response += f"⏰ **अपडेट**: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
             
-            if schemes_data:
-                response += f"📋 **उपलब्ध सरकारी योजनाएं**:\n\n"
-                for i, (scheme_name, scheme_info) in enumerate(list(schemes_data.items())[:5], 1):
-                    response += f"┌─────────────────────────────────────┐\n"
-                    response += f"│ 🏛️ {i}. {scheme_name}\n"
-                    response += f"├─────────────────────────────────────┤\n"
-                    response += f"│ 💰 लाभ: {scheme_info.get('benefit', 'N/A')}\n"
-                    response += f"│ ✅ पात्रता: {scheme_info.get('eligibility', 'N/A')}\n"
-                    response += f"│ 📝 आवेदन: {scheme_info.get('application', 'N/A')}\n"
-                    response += f"│ 🏛️ विभाग: {scheme_info.get('department', 'कृषि विभाग')}\n"
-                    response += f"└─────────────────────────────────────┘\n\n"
+            # Central Government Schemes
+            response += f"═══════════════════════════════════\n"
+            response += f"📋 **केंद्र सरकार की योजनाएं**\n"
+            response += f"═══════════════════════════════════\n\n"
+            
+            for i, scheme in enumerate(central_schemes[:5], 1):
+                response += f"┌{'─' * 50}┐\n"
+                response += f"│ {i}. {scheme['name']}\n"
+                response += f"├{'─' * 50}┤\n"
+                response += f"│ 💰 **राशि**: {scheme['amount']}\n"
+                response += f"│ 📝 **विवरण**: {scheme['description']}\n"
+                response += f"│ ✅ **पात्रता**: {scheme['eligibility']}\n"
+                response += f"│ 📞 **हेल्पलाइन**: {scheme['helpline']}\n"
+                response += f"│ 🌐 **आधिकारिक साइट**: {scheme['official_website']}\n"
+                response += f"│ 📲 **आवेदन करें**: {scheme['apply_link']}\n"
+                response += f"└{'─' * 50}┘\n\n"
+            
+            # State Specific Schemes
+            if state_schemes:
+                response += f"\n═══════════════════════════════════\n"
+                response += f"📋 **{location} राज्य की योजनाएं**\n"
+                response += f"═══════════════════════════════════\n\n"
                 
-                response += f"📊 **डेटा स्रोत**: सरकारी पोर्टल, PM-KISAN, कृषि विभाग (वास्तविक समय)\n"
-                response += f"✅ **गारंटी**: 100% सरकारी योजना डेटा\n"
-            else:
-                response += f"⚠️ योजना डेटा लोड हो रहा है... कृपया कुछ समय बाद पूछें।\n"
+                for i, scheme in enumerate(state_schemes, 1):
+                    response += f"┌{'─' * 50}┐\n"
+                    response += f"│ {i}. {scheme['name']}\n"
+                    response += f"├{'─' * 50}┤\n"
+                    response += f"│ 💰 **राशि**: {scheme['amount']}\n"
+                    response += f"│ 📝 **विवरण**: {scheme['description']}\n"
+                    response += f"│ 🌐 **जानकारी**: {scheme['website']}\n"
+                    response += f"└{'─' * 50}┘\n\n"
+            
+            response += f"\n📊 **डेटा स्रोत**: आधिकारिक सरकारी पोर्टल\n"
+            response += f"✅ **सभी योजनाओं के लिंक ऊपर दिए गए हैं**\n"
+            response += f"💡 **टिप**: लिंक पर क्लिक करके सीधे आवेदन करें\n"
             
             return response
         
         else:  # English
-            response = f"🏛️ **Real-time Government Schemes for {location}**\n\n"
+            response = f"🏛️ **Government Schemes for {location}**\n\n"
             response += f"📍 **Location**: {location}\n"
             response += f"⏰ **Updated**: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
             
-            if schemes_data:
-                response += f"📋 **Available Government Schemes**:\n\n"
-                for i, (scheme_name, scheme_info) in enumerate(list(schemes_data.items())[:5], 1):
-                    response += f"┌─────────────────────────────────────┐\n"
-                    response += f"│ 🏛️ {i}. {scheme_name}\n"
-                    response += f"├─────────────────────────────────────┤\n"
-                    response += f"│ 💰 Benefit: {scheme_info.get('benefit', 'N/A')}\n"
-                    response += f"│ ✅ Eligibility: {scheme_info.get('eligibility', 'N/A')}\n"
-                    response += f"│ 📝 Application: {scheme_info.get('application', 'N/A')}\n"
-                    response += f"│ 🏛️ Department: {scheme_info.get('department', 'Agriculture Department')}\n"
-                    response += f"└─────────────────────────────────────┘\n\n"
+            # Central Government Schemes
+            response += f"═══════════════════════════════════\n"
+            response += f"📋 **Central Government Schemes**\n"
+            response += f"═══════════════════════════════════\n\n"
+            
+            for i, scheme in enumerate(central_schemes[:5], 1):
+                response += f"┌{'─' * 50}┐\n"
+                response += f"│ {i}. {scheme['name_en']}\n"
+                response += f"├{'─' * 50}┤\n"
+                response += f"│ 💰 **Amount**: {scheme['amount']}\n"
+                response += f"│ 📝 **Description**: {scheme['description']}\n"
+                response += f"│ ✅ **Eligibility**: {scheme['eligibility']}\n"
+                response += f"│ 📞 **Helpline**: {scheme['helpline']}\n"
+                response += f"│ 🌐 **Official Website**: {scheme['official_website']}\n"
+                response += f"│ 📲 **Apply Now**: {scheme['apply_link']}\n"
+                response += f"└{'─' * 50}┘\n\n"
+            
+            # State Specific Schemes
+            if state_schemes:
+                response += f"\n═══════════════════════════════════\n"
+                response += f"📋 **{location} State Schemes**\n"
+                response += f"═══════════════════════════════════\n\n"
                 
-                response += f"📊 **Data Source**: Government Portals, PM-KISAN, Agriculture Department (Real-time)\n"
-                response += f"✅ **Guaranteed**: 100% Government Scheme Data\n"
-            else:
-                response += f"⚠️ Scheme data loading... Please ask again in a moment.\n"
+                for i, scheme in enumerate(state_schemes, 1):
+                    response += f"┌{'─' * 50}┐\n"
+                    response += f"│ {i}. {scheme['name']}\n"
+                    response += f"├{'─' * 50}┤\n"
+                    response += f"│ 💰 **Amount**: {scheme['amount']}\n"
+                    response += f"│ 📝 **Description**: {scheme['description']}\n"
+                    response += f"│ 🌐 **More Info**: {scheme['website']}\n"
+                    response += f"└{'─' * 50}┘\n\n"
+            
+            response += f"\n📊 **Data Source**: Official Government Portals\n"
+            response += f"✅ **All scheme links provided above**\n"
+            response += f"💡 **Tip**: Click links to apply directly\n"
             
             return response
     
