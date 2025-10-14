@@ -25,48 +25,47 @@ class ChatbotViewSet(viewsets.ViewSet):
     
     def create(self, request):
         """Process chatbot queries"""
+        # Initialize services for this request
         try:
-            # Initialize services for this request
-            try:
-                realtime_ai = RealTimeGovernmentAI()
-            except Exception as init_error:
-                logger.error(f"Service initialization error: {init_error}")
-                return Response({
-                    'response': 'Service temporarily unavailable. Please try again later.',
-                    'data_source': 'error_fallback'
-                }, status=status.HTTP_200_OK)
+            realtime_ai = RealTimeGovernmentAI()
+        except Exception as init_error:
+            logger.error(f"Service initialization error: {init_error}")
+            return Response({
+                'response': 'Service temporarily unavailable. Please try again later.',
+                'data_source': 'error_fallback'
+            }, status=status.HTTP_200_OK)
+        
+        try:
+            data = request.data
+            query = data.get('query', '')
+            language = data.get('language', 'hindi')
+            location = data.get('location', 'Delhi')
+            latitude = data.get('latitude', 28.7041)
+            longitude = data.get('longitude', 77.1025)
             
-            try:
-                data = request.data
-                query = data.get('query', '')
-                language = data.get('language', 'hindi')
-                location = data.get('location', 'Delhi')
-                latitude = data.get('latitude', 28.7041)
-                longitude = data.get('longitude', 77.1025)
-                
-                if not query:
-                    return Response({
-                        'error': 'Query is required'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-                
-                # Process the query using real-time AI
-                result = realtime_ai.process_farming_query(
-                    query=query,
-                    language=language,
-                    location=location,
-                    latitude=latitude,
-                    longitude=longitude
-                )
-                
-                return Response(result, status=status.HTTP_200_OK)
-                
-            except Exception as e:
-                logger.error(f"Chatbot error: {e}")
+            if not query:
                 return Response({
-                    'response': 'Sorry, I encountered an error processing your query. Please try again.',
-                    'error': str(e),
-                    'data_source': 'error_fallback'
-                }, status=status.HTTP_200_OK)
+                    'error': 'Query is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Process the query using real-time AI
+            result = realtime_ai.process_farming_query(
+                query=query,
+                language=language,
+                location=location,
+                latitude=latitude,
+                longitude=longitude
+            )
+            
+            return Response(result, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Chatbot error: {e}")
+            return Response({
+                'response': 'Sorry, I encountered an error processing your query. Please try again.',
+                'error': str(e),
+                'data_source': 'error_fallback'
+            }, status=status.HTTP_200_OK)
 
 
 class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
