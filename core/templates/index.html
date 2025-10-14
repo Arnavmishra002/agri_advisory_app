@@ -108,6 +108,8 @@
             background: linear-gradient(90deg, #2d5016, #4a7c59, #6c9c6c);
             transform: scaleX(0);
             transition: transform 0.3s ease;
+            pointer-events: none;
+            z-index: 1;
         }
         
         .service-card:hover {
@@ -156,6 +158,8 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            pointer-events: none;
+            z-index: 2;
         }
         
         .status-indicator {
@@ -202,6 +206,7 @@
             text-align: center;
             transition: all 0.3s ease;
             display: block;
+            pointer-events: none;
         }
         
         .service-card:hover .service-icon {
@@ -215,6 +220,7 @@
             color: #2d5016;
             margin-bottom: 10px;
             text-align: center;
+            pointer-events: none;
         }
         
         .service-description {
@@ -222,6 +228,7 @@
             text-align: center;
             margin-bottom: 15px;
             line-height: 1.5;
+            pointer-events: none;
         }
         
         .service-button {
@@ -248,6 +255,7 @@
             height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             transition: left 0.6s ease;
+            pointer-events: none;
         }
         
         .service-button:hover {
@@ -1964,9 +1972,21 @@
             container.innerHTML = html;
         }
 
-        // Initialize when page loads
+        // Initialize when page loads - MERGED HANDLER
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 DOM Content Loaded - Initializing...');
+            
+            // Initialize session ID
+            sessionId = 'session_' + Date.now();
+            console.log('Session ID:', sessionId);
+            
+            // Initialize current location
+            currentLocation = {
+                lat: 28.6139,
+                lon: 77.2090,
+                name: 'दिल्ली'
+            };
+            console.log('Current location:', currentLocation);
             
             // Add test button handler
             const testBtn = document.getElementById('test-js-btn');
@@ -1992,8 +2012,43 @@
                 });
             });
             
+            // Load initial data
+            updateGlobalLocationDisplay(currentLocation.name);
+            loadNearestMandis();
+            loadCropDataForLocation(currentLocation.name);
+            
+            // Add click event listeners to all scheme buttons
+            const schemeButtons = document.querySelectorAll('button[onclick*="askAboutScheme"]');
+            console.log('Found scheme buttons:', schemeButtons.length);
+            schemeButtons.forEach((button, index) => {
+                console.log(`Adding click listener to button ${index + 1}`);
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const schemeName = this.getAttribute('onclick').match(/askAboutScheme\('([^']+)'\)/);
+                    if (schemeName) {
+                        console.log('Button clicked for scheme:', schemeName[1]);
+                        askAboutScheme(schemeName[1]);
+                    }
+                });
+            });
+            
             console.log('🎉 All services initialized!');
         });
+
+        // Global click delegation fallback to ensure service cards always work
+        document.addEventListener('click', function(e) {
+            const card = e.target.closest('.service-card[data-service]');
+            if (card) {
+                e.preventDefault();
+                e.stopPropagation();
+                const serviceName = card.getAttribute('data-service');
+                try {
+                    showService(serviceName);
+                } catch (err) {
+                    console.error('showService failed:', err);
+                }
+            }
+        }, true);
 
 
         // Location detection
@@ -5964,47 +6019,6 @@
                 notification.style.display = 'none';
             }, 3000);
         }
-        
-        // DOM Content Loaded Event
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded - Initializing...');
-            
-            // Initialize session ID
-            sessionId = 'session_' + Date.now();
-            console.log('Session ID:', sessionId);
-            
-            // Initialize current location
-            currentLocation = {
-                lat: 28.6139,
-                lon: 77.2090,
-                name: 'दिल्ली'
-            };
-            console.log('Current location:', currentLocation);
-            
-            // Load initial data
-            updateGlobalLocationDisplay(currentLocation.name);
-            loadNearestMandis();
-            loadCropDataForLocation(currentLocation.name);
-            
-            // Test button functionality
-            console.log('Testing button functionality...');
-            const schemeButtons = document.querySelectorAll('button[onclick*="askAboutScheme"]');
-            console.log('Found scheme buttons:', schemeButtons.length);
-            
-            // Add click event listeners to all scheme buttons
-            schemeButtons.forEach((button, index) => {
-                console.log(`Adding click listener to button ${index + 1}`);
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const schemeName = this.getAttribute('onclick').match(/askAboutScheme\('([^']+)'\)/);
-                    if (schemeName) {
-                        console.log('Button clicked for scheme:', schemeName[1]);
-                        askAboutScheme(schemeName[1]);
-                    }
-                });
-            });
-            
-            console.log('Initialization complete!');
-        });
     </script>
 </body>
+</html>

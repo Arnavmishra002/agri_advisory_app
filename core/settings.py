@@ -33,7 +33,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-3^7he##1_fnu8)9z1nm)^)mzwl%74q8go9x6h4l0=$#am8si%6')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'  # Set to True for testing
 
 # Allow local development hosts and production hosts
 ALLOWED_HOSTS = [
@@ -285,23 +285,23 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'advisory.User'
 
-# Celery Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0' # Using Redis as the message broker
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0' # Storing results in Redis
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Asia/Kolkata' # Or your appropriate timezone
-CELERY_BEAT_SCHEDULE = {
-    'update-weather-every-hour': {
-        'task': 'advisory.tasks.update_weather_data',
-        'schedule': timedelta(hours=1),
-    },
-    'update-market-data-daily': {
-        'task': 'advisory.tasks.update_market_data',
-        'schedule': timedelta(days=1),
-    },
-}
+# Celery Configuration - Temporarily disabled for testing
+# CELERY_BROKER_URL = 'redis://localhost:6379/0' # Using Redis as the message broker
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0' # Storing results in Redis
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = 'Asia/Kolkata' # Or your appropriate timezone
+# CELERY_BEAT_SCHEDULE = {
+#     'update-weather-every-hour': {
+#         'task': 'advisory.tasks.update_weather_data',
+#         'schedule': timedelta(hours=1),
+#     },
+#     'update-market-data-daily': {
+#         'task': 'advisory.tasks.update_market_data',
+#         'schedule': timedelta(days=1),
+#     },
+# }
 
 # Caching settings (using local-memory cache for development, consider Redis for production)
 CACHES = {
