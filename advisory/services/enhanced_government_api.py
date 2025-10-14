@@ -1,4 +1,4 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Enhanced Government API Integration
 Improves government data access and reliability
@@ -353,7 +353,7 @@ class EnhancedGovernmentAPI:
             return 'Unknown'
         except:
             return 'Unknown'
-
+        
     def detect_location_comprehensive(self, query: str) -> Dict[str, Any]:
         """Real-time comprehensive location detection using open source APIs"""
         query_lower = query.lower().strip()
@@ -465,10 +465,10 @@ class EnhancedGovernmentAPI:
         
         # 5. Fuzzy matching for partial names (only if confidence is still low)
         if result['confidence'] < 0.7:
-            fuzzy_result = self._detect_location_via_fuzzy_matching(query_lower)
-            if fuzzy_result['confidence'] > result['confidence']:
-                result.update(fuzzy_result)
-                result['source'] = 'fuzzy_matching'
+        fuzzy_result = self._detect_location_via_fuzzy_matching(query_lower)
+        if fuzzy_result['confidence'] > result['confidence']:
+            result.update(fuzzy_result)
+            result['source'] = 'fuzzy_matching'
         
         self.location_cache[cache_key] = result
         return result
@@ -1943,18 +1943,18 @@ class EnhancedGovernmentAPI:
             
             # Get comprehensive crop recommendations with real government data
             recommendations = self._get_comprehensive_crop_recommendations(location, season, language)
-            
-            result = {
-                'location': location,
-                'season': season or 'kharif',
-                'recommendations': recommendations,
+        
+        result = {
+            'location': location,
+            'season': season or 'kharif',
+            'recommendations': recommendations,
                 'data_source': 'Government Analysis',
                 'timestamp': datetime.now().isoformat(),
                 'total_crops_analyzed': len(recommendations),
                 'confidence': 0.85
             }
-            
-            return result
+        
+        return result
             
         except Exception as e:
             logger.error(f"Error getting enhanced crop recommendations: {e}")
@@ -2506,7 +2506,7 @@ class EnhancedGovernmentAPI:
             # Generate historical weather analysis
             historical_analysis = self._generate_historical_analysis(weather_profile, location)
             
-            return {
+                return {
                 'temperature': temperature,
                 'humidity': humidity,
                 'wind_speed': wind_speed,
@@ -4440,7 +4440,7 @@ class EnhancedGovernmentAPI:
             'confidence': 0.8,
             'realtime': True
         }
-
+    
     def _get_default_real_time_data(self, location: str) -> Dict:
         """Get default real-time data if API calls fail"""
         return {

@@ -1867,7 +1867,101 @@
             // Scroll to the content
             content.scrollIntoView({ behavior: 'smooth' });
             
+            // Load data for the specific service
+            loadServiceData(serviceName);
+            
             console.log('✅ Service shown:', serviceName);
+        }
+        
+        // Load data for specific service
+        function loadServiceData(serviceName) {
+            console.log('📊 Loading data for service:', serviceName);
+            
+            switch(serviceName) {
+                case 'crop-recommendations':
+                    if (currentLocation && currentLocation.name) {
+                        loadCropDataForLocation(currentLocation.name);
+                    } else {
+                        loadCropDataForLocation('Delhi');
+                    }
+                    break;
+                    
+                case 'weather':
+                    if (currentLocation && currentLocation.name) {
+                        loadWeatherDataForLocation(currentLocation.name);
+                    } else {
+                        loadWeatherData();
+                    }
+                    break;
+                    
+                case 'market-prices':
+                    // Market prices are loaded when user searches
+                    console.log('Market prices: waiting for user input');
+                    break;
+                    
+                case 'government-schemes':
+                    if (currentLocation && currentLocation.name) {
+                        loadStateSchemes(currentLocation.name);
+                    }
+                    break;
+                    
+                case 'pest-control':
+                    console.log('Pest control: waiting for user input');
+                    break;
+                    
+                case 'ai-assistant':
+                    console.log('AI assistant: ready for queries');
+                    break;
+                    
+                default:
+                    console.log('Unknown service:', serviceName);
+            }
+        }
+        
+        // Load state government schemes
+        function loadStateSchemes(locationName) {
+            const container = document.getElementById('stateSchemes');
+            if (!container) return;
+            
+            const stateSchemes = {
+                'Delhi': [
+                    { name: 'दिल्ली कृषि योजना', amount: '₹7,000 प्रति एकड़', description: 'कृषि विकास के लिए राज्य सहायता' },
+                    { name: 'किसान कल्याण योजना', amount: '₹3,000 प्रति किसान', description: 'किसान कल्याण के लिए' }
+                ],
+                'Maharashtra': [
+                    { name: 'महाराष्ट्र कृषि योजना', amount: '₹10,000 प्रति एकड़', description: 'कृषि विकास के लिए राज्य सहायता' },
+                    { name: 'शेतकरी संपदा योजना', amount: '₹5,000 प्रति किसान', description: 'किसानों की आय बढ़ाने के लिए' }
+                ],
+                'Uttar Pradesh': [
+                    { name: 'उत्तर प्रदेश कृषि योजना', amount: '₹8,000 प्रति एकड़', description: 'कृषि उत्पादकता बढ़ाने के लिए' },
+                    { name: 'किसान कल्याण योजना', amount: '₹3,000 प्रति किसान', description: 'किसान कल्याण के लिए' }
+                ],
+                'Punjab': [
+                    { name: 'पंजाब कृषि योजना', amount: '₹12,000 प्रति एकड़', description: 'कृषि आधुनिकीकरण के लिए' },
+                    { name: 'किसान सुविधा योजना', amount: '₹4,000 प्रति किसान', description: 'किसान सुविधाओं के लिए' }
+                ]
+            };
+            
+            const schemes = stateSchemes[locationName] || [
+                { name: 'राज्य कृषि योजना', amount: '₹5,000-10,000', description: 'स्थानीय कृषि विकास के लिए' }
+            ];
+            
+            let html = '<div class="row">';
+            schemes.forEach(scheme => {
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="scheme-card">
+                            <h5>🏛️ ${scheme.name}</h5>
+                            <p><strong>राशि:</strong> ${scheme.amount}</p>
+                            <p><strong>विवरण:</strong> ${scheme.description}</p>
+                            <button class="btn btn-primary btn-sm" onclick="openGovernmentScheme('state_scheme')" title="सरकारी वेबसाइट पर जाएं">और जानें</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            container.innerHTML = html;
         }
 
         // Initialize when page loads
@@ -1975,92 +2069,7 @@
             alert('JavaScript is working! Service buttons should be clickable.');
         }
 
-        // Show service function
-        function showService(serviceName) {
-            console.log('🎯 showService called with:', serviceName);
-            
-            if (!serviceName) {
-                console.error('❌ No service name provided');
-                alert('Error: No service selected');
-                return;
-            }
-            
-            // Add visual feedback
-            console.log('📋 Attempting to show service:', serviceName);
-            
-            // Check if this service is already active
-            const targetContent = document.getElementById(serviceName + '-content');
-            const activeCard = document.querySelector('.' + serviceName + '-card');
-            const isCurrentlyActive = targetContent && targetContent.classList.contains('active');
-            
-            // If already active, close it
-            if (isCurrentlyActive) {
-                // Hide all service contents
-                document.querySelectorAll('.service-content').forEach(content => {
-                    content.classList.remove('active');
-                });
-                
-                // Remove active class from all cards
-                document.querySelectorAll('.service-card').forEach(card => {
-                    card.classList.remove('active');
-                });
-                
-                console.log('Service closed:', serviceName);
-                
-                // Update button text and status back to open option
-                updateButtonText(serviceName, false);
-                updateStatusText(serviceName, false);
-                return;
-            }
-            
-            // Hide all service contents
-            document.querySelectorAll('.service-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Remove active class from all cards
-            document.querySelectorAll('.service-card').forEach(card => {
-                card.classList.remove('active');
-            });
-            
-            // Show selected service content
-            if (targetContent) {
-                targetContent.classList.add('active');
-                targetContent.scrollIntoView({ behavior: 'smooth' });
-                console.log('Service content shown:', serviceName);
-            } else {
-                console.error('Service content not found:', serviceName + '-content');
-            }
-            
-            // Add active class to selected card
-            if (activeCard) {
-                activeCard.classList.add('active');
-                console.log('Service card activated:', serviceName);
-            } else {
-                console.error('Service card not found:', '.' + serviceName + '-card');
-            }
-            
-            console.log('Service opened:', serviceName);
-            
-            // Update button text and status to show close option
-            updateButtonText(serviceName, true);
-            updateStatusText(serviceName, true);
-            
-            // Load specific data based on service
-            switch(serviceName) {
-                case 'crop-recommendations':
-                    loadCropData();
-                    break;
-                case 'weather':
-                    loadWeatherData();
-                    break;
-                case 'market-prices':
-                    loadMarketPrices();
-                    break;
-            }
-        }
-
-        // Load crop recommendations
+        // Load crop recommendations (duplicate removed - using loadServiceData instead)
         function loadCropData() {
             if (!currentLocation) return;
             

@@ -441,3 +441,4 @@ def get_ai_response(query: str, language: str = 'auto', location: str = '') -> D
     return ai_service.process_query(query, language, location)
 
 
+

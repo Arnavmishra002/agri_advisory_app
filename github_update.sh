@@ -96,3 +96,4 @@ echo ""
 echo "🌾 Krishimitra AI is now production-ready! 🚀"
 
 
+

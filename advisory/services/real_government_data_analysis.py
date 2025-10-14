@@ -605,3 +605,4 @@ class RealGovernmentDataAnalysis:
         """Assess climate-related risks"""
         # Implementation for climate risk assessment
         return 35.0
+
