@@ -177,7 +177,7 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
         try:
             location = request.query_params.get('location', 'Delhi')
             schemes = self.gov_api.get_government_schemes(location)
-                return Response({
+            return Response({
                 'location': location,
                 'government_schemes': schemes,
                 'data_source': 'Official Government Databases',
@@ -194,7 +194,7 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
             location = request.query_params.get('location', 'Delhi')
             # Use the existing method in EnhancedGovernmentAPI
             soil_data = self.gov_api._get_comprehensive_soil_data(location)
-                return Response({
+            return Response({
                 'location': location,
                 'soil_data': soil_data,
                 'data_source': 'Soil Health Card Government API',
@@ -216,7 +216,7 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
             # Use government pest and disease database
             pest_data = self.gov_api.get_pest_control_recommendations(crop_name, location, symptoms)
             
-                return Response({
+            return Response({
                 'crop': crop_name,
                 'location': location,
                 'symptoms': symptoms,
@@ -234,17 +234,17 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def suggestions(self, request):
         """Get location suggestions"""
+        # Initialize service for this request
         try:
-            # Initialize service for this request
-            try:
-                enhanced_api = EnhancedGovernmentAPI()
-            except Exception as init_error:
-                logger.error(f"Service initialization error: {init_error}")
-        return Response({
-                    'suggestions': [],
-                    'error': 'Service temporarily unavailable'
-        }, status=status.HTTP_200_OK)
+            enhanced_api = EnhancedGovernmentAPI()
+        except Exception as init_error:
+            logger.error(f"Service initialization error: {init_error}")
+            return Response({
+                'suggestions': [],
+                'error': 'Service temporarily unavailable'
+            }, status=status.HTTP_200_OK)
 
+        try:
             query = request.GET.get('q', '')
             if not query:
                 return Response({
@@ -282,7 +282,7 @@ class CropViewSet(viewsets.ViewSet):
     
     def list(self, request):
         """Get list of crops"""
-                return Response({
+        return Response({
             'message': 'Crop list endpoint',
             'crops': []
         }, status=status.HTTP_200_OK)
@@ -317,7 +317,7 @@ class WeatherViewSet(viewsets.ViewSet):
     
     def list(self, request):
         """Get weather data"""
-                return Response({
+        return Response({
             'message': 'Weather endpoint',
             'weather': {}
         }, status=status.HTTP_200_OK)
@@ -327,7 +327,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
     
     def list(self, request):
         """Get market prices"""
-                return Response({
+        return Response({
             'message': 'Market prices endpoint',
             'prices': {}
         }, status=status.HTTP_200_OK)
@@ -337,7 +337,7 @@ class GovernmentSchemesViewSet(viewsets.ViewSet):
     
     def list(self, request):
         """Get government schemes"""
-                return Response({
+        return Response({
             'message': 'Government schemes endpoint',
             'schemes': []
         }, status=status.HTTP_200_OK)
@@ -347,17 +347,17 @@ class TrendingCropsViewSet(viewsets.ViewSet):
     
     def list(self, request):
         """Get trending crops"""
-            return Response({
+        return Response({
             'message': 'Trending crops endpoint',
             'trending_crops': []
-            }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
             
 class SMSIVRViewSet(viewsets.ViewSet):
     """SMS/IVR endpoints"""
     
     def list(self, request):
         """Get SMS/IVR data"""
-                return Response({
+        return Response({
             'message': 'SMS/IVR endpoint',
             'data': {}
         }, status=status.HTTP_200_OK)
@@ -367,40 +367,40 @@ class PestDetectionViewSet(viewsets.ViewSet):
     
     def list(self, request):
         """Get pest detection data"""
-                    return Response({
+        return Response({
             'message': 'Pest detection endpoint',
             'detections': []
-                    }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
 
 class UserViewSet(viewsets.ViewSet):
     """User management endpoints"""
     
     def list(self, request):
         """Get users"""
-            return Response({
+        return Response({
             'message': 'Users endpoint',
             'users': []
-            }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
             
 class TextToSpeechViewSet(viewsets.ViewSet):
     """Text-to-speech endpoints"""
     
     def list(self, request):
         """Get TTS data"""
-                return Response({
+        return Response({
             'message': 'Text-to-speech endpoint',
             'data': {}
-                }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
             
 class ForumPostViewSet(viewsets.ViewSet):
     """Forum posts endpoints"""
     
     def list(self, request):
         """Get forum posts"""
-            return Response({
+        return Response({
             'message': 'Forum posts endpoint',
             'posts': []
-            }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
             
 # Legacy ViewSet for backward compatibility
 class CropAdvisoryViewSet(viewsets.ViewSet):
