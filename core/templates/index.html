@@ -2953,8 +2953,8 @@
         }
 
         async function loadWeatherDataForLocation(locationName) {
-            const container = document.getElementById('currentWeather');
-            if (container) {
+                    const container = document.getElementById('currentWeather');
+                    if (container) {
                 container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>मौसम की जानकारी लोड हो रही है...</div>';
                 
                 try {
@@ -4264,8 +4264,8 @@
             .catch(error => {
                 console.error('Location search error:', error);
                 // Fallback to local search
-                const queryLower = query.toLowerCase().trim();
-                const scoredLocations = locationData.map(location => {
+            const queryLower = query.toLowerCase().trim();
+            const scoredLocations = locationData.map(location => {
                 let score = 0;
                 const nameLower = location.name.toLowerCase();
                 const stateLower = location.state.toLowerCase();
@@ -4986,7 +4986,7 @@
                     .then(locationData => {
                         if (locationData.suggestions && locationData.suggestions.length > 0) {
                             const suggestion = locationData.suggestions[0];
-                            const locationInfo = {
+                    const locationInfo = {
                                 city: suggestion.name || data.city,
                                 state: suggestion.state || data.region || 'Delhi',
                                 country: 'India',
@@ -5000,11 +5000,11 @@
                             const locationInfo = {
                                 city: data.city || 'Delhi',
                                 state: data.region || 'Delhi',
-                                country: 'India',
-                                lat: data.latitude,
-                                lon: data.longitude
-                            };
-                            updateLocationWithDetails(locationInfo, data.latitude, data.longitude);
+                        country: 'India',
+                        lat: data.latitude,
+                        lon: data.longitude
+                    };
+                    updateLocationWithDetails(locationInfo, data.latitude, data.longitude);
                         }
                     })
                     .catch(apiError => {
