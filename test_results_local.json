@@ -1,0 +1,184 @@
+{
+  "timestamp": "2025-10-14T17:51:05.492922",
+  "total_tests": 29,
+  "passed_tests": 13,
+  "failed_tests": 14,
+  "success_rate": 44.827586206896555,
+  "status": "NEEDS ATTENTION",
+  "results": [
+    {
+      "test": "Server Ready",
+      "status": "PASS",
+      "message": "Server responding after 3 attempts",
+      "timestamp": "2025-10-14T17:50:00.225799"
+    },
+    {
+      "test": "Home Page Load",
+      "status": "PASS",
+      "message": "Status: 200",
+      "timestamp": "2025-10-14T17:50:04.275446"
+    },
+    {
+      "test": "Service Card: सरकारी योजनाएं",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:50:04.292410"
+    },
+    {
+      "test": "Service Card: फसल सुझाव",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:50:04.293245"
+    },
+    {
+      "test": "Service Card: मौसम पूर्वानुमान",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:50:04.293928"
+    },
+    {
+      "test": "Service Card: बाजार कीमतें",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:50:04.294621"
+    },
+    {
+      "test": "Service Card: कीट नियंत्रण",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:50:04.295399"
+    },
+    {
+      "test": "Service Card: AI सहायक",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:50:04.299112"
+    },
+    {
+      "test": "Weather API: Delhi",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:06.468242"
+    },
+    {
+      "test": "Weather API: Mumbai",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:08.539654"
+    },
+    {
+      "test": "Weather API: Bangalore",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:10.592789"
+    },
+    {
+      "test": "Weather Data Dynamic",
+      "status": "WARN",
+      "message": "Same temp for all cities: [] (might be static)",
+      "timestamp": "2025-10-14T17:50:10.593296"
+    },
+    {
+      "test": "Market Prices: Delhi Wheat",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:12.687124"
+    },
+    {
+      "test": "Market Prices: Punjab Wheat",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:14.801153"
+    },
+    {
+      "test": "Market Prices: Delhi Rice",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:16.887977"
+    },
+    {
+      "test": "Market Prices Dynamic",
+      "status": "WARN",
+      "message": "Same price: [] (might be static)",
+      "timestamp": "2025-10-14T17:50:16.888487"
+    },
+    {
+      "test": "Crop Recommendations: Delhi",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:18.929874"
+    },
+    {
+      "test": "Crop Recommendations: Kerala",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:21.003333"
+    },
+    {
+      "test": "Crop Recommendations: Punjab",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:23.083099"
+    },
+    {
+      "test": "Comprehensive API",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:50:25.155535"
+    },
+    {
+      "test": "Chatbot: Crop Query (Delhi)",
+      "status": "FAIL",
+      "message": "HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=15)",
+      "timestamp": "2025-10-14T17:50:42.216186"
+    },
+    {
+      "test": "Chatbot: Weather Query (Mumbai)",
+      "status": "FAIL",
+      "message": "HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=15)",
+      "timestamp": "2025-10-14T17:50:59.280470"
+    },
+    {
+      "test": "HTML Structure",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:51:01.362071"
+    },
+    {
+      "test": "Head Section",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:51:01.362439"
+    },
+    {
+      "test": "Body Section",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:51:01.362800"
+    },
+    {
+      "test": "JavaScript",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:51:01.363180"
+    },
+    {
+      "test": "CSS Styles",
+      "status": "PASS",
+      "message": "Found in HTML",
+      "timestamp": "2025-10-14T17:51:01.363542"
+    },
+    {
+      "test": "Performance: Weather API",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:51:03.429805"
+    },
+    {
+      "test": "Performance: Market API",
+      "status": "FAIL",
+      "message": "Status: 404",
+      "timestamp": "2025-10-14T17:51:05.490517"
+    }
+  ]
+}

@@ -16,12 +16,12 @@
             box-sizing: border-box;
             font-family: 'Poppins', sans-serif;
         }
-
+        
         body {
             background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
             min-height: 100vh;
         }
-
+        
         .header {
             background: linear-gradient(135deg, #2e7d32 0%, #558b2f 100%);
             color: white;
@@ -49,7 +49,7 @@
             padding: 8px 15px;
             font-weight: 500;
         }
-
+        
         .service-card {
             background: white;
             border-radius: 15px;
@@ -60,20 +60,20 @@
             border: 3px solid transparent;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-
+        
         .service-card:hover {
             transform: translateY(-8px);
             box-shadow: 0 8px 25px rgba(46, 125, 50, 0.3);
             border-color: #4caf50;
         }
-
+        
         .service-icon {
             font-size: 3.5rem;
             margin-bottom: 15px;
             display: block;
             text-align: center;
         }
-
+        
         .service-title {
             font-size: 1.4rem;
             font-weight: 600;
@@ -81,14 +81,14 @@
             text-align: center;
             margin-bottom: 10px;
         }
-
+        
         .service-description {
             color: #666;
             text-align: center;
             margin-bottom: 15px;
             line-height: 1.6;
         }
-
+        
         .service-button {
             background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
             color: white;
@@ -99,7 +99,7 @@
             width: 100%;
             cursor: pointer;
         }
-
+        
         .service-content {
             background: white;
             border-radius: 15px;
@@ -108,17 +108,17 @@
             display: none;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
-
+        
         .service-content.active {
             display: block;
             animation: fadeIn 0.3s ease;
         }
-
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
+        
         .service-content h3 {
             color: #2e7d32;
             font-weight: 700;
@@ -218,7 +218,7 @@
             gap: 10px;
             margin-top: 15px;
         }
-
+        
         .chat-input-group input {
             flex: 1;
             padding: 12px 18px;
@@ -243,7 +243,7 @@
             <h1>🌾 कृषिमित्र AI</h1>
             <p>किसानों का सबसे अच्छा दोस्त - Real-Time Government Data Integration</p>
         </div>
-    </div>
+        </div>
 
     <div class="container my-4">
         <div class="location-bar">
@@ -262,7 +262,7 @@
                         <option value="Kerala">केरल (Kerala)</option>
                         <option value="Maharashtra">महाराष्ट्र (Maharashtra)</option>
                     </select>
-                </div>
+                        </div>
                 <div class="col-md-6 text-end">
                     <span style="font-weight: 600; color: #2e7d32;">
                         📍 वर्तमान: <span id="current-loc-text">Delhi</span>
@@ -270,59 +270,59 @@
                 </div>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-lg-4 col-md-6 mb-4">
+            
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4">
                 <div class="service-card" onclick="openService('schemes')">
                     <div class="service-icon">🏛️</div>
-                    <h4 class="service-title">सरकारी योजनाएं</h4>
+                        <h4 class="service-title">सरकारी योजनाएं</h4>
                     <p class="service-description">केंद्र और राज्य सरकार की कृषि योजनाएं। सब्सिडी, ऋण और सहायता।</p>
-                    <button class="service-button">योजनाएं देखें</button>
+                        <button class="service-button">योजनाएं देखें</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="col-lg-4 col-md-6 mb-4">
                 <div class="service-card" onclick="openService('crops')">
                     <div class="service-icon">🌱</div>
-                    <h4 class="service-title">फसल सुझाव</h4>
+                        <h4 class="service-title">फसल सुझाव</h4>
                     <p class="service-description">58+ फसलों में से सर्वोत्तम फसलों की AI सिफारिश। Real-time ICAR data।</p>
-                    <button class="service-button">फसल सुझाव प्राप्त करें</button>
+                        <button class="service-button">फसल सुझाव प्राप्त करें</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="col-lg-4 col-md-6 mb-4">
                 <div class="service-card" onclick="openService('weather')">
                     <div class="service-icon">🌤️</div>
-                    <h4 class="service-title">मौसम पूर्वानुमान</h4>
+                        <h4 class="service-title">मौसम पूर्वानुमान</h4>
                     <p class="service-description">IMD से सटीक मौसम। बारिश, तापमान, हवा की real-time जानकारी।</p>
-                    <button class="service-button">मौसम देखें</button>
+                        <button class="service-button">मौसम देखें</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="col-lg-4 col-md-6 mb-4">
                 <div class="service-card" onclick="openService('market')">
                     <div class="service-icon">📈</div>
-                    <h4 class="service-title">बाजार कीमतें</h4>
+                        <h4 class="service-title">बाजार कीमतें</h4>
                     <p class="service-description">Agmarknet & e-NAM से रियल-टाइम कीमतें। सही समय पर बेचें।</p>
-                    <button class="service-button">कीमतें देखें</button>
+                        <button class="service-button">कीमतें देखें</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="col-lg-4 col-md-6 mb-4">
                 <div class="service-card" onclick="openService('pest')">
                     <div class="service-icon">🐛</div>
-                    <h4 class="service-title">कीट नियंत्रण</h4>
+                        <h4 class="service-title">कीट नियंत्रण</h4>
                     <p class="service-description">ICAR database से कीट और रोग की पहचान। तुरंत समाधान।</p>
-                    <button class="service-button">जांच करें</button>
+                        <button class="service-button">जांच करें</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="col-lg-4 col-md-6 mb-4">
                 <div class="service-card" onclick="openService('chat')">
                     <div class="service-icon">🤖</div>
-                    <h4 class="service-title">AI सहायक</h4>
+                        <h4 class="service-title">AI सहायक</h4>
                     <p class="service-description">ChatGPT-level intelligence। कृषि से जुड़े सभी सवाल। 24/7 उपलब्ध।</p>
-                    <button class="service-button">बात करें</button>
+                        <button class="service-button">बात करें</button>
                 </div>
             </div>
         </div>
@@ -332,8 +332,8 @@
             <div id="schemes-data">
                 <div class="spinner"></div>
                 <p class="text-center">लोड हो रहा है...</p>
+                </div>
             </div>
-        </div>
 
         <div id="crops-content" class="service-content">
             <h3><i class="fas fa-seedling"></i> फसल सुझाव - <span class="location-display">Delhi</span></h3>
@@ -343,12 +343,12 @@
                     <option value="rabi">रबी (Rabi)</option>
                     <option value="kharif">खरीफ (Kharif)</option>
                     <option value="zaid">जायद (Zaid)</option>
-                </select>
-            </div>
+                        </select>
+                    </div>
             <button class="service-button" onclick="getCropRecommendations()">सुझाव प्राप्त करें</button>
             <div id="crops-data" class="mt-3"></div>
-        </div>
-
+                </div>
+                
         <div id="weather-content" class="service-content">
             <h3><i class="fas fa-cloud-sun"></i> मौसम - <span class="location-display">Delhi</span></h3>
             <div id="weather-data">
@@ -367,18 +367,18 @@
                     <option value="potato">आलू</option>
                     <option value="onion">प्याज</option>
                     <option value="tomato">टमाटर</option>
-                </select>
-            </div>
+                        </select>
+                    </div>
             <button class="service-button" onclick="getMarketPrices()">कीमत देखें</button>
             <div id="market-data" class="mt-3"></div>
-        </div>
+            </div>
 
         <div id="pest-content" class="service-content">
             <h3><i class="fas fa-bug"></i> कीट नियंत्रण - <span class="location-display">Delhi</span></h3>
             <div class="input-group-custom">
                 <label>फसल:</label>
                 <input type="text" id="pest-crop" placeholder="जैसे: टमाटर, गेहूं">
-            </div>
+                </div>
             <div class="input-group-custom">
                 <label>समस्या:</label>
                 <textarea id="pest-problem" rows="3" placeholder="समस्या बताएं..."></textarea>
@@ -393,11 +393,11 @@
                 <div class="chat-message bot">
                     नमस्ते! 🙏 मैं कृषिमित्र AI हूं। मैं real-time government data का उपयोग करता हूं। कैसे मदद करूं?
                 </div>
-            </div>
+                    </div>
             <div class="chat-input-group">
                 <input type="text" id="chat-input" placeholder="सवाल पूछें..." onkeypress="if(event.key==='Enter') sendMessage()">
                 <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i> भेजें</button>
-            </div>
+                </div>
         </div>
     </div>
 
@@ -424,8 +424,8 @@
             document.querySelectorAll('.service-content').forEach(c => c.classList.remove('active'));
             const content = document.getElementById(serviceName + '-content');
             if (content) {
-                content.classList.add('active');
-                content.scrollIntoView({ behavior: 'smooth' });
+            content.classList.add('active');
+            content.scrollIntoView({ behavior: 'smooth' });
                 if (serviceName === 'weather') getWeather();
                 else if (serviceName === 'schemes') getGovernmentSchemes();
             }
@@ -437,9 +437,9 @@
             
             try {
                 const response = await fetch(`${API_BASE}/chatbot/`, {
-                    method: 'POST',
+                method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
+                body: JSON.stringify({
                         query: `${currentLocation} ka mausam batao`,
                         language: 'hinglish',
                         location: currentLocation
@@ -480,9 +480,9 @@
                         <strong><i class="fas fa-landmark"></i> योजनाएं:</strong>
                         <p class="mt-2">${data.response || 'डेटा उपलब्ध नहीं'}</p>
                         <small class="text-muted"><i class="fas fa-database"></i> स्रोत: PM-Kisan, सरकारी डेटाबेस</small>
-                    </div>
-                `;
-            } catch (error) {
+                        </div>
+                    `;
+                } catch (error) {
                 schemesData.innerHTML = `<div class="alert-custom error">त्रुटि: ${error.message}</div>`;
             }
         }
@@ -494,9 +494,9 @@
             
             try {
                 const response = await fetch(`${API_BASE}/chatbot/`, {
-                    method: 'POST',
+                method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
+                body: JSON.stringify({
                         query: `${currentLocation} mein ${season} season mein kaun si fasal lagayein?`,
                         language: 'hinglish',
                         location: currentLocation
@@ -509,8 +509,8 @@
                         <strong><i class="fas fa-seedling"></i> फसल सुझाव:</strong>
                         <p class="mt-2">${data.response || 'डेटा उपलब्ध नहीं'}</p>
                         <small class="text-muted"><i class="fas fa-database"></i> स्रोत: ICAR, 58+ crops database</small>
-                    </div>
-                `;
+                        </div>
+                    `;
             } catch (error) {
                 cropsData.innerHTML = `<div class="alert-custom error">त्रुटि: ${error.message}</div>`;
             }
@@ -523,16 +523,16 @@
             
             try {
                 const response = await fetch(`${API_BASE}/chatbot/`, {
-                    method: 'POST',
+                method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
+                body: JSON.stringify({
                         query: `${currentLocation} mein ${commodity} ki keemat kya hai?`,
                         language: 'hinglish',
                         location: currentLocation
                     })
                 });
                 
-                const data = await response.json();
+                    const data = await response.json();
                 marketData.innerHTML = `
                     <div class="alert-custom info">
                         <strong><i class="fas fa-chart-line"></i> कीमत:</strong>
@@ -559,9 +559,9 @@
             
             try {
                 const response = await fetch(`${API_BASE}/chatbot/`, {
-                    method: 'POST',
+                method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
+                body: JSON.stringify({
                         query: `${crop} ki fasal mein yeh samasya hai: ${problem}. Kya upay batao?`,
                         language: 'hinglish',
                         location: currentLocation
@@ -574,8 +574,8 @@
                         <strong><i class="fas fa-bug"></i> समाधान:</strong>
                         <p class="mt-2">${data.response || 'डेटा उपलब्ध नहीं'}</p>
                         <small class="text-muted"><i class="fas fa-database"></i> स्रोत: ICAR Pest Database</small>
-                    </div>
-                `;
+                </div>
+            `;
             } catch (error) {
                 pestData.innerHTML = `<div class="alert-custom error">त्रुटि: ${error.message}</div>`;
             }
@@ -594,10 +594,10 @@
             
             try {
                 const response = await fetch(`${API_BASE}/chatbot/`, {
-                    method: 'POST',
+                method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        query: message,
+                body: JSON.stringify({
+                    query: message,
                         language: 'hinglish',
                         location: currentLocation
                     })
