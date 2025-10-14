@@ -473,41 +473,71 @@
                 const weather = data.weather_data;
                 
                 let html = `<div class="alert-custom info">
-                    <h5><i class="fas fa-cloud-sun"></i> IMD मौसम - ${data.location}</h5>
-                    <div class="row mt-3">
+                    <h5><i class="fas fa-cloud-sun"></i> Advanced Weather System - ${data.location}</h5>
+                    <p class="mb-3"><strong>Simplified Farmer-Friendly Format | IMD Official Data</strong></p>
+                    
+                    <div class="row">
                         <div class="col-md-6">
-                            <div class="card mb-3">
-                                <div class="card-body">
-                                    <h6><strong>🌡️ वर्तमान स्थिति</strong></h6>
-                                    <p><strong>तापमान:</strong> ${weather.temperature || 'N/A'}</p>
-                                    <p><strong>आर्द्रता:</strong> ${weather.humidity || 'N/A'}</p>
-                                    <p><strong>हवा:</strong> ${weather.wind_speed || 'N/A'}</p>
-                                    <p><strong>स्थिति:</strong> ${weather.condition || 'Normal'}</p>
-                                    <p><strong>बारिश संभावना:</strong> ${weather.rainfall_probability || 'N/A'}</p>
+                            <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                                <h6><strong>🌡️ Essential Weather Data</strong></h6>
+                                <div style="font-size: 1.1rem;">
+                                    <p class="mb-2"><strong>तापमान:</strong> <span style="color: #ff6f00; font-size: 1.3rem;">${weather.temperature}</span></p>
+                                    <p class="mb-2"><strong>आर्द्रता:</strong> <span style="color: #2196F3;">${weather.humidity}</span></p>
+                                    <p class="mb-2"><strong>हवा की गति:</strong> <span style="color: #4caf50;">${weather.wind_speed}</span></p>
+                                    <p class="mb-2"><strong>बारिश संभावना:</strong> <span style="color: #9c27b0;">${weather.rain_probability}</span></p>
+                                    <p class="mb-0"><strong>मौसम:</strong> ${weather.condition}</p>
                                 </div>
                             </div>
                         </div>
+                        
                         <div class="col-md-6">
-                            <div class="card mb-3">
-                                <div class="card-body">
-                                    <h6><strong>📅 7-दिवसीय पूर्वानुमान</strong></h6>`;
+                            <div style="background: #fff3e0; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                                <h6><strong>📅 3-Day Simplified Forecast</strong></h6>`;
                 
-                if (weather.forecast_7day && weather.forecast_7day.length > 0) {
-                    weather.forecast_7day.slice(0, 3).forEach(day => {
-                        html += `<p><strong>${day.day}:</strong> ${day.temperature}</p>`;
+                if (weather.three_day_forecast && weather.three_day_forecast.length > 0) {
+                    weather.three_day_forecast.forEach((day, index) => {
+                        html += `
+                            <div class="mb-2 pb-2" style="${index < 2 ? 'border-bottom: 1px solid #ddd;' : ''}">
+                                <strong>${day.day}:</strong>
+                                <div style="margin-left: 10px;">
+                                    <span style="color: #ff6f00;">🌡️ ${day.temperature}</span> | 
+                                    <span style="color: #2196F3;">${day.condition}</span>
+                                    ${day.rain_probability ? `| <span style="color: #9c27b0;">☔ ${day.rain_probability}</span>` : ''}
+                                </div>
+                            </div>`;
                     });
                 } else {
                     html += `<p>पूर्वानुमान डेटा लोड हो रहा है...</p>`;
                 }
                 
-                html += `</div></div></div></div>
-                    <div class="alert alert-success mt-2">
-                        <strong>🌾 किसान सलाह:</strong> ${weather.farmer_advisory || 'मौसम के अनुसार खेती करें'}
+                html += `</div></div></div>
                     </div>
+                    
+                    <div class="alert alert-success mt-3">
+                        <h6><strong>🌾 Practical Farmer Advice</strong></h6>
+                        <p class="mb-2"><strong>खेती सलाह:</strong> ${weather.farmer_advice}</p>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p class="mb-1"><strong>💧 सिंचाई:</strong></p>
+                                <p style="color: #2196F3;">${weather.irrigation_advice || 'Monitor soil moisture'}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="mb-1"><strong>🐛 कीट जोखिम:</strong></p>
+                                <p style="color: ${weather.pest_risk?.includes('High') ? '#f44336' : '#4caf50'};">${weather.pest_risk || 'Low'}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="mb-1"><strong>🌾 कटाई:</strong></p>
+                                <p style="color: ${weather.harvesting_condition?.includes('Not') ? '#f44336' : '#4caf50'};">${weather.harvesting_condition || 'Check daily'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <small class="text-muted">
-                        <i class="fas fa-database"></i> स्रोत: ${data.data_source}<br>
-                        <i class="fas fa-clock"></i> अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}<br>
-                        ⚡ Response Time: <0.4s
+                        <i class="fas fa-database"></i> <strong>स्रोत:</strong> ${data.data_source}<br>
+                        <i class="fas fa-clock"></i> <strong>अपडेट:</strong> ${new Date(data.timestamp).toLocaleString('hi-IN')}<br>
+                        ✅ <strong>Format:</strong> ${data.format} | 
+                        🎯 <strong>Features:</strong> Essential Data, 3-Day Forecast, Farmer Advice, IMD Official
                     </small>
                 </div>`;
                 
@@ -591,38 +621,83 @@
                 const data = await response.json();
                 
                 let html = `<div class="alert-custom success">
-                    <h5><i class="fas fa-seedling"></i> फसल सुझाव - ${data.location} (${season})</h5>
-                    <p class="mb-3"><strong>100+ फसलें | 8 श्रेणियां | AI-Powered Analysis</strong></p>`;
+                    <h5><i class="fas fa-seedling"></i> TOP 5 फसल सुझाव - ${data.location} (${season})</h5>
+                    <div class="alert alert-info">
+                        <strong>📊 विश्लेषण:</strong> ${data.total_crops_analyzed} फसलें | ${data.categories_analyzed}<br>
+                        <strong>🎯 विधि:</strong> ${data.analysis_method}<br>
+                        <strong>💰 प्राथमिकता:</strong> ${data.high_profitability}
+                    </div>`;
                 
-                if (data.recommendations && data.recommendations.length > 0) {
-                    html += `<div class="row">`;
-                    data.recommendations.slice(0, 5).forEach((crop, index) => {
+                if (data.top_5_recommendations && data.top_5_recommendations.length > 0) {
+                    // Show TOP 5 with Farmer-Friendly format
+                    data.top_5_recommendations.forEach((crop) => {
                         html += `
-                            <div class="col-md-6 mb-3">
-                                <div class="card" style="border-left: 4px solid #4caf50;">
-                                    <div class="card-body">
-                                        <h6><strong>${index + 1}. ${crop.name}</strong></h6>
-                                        <p><strong>📊 Profitability Score:</strong> ${crop.profitability_score || 'Calculating...'}</p>
-                                        <p><strong>💰 Expected Profit:</strong> ${crop.predicted_future_price || 'High'}</p>
-                                        <p><strong>🌾 Yield Prediction:</strong> ${crop.current_yield_prediction || 'Good'}</p>
-                                        <p><strong>📈 Market Trend:</strong> ${crop.historical_price_trend || 'Stable'}</p>
+                            <div class="card mb-3" style="border-left: 5px solid #4caf50; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                <div class="card-body">
+                                    <h5 style="color: #2e7d32;">
+                                        <strong>#${crop.rank} - ${crop.name}</strong> 
+                                        ${crop.name_hindi ? `<span style="font-size: 0.9rem; color: #666;">(${crop.name_hindi})</span>` : ''}
+                                    </h5>
+                                    
+                                    <div class="row mt-3">
+                                        <div class="col-md-6">
+                                            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                                <h6><strong>💰 आय जानकारी</strong></h6>
+                                                <p class="mb-1"><strong>MSP/मूल्य:</strong> ${crop.msp}</p>
+                                                <p class="mb-1"><strong>उपज:</strong> ${crop.yield}</p>
+                                                <p class="mb-1"><strong>लागत:</strong> ${crop.input_cost}</p>
+                                                <p class="mb-1"><strong>अपेक्षित आय:</strong> ${crop.expected_revenue}</p>
+                                                <p class="mb-0" style="color: #2e7d32; font-size: 1.2rem;">
+                                                    <strong>शुद्ध लाभ: ${crop.profit} (${crop.profit_percentage})</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                                                <h6><strong>📊 8-Factor Score</strong></h6>
+                                                <p class="mb-1">💼 Profitability: <strong>${crop.profitability_score}</strong>/100</p>
+                                                <p class="mb-1">📈 Market Demand: <strong>${crop.market_demand_score}</strong>/100</p>
+                                                <p class="mb-1">🌱 Soil Suitability: <strong>${crop.soil_suitability_score}</strong>/100</p>
+                                                <p class="mb-1">🌤️ Weather: <strong>${crop.weather_suitability_score}</strong>/100</p>
+                                                <p class="mb-1">🏛️ Govt Support: <strong>${crop.government_support_score}</strong>/100</p>
+                                                <p class="mb-1">🛡️ Risk Score: <strong>${crop.risk_score}</strong>/100</p>
+                                                <p class="mb-1">🌍 Export Potential: <strong>${crop.export_potential_score}</strong>/100</p>
+                                                <p class="mb-0 mt-2" style="color: #ff6f00; font-size: 1.1rem;">
+                                                    <strong>Overall: ${crop.overall_score}/100</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-2">
+                                        <span class="badge bg-success">${crop.price_trend}</span>
+                                        <span class="badge bg-info">${crop.yield_trend}</span>
+                                        <span class="badge bg-primary">Confidence: ${crop.confidence}</span>
                                     </div>
                                 </div>
                             </div>`;
                     });
-                    html += `</div>`;
                 } else {
                     html += `<p>इस मौसम के लिए सुझाव तैयार हो रहे हैं...</p>`;
                 }
                 
-                html += `<div class="alert alert-info mt-3">
-                    <strong>📚 Database:</strong> 100+ crops across 8 categories<br>
-                    <strong>Categories:</strong> अनाज, दालें, तिलहन, सब्जियां, फल, मसाले, नकदी फसलें, औषधीय
+                html += `<div class="alert alert-warning mt-3">
+                    <h6><strong>🎯 Scoring Factors:</strong></h6>
+                    <ul class="mb-0">
+                        <li><strong>Profitability (30%):</strong> Return on investment</li>
+                        <li><strong>Market Demand (25%):</strong> Current market trends</li>
+                        <li><strong>Soil Compatibility (20%):</strong> Suitability for ${data.location}</li>
+                        <li><strong>Weather Suitability (15%):</strong> IMD climate data</li>
+                        <li><strong>Government Support (5%):</strong> MSP & schemes</li>
+                        <li><strong>Risk Assessment (3%):</strong> Crop insurance data</li>
+                        <li><strong>Export Potential (2%):</strong> International demand</li>
+                    </ul>
                 </div>
                 <small class="text-muted">
-                    <i class="fas fa-database"></i> स्रोत: ${data.data_source || 'ICAR + Real Government Data'}<br>
+                    <i class="fas fa-database"></i> स्रोत: ${data.data_source}<br>
                     <i class="fas fa-clock"></i> अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}<br>
-                    🎯 AI Analysis with 8-factor scoring algorithm
+                    ✅ Farmer-Friendly Format | 📊 100+ Crops Analyzed | 🌾 Location-Specific
                 </small>
                 </div>`;
                 
