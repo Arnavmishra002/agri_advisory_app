@@ -465,10 +465,10 @@ class EnhancedGovernmentAPI:
         
         # 5. Fuzzy matching for partial names (only if confidence is still low)
         if result['confidence'] < 0.7:
-        fuzzy_result = self._detect_location_via_fuzzy_matching(query_lower)
-        if fuzzy_result['confidence'] > result['confidence']:
-            result.update(fuzzy_result)
-            result['source'] = 'fuzzy_matching'
+            fuzzy_result = self._detect_location_via_fuzzy_matching(query_lower)
+            if fuzzy_result['confidence'] > result['confidence']:
+                result.update(fuzzy_result)
+                result['source'] = 'fuzzy_matching'
         
         self.location_cache[cache_key] = result
         return result
