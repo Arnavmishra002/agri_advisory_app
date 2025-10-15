@@ -57,16 +57,16 @@
 
 ### **1. Installation**
 
-```bash
+                                                          ```bash
 # Clone the repository
 git clone https://github.com/Arnavmishra002/agri_advisory_app.git
-cd agri_advisory_app
+                                                          cd agri_advisory_app
 
 # Install dependencies
-pip install -r requirements.txt
+                                                          pip install -r requirements.txt
 
 # Run migrations
-python manage.py migrate
+                                                          python manage.py migrate
 
 # Create superuser (optional)
 python manage.py createsuperuser
