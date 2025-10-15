@@ -5,7 +5,7 @@ from django.views.decorators.http import require_http_methods
 import json
 
 def home(request):
-    """Home page view"""
+    """Main frontend page view"""
     return render(request, 'index.html')
 
 @csrf_exempt
