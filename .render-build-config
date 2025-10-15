@@ -9,6 +9,7 @@ RENDER_FRESH_BUILD=true
 
 # Clear cache on every deployment
 CLEAR_CACHE_ON_DEPLOY=true
+
 # This file tells Render to disable caching for this project
 
 # Disable build cache

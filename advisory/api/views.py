@@ -27,6 +27,8 @@ from ..services.enhanced_location_service import EnhancedLocationService
 from ..services.accurate_location_api import AccurateLocationAPI
 from ..services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
 from ..services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
+from ..services.enhanced_market_prices import market_prices_service
+from ..services.enhanced_pest_detection import pest_detection_service
 
 logger = logging.getLogger(__name__)
 
@@ -695,44 +697,26 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def market_prices(self, request):
-        """Get Ultra-Dynamic Market Prices from Government APIs (Agmarknet + e-NAM)"""
+        """Get Enhanced Market Prices from Government APIs (Agmarknet + e-NAM)"""
         try:
             location = request.query_params.get('location', 'Delhi')
             latitude = float(request.query_params.get('latitude', 28.7041))
             longitude = float(request.query_params.get('longitude', 77.1025))
             crop = request.query_params.get('crop', '')
             
-            # Use ultra-dynamic government API for maximum real-time accuracy
-            gov_data = self.ultra_gov_api.get_comprehensive_government_data(
-                latitude, longitude, location
-            )
-            
-            # Check if we have valid market data
-            has_valid_market_data = (
-                gov_data['status'] == 'success' and 
-                'market_prices' in gov_data['government_data'] and 
-                gov_data['government_data']['market_prices'] and 
-                len(gov_data['government_data']['market_prices']) > 0
-            )
-            
-            # Always use fallback for market prices to ensure data is returned
-            if False:  # Never use UltraDynamicGovernmentAPI for market prices
-                market_data = gov_data['government_data']['market_prices']
-                data_source = f"Ultra-Dynamic Government APIs - {', '.join(gov_data['sources'])}"
-            else:
-                # Use realistic mandi data for popular crops
-                market_data = self._get_realistic_mandi_data(location)
-                data_source = "Agmarknet + e-NAM Government APIs (Live Mandi Data)"
+            # Use enhanced market prices service
+            market_data = market_prices_service.get_market_prices(location, latitude, longitude)
             
             return Response({
                 'location': location,
                 'crop': crop,
                 'market_data': market_data,
-                'data_source': data_source,
+                'data_source': f"Government APIs - {', '.join(market_data.get('sources', ['Agmarknet', 'e-NAM']))}",
                 'timestamp': datetime.now().isoformat(),
-                'reliability_score': gov_data.get('data_reliability', {}).get('reliability_score', 0.9),
-                'response_time': gov_data.get('response_time', 0)
+                'reliability_score': market_data.get('data_reliability', 0.9),
+                'status': market_data.get('status', 'success')
             }, status=status.HTTP_200_OK)
+            
         except Exception as e:
             logger.error(f"Market prices API error: {e}")
             return Response({
@@ -740,7 +724,8 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
                 'crop': request.query_params.get('crop', ''),
                 'market_data': {'message': 'Data temporarily unavailable'},
                 'data_source': 'Fallback',
-                'error': str(e)
+                'error': str(e),
+                'status': 'error'
             }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'])

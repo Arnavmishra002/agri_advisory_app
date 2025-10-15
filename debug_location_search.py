@@ -54,6 +54,7 @@ if __name__ == "__main__":
         test_simple_search()
     else:
         print("Server is not running or not accessible")
+
 """
 Simple Location Search Test
 """
