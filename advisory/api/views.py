@@ -1691,68 +1691,6 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
             'message': 'Crop advisory endpoint',
             'advisories': []
         }, status=status.HTTP_200_OK)
-                profit = revenue - input_cost
-                profit_percentage = ((profit / input_cost) * 100) if input_cost > 0 else 0
-                
-                recommendation = {
-                    'rank': idx + 1,
-                    'name': crop_name,
-                    'name_hindi': crop_hindi_names.get(crop_name.lower(), crop_name),
-                    
-                    # Farmer-Friendly Essential Information
-                    'msp': f"₹{current_market_price:,.0f}/quintal" if current_market_price else "₹3,000/quintal",
-                    'yield': f"{current_yield_prediction:.0f} quintals/hectare" if current_yield_prediction else "35 quintals/hectare",
-                    'profit': f"₹{profit:,.0f}/hectare",
-                    'profit_percentage': f"{profit_percentage:.0f}%",
-                    'input_cost': f"₹{input_cost:,.0f}/hectare",
-                    'expected_revenue': f"₹{revenue:,.0f}/hectare",
-                    
-                    # 8-Factor Scoring (as per user requirements)
-                    'profitability_score': round(profitability_score, 1),
-                    'market_demand_score': round((analysis.get('confidence_level', 0.85) if isinstance(analysis, dict) else getattr(analysis, 'confidence_level', 0.85)) * 100, 1),
-                    'soil_suitability_score': 85.0,
-                    'weather_suitability_score': 90.0,
-                    'government_support_score': round((analysis.get('government_support', 0.9) if isinstance(analysis, dict) else getattr(analysis, 'government_support', 0.9)) * 100, 1),
-                    'risk_score': round(100 - (analysis.get('risk_assessment', 15) if isinstance(analysis, dict) else getattr(analysis, 'risk_assessment', 15)), 1),
-                    'export_potential_score': 75.0,
-                    'overall_score': round(profitability_score, 1),
-                    
-                    # Additional info
-                    'price_trend': analysis.get('historical_price_trend', '↗ Increasing') if isinstance(analysis, dict) else getattr(analysis, 'historical_price_trend', '↗ Increasing'),
-                    'yield_trend': analysis.get('historical_yield_trend', '↗ Stable') if isinstance(analysis, dict) else getattr(analysis, 'historical_yield_trend', '↗ Stable'),
-                    'confidence': f"{(analysis.get('confidence_level', 0.85) if isinstance(analysis, dict) else getattr(analysis, 'confidence_level', 0.85)) * 100:.0f}%"
-                }
-                recommendations.append(recommendation)
-            
-            return Response({
-                'location': location,
-                'season': season,
-                'total_crops_analyzed': '100+',
-                'categories_analyzed': '8 (Cereals, Pulses, Oilseeds, Vegetables, Fruits, Spices, Cash Crops, Medicinal Plants)',
-                'top_4_recommendations': recommendations,  # TOP 4 BEST - After analyzing all data
-                'analysis_method': '8-Factor Scoring Algorithm with Past, Present, Future Data',
-                'data_analysis': {
-                    'historical_data': 'Past 5 years price and yield trends',
-                    'current_data': 'Real-time market prices from Agmarknet/e-NAM',
-                    'future_predictions': 'AI-powered price and yield forecasts',
-                    'government_sources': 'IMD, Agmarknet, e-NAM, ICAR, Soil Health Card'
-                },
-                'scoring_factors': {
-                    'profitability': '30% weight',
-                    'market_demand': '25% weight',
-                    'soil_compatibility': '20% weight',
-                    'weather_suitability': '15% weight',
-                    'government_support': '5% weight',
-                    'risk_assessment': '3% weight',
-                    'export_potential': '2% weight'
-                },
-                'high_profitability': 'Prioritized crops with 2000%+ profit margins',
-                'timestamp': datetime.now().isoformat()
-            }, status=status.HTTP_200_OK)
-                
-        except Exception as e:
-            logger.error(f"Crop recommendations API error: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['get'])
     def search_crop(self, request):
