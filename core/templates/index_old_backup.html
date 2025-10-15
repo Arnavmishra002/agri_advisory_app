@@ -6,21 +6,17 @@
     <title>🌾 कृषिमित्र AI - किसानों का सबसे अच्छा दोस्त</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Baloo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
-            font-family: 'Inter', 'Baloo 2', cursive;
-            box-sizing: border-box;
+            font-family: 'Baloo 2', cursive;
         }
         
         body {
-            background: linear-gradient(135deg, #f8fffe 0%, #f0f9f4 50%, #e8f5e8 100%);
+            background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e8 50%, #d4edda 100%);
             margin: 0;
             padding: 0;
             min-height: 100vh;
-            font-weight: 400;
-            line-height: 1.6;
         }
         
         .navbar {
@@ -74,12 +70,12 @@
         }
         
         .service-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fffe 100%);
+            background: white;
             border-radius: 20px;
             padding: 30px;
             margin-bottom: 25px;
-            box-shadow: 0 8px 32px rgba(45, 80, 22, 0.12);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.4s ease;
             cursor: pointer !important;
             border: 3px solid transparent;
             position: relative;
@@ -89,7 +85,6 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
-            backdrop-filter: blur(10px);
         }
         
         .service-card:hover {
@@ -1078,96 +1073,6 @@
                 padding: 10px;
             }
         }
-        
-        /* Professional Real-time Data Headers */
-        .real-time-header {
-            background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(45, 80, 22, 0.2);
-        }
-        
-        .real-time-header h5 {
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 1.3rem;
-        }
-        
-        .real-time-header p {
-            margin-bottom: 4px;
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-        
-        /* Professional Data Cards */
-        .crop-card, .weather-card, .price-card, .scheme-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            border-left: 4px solid #4a7c59;
-            transition: all 0.3s ease;
-            margin-bottom: 15px;
-        }
-        
-        .crop-card:hover, .weather-card:hover, .price-card:hover, .scheme-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-        }
-        
-        /* Professional Status Indicators */
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
-        }
-        
-        .status-indicator.active {
-            background: #28a745;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        /* Professional Notification System */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: white;
-            border-radius: 8px;
-            padding: 15px 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            border-left: 4px solid #4a7c59;
-            z-index: 1000;
-            max-width: 350px;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-        }
-        
-        .notification.show {
-            transform: translateX(0);
-        }
-        
-        .notification.success {
-            border-left-color: #28a745;
-        }
-        
-        .notification.error {
-            border-left-color: #dc3545;
-        }
-        
-        .notification.info {
-            border-left-color: #17a2b8;
-        }
     </style>
 </head>
 <body>
@@ -1968,500 +1873,49 @@
             console.log('✅ Service shown:', serviceName);
         }
         
-        // Load data for specific service with REAL-TIME GOVERNMENT API INTEGRATION
+        // Load data for specific service
         function loadServiceData(serviceName) {
-            console.log('📊 Loading REAL-TIME GOVERNMENT DATA for service:', serviceName);
+            console.log('📊 Loading data for service:', serviceName);
             
             switch(serviceName) {
                 case 'crop-recommendations':
                     if (currentLocation && currentLocation.name) {
-                        loadRealTimeCropRecommendations(currentLocation.name);
+                        loadCropDataForLocation(currentLocation.name);
                     } else {
-                        loadRealTimeCropRecommendations('Delhi');
+                        loadCropDataForLocation('Delhi');
                     }
                     break;
                     
                 case 'weather':
                     if (currentLocation && currentLocation.name) {
-                        loadRealTimeWeatherData(currentLocation.name);
+                        loadWeatherDataForLocation(currentLocation.name);
                     } else {
-                        loadRealTimeWeatherData('Delhi');
+                        loadWeatherData();
                     }
                     break;
                     
                 case 'market-prices':
-                    if (currentLocation && currentLocation.name) {
-                        loadRealTimeMarketPrices(currentLocation.name);
-                    } else {
-                        loadRealTimeMarketPrices('Delhi');
-                    }
+                    // Market prices are loaded when user searches
+                    console.log('Market prices: waiting for user input');
                     break;
                     
                 case 'government-schemes':
                     if (currentLocation && currentLocation.name) {
-                        loadRealTimeGovernmentSchemes(currentLocation.name);
-                    } else {
-                        loadRealTimeGovernmentSchemes('Delhi');
+                        loadStateSchemes(currentLocation.name);
                     }
                     break;
                     
                 case 'pest-control':
-                    console.log('Pest control: ICAR database integration ready');
-                    loadICARPestDatabase();
+                    console.log('Pest control: waiting for user input');
                     break;
                     
                 case 'ai-assistant':
-                    console.log('AI Assistant: Government APIs + Ollama integration ready');
-                    initializeIntelligentAssistant();
+                    console.log('AI assistant: ready for queries');
                     break;
                     
                 default:
                     console.log('Unknown service:', serviceName);
             }
-        }
-
-        // REAL-TIME GOVERNMENT API FUNCTIONS
-        // ================================================
-
-        // 1. Real-Time Crop Recommendations using ICAR + Government APIs
-        async function loadRealTimeCropRecommendations(locationName) {
-            console.log('🌱 Loading REAL-TIME crop recommendations for:', locationName);
-            showNotification(`${locationName} के लिए वास्तविक समय फसल सुझाव लोड हो रहे हैं...`, 'info');
-            
-            try {
-                // Use the comprehensive government API endpoint
-                const response = await fetch('/api/realtime-gov/crop_recommendations/', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    displayRealTimeCropRecommendations(data, locationName);
-                } else {
-                    // Fallback to chatbot with government API integration
-                    await loadCropRecommendationsViaChatbot(locationName);
-                }
-                
-            } catch (error) {
-                console.error('Error loading real-time crop recommendations:', error);
-                await loadCropRecommendationsViaChatbot(locationName);
-            }
-        }
-
-        // 2. Real-Time Weather Data using IMD + OpenWeather APIs
-        async function loadRealTimeWeatherData(locationName) {
-            console.log('🌤️ Loading REAL-TIME weather data for:', locationName);
-            showNotification(`${locationName} का वास्तविक समय मौसम डेटा लोड हो रहा है...`, 'info');
-            
-            try {
-                // Use the comprehensive weather API endpoint
-                const response = await fetch(`/api/realtime-gov/weather/?location=${locationName}&lat=${currentLocation.lat}&lon=${currentLocation.lon}`);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    displayRealTimeWeatherData(data, locationName);
-                } else {
-                    // Fallback to chatbot with weather API integration
-                    await loadWeatherViaChatbot(locationName);
-                }
-                
-            } catch (error) {
-                console.error('Error loading real-time weather data:', error);
-                await loadWeatherViaChatbot(locationName);
-            }
-        }
-
-        // 3. Real-Time Market Prices using Agmarknet + e-NAM APIs
-        async function loadRealTimeMarketPrices(locationName) {
-            console.log('📈 Loading REAL-TIME market prices for:', locationName);
-            showNotification(`${locationName} की वास्तविक समय बाजार कीमतें लोड हो रही हैं...`, 'info');
-            
-            try {
-                // Use the comprehensive market prices API endpoint
-                const response = await fetch(`/api/realtime-gov/market_prices/?location=${locationName}&state=${getStateFromLocation(locationName)}`);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    displayRealTimeMarketPrices(data, locationName);
-                } else {
-                    // Fallback to chatbot with market API integration
-                    await loadMarketPricesViaChatbot(locationName);
-                }
-                
-            } catch (error) {
-                console.error('Error loading real-time market prices:', error);
-                await loadMarketPricesViaChatbot(locationName);
-            }
-        }
-
-        // 4. Real-Time Government Schemes using PM-Kisan + State APIs
-        async function loadRealTimeGovernmentSchemes(locationName) {
-            console.log('🏛️ Loading REAL-TIME government schemes for:', locationName);
-            showNotification(`${locationName} के लिए वास्तविक समय सरकारी योजनाएं लोड हो रही हैं...`, 'info');
-            
-            try {
-                // Use the comprehensive government schemes API endpoint
-                const response = await fetch(`/api/realtime-gov/government_schemes/?location=${locationName}`);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    displayRealTimeGovernmentSchemes(data, locationName);
-                } else {
-                    // Fallback to chatbot with government schemes integration
-                    await loadGovernmentSchemesViaChatbot(locationName);
-                }
-                
-            } catch (error) {
-                console.error('Error loading real-time government schemes:', error);
-                await loadGovernmentSchemesViaChatbot(locationName);
-            }
-        }
-
-        // 5. ICAR Pest Database Integration
-        async function loadICARPestDatabase() {
-            console.log('🐛 Loading ICAR pest database...');
-            showNotification('ICAR कीट डेटाबेस लोड हो रहा है...', 'info');
-            
-            try {
-                // Use the pest detection API endpoint
-                const response = await fetch('/api/pest-detection/');
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    displayICARPestDatabase(data);
-                } else {
-                    displayICARPestDatabaseFallback();
-                }
-                
-            } catch (error) {
-                console.error('Error loading ICAR pest database:', error);
-                displayICARPestDatabaseFallback();
-            }
-        }
-
-        // 6. Intelligent Assistant with Government APIs + Ollama
-        function initializeIntelligentAssistant() {
-            console.log('🤖 Initializing Intelligent Assistant...');
-            
-            // Check if Ollama is available
-            checkOllamaAvailability().then(ollamaAvailable => {
-                if (ollamaAvailable) {
-                    showNotification('AI सहायक तैयार है! Government APIs + Ollama एकीकृत', 'success');
-                } else {
-                    showNotification('AI सहायक तैयार है! Government APIs सक्रिय', 'info');
-                }
-            });
-            
-            // Initialize chatbot interface
-            initializeChatbotInterface();
-        }
-
-        // FALLBACK FUNCTIONS (Using Chatbot with Government API Integration)
-        // ================================================
-
-        async function loadCropRecommendationsViaChatbot(locationName) {
-            const query = `${locationName} के लिए सर्वोत्तम फसलों की सिफारिश करें। मौसम, मिट्टी, बाजार कीमत और भविष्य की संभावनाओं के आधार पर। वास्तविक समय सरकारी डेटा का उपयोग करें।`;
-            
-            const response = await fetch('/api/chatbot/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: query,
-                    language: 'hi',
-                    session_id: sessionId,
-                    latitude: currentLocation.lat,
-                    longitude: currentLocation.lon,
-                    location_name: locationName
-                })
-            });
-            
-            const data = await response.json();
-            displayRealTimeCropRecommendations(data, locationName);
-        }
-
-        async function loadWeatherViaChatbot(locationName) {
-            const query = `${locationName} का वास्तविक समय मौसम बताएं - तापमान, बारिश, आर्द्रता, हवा की गति। IMD डेटा का उपयोग करें।`;
-            
-            const response = await fetch('/api/chatbot/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: query,
-                    language: 'hi',
-                    session_id: sessionId,
-                    latitude: currentLocation.lat,
-                    longitude: currentLocation.lon,
-                    location_name: locationName
-                })
-            });
-            
-            const data = await response.json();
-            displayRealTimeWeatherData(data, locationName);
-        }
-
-        async function loadMarketPricesViaChatbot(locationName) {
-            const query = `${locationName} की वास्तविक समय बाजार कीमतें बताएं। Agmarknet और e-NAM डेटा का उपयोग करें।`;
-            
-            const response = await fetch('/api/chatbot/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: query,
-                    language: 'hi',
-                    session_id: sessionId,
-                    latitude: currentLocation.lat,
-                    longitude: currentLocation.lon,
-                    location_name: locationName
-                })
-            });
-            
-            const data = await response.json();
-            displayRealTimeMarketPrices(data, locationName);
-        }
-
-        async function loadGovernmentSchemesViaChatbot(locationName) {
-            const query = `${locationName} के लिए उपलब्ध सरकारी योजनाएं बताएं। PM-Kisan, Fasal Bima, और अन्य कृषि योजनाओं की जानकारी दें।`;
-            
-            const response = await fetch('/api/chatbot/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: query,
-                    language: 'hi',
-                    session_id: sessionId,
-                    latitude: currentLocation.lat,
-                    longitude: currentLocation.lon,
-                    location_name: locationName
-                })
-            });
-            
-            const data = await response.json();
-            displayRealTimeGovernmentSchemes(data, locationName);
-        }
-
-        // DISPLAY FUNCTIONS
-        // ================================================
-
-        function displayRealTimeCropRecommendations(data, locationName) {
-            const container = document.getElementById('crop-recommendations-content');
-            if (!container) return;
-            
-            const recommendations = data.top_4_recommendations || data.recommendations || [];
-            
-            let html = `
-                <div class="real-time-header">
-                    <h5>🌱 ${locationName} के लिए वास्तविक समय फसल सुझाव</h5>
-                    <p class="text-muted">📍 स्थान: ${locationName} | ⏰ अपडेट: ${new Date().toLocaleString('hi-IN')}</p>
-                    <p class="text-info">📊 स्रोत: ${data.data_source || 'Government APIs + AI Analysis'}</p>
-                </div>
-                <div class="row">
-            `;
-            
-            recommendations.forEach((crop, index) => {
-                html += `
-                    <div class="col-md-6 mb-3">
-                        <div class="crop-card">
-                            <h6>${index + 1}. ${crop.name} (${crop.name_hindi})</h6>
-                            <div class="crop-info">
-                                <p><strong>MSP:</strong> ${crop.msp}</p>
-                                <p><strong>उत्पादन:</strong> ${crop.yield}</p>
-                                <p><strong>लाभ:</strong> ${crop.profit} (${crop.profit_percentage})</p>
-                                <p><strong>स्कोर:</strong> ${crop.overall_score}/100</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += '</div>';
-            container.innerHTML = html;
-            showNotification('वास्तविक समय फसल सुझाव लोड हो गए!', 'success');
-        }
-
-        function displayRealTimeWeatherData(data, locationName) {
-            const container = document.getElementById('weather-content');
-            if (!container) return;
-            
-            const weather = data.weather_data || data;
-            
-            let html = `
-                <div class="real-time-header">
-                    <h5>🌤️ ${locationName} का वास्तविक समय मौसम</h5>
-                    <p class="text-muted">📍 स्थान: ${locationName} | ⏰ अपडेट: ${new Date().toLocaleString('hi-IN')}</p>
-                    <p class="text-info">📊 स्रोत: ${data.data_source || 'IMD + Government APIs'}</p>
-                </div>
-                <div class="weather-card">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>🌡️ वर्तमान मौसम</h6>
-                            <p><strong>तापमान:</strong> ${weather.temperature || '25°C'}</p>
-                            <p><strong>आर्द्रता:</strong> ${weather.humidity || '65%'}</p>
-                            <p><strong>हवा की गति:</strong> ${weather.wind_speed || '10 km/h'}</p>
-                            <p><strong>मौसम:</strong> ${weather.condition || 'साफ'}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>📅 3-दिन का पूर्वानुमान</h6>
-            `;
-            
-            const forecast = weather.three_day_forecast || [];
-            forecast.forEach((day, index) => {
-                html += `<p><strong>${day.day}:</strong> ${day.temperature} - ${day.condition}</p>`;
-            });
-            
-            html += `
-                        </div>
-                    </div>
-                    <div class="farmer-advice">
-                        <h6>👨‍🌾 किसान सलाह</h6>
-                        <p>${weather.farmer_advice || 'अच्छा मौसम खेती के लिए। नियमित रूप से फसलों की निगरानी करें।'}</p>
-                    </div>
-                </div>
-            `;
-            
-            container.innerHTML = html;
-            showNotification('वास्तविक समय मौसम डेटा लोड हो गया!', 'success');
-        }
-
-        function displayRealTimeMarketPrices(data, locationName) {
-            const container = document.getElementById('market-prices-content');
-            if (!container) return;
-            
-            const prices = data.market_data || data;
-            
-            let html = `
-                <div class="real-time-header">
-                    <h5>📈 ${locationName} की वास्तविक समय बाजार कीमतें</h5>
-                    <p class="text-muted">📍 स्थान: ${locationName} | ⏰ अपडेट: ${new Date().toLocaleString('hi-IN')}</p>
-                    <p class="text-info">📊 स्रोत: ${data.data_source || 'Agmarknet + e-NAM'}</p>
-                </div>
-                <div class="market-prices-grid">
-            `;
-            
-            // Display market prices data
-            if (prices.current_prices) {
-                Object.entries(prices.current_prices).forEach(([crop, price]) => {
-                    html += `
-                        <div class="price-card">
-                            <h6>${crop}</h6>
-                            <p class="price">${price}</p>
-                        </div>
-                    `;
-                });
-            } else {
-                html += `
-                    <div class="alert alert-info">
-                        <h6>बाजार कीमतें</h6>
-                        <p>वास्तविक समय बाजार कीमतें लोड हो रही हैं...</p>
-                    </div>
-                `;
-            }
-            
-            html += '</div>';
-            container.innerHTML = html;
-            showNotification('वास्तविक समय बाजार कीमतें लोड हो गईं!', 'success');
-        }
-
-        function displayRealTimeGovernmentSchemes(data, locationName) {
-            const container = document.getElementById('government-schemes-content');
-            if (!container) return;
-            
-            const schemes = data.central_schemes || data.schemes || [];
-            
-            let html = `
-                <div class="real-time-header">
-                    <h5>🏛️ ${locationName} के लिए सरकारी योजनाएं</h5>
-                    <p class="text-muted">📍 स्थान: ${locationName} | ⏰ अपडेट: ${new Date().toLocaleString('hi-IN')}</p>
-                    <p class="text-info">📊 स्रोत: ${data.data_source || 'PM-Kisan + Government Portals'}</p>
-                </div>
-                <div class="schemes-grid">
-            `;
-            
-            schemes.forEach((scheme, index) => {
-                html += `
-                    <div class="scheme-card">
-                        <h6>${scheme.name || scheme.title}</h6>
-                        <p>${scheme.description || scheme.details}</p>
-                        <a href="${scheme.link || '#'}" target="_blank" class="btn btn-sm btn-primary">योजना देखें</a>
-                    </div>
-                `;
-            });
-            
-            html += '</div>';
-            container.innerHTML = html;
-            showNotification('वास्तविक समय सरकारी योजनाएं लोड हो गईं!', 'success');
-        }
-
-        function displayICARPestDatabase(data) {
-            const container = document.getElementById('pest-control-content');
-            if (!container) return;
-            
-            let html = `
-                <div class="real-time-header">
-                    <h5>🐛 ICAR कीट नियंत्रण डेटाबेस</h5>
-                    <p class="text-muted">⏰ अपडेट: ${new Date().toLocaleString('hi-IN')}</p>
-                    <p class="text-info">📊 स्रोत: ICAR + Government Pest Database</p>
-                </div>
-                <div class="pest-database">
-                    <div class="alert alert-success">
-                        <h6>ICAR कीट डेटाबेस सक्रिय</h6>
-                        <p>फसल की तस्वीर डालें या कीट की समस्या बताएं</p>
-                    </div>
-                </div>
-            `;
-            
-            container.innerHTML = html;
-            showNotification('ICAR कीट डेटाबेस लोड हो गया!', 'success');
-        }
-
-        function displayICARPestDatabaseFallback() {
-            const container = document.getElementById('pest-control-content');
-            if (!container) return;
-            
-            let html = `
-                <div class="alert alert-warning">
-                    <h6>ICAR कीट डेटाबेस</h6>
-                    <p>कीट नियंत्रण के लिए AI सहायक से बात करें</p>
-                </div>
-            `;
-            
-            container.innerHTML = html;
-        }
-
-        // UTILITY FUNCTIONS
-        // ================================================
-
-        function getStateFromLocation(locationName) {
-            // Map locations to states
-            const locationStateMap = {
-                'Delhi': 'Delhi',
-                'Mumbai': 'Maharashtra',
-                'Bangalore': 'Karnataka',
-                'Chennai': 'Tamil Nadu',
-                'Kolkata': 'West Bengal',
-                'Hyderabad': 'Telangana',
-                'Pune': 'Maharashtra',
-                'Ahmedabad': 'Gujarat',
-                'Jaipur': 'Rajasthan',
-                'Lucknow': 'Uttar Pradesh'
-            };
-            
-            return locationStateMap[locationName] || 'Delhi';
-        }
-
-        async function checkOllamaAvailability() {
-            try {
-                const response = await fetch('http://localhost:11434/api/tags', { timeout: 2000 });
-                return response.ok;
-            } catch (error) {
-                return false;
-            }
-        }
-
-        function initializeChatbotInterface() {
-            console.log('Chatbot interface initialized with government API integration');
         }
         
         // Load state government schemes
