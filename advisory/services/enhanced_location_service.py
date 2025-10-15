@@ -500,6 +500,12 @@ class EnhancedLocationService:
                 if photon_results:
                     suggestions.extend(photon_results)
             
+            # Try Overpass API for additional coverage
+            if len(suggestions) < 5:
+                overpass_results = self._search_overpass(query)
+                if overpass_results:
+                    suggestions.extend(overpass_results)
+            
             # Fallback to local database if APIs fail
             if not suggestions:
                 suggestions = self._search_local_database(query)
@@ -517,34 +523,54 @@ class EnhancedLocationService:
             return self._search_local_database(query)
     
     def _search_nominatim(self, query: str) -> List[Dict[str, Any]]:
-        """Search using Nominatim API (OpenStreetMap)"""
+        """Search using Nominatim API (OpenStreetMap) - Comprehensive Indian locations"""
         try:
             url = "https://nominatim.openstreetmap.org/search"
             params = {
-                'q': query,
+                'q': f"{query}, India",  # Explicitly include India
                 'format': 'json',
                 'countrycodes': 'in',  # Limit to India
-                'limit': 15,
+                'limit': 20,  # Increased limit for more results
                 'addressdetails': 1,
-                'extratags': 1
+                'extratags': 1,
+                'bounded': 0,  # Don't restrict to bounding box
+                'dedupe': 1,  # Remove duplicates
+                'polygon_geojson': 0
             }
             
-            response = self.session.get(url, params=params, timeout=10)
+            # Add headers to be respectful to the service
+            headers = {
+                'User-Agent': 'Krishimitra-AI/1.0 (Agricultural Advisory)',
+                'Accept': 'application/json'
+            }
+            
+            response = self.session.get(url, params=params, headers=headers, timeout=15)
             response.raise_for_status()
             data = response.json()
             
             suggestions = []
             for item in data:
                 address = item.get('address', {})
+                display_name = item.get('display_name', '')
+                
+                # Extract location name (first part before comma)
+                location_name = display_name.split(',')[0].strip()
+                
+                # Skip if name is too generic
+                if location_name.lower() in ['india', 'indian', '']:
+                    continue
+                
                 suggestions.append({
-                    'name': item.get('display_name', '').split(',')[0].strip(),
+                    'name': location_name,
                     'state': address.get('state', 'Unknown'),
-                    'type': self._determine_location_type(address),
+                    'district': address.get('county', 'Unknown'),
+                    'type': self._determine_location_type(address, display_name),
                     'confidence': 0.95,
                     'lat': float(item.get('lat', 0)),
                     'lon': float(item.get('lon', 0)),
                     'region': self._get_region_from_state(address.get('state', '')),
-                    'source': 'Nominatim (OpenStreetMap)'
+                    'source': 'Nominatim (OpenStreetMap)',
+                    'full_address': display_name
                 })
             
             logger.info(f"Found {len(suggestions)} locations from Nominatim for query: {query}")
@@ -555,16 +581,22 @@ class EnhancedLocationService:
             return []
     
     def _search_photon(self, query: str) -> List[Dict[str, Any]]:
-        """Search using Photon API (Komoot)"""
+        """Search using Photon API (Komoot) - Comprehensive Indian locations"""
         try:
             url = "https://photon.komoot.io/api"
             params = {
-                'q': query,
-                'limit': 15,
-                'countrycodes': 'in'  # Limit to India
+                'q': f"{query}, India",  # Explicitly include India
+                'limit': 20,  # Increased limit
+                'countrycodes': 'in',  # Limit to India
+                'lang': 'en'
             }
             
-            response = self.session.get(url, params=params, timeout=10)
+            headers = {
+                'User-Agent': 'Krishimitra-AI/1.0 (Agricultural Advisory)',
+                'Accept': 'application/json'
+            }
+            
+            response = self.session.get(url, params=params, headers=headers, timeout=15)
             response.raise_for_status()
             data = response.json()
             
@@ -574,15 +606,23 @@ class EnhancedLocationService:
                 geometry = item.get('geometry', {})
                 coordinates = geometry.get('coordinates', [0, 0])
                 
+                location_name = properties.get('name', 'Unknown')
+                
+                # Skip if name is too generic
+                if location_name.lower() in ['india', 'indian', '']:
+                    continue
+                
                 suggestions.append({
-                    'name': properties.get('name', 'Unknown'),
+                    'name': location_name,
                     'state': properties.get('state', 'Unknown'),
-                    'type': self._determine_location_type(properties),
+                    'district': properties.get('county', 'Unknown'),
+                    'type': self._determine_location_type(properties, location_name),
                     'confidence': 0.9,
                     'lat': float(coordinates[1]) if len(coordinates) > 1 else 0,
                     'lon': float(coordinates[0]) if len(coordinates) > 0 else 0,
                     'region': self._get_region_from_state(properties.get('state', '')),
-                    'source': 'Photon (Komoot)'
+                    'source': 'Photon (Komoot)',
+                    'full_address': f"{location_name}, {properties.get('state', '')}, India"
                 })
             
             logger.info(f"Found {len(suggestions)} locations from Photon for query: {query}")
@@ -590,6 +630,68 @@ class EnhancedLocationService:
             
         except Exception as e:
             logger.warning(f"Photon API error: {e}")
+            return []
+    
+    def _search_overpass(self, query: str) -> List[Dict[str, Any]]:
+        """Search using Overpass API for additional coverage"""
+        try:
+            # Overpass query to find places in India
+            overpass_query = f"""
+            [out:json][timeout:10];
+            (
+              node["place"]["name"~"{query}",i]["country"="IN"];
+              way["place"]["name"~"{query}",i]["country"="IN"];
+              relation["place"]["name"~"{query}",i]["country"="IN"];
+            );
+            out center;
+            """
+            
+            url = "https://overpass-api.de/api/interpreter"
+            headers = {
+                'User-Agent': 'Krishimitra-AI/1.0 (Agricultural Advisory)',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            response = self.session.post(url, data=overpass_query, headers=headers, timeout=15)
+            response.raise_for_status()
+            data = response.json()
+            
+            suggestions = []
+            for element in data.get('elements', []):
+                tags = element.get('tags', {})
+                location_name = tags.get('name', 'Unknown')
+                
+                if location_name.lower() in ['india', 'indian', '']:
+                    continue
+                
+                # Get coordinates
+                lat = element.get('lat', 0)
+                lon = element.get('lon', 0)
+                
+                # For ways and relations, use center coordinates
+                if not lat and not lon:
+                    center = element.get('center', {})
+                    lat = center.get('lat', 0)
+                    lon = center.get('lon', 0)
+                
+                suggestions.append({
+                    'name': location_name,
+                    'state': tags.get('addr:state', 'Unknown'),
+                    'district': tags.get('addr:district', 'Unknown'),
+                    'type': self._determine_location_type(tags, location_name),
+                    'confidence': 0.85,
+                    'lat': float(lat),
+                    'lon': float(lon),
+                    'region': self._get_region_from_state(tags.get('addr:state', '')),
+                    'source': 'Overpass API',
+                    'full_address': f"{location_name}, {tags.get('addr:state', '')}, India"
+                })
+            
+            logger.info(f"Found {len(suggestions)} locations from Overpass for query: {query}")
+            return suggestions[:10]  # Limit to avoid too many results
+            
+        except Exception as e:
+            logger.warning(f"Overpass API error: {e}")
             return []
     
     def _search_local_database(self, query: str) -> List[Dict[str, Any]]:
@@ -626,8 +728,8 @@ class EnhancedLocationService:
             logger.error(f"Error in local database search: {e}")
             return []
     
-    def _determine_location_type(self, address_data: dict) -> str:
-        """Determine location type from address data"""
+    def _determine_location_type(self, address_data: dict, display_name: str = '') -> str:
+        """Determine location type from address data - Enhanced for villages"""
         try:
             # Check for metro cities
             metro_cities = ['delhi', 'mumbai', 'bangalore', 'chennai', 'kolkata', 'hyderabad', 'pune', 'ahmedabad', 'jaipur']
@@ -636,19 +738,30 @@ class EnhancedLocationService:
             if city_name in metro_cities:
                 return 'metro'
             
-            # Check for village indicators
-            village_indicators = ['village', 'gram', 'gaon', 'pura', 'nagar']
-            display_name = address_data.get('display_name', '').lower()
+            # Enhanced village detection
+            village_indicators = [
+                'village', 'gram', 'gaon', 'pura', 'nagar', 'pur', 'palli', 'khand', 'basti',
+                'nagar', 'colony', 'settlement', 'hamlet', 'mauza', 'tola', 'para', 'mohalla'
+            ]
+            
+            # Check display name and address components
+            full_text = f"{display_name} {address_data.get('city', '')} {address_data.get('county', '')}".lower()
             
             for indicator in village_indicators:
-                if indicator in display_name:
+                if indicator in full_text:
                     return 'village'
             
             # Check for town indicators
-            town_indicators = ['town', 'tehsil', 'taluka', 'block']
+            town_indicators = ['town', 'tehsil', 'taluka', 'block', 'mandal', 'tahsil']
             for indicator in town_indicators:
-                if indicator in display_name:
+                if indicator in full_text:
                     return 'town'
+            
+            # Check for district indicators
+            district_indicators = ['district', 'zilla', 'jila']
+            for indicator in district_indicators:
+                if indicator in full_text:
+                    return 'district'
             
             # Default to city
             return 'city'
