@@ -872,9 +872,3 @@ India's capital is **New Delhi**.
 # Create global instance
 ollama_integration = OllamaIntegration()
 
-
-            return "I'm Krishimitra AI, your intelligent agricultural assistant. I can help with agriculture, crops, weather, government schemes, and also answer general knowledge questions. What would you like to know?"
-
-# Create global instance
-ollama_integration = OllamaIntegration()
-
