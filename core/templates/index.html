@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌾 कृषिमित्र AI - किसानों का सबसे अच्छा दोस्त</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>🌾 कृषिमित्र AI - किसानों का सबसे अच्छा दोस्त - v2.1</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -49,6 +52,1088 @@
             opacity: 0.9;
         }
         
+        /* Location Search Styles */
+        .location-search-container {
+            max-width: 600px;
+            margin: 30px auto;
+            position: relative;
+        }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 50px;
+            padding: 10px 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+        }
+        
+        .search-box i {
+            color: #4a7c59;
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .search-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1.1rem;
+            padding: 10px;
+            color: #333;
+        }
+        
+        .search-box input::placeholder {
+            color: #999;
+        }
+        
+        .search-box .btn {
+            border-radius: 50px;
+            padding: 8px 15px;
+            margin-left: 10px;
+        }
+        
+        .location-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .location-suggestion {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .location-suggestion:hover {
+            background: #f8f9fa;
+            color: #4a7c59;
+        }
+        
+        .location-suggestion:last-child {
+            border-bottom: none;
+        }
+        
+        .suggestion-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .suggestion-details {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .current-location-display {
+            margin-top: 20px;
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .location-label {
+            font-weight: 600;
+        }
+        
+        .location-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        /* Crop Search Styles */
+        .crop-search-container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .crop-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .crop-suggestion {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .crop-suggestion:hover {
+            background: #f8f9fa;
+            color: #4a7c59;
+        }
+        
+        .crop-suggestion:last-child {
+            border-bottom: none;
+        }
+        
+        .crop-suggestion-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .crop-suggestion-details {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        /* Crop Analysis Styles */
+        .crop-analysis-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .crop-analysis-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #4a7c59;
+        }
+        
+        .crop-analysis-card h5 {
+            color: #2c5530;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .analysis-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.95rem;
+        }
+        
+        .analysis-item:last-child {
+            border-bottom: none;
+        }
+        
+        .analysis-item strong {
+            color: #4a7c59;
+            font-weight: 600;
+        }
+        
+        /* Crops Grid Layout */
+        .crops-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .crop-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #4a7c59;
+            transition: all 0.3s ease;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .crop-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .crop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .crop-header h5 {
+            color: #2c5530;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .crop-rank {
+            background: #4a7c59;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .profitability-score {
+            background: #e8f5e8;
+            color: #2c5530;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .crop-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .crop-info {
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #4a7c59;
+            font-size: 0.95rem;
+        }
+        
+        .info-value {
+            font-weight: 500;
+            color: #333;
+            font-size: 0.95rem;
+            text-align: right;
+        }
+        
+        .crop-scores {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+        }
+        
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+        
+        .score-label {
+            font-weight: 600;
+            color: #4a7c59;
+            font-size: 0.9rem;
+        }
+        
+        .score-value {
+            font-weight: 500;
+            color: #333;
+            font-size: 0.9rem;
+        }
+        
+        /* Universal Service Card Styles */
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .service-card-item {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #4a7c59;
+            transition: all 0.3s ease;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .service-card-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .service-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .service-card-header h5 {
+            color: #2c5530;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .service-card-badge {
+            background: #4a7c59;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .service-card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .service-card-info {
+            margin-bottom: 15px;
+        }
+        
+        .service-info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .service-info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .service-info-label {
+            font-weight: 600;
+            color: #4a7c59;
+            font-size: 0.95rem;
+        }
+        
+        .service-info-value {
+            font-weight: 500;
+            color: #333;
+            font-size: 0.95rem;
+            text-align: right;
+        }
+        
+        .service-card-actions {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+        }
+        
+        .service-action-btn {
+            background: #4a7c59;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        
+        .service-action-btn:hover {
+            background: #2c5530;
+            transform: translateY(-2px);
+        }
+        
+        .service-action-btn.secondary {
+            background: #e8f5e8;
+            color: #2c5530;
+        }
+        
+        .service-action-btn.secondary:hover {
+            background: #d4edda;
+        }
+        
+        /* Mandi Search Styles */
+        .mandi-search-container {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        
+        .mandi-search-container h5 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .search-boxes-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .search-box {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-box label {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .mandi-search-box, .crop-search-box {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .mandi-search-box input, .crop-search-box input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .mandi-search-box input:focus, .crop-search-box input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+        
+        .mandi-search-box button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .crop-search-box button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .mandi-search-box button:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            transform: translateY(-1px);
+        }
+        
+        .crop-search-box button:hover {
+            background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+            transform: translateY(-1px);
+        }
+        
+        /* Mandi Prices Grid - Square Boxes */
+        .mandi-prices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .mandi-price-square {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .mandi-price-square:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .square-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+        
+        .square-header h6 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .trend-icon {
+            font-size: 18px;
+        }
+        
+        .square-content {
+            text-align: center;
+        }
+        
+        .price-main {
+            margin-bottom: 15px;
+        }
+        
+        .current-price {
+            font-size: 24px;
+            font-weight: 700;
+            color: #28a745;
+        }
+        
+        .price-unit {
+            font-size: 14px;
+            color: #6c757d;
+            margin-left: 5px;
+        }
+        
+        .price-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+        
+        .detail-row .label {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .detail-row .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .detail-row .value.profit {
+            color: #28a745;
+        }
+        
+        .detail-row .value.profit-percent {
+            color: #28a745;
+        }
+        
+        .mandi-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid #f8f9fa;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .mandi-name {
+            font-weight: 600;
+        }
+        
+        .mandi-results {
+            margin-top: 15px;
+        }
+        
+        /* Search Results Styles */
+        .mandi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .mandi-summary-square {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+            transition: transform 0.3s ease;
+        }
+        
+        .mandi-summary-square:hover {
+            transform: translateY(-2px);
+        }
+        
+        .mandi-summary-square .square-header h6 {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .mandi-summary-square .price-main {
+            margin-bottom: 10px;
+        }
+        
+        .mandi-summary-square .current-price {
+            font-size: 18px;
+        }
+        
+        .mandi-summary-square .mandi-name {
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .profit-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        
+        .profit-info .profit {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .profit-info .profit-percent {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        /* Crop Details Grid */
+        .crop-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .crop-detail-square {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+        
+        .detail-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .detail-value.profit {
+            color: #28a745;
+        }
+        
+        .detail-value.profit-percent {
+            color: #28a745;
+        }
+        
+        .crop-result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+        }
+        
+        .crop-result-card h6 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        /* Pest Analysis Styles */
+        .pest-analysis-container {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        
+        .analysis-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .analysis-header h4 {
+            color: #2c5530;
+            margin-bottom: 10px;
+        }
+        
+        .image-analysis-result {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .analysis-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .analysis-card h5 {
+            color: #2c5530;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .analysis-details {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-item .label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .detail-item .value {
+            font-weight: bold;
+            color: #2c5530;
+        }
+        
+        .detail-item .value.high {
+            color: #dc3545;
+        }
+        
+        .detail-item .value.severe {
+            color: #dc3545;
+            font-size: 1.1em;
+        }
+        
+        .detail-item .value.moderate {
+            color: #ffc107;
+        }
+        
+        .detail-item .value.low {
+            color: #28a745;
+        }
+        
+        .treatment-recommendations {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .treatment-recommendations h5 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+        
+        .recommendations-grid {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .recommendation-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .recommendation-card h6 {
+            color: #2c5530;
+            margin-bottom: 10px;
+        }
+        
+        .recommendation-card p {
+            margin: 5px 0;
+            color: #495057;
+        }
+        
+        .pest-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .pest-category, .disease-category {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .pest-category {
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .disease-category {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .pest-category h5, .disease-category h5 {
+            margin-bottom: 15px;
+            color: #2c5530;
+        }
+        
+        .pest-item, .disease-item {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .pest-item h6, .disease-item h6 {
+            color: #2c5530;
+            margin-bottom: 10px;
+        }
+        
+        .pest-item p, .disease-item p {
+            margin: 5px 0;
+            color: #495057;
+        }
+        
+        /* Mobile Responsive for Pest Analysis */
+        @media (max-width: 768px) {
+            .image-analysis-result {
+                grid-template-columns: 1fr;
+            }
+            
+            .pest-info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .analysis-details {
+                gap: 8px;
+            }
+            
+            .detail-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+        }
+        
+        .mandi-result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+        }
+        
+        .mandi-result-card h6 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .mandi-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .mandi-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .mandi-item .label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .mandi-item .value {
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        .mandi-analysis {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .mandi-results-summary {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .mandi-results-summary h6 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .mandi-summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .mandi-summary-item:last-child {
+            border-bottom: none;
+        }
+        
+        .crop-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .crop-price {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .crop-mandi {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .loading, .no-results, .error {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .search-boxes-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .mandi-search-box, .crop-search-box {
+                flex-direction: column;
+            }
+            
+            .mandi-prices-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .price-details {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .mandi-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .crop-details-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .mandi-info {
+                flex-direction: column;
+                gap: 5px;
+                text-align: center;
+            }
+            
+            .profit-info {
+                flex-direction: column;
+                gap: 5px;
+                text-align: center;
+            }
+        }
+        
         .services-container {
             padding: 60px 0;
             background: white;
@@ -61,14 +1146,25 @@
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
-            cursor: pointer;
+            cursor: pointer !important;
             border: 2px solid transparent;
+            pointer-events: auto !important;
+            user-select: none;
         }
         
         .service-card:hover {
             transform: translateY(-10px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
             border-color: #4a7c59;
+        }
+        
+        .service-card:active {
+            transform: scale(0.95);
+            transition: transform 0.1s ease;
+        }
+        
+        .service-card * {
+            pointer-events: none;
         }
         
         .service-icon {
@@ -160,43 +1256,236 @@
         .real-time-header {
             background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%);
             color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            padding: 25px 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
             text-align: center;
+            box-shadow: 0 8px 25px rgba(74, 124, 89, 0.3);
         }
         
         .real-time-header h4 {
-            margin-bottom: 10px;
-            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-size: 1.6rem;
+            font-weight: 600;
         }
         
-        .data-source, .timestamp, .reliability, .analysis-info {
-            font-size: 0.9rem;
+        .data-source, .timestamp, .reliability, .analysis-info, .scheme-count {
+            font-size: 0.95rem;
             opacity: 0.9;
-            margin: 5px 0;
+            margin: 8px 0;
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .scheme-count {
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: 600;
         }
         
         /* Scheme Card Styles */
         .scheme-card {
             background: white;
-            border-radius: 10px;
+            border-radius: 15px;
             padding: 20px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             border-left: 4px solid #4a7c59;
+            transition: all 0.3s ease;
+        }
+        
+        .scheme-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
         
         .scheme-card h5 {
-            color: #2d5016;
+            color: #2c5530;
+            font-size: 1.3rem;
+            font-weight: 600;
             margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .scheme-card p {
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .scheme-card strong {
+            color: #4a7c59;
+            font-weight: 600;
         }
         
         .scheme-actions {
-            margin-top: 15px;
+            margin-top: 20px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+        }
+        
+        .scheme-actions .btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .scheme-actions .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .schemes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .scheme-details {
+            margin-bottom: 15px;
+        }
+        
+        .scheme-card {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .real-time-header {
+                padding: 20px 15px;
+                margin-bottom: 20px;
+            }
+            
+            .real-time-header h4 {
+                font-size: 1.4rem;
+                margin-bottom: 12px;
+            }
+            
+            .data-source, .timestamp, .reliability, .analysis-info, .scheme-count {
+                font-size: 0.85rem;
+                margin: 6px 0;
+                padding: 4px 8px;
+            }
+            
+            .scheme-card {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .scheme-card h5 {
+                font-size: 1.2rem;
+                margin-bottom: 12px;
+            }
+            
+            .scheme-card p {
+                font-size: 0.9rem;
+                margin-bottom: 8px;
+            }
+            
+            .scheme-actions {
+                margin-top: 15px;
+                gap: 8px;
+            }
+            
+            .scheme-actions .btn {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                min-width: 100px;
+            }
+            
+            .schemes-container {
+                gap: 15px;
+            }
+            
+            .container {
+                padding: 0 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .real-time-header h4 {
+                font-size: 1.2rem;
+            }
+            
+            .scheme-card h5 {
+                font-size: 1.1rem;
+            }
+            
+            .scheme-actions {
+                flex-direction: column;
+            }
+            
+            .scheme-actions .btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .schemes-container {
+                gap: 12px;
+            }
+            
+            .location-search-container {
+                max-width: 100%;
+                margin: 20px auto;
+            }
+            
+            .search-box {
+                padding: 8px 15px;
+            }
+            
+            .search-box input {
+                font-size: 1rem;
+                padding: 8px;
+            }
+            
+            .current-location-display {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .crops-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .crop-card {
+                min-height: 350px;
+                padding: 15px;
+            }
+            
+            .crop-header h5 {
+                font-size: 1.1rem;
+            }
+            
+            .service-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .service-card-item {
+                min-height: 300px;
+                padding: 15px;
+            }
+            
+            .service-card-header h5 {
+                font-size: 1.1rem;
+            }
         }
         
         /* Crop Card Styles */
@@ -551,6 +1840,27 @@
         <div class="container">
             <h1 class="hero-title">🌾 कृषिमित्र AI</h1>
             <p class="hero-subtitle">किसानों का सबसे अच्छा दोस्त - AI से स्मार्ट खेती करें</p>
+            
+            <!-- Location Search Bar -->
+            <div class="location-search-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="locationSearchInput" placeholder="शहर, जिला या गाँव खोजें..." 
+                           onkeyup="searchLocations(event)" onfocus="showLocationSuggestions()">
+                    <button class="btn btn-primary" onclick="searchCurrentLocation()">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </button>
+                </div>
+                <div id="locationSuggestions" class="location-suggestions"></div>
+            </div>
+            
+            <div class="current-location-display">
+                <span class="location-label">📍 वर्तमान स्थान:</span>
+                <span id="currentLocationDisplay" class="location-name">Delhi</span>
+                <button class="btn btn-sm btn-outline-light" onclick="detectLocation()">
+                    <i class="fas fa-crosshairs"></i> स्थान पता करें
+                </button>
+            </div>
         </div>
     </div>
 
@@ -640,15 +1950,29 @@
         </div>
     </div>
 
-    <div class="content-section" id="crop-recommendations-content">
-        <div class="container">
-            <h2 class="text-center mb-4">🌾 फसल सुझाव</h2>
-            <div id="cropsData" class="loading">
-                <i class="fas fa-spinner"></i>
-                <p>फसल सुझाव लोड हो रहे हैं...</p>
+        <div class="content-section" id="crop-recommendations-content">
+            <div class="container">
+                <h2 class="text-center mb-4">🌾 फसल सुझाव</h2>
+                
+                <!-- Crop Search Bar -->
+                <div class="crop-search-container mb-4">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="cropSearchInput" placeholder="फसल खोजें (जैसे: गेहूं, धान, मक्का)..." 
+                               onkeyup="searchCrop(event)" onfocus="showCropSuggestions()">
+                        <button class="btn btn-primary" onclick="searchSpecificCrop()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <div id="cropSuggestions" class="crop-suggestions"></div>
+                </div>
+                
+                <div id="cropsData" class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>फसल सुझाव लोड हो रहे हैं...</p>
+                </div>
             </div>
         </div>
-    </div>
 
     <div class="content-section" id="weather-content">
         <div class="container">
@@ -662,7 +1986,12 @@
 
     <div class="content-section" id="market-prices-content">
         <div class="container">
-            <h2 class="text-center mb-4">💰 बाजार कीमतें</h2>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-center mb-0">💰 बाजार कीमतें</h2>
+                <button onclick="forceReloadMarketPrices()" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-sync-alt"></i> रिफ्रेश करें
+                </button>
+            </div>
             <div id="pricesData" class="loading">
                 <i class="fas fa-spinner"></i>
                 <p>बाजार कीमतें लोड हो रही हैं...</p>
@@ -673,6 +2002,51 @@
     <div class="content-section" id="pest-control-content">
         <div class="container">
             <h2 class="text-center mb-4">🐛 कीट नियंत्रण</h2>
+            
+            <!-- Image Upload Section -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-camera"></i> फसल की तस्वीर अपलोड करें</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="pestImageForm" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="cropImage" class="form-label">फसल की तस्वीर चुनें:</label>
+                                    <input type="file" class="form-control" id="cropImage" accept="image/*" required>
+                                    <div class="form-text">JPG, PNG या JPEG फॉर्मेट में तस्वीर अपलोड करें</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="cropName" class="form-label">फसल का नाम:</label>
+                                    <input type="text" class="form-control" id="cropName" placeholder="जैसे: गेहूं, चावल, मक्का" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="symptoms" class="form-label">समस्या का विवरण:</label>
+                                    <textarea class="form-control" id="symptoms" rows="3" placeholder="फसल में दिखने वाले लक्षण बताएं"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> विश्लेषण करें
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-info-circle"></i> मैनुअल विश्लेषण</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>तस्वीर के बिना भी कीट और रोग की जानकारी प्राप्त करें:</p>
+                            <button onclick="loadPestControl()" class="btn btn-outline-primary">
+                                <i class="fas fa-bug"></i> सामान्य कीट जानकारी
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div id="pestData" class="loading">
                 <i class="fas fa-spinner"></i>
                 <p>कीट नियंत्रण जानकारी लोड हो रही है...</p>
@@ -706,25 +2080,36 @@
     <script>
         // Global variables
         let currentLocation = 'Delhi';
+        let currentLatitude = 28.7041;
+        let currentLongitude = 77.1025;
         let sessionId = 'session_' + Date.now();
+        let locationSearchTimeout;
 
         // Show service content
         function showService(serviceName) {
             console.log('🎯 Showing service:', serviceName);
             
-            // Hide all content sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Show selected content
-            const content = document.getElementById(serviceName + '-content');
-            if (content) {
-                content.classList.add('active');
-                content.scrollIntoView({ behavior: 'smooth' });
+            try {
+                // Hide all content sections
+                document.querySelectorAll('.content-section').forEach(section => {
+                    section.classList.remove('active');
+                });
                 
-                // Load data for the service
-                loadServiceData(serviceName);
+                // Show selected content
+                const content = document.getElementById(serviceName + '-content');
+                if (content) {
+                    content.classList.add('active');
+                    content.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // Load data for the service
+                    loadServiceData(serviceName);
+                } else {
+                    console.error('Content section not found:', serviceName + '-content');
+                    alert('Service content not found. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error showing service:', error);
+                alert('Error loading service. Please try again.');
             }
         }
 
@@ -757,29 +2142,62 @@
             const container = document.getElementById('schemesData');
             
             try {
-                const response = await fetch(`/api/realtime-gov/government_schemes/?location=${currentLocation}&latitude=28.7041&longitude=77.1025`);
+                // Add cache-busting timestamp
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/realtime-gov/government_schemes/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}`);
                 const data = await response.json();
                 
-                if (data.central_schemes && data.central_schemes.length > 0) {
+                console.log('Government Schemes Data for', currentLocation, ':', data);
+                
+                // Use combined schemes list or fallback to central_schemes
+                const schemes = data.schemes || data.central_schemes || [];
+                
+                if (schemes.length > 0) {
                     container.innerHTML = `
                         <div class="real-time-header">
-                            <h4>🏛️ सरकारी योजनाएं - ${data.location}</h4>
+                            <h4>🏛️ सरकारी योजनाएं</h4>
                             <p class="data-source">📊 स्रोत: ${data.data_source}</p>
                             <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
+                            <p class="scheme-count">📊 कुल योजनाएं: ${data.total_schemes || schemes.length}</p>
                         </div>
-                        ${data.central_schemes.map(scheme => `
-                            <div class="scheme-card">
-                                <h5>${scheme.name}</h5>
-                                <p><strong>💰 राशि:</strong> ${scheme.amount}</p>
-                                <p><strong>📝 विवरण:</strong> ${scheme.description}</p>
-                                <p><strong>✅ पात्रता:</strong> ${scheme.eligibility}</p>
-                                <p><strong>📞 हेल्पलाइन:</strong> ${scheme.helpline}</p>
-                                <div class="scheme-actions">
-                                    <button class="btn btn-primary" onclick="openSchemeApplication('${scheme.apply_link}')">आवेदन करें</button>
-                                    <button class="btn btn-info" onclick="openGovernmentScheme('${scheme.official_website}')">आधिकारिक वेबसाइट</button>
+                        <div class="service-grid">
+                            ${schemes.map((scheme, index) => `
+                                <div class="service-card-item" style="animation-delay: ${index * 0.1}s">
+                                    <div class="service-card-header">
+                                        <h5>${scheme.name || scheme.name_en || 'Government Scheme'}</h5>
+                                        <div class="service-card-badge">योजना</div>
+                                    </div>
+                                    <div class="service-card-content">
+                                        <div class="service-card-info">
+                                            <div class="service-info-item">
+                                                <span class="service-info-label">💰 राशि:</span>
+                                                <span class="service-info-value">${scheme.amount || 'जानकारी उपलब्ध नहीं'}</span>
+                                            </div>
+                                            <div class="service-info-item">
+                                                <span class="service-info-label">📝 विवरण:</span>
+                                                <span class="service-info-value">${(scheme.description || 'विवरण उपलब्ध नहीं').substring(0, 50)}...</span>
+                                            </div>
+                                            <div class="service-info-item">
+                                                <span class="service-info-label">✅ पात्रता:</span>
+                                                <span class="service-info-value">${scheme.eligibility || 'सभी किसान'}</span>
+                                            </div>
+                                            <div class="service-info-item">
+                                                <span class="service-info-label">📞 हेल्पलाइन:</span>
+                                                <span class="service-info-value">${scheme.helpline || '1800-180-1551'}</span>
+                                            </div>
+                                        </div>
+                                        <div class="service-card-actions">
+                                            <button class="service-action-btn" onclick="openSchemeApplication('${scheme.apply_link || scheme.official_website || '#'}')">
+                                                <i class="fas fa-file-alt"></i> आवेदन करें
+                                            </button>
+                                            <button class="service-action-btn secondary" onclick="openGovernmentScheme('${scheme.official_website || '#'}')">
+                                                <i class="fas fa-globe"></i> आधिकारिक वेबसाइट
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        `).join('')}
+                            `).join('')}
+                        </div>
                     `;
                 } else {
                     container.innerHTML = `
@@ -827,8 +2245,12 @@
             const container = document.getElementById('cropsData');
             
             try {
-                const response = await fetch(`/api/realtime-gov/crop_recommendations/?location=${currentLocation}&latitude=28.7041&longitude=77.1025`);
+                // Add cache-busting timestamp
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/realtime-gov/crop_recommendations/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}`);
                 const data = await response.json();
+                
+                console.log('Crop Recommendations Data for', currentLocation, ':', data);
                 
                 if (data.top_4_recommendations && data.top_4_recommendations.length > 0) {
                     container.innerHTML = `
@@ -838,56 +2260,66 @@
                             <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
                             <p class="analysis-info">📈 विश्लेषण: ${data.total_crops_analyzed} फसलों का विश्लेषण</p>
                         </div>
-                        ${data.top_4_recommendations.map(crop => `
-                            <div class="crop-card">
-                                <div class="crop-header">
-                                    <h5>${crop.rank}. ${crop.name_hindi || crop.name}</h5>
-                                    <span class="profitability-score">${crop.overall_score}/100</span>
-                                </div>
-                                <div class="crop-details">
-                                    <div class="detail-row">
-                                        <span class="label">💰 MSP:</span>
-                                        <span class="value">${crop.msp}</span>
+                        <div class="crops-grid">
+                            ${data.top_4_recommendations.map((crop, index) => `
+                                <div class="crop-card">
+                                    <div class="crop-header">
+                                        <h5>${crop.crop_name}</h5>
+                                        <div class="crop-rank">#${index + 1}</div>
                                     </div>
-                                    <div class="detail-row">
-                                        <span class="label">📊 उत्पादन:</span>
-                                        <span class="value">${crop.yield}</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="label">💵 लाभ:</span>
-                                        <span class="value">${crop.profit} (${crop.profit_percentage})</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="label">💸 लागत:</span>
-                                        <span class="value">${crop.input_cost}</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="label">📈 रुझान:</span>
-                                        <span class="value">${crop.price_trend}</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="label">🎯 विश्वसनीयता:</span>
-                                        <span class="value">${crop.confidence}</span>
-                                    </div>
-                                </div>
-                                <div class="crop-scores">
-                                    <div class="score-item">
-                                        <span class="score-label">लाभदायकता:</span>
-                                        <div class="score-bar">
-                                            <div class="score-fill" style="width: ${crop.profitability_score}%"></div>
+                                    <div class="crop-content">
+                                        <div class="crop-info">
+                                            <div class="info-item">
+                                                <span class="info-label">💰 MSP:</span>
+                                                <span class="info-value">${crop.current_market_price}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">📊 उत्पादन:</span>
+                                                <span class="info-value">${crop.yield_prediction}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">💵 लाभ:</span>
+                                                <span class="info-value">${crop.profit} (${crop.profit_percentage})</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">💸 लागत:</span>
+                                                <span class="info-value">${crop.input_cost}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">📈 भविष्य की कीमत (3 महीने):</span>
+                                                <span class="info-value">${crop.future_price_prediction?.next_3_months || '₹2,500/quintal'}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">📈 भविष्य की कीमत (6 महीने):</span>
+                                                <span class="info-value">${crop.future_price_prediction?.next_6_months || '₹2,800/quintal'}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">📈 भविष्य की कीमत (1 वर्ष):</span>
+                                                <span class="info-value">${crop.future_price_prediction?.next_year || '₹3,200/quintal'}</span>
+                                            </div>
                                         </div>
-                                        <span class="score-value">${crop.profitability_score}</span>
-                                    </div>
-                                    <div class="score-item">
-                                        <span class="score-label">बाजार मांग:</span>
-                                        <div class="score-bar">
-                                            <div class="score-fill" style="width: ${crop.market_demand_score}%"></div>
+                                        <div class="crop-scores">
+                                            <div class="score-item">
+                                                <span class="score-label">लाभदायकता:</span>
+                                                <span class="score-value">${crop.profitability_score}/100</span>
+                                            </div>
+                                            <div class="score-item">
+                                                <span class="score-label">बाजार मांग:</span>
+                                                <span class="score-value">${crop.market_demand}</span>
+                                            </div>
+                                            <div class="score-item">
+                                                <span class="score-label">जोखिम स्तर:</span>
+                                                <span class="score-value">${crop.risk_level}</span>
+                                            </div>
+                                            <div class="score-item">
+                                                <span class="score-label">मिट्टी:</span>
+                                                <span class="score-value">${crop.soil_type}</span>
+                                            </div>
                                         </div>
-                                        <span class="score-value">${crop.market_demand_score}</span>
                                     </div>
                                 </div>
-                            </div>
-                        `).join('')}
+                            `).join('')}
+                        </div>
                     `;
                 } else {
                     container.innerHTML = `
@@ -961,8 +2393,12 @@
             const container = document.getElementById('weatherData');
             
             try {
-                const response = await fetch(`/api/realtime-gov/weather/?location=${currentLocation}&latitude=28.7041&longitude=77.1025`);
+                // Add cache-busting timestamp
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/realtime-gov/weather/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}`);
                 const data = await response.json();
+                
+                console.log('Weather Data for', currentLocation, ':', data);
                 
                 if (data.weather_data) {
                     container.innerHTML = `
@@ -1079,14 +2515,43 @@
             }
         }
 
-        // Load Market Prices - Ultra-Dynamic Real-Time Agmarknet/e-NAM Data
+        // Force reload market prices with cache busting
+        function forceReloadMarketPrices() {
+            console.log('Force reloading market prices...');
+            const container = document.getElementById('pricesData');
+            container.innerHTML = '<div class="loading">लोड हो रहा है...</div>';
+            
+            // Clear any cached data
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+            
+            // Reload with fresh data
+            setTimeout(() => {
+                loadMarketPrices();
+            }, 100);
+        }
+        
+        // Load Market Prices - Ultra-Dynamic Real-Time Agmarknet/e-NAM Data (v2.0)
         async function loadMarketPrices() {
             const container = document.getElementById('pricesData');
             
             try {
-                const response = await fetch(`/api/realtime-gov/market_prices/?location=${currentLocation}&latitude=28.7041&longitude=77.1025`);
+                // Add cache-busting timestamp and version
+                const timestamp = new Date().getTime();
+                const version = 'v2.0';
+                const response = await fetch(`/api/realtime-gov/market_prices/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}&v=${version}`);
                 const data = await response.json();
                 
+                console.log('Market Prices Data:', data);
+                console.log('Market Data Keys:', data.market_data ? Object.keys(data.market_data) : 'No market_data');
+                console.log('Market Data Length:', data.market_data ? Object.keys(data.market_data).length : 0);
+                
+                // Force square box layout for all cases
                 if (data.market_data && Object.keys(data.market_data).length > 0) {
                     container.innerHTML = `
                         <div class="real-time-header">
@@ -1095,82 +2560,128 @@
                             <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
                             <p class="reliability">🎯 विश्वसनीयता: ${Math.round((data.reliability_score || 0.9) * 100)}%</p>
                         </div>
-                        ${Object.entries(data.market_data).map(([cropName, cropData]) => `
-                            <div class="price-card">
-                                <div class="price-header">
-                                    <h5>🌾 ${cropName}</h5>
-                                    <span class="price-trend ${cropData.trend === 'increasing' ? 'trend-up' : cropData.trend === 'decreasing' ? 'trend-down' : 'trend-stable'}">
-                                        ${cropData.trend === 'increasing' ? '📈' : cropData.trend === 'decreasing' ? '📉' : '➡️'}
-                                    </span>
-                                </div>
-                                <div class="price-details">
-                                    <div class="price-item">
-                                        <span class="label">💰 वर्तमान भाव:</span>
-                                        <span class="value current-price">₹${cropData.current_price || '2,500'}/quintal</span>
-                                    </div>
-                                    <div class="price-item">
-                                        <span class="label">🏛️ न्यूनतम समर्थन मूल्य:</span>
-                                        <span class="value msp-price">₹${cropData.msp || '2,000'}/quintal</span>
-                                    </div>
-                                    <div class="price-item">
-                                        <span class="label">📅 तिथि:</span>
-                                        <span class="value">${cropData.date || new Date().toLocaleDateString('hi-IN')}</span>
-                                    </div>
-                                    <div class="price-item">
-                                        <span class="label">📊 स्रोत:</span>
-                                        <span class="value">${cropData.source || 'Agmarknet'}</span>
+                        
+                        <!-- Mandi Search Section -->
+                        <div class="mandi-search-container">
+                            <h5>🔍 मंडी खोजें</h5>
+                            <div class="search-boxes-container">
+                                <!-- Mandi Search Box -->
+                                <div class="search-box">
+                                    <label>📍 मंडी खोजें (स्थान के अनुसार)</label>
+                                    <div class="mandi-search-box">
+                                        <input type="text" id="mandiLocationSearch" placeholder="मंडी का नाम या स्थान टाइप करें" class="form-control">
+                                        <button onclick="searchMandiByLocation()" class="btn btn-primary">मंडी खोजें</button>
                                     </div>
                                 </div>
-                                <div class="price-analysis">
-                                    <div class="analysis-item">
-                                        <span class="analysis-label">लाभ मार्जिन:</span>
-                                        <span class="analysis-value">₹${(cropData.current_price || 2500) - (cropData.msp || 2000)}/quintal</span>
-                                    </div>
-                                    <div class="analysis-item">
-                                        <span class="analysis-label">लाभ प्रतिशत:</span>
-                                        <span class="analysis-value">${Math.round(((cropData.current_price || 2500) - (cropData.msp || 2000)) / (cropData.msp || 2000) * 100)}%</span>
+                                
+                                <!-- Crop Search Box -->
+                                <div class="search-box">
+                                    <label>🌾 फसल खोजें (मंडी से)</label>
+                                    <div class="crop-search-box">
+                                        <input type="text" id="mandiCropSearch" placeholder="फसल का नाम टाइप करें (जैसे: गेहूं, चावल)" class="form-control">
+                                        <button onclick="searchCropFromMandi()" class="btn btn-success">फसल खोजें</button>
                                     </div>
                                 </div>
                             </div>
-                        `).join('')}
+                            <div id="mandiSearchResults" class="mandi-results"></div>
+                        </div>
+                        <div class="mandi-prices-grid">
+                            ${Object.entries(data.market_data).map(([cropName, cropData]) => `
+                                <div class="mandi-price-square">
+                                    <div class="square-header">
+                                        <h6>🌾 ${cropName.charAt(0).toUpperCase() + cropName.slice(1)}</h6>
+                                        <span class="trend-icon">📈</span>
+                                    </div>
+                                    <div class="square-content">
+                                        <div class="price-main">
+                                            <span class="current-price">₹${cropData.current_price?.toLocaleString('hi-IN') || '2,500'}</span>
+                                            <span class="price-unit">/quintal</span>
+                                        </div>
+                                        <div class="price-details">
+                                            <div class="detail-row">
+                                                <span class="label">MSP:</span>
+                                                <span class="value">₹${cropData.msp?.toLocaleString('hi-IN') || '2,000'}</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="label">लाभ:</span>
+                                                <span class="value profit">₹${cropData.profit_margin?.toLocaleString('hi-IN') || '500'}</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="label">%:</span>
+                                                <span class="value profit-percent">${cropData.profit_percentage || 25}%</span>
+                                            </div>
+                                        </div>
+                                        <div class="mandi-info">
+                                            <span class="mandi-name">${cropData.mandi_name || 'Delhi Mandi'}</span>
+                                            <span class="date">${cropData.arrival_date || new Date().toLocaleDateString('hi-IN')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
                     `;
                 } else {
+                    // Fallback with square box layout
                     container.innerHTML = `
                         <div class="real-time-header">
                             <h4>💰 बाजार भाव - ${currentLocation}</h4>
                             <p class="data-source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
                         </div>
-                        <div class="price-card">
-                            <div class="price-header">
-                                <h5>🌾 गेहूं</h5>
-                                <span class="price-trend trend-up">📈</span>
+                        
+                        <!-- Mandi Search Section -->
+                        <div class="mandi-search-container">
+                            <h5>🔍 मंडी खोजें</h5>
+                            <div class="search-boxes-container">
+                                <!-- Mandi Search Box -->
+                                <div class="search-box">
+                                    <label>📍 मंडी खोजें (स्थान के अनुसार)</label>
+                                    <div class="mandi-search-box">
+                                        <input type="text" id="mandiLocationSearch" placeholder="मंडी का नाम या स्थान टाइप करें" class="form-control">
+                                        <button onclick="searchMandiByLocation()" class="btn btn-primary">मंडी खोजें</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Crop Search Box -->
+                                <div class="search-box">
+                                    <label>🌾 फसल खोजें (मंडी से)</label>
+                                    <div class="crop-search-box">
+                                        <input type="text" id="mandiCropSearch" placeholder="फसल का नाम टाइप करें (जैसे: गेहूं, चावल)" class="form-control">
+                                        <button onclick="searchCropFromMandi()" class="btn btn-success">फसल खोजें</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="price-details">
-                                <div class="price-item">
-                                    <span class="label">💰 वर्तमान भाव:</span>
-                                    <span class="value current-price">₹2,500/quintal</span>
+                            <div id="mandiSearchResults" class="mandi-results"></div>
+                        </div>
+                        
+                        <div class="mandi-prices-grid">
+                            <div class="mandi-price-square">
+                                <div class="square-header">
+                                    <h6>🌾 गेहूं</h6>
+                                    <span class="trend-icon">📈</span>
                                 </div>
-                                <div class="price-item">
-                                    <span class="label">🏛️ न्यूनतम समर्थन मूल्य:</span>
-                                    <span class="value msp-price">₹2,000/quintal</span>
-                                </div>
-                                <div class="price-item">
-                                    <span class="label">📅 तिथि:</span>
-                                    <span class="value">${new Date().toLocaleDateString('hi-IN')}</span>
-                                </div>
-                                <div class="price-item">
-                                    <span class="label">📊 स्रोत:</span>
-                                    <span class="value">Agmarknet</span>
-                                </div>
-                            </div>
-                            <div class="price-analysis">
-                                <div class="analysis-item">
-                                    <span class="analysis-label">लाभ मार्जिन:</span>
-                                    <span class="analysis-value">₹500/quintal</span>
-                                </div>
-                                <div class="analysis-item">
-                                    <span class="analysis-label">लाभ प्रतिशत:</span>
-                                    <span class="analysis-value">25%</span>
+                                <div class="square-content">
+                                    <div class="price-main">
+                                        <span class="current-price">₹2,500</span>
+                                        <span class="price-unit">/quintal</span>
+                                    </div>
+                                    <div class="price-details">
+                                        <div class="detail-row">
+                                            <span class="label">MSP:</span>
+                                            <span class="value">₹2,000</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">लाभ:</span>
+                                            <span class="value profit">₹500</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">%:</span>
+                                            <span class="value profit-percent">25%</span>
+                                        </div>
+                                    </div>
+                                    <div class="mandi-info">
+                                        <span class="mandi-name">Delhi Mandi</span>
+                                        <span class="date">${new Date().toLocaleDateString('hi-IN')}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1202,30 +2713,278 @@
                 `;
             }
         }
-
+        
+        // Mandi Search Functions
+        async function searchMandiByLocation() {
+            const locationInput = document.getElementById('mandiLocationSearch');
+            const resultsContainer = document.getElementById('mandiSearchResults');
+            
+            if (!locationInput.value.trim()) {
+                showNotification('कृपया मंडी का नाम या स्थान दर्ज करें', 'warning');
+                return;
+            }
+            
+            try {
+                resultsContainer.innerHTML = '<div class="loading">मंडी खोज रहे हैं...</div>';
+                
+                // Search for mandis in the specified location
+                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${encodeURIComponent(locationInput.value)}&latitude=${currentLatitude}&longitude=${currentLongitude}`);
+                const data = await response.json();
+                
+                if (data.mandi_data) {
+                    resultsContainer.innerHTML = `
+                        <div class="mandi-results-summary">
+                            <h6>📍 ${data.location} में उपलब्ध मंडियां (${data.total_crops} फसलें)</h6>
+                            <div class="mandi-grid">
+                                ${Object.entries(data.mandi_data).map(([cropName, mandiInfo]) => `
+                                    <div class="mandi-summary-square">
+                                        <div class="square-header">
+                                            <h6>🌾 ${mandiInfo.crop_name}</h6>
+                                        </div>
+                                        <div class="square-content">
+                                            <div class="price-main">
+                                                <span class="current-price">₹${mandiInfo.current_price?.toLocaleString('hi-IN')}</span>
+                                                <span class="price-unit">/quintal</span>
+                                            </div>
+                                            <div class="mandi-name">${mandiInfo.mandi_name}</div>
+                                            <div class="profit-info">
+                                                <span class="profit">लाभ: ₹${mandiInfo.profit_margin?.toLocaleString('hi-IN')}</span>
+                                                <span class="profit-percent">${mandiInfo.profit_percentage}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = '<div class="no-results">इस स्थान के लिए मंडी जानकारी उपलब्ध नहीं है</div>';
+                }
+                
+            } catch (error) {
+                console.error('Mandi location search error:', error);
+                resultsContainer.innerHTML = '<div class="error">मंडी खोज में त्रुटि हुई</div>';
+                showNotification('मंडी खोज में त्रुटि हुई', 'error');
+            }
+        }
+        
+        async function searchCropFromMandi() {
+            const cropInput = document.getElementById('mandiCropSearch');
+            const resultsContainer = document.getElementById('mandiSearchResults');
+            
+            if (!cropInput.value.trim()) {
+                showNotification('कृपया फसल का नाम दर्ज करें', 'warning');
+                return;
+            }
+            
+            try {
+                resultsContainer.innerHTML = '<div class="loading">फसल खोज रहे हैं...</div>';
+                
+                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${currentLocation}&crop=${encodeURIComponent(cropInput.value)}&latitude=${currentLatitude}&longitude=${currentLongitude}`);
+                const data = await response.json();
+                
+                if (data.mandi_info) {
+                    const mandiInfo = data.mandi_info;
+                    resultsContainer.innerHTML = `
+                        <div class="crop-result-card">
+                            <h6>🌾 ${mandiInfo.crop_name} - ${mandiInfo.mandi_name}</h6>
+                            <div class="crop-details-grid">
+                                <div class="crop-detail-square">
+                                    <div class="detail-label">💰 वर्तमान भाव</div>
+                                    <div class="detail-value">₹${mandiInfo.current_price?.toLocaleString('hi-IN')}/quintal</div>
+                                </div>
+                                <div class="crop-detail-square">
+                                    <div class="detail-label">🏛️ न्यूनतम समर्थन मूल्य</div>
+                                    <div class="detail-value">₹${mandiInfo.msp?.toLocaleString('hi-IN')}/quintal</div>
+                                </div>
+                                <div class="crop-detail-square">
+                                    <div class="detail-label">📈 लाभ मार्जिन</div>
+                                    <div class="detail-value profit">₹${mandiInfo.profit_margin?.toLocaleString('hi-IN')}/quintal</div>
+                                </div>
+                                <div class="crop-detail-square">
+                                    <div class="detail-label">📊 लाभ प्रतिशत</div>
+                                    <div class="detail-value profit-percent">${mandiInfo.profit_percentage}%</div>
+                                </div>
+                                <div class="crop-detail-square">
+                                    <div class="detail-label">📍 मंडी दूरी</div>
+                                    <div class="detail-value">${mandiInfo.mandi_distance}</div>
+                                </div>
+                                <div class="crop-detail-square">
+                                    <div class="detail-label">🏪 मंडी प्रकार</div>
+                                    <div class="detail-value">${mandiInfo.mandi_type}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = '<div class="no-results">इस फसल के लिए मंडी जानकारी उपलब्ध नहीं है</div>';
+                }
+                
+            } catch (error) {
+                console.error('Crop search error:', error);
+                resultsContainer.innerHTML = '<div class="error">फसल खोज में त्रुटि हुई</div>';
+                showNotification('फसल खोज में त्रुटि हुई', 'error');
+            }
+        }
+        
+        // Handle Image Upload for Pest Detection
+        document.getElementById('pestImageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const container = document.getElementById('pestData');
+            const imageFile = document.getElementById('cropImage').files[0];
+            const cropName = document.getElementById('cropName').value;
+            const symptoms = document.getElementById('symptoms').value;
+            
+            if (!imageFile) {
+                showNotification('कृपया एक तस्वीर चुनें', 'warning');
+                return;
+            }
+            
+            try {
+                container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>तस्वीर का विश्लेषण हो रहा है...</p></div>';
+                
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('crop', cropName);
+                formData.append('location', currentLocation);
+                formData.append('latitude', currentLatitude);
+                formData.append('longitude', currentLongitude);
+                formData.append('symptoms', symptoms);
+                
+                const response = await fetch('/api/realtime-gov/pest_detection/', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                displayPestAnalysis(data, true);
+                
+            } catch (error) {
+                console.error('Image analysis error:', error);
+                container.innerHTML = '<div class="error-message">तस्वीर विश्लेषण में त्रुटि हुई। कृपया पुनः प्रयास करें।</div>';
+                showNotification('तस्वीर विश्लेषण में त्रुटि हुई', 'error');
+            }
+        });
+        
+        // Display Pest Analysis Results
+        function displayPestAnalysis(data, isImageAnalysis = false) {
+            const container = document.getElementById('pestData');
+            
+            if (isImageAnalysis && data.pest_analysis && data.pest_analysis.image_analysis) {
+                const imageAnalysis = data.pest_analysis.image_analysis;
+                const analysisResult = imageAnalysis.analysis_result;
+                
+                container.innerHTML = `
+                    <div class="pest-analysis-container">
+                        <div class="analysis-header">
+                            <h4>🔍 तस्वीर विश्लेषण परिणाम</h4>
+                            <p class="data-source">📊 स्रोत: ${data.data_source}</p>
+                            <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
+                        </div>
+                        
+                        <div class="image-analysis-result">
+                            <div class="analysis-card">
+                                <h5>🌾 ${analysisResult.disease_name_hindi || 'रोग का नाम'}</h5>
+                                <div class="analysis-details">
+                                    <div class="detail-item">
+                                        <span class="label">विश्वास स्तर:</span>
+                                        <span class="value">${Math.round((analysisResult.confidence || 0) * 100)}%</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="label">गंभीरता:</span>
+                                        <span class="value ${analysisResult.severity}">${analysisResult.severity || 'मध्यम'}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="label">प्रभावित क्षेत्र:</span>
+                                        <span class="value">${analysisResult.affected_area || 'अज्ञात'}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="label">उपचार की तात्कालिकता:</span>
+                                        <span class="value ${analysisResult.treatment_urgency}">${analysisResult.treatment_urgency || 'मध्यम'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="treatment-recommendations">
+                                <h5>💊 उपचार सुझाव</h5>
+                                <div class="recommendations-grid">
+                                    ${(analysisResult.recommendations || []).map(rec => `
+                                        <div class="recommendation-card">
+                                            <h6>${rec.treatment}</h6>
+                                            <p><strong>मात्रा:</strong> ${rec.dosage}</p>
+                                            <p><strong>आवृत्ति:</strong> ${rec.frequency}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Regular pest analysis display
+                container.innerHTML = `
+                    <div class="pest-analysis-container">
+                        <div class="analysis-header">
+                            <h4>🐛 कीट नियंत्रण जानकारी</h4>
+                            <p class="data-source">📊 स्रोत: ${data.data_source}</p>
+                            <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
+                        </div>
+                        
+                        <div class="pest-info-grid">
+                            <div class="pest-category">
+                                <h5>🐛 कीट</h5>
+                                ${(data.pest_analysis?.pests || []).map(pest => `
+                                    <div class="pest-item">
+                                        <h6>${pest.name_hindi} (${pest.name})</h6>
+                                        <p><strong>गंभीरता:</strong> ${pest.severity}</p>
+                                        <p><strong>विवरण:</strong> ${pest.description}</p>
+                                        <p><strong>उपचार:</strong> ${pest.treatment}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            <div class="disease-category">
+                                <h5>🦠 रोग</h5>
+                                ${(data.pest_analysis?.diseases || []).map(disease => `
+                                    <div class="disease-item">
+                                        <h6>${disease.name_hindi} (${disease.name})</h6>
+                                        <p><strong>गंभीरता:</strong> ${disease.severity}</p>
+                                        <p><strong>विवरण:</strong> ${disease.description}</p>
+                                        <p><strong>उपचार:</strong> ${disease.treatment}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
         // Load Pest Control
         async function loadPestControl() {
             const container = document.getElementById('pestData');
             
             try {
-                const response = await fetch('/api/pest-detection/');
+                // Add cache-busting timestamp
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/realtime-gov/pest_detection/?t=${timestamp}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        crop: 'wheat',
+                        location: currentLocation,
+                        latitude: currentLatitude,
+                        longitude: currentLongitude,
+                        symptoms: ''
+                    })
+                });
                 const data = await response.json();
                 
-                container.innerHTML = `
-                    <div class="data-card">
-                        <h5>🐛 कीट नियंत्रण</h5>
-                        <p>फसल की तस्वीर अपलोड करें या समस्या का विवरण दें</p>
-                        <div class="mb-3">
-                            <label class="form-label">फसल का नाम:</label>
-                            <input type="text" class="form-control" id="cropName" placeholder="जैसे: गेहूं, चावल, मक्का">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">समस्या का विवरण:</label>
-                            <textarea class="form-control" id="problemDescription" rows="3" placeholder="कीट या रोग का विवरण दें"></textarea>
-                        </div>
-                        <button class="btn btn-success" onclick="getPestAdvice()">समाधान प्राप्त करें</button>
-                    </div>
-                `;
+                console.log('Pest Control Data for', currentLocation, ':', data);
+                displayPestAnalysis(data, false);
             } catch (error) {
                 console.error('Error loading pest control:', error);
                 container.innerHTML = '<div class="data-card"><h5>🐛 कीट नियंत्रण</h5><p>सेवा उपलब्ध है। कृपया बाद में कोशिश करें।</p></div>';
@@ -1339,7 +3098,10 @@
                 body: JSON.stringify({
                     query: message,
                     language: 'hi',
-                    session_id: sessionId
+                    session_id: sessionId,
+                    location: currentLocation,
+                    latitude: currentLatitude,
+                    longitude: currentLongitude
                 })
             })
             .then(response => response.json())
@@ -1393,10 +3155,420 @@
             }
         });
 
+        // Location Search Functions
+        async function searchLocations(event) {
+            const query = event.target.value.trim();
+            console.log('Searching for location:', query);
+            
+            // Clear previous timeout
+            if (locationSearchTimeout) {
+                clearTimeout(locationSearchTimeout);
+            }
+            
+            if (query.length < 2) {
+                hideLocationSuggestions();
+                return;
+            }
+            
+            // Debounce search
+            locationSearchTimeout = setTimeout(async () => {
+                try {
+                    console.log('Making API request for:', query);
+                    const response = await fetch(`/api/locations/search/?q=${encodeURIComponent(query)}`);
+                    console.log('API response status:', response.status);
+                    const data = await response.json();
+                    console.log('API response data:', data);
+                    
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        showLocationSuggestions(data.suggestions);
+                    } else {
+                        hideLocationSuggestions();
+                    }
+                } catch (error) {
+                    console.error('Location search error:', error);
+                    hideLocationSuggestions();
+                }
+            }, 300);
+        }
+        
+        function showLocationSuggestions(suggestions = null) {
+            const container = document.getElementById('locationSuggestions');
+            
+            if (suggestions) {
+                container.innerHTML = suggestions.map(suggestion => `
+                    <div class="location-suggestion" onclick="selectLocation('${suggestion.name}', ${suggestion.lat}, ${suggestion.lon})">
+                        <div>
+                            <div class="suggestion-name">${suggestion.name}</div>
+                            <div class="suggestion-details">${suggestion.state || ''} ${suggestion.region || ''}</div>
+                        </div>
+                        <div class="suggestion-details">${suggestion.type || 'location'}</div>
+                    </div>
+                `).join('');
+            }
+            
+            container.style.display = 'block';
+        }
+        
+        function hideLocationSuggestions() {
+            const container = document.getElementById('locationSuggestions');
+            container.style.display = 'none';
+        }
+        
+        function selectLocation(name, lat, lon) {
+            console.log('Selecting location:', name, lat, lon);
+            
+            // Update global location variables
+            currentLocation = name;
+            currentLatitude = lat;
+            currentLongitude = lon;
+            
+            // Verify the update
+            console.log('Location variables updated:', {
+                currentLocation: currentLocation,
+                currentLatitude: currentLatitude,
+                currentLongitude: currentLongitude
+            });
+            
+            // Update display
+            document.getElementById('currentLocationDisplay').textContent = name;
+            document.getElementById('locationSearchInput').value = '';
+            
+            // Hide suggestions
+            hideLocationSuggestions();
+            
+            // Show notification
+            showNotification(`स्थान बदला गया: ${name}`, 'success');
+            
+            // Reload all services with new location
+            console.log('Reloading all services with new location:', name);
+            reloadAllServices();
+        }
+        
+        function searchCurrentLocation() {
+            const input = document.getElementById('locationSearchInput');
+            if (input.value.trim()) {
+                searchLocations({ target: input });
+            }
+        }
+        
+        function detectLocation() {
+            if (navigator.geolocation) {
+                showNotification('स्थान का पता लगाया जा रहा है...', 'info');
+                
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        
+                        // Reverse geocoding to get location name
+                        fetch(`/api/locations/reverse/?lat=${lat}&lon=${lon}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.location) {
+                                    selectLocation(data.location, lat, lon);
+                                } else {
+                                    selectLocation('Detected Location', lat, lon);
+                                }
+                            })
+                            .catch(() => {
+                                selectLocation('Detected Location', lat, lon);
+                            });
+                    },
+                    function(error) {
+                        showNotification('स्थान का पता नहीं लगाया जा सका', 'error');
+                    }
+                );
+            } else {
+                showNotification('स्थान पता करने की सुविधा उपलब्ध नहीं है', 'error');
+            }
+        }
+        
+        function reloadAllServices() {
+            console.log('Reloading all services with location:', currentLocation, currentLatitude, currentLongitude);
+            
+            // Reload all service data with new location
+            const services = ['government-schemes', 'crop-recommendations', 'weather', 'market-prices', 'pest-control'];
+            
+            // Show loading notification
+            showNotification('स्थान बदल रहा है... सभी सेवाएं अपडेट हो रही हैं', 'info');
+            
+            // Clear all service containers first
+            const serviceContainers = {
+                'government-schemes': 'schemesData',
+                'crop-recommendations': 'cropsData', 
+                'weather': 'weatherData',
+                'market-prices': 'pricesData',
+                'pest-control': 'pestData'
+            };
+            
+            services.forEach(serviceName => {
+                const containerId = serviceContainers[serviceName];
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>लोड हो रहा है...</p></div>';
+                }
+            });
+            
+            // Reload each service with a small delay to prevent API overload
+            services.forEach((serviceName, index) => {
+                setTimeout(() => {
+                    console.log(`Reloading service: ${serviceName}`);
+                    loadServiceData(serviceName);
+                }, index * 500); // 500ms delay between each service
+            });
+            
+            // Also reload AI chatbot context
+            if (typeof initializeIntelligentAssistant === 'function') {
+                setTimeout(() => {
+                    console.log('Reloading AI assistant');
+                    initializeIntelligentAssistant();
+                }, services.length * 500);
+            }
+            
+            // Show completion notification
+            setTimeout(() => {
+                showNotification(`सभी सेवाएं ${currentLocation} के अनुसार अपडेट हो गईं`, 'success');
+                console.log('All services reloaded successfully');
+            }, (services.length + 1) * 500 + 1000);
+        }
+        
+        // Test function for debugging location updates
+        function testLocationUpdate() {
+            console.log('Testing location update...');
+            console.log('Current location variables:', {
+                currentLocation: currentLocation,
+                currentLatitude: currentLatitude,
+                currentLongitude: currentLongitude
+            });
+            
+            // Test with Raebareli
+            selectLocation('Raebareli', 26.2, 81.2);
+        }
+        
+        // Make test function available globally
+        window.testLocationUpdate = testLocationUpdate;
+        
+        // Force reload all services on page load
+        function forceReloadAllServices() {
+            console.log('Force reloading all services on page load');
+            reloadAllServices();
+        }
+        
+        // Auto-reload services every 5 minutes to keep data fresh
+        setInterval(() => {
+            console.log('Auto-reloading services to keep data fresh');
+            reloadAllServices();
+        }, 5 * 60 * 1000); // 5 minutes
+        
+        // Crop Search Functions
+        let cropSearchTimeout;
+        
+        async function searchCrop(event) {
+            const query = event.target.value.trim();
+            
+            // Clear previous timeout
+            if (cropSearchTimeout) {
+                clearTimeout(cropSearchTimeout);
+            }
+            
+            if (query.length < 2) {
+                hideCropSuggestions();
+                return;
+            }
+            
+            // Debounce search
+            cropSearchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/api/realtime-gov/crop_search/?crop=${encodeURIComponent(query)}&location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}`);
+                    const data = await response.json();
+                    
+                    if (data.comprehensive_analysis) {
+                        showCropAnalysis(data);
+                    } else if (data.available_crops) {
+                        showCropSuggestions(data.available_crops.filter(crop => 
+                            crop.toLowerCase().includes(query.toLowerCase())
+                        ));
+                    } else {
+                        hideCropSuggestions();
+                    }
+                } catch (error) {
+                    console.error('Crop search error:', error);
+                    hideCropSuggestions();
+                }
+            }, 300);
+        }
+        
+        function showCropSuggestions(crops = null) {
+            const container = document.getElementById('cropSuggestions');
+            
+            if (crops) {
+                container.innerHTML = crops.map(crop => `
+                    <div class="crop-suggestion" onclick="selectCrop('${crop}')">
+                        <div>
+                            <div class="crop-suggestion-name">${crop}</div>
+                            <div class="crop-suggestion-details">Click to analyze</div>
+                        </div>
+                        <div class="crop-suggestion-details">🌾</div>
+                    </div>
+                `).join('');
+            }
+            
+            container.style.display = 'block';
+        }
+        
+        function hideCropSuggestions() {
+            const container = document.getElementById('cropSuggestions');
+            container.style.display = 'none';
+        }
+        
+        function selectCrop(cropName) {
+            document.getElementById('cropSearchInput').value = cropName;
+            hideCropSuggestions();
+            searchSpecificCrop();
+        }
+        
+        function searchSpecificCrop() {
+            const cropName = document.getElementById('cropSearchInput').value.trim();
+            if (cropName) {
+                searchCrop({ target: { value: cropName } });
+            }
+        }
+        
+        function showCropAnalysis(data) {
+            const container = document.getElementById('cropsData');
+            const analysis = data.comprehensive_analysis;
+            
+            container.innerHTML = `
+                <div class="real-time-header">
+                    <h4>🌾 ${analysis.crop_name} - ${data.location}</h4>
+                    <p class="data-source">📊 स्रोत: ${data.data_source}</p>
+                    <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
+                </div>
+                
+                <div class="crop-analysis-container">
+                    <div class="crop-analysis-card">
+                        <h5>📊 मूलभूत जानकारी</h5>
+                        <div class="analysis-grid">
+                            <div class="analysis-item">
+                                <strong>मौसम:</strong> ${analysis.season}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>अवधि:</strong> ${analysis.duration_days} दिन
+                            </div>
+                            <div class="analysis-item">
+                                <strong>उत्पादन:</strong> ${analysis.yield_prediction}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>बाजार भाव:</strong> ${analysis.current_market_price}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="crop-analysis-card">
+                        <h5>💰 लाभ विश्लेषण</h5>
+                        <div class="analysis-grid">
+                            <div class="analysis-item">
+                                <strong>लागत:</strong> ${analysis.input_cost}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>आय:</strong> ${analysis.revenue}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>लाभ:</strong> ${analysis.profit}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>लाभ %:</strong> ${analysis.profit_percentage}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="crop-analysis-card">
+                        <h5>🌱 खेती की जानकारी</h5>
+                        <div class="analysis-grid">
+                            <div class="analysis-item">
+                                <strong>मिट्टी:</strong> ${analysis.soil_type}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>पानी:</strong> ${analysis.water_requirement}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>तापमान:</strong> ${analysis.temperature_range}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>सरकारी सहायता:</strong> ${analysis.government_support}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="crop-analysis-card">
+                        <h5>📈 भविष्य की भविष्यवाणी</h5>
+                        <div class="analysis-grid">
+                            <div class="analysis-item">
+                                <strong>भविष्य की कीमत:</strong> ${analysis.future_price_prediction?.next_3_months || '₹2,500/quintal'}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>अगले सीजन उत्पादन:</strong> ${analysis.yield_prediction_next_season?.predicted_yield || '40 quintals/hectare'}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>अगले सीजन लाभ:</strong> ${analysis.profit_prediction_next_season?.predicted_profit || '₹60,000/hectare'}
+                            </div>
+                            <div class="analysis-item">
+                                <strong>जोखिम स्तर:</strong> ${analysis.risk_level}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            hideCropSuggestions();
+        }
+
+        // Setup service cards with proper event listeners
+        function setupServiceCards() {
+            const serviceCards = document.querySelectorAll('.service-card');
+            console.log('🎯 Setting up', serviceCards.length, 'service cards');
+            
+            serviceCards.forEach((card, index) => {
+                // Add click event listener
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Get service name from onclick attribute
+                    const onclickAttr = this.getAttribute('onclick');
+                    const serviceName = onclickAttr?.match(/showService\('([^']+)'\)/)?.[1];
+                    
+                    if (serviceName) {
+                        console.log('🎯 Service card clicked:', serviceName);
+                        showService(serviceName);
+                        
+                        // Add visual feedback
+                        this.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            this.style.transform = '';
+                        }, 150);
+                    } else {
+                        console.error('Service name not found for card:', this);
+                    }
+                });
+                
+                console.log(`✅ Service card ${index + 1} setup complete`);
+            });
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🌾 कृषिमित्र AI Frontend Loaded Successfully!');
             showNotification('सभी सेवाएं तैयार हैं!', 'success');
+            
+            // Setup service cards
+            setupServiceCards();
+            
+            // Load initial service data
+            setTimeout(() => {
+                console.log('Loading initial service data...');
+                reloadAllServices();
+            }, 1000);
         });
     </script>
 </body>

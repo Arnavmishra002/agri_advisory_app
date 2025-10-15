@@ -78,3 +78,59 @@ uvloop>=0.17.0  # Fast event loop for async operations
 # Enhanced Data Processing
 beautifulsoup4>=4.12.0  # Web scraping for government data
 lxml>=4.9.0  # XML parsing for government APIs
+
+# Additional Dependencies for Krishimitra AI
+Pillow>=10.0.0  # Image processing for pest detection
+python-magic>=0.4.27  # File type detection
+chardet>=5.2.0  # Character encoding detection
+cryptography>=41.0.0  # Security and encryption
+django-environ>=0.11.0  # Environment variable management
+django-storages>=1.14.0  # Cloud storage support
+boto3>=1.28.0  # AWS integration
+azure-storage-blob>=12.17.0  # Azure integration
+google-cloud-storage>=2.10.0  # Google Cloud integration
+
+# Performance and Caching
+django-redis>=5.4.0  # Redis caching
+django-cacheops>=7.0.0  # Advanced caching
+django-compressor>=4.4  # Asset compression
+
+# API Rate Limiting and Security
+django-ratelimit>=4.0.0
+django-ipware>=4.0.0  # IP address utilities
+django-user-agents>=0.4.0  # User agent parsing
+
+# Data Validation and Serialization
+marshmallow>=3.20.0  # Data serialization
+cerberus>=1.3.4  # Data validation
+jsonschema>=4.19.0  # JSON schema validation
+
+# Logging and Monitoring
+django-logging>=0.1.0
+django-health-check>=3.17.0  # Health check endpoints
+django-prometheus>=2.3.0  # Prometheus metrics
+
+# Testing
+pytest>=7.4.0
+pytest-django>=4.5.0
+pytest-cov>=4.1.0
+factory-boy>=3.3.0
+faker>=19.6.0
+
+# Documentation
+sphinx>=7.1.0
+sphinx-rtd-theme>=1.3.0
+mkdocs>=1.5.0
+mkdocs-material>=9.2.0
+
+# Deployment and DevOps
+docker>=6.1.0
+docker-compose>=1.29.0
+supervisor>=4.2.5
+nginx>=1.24.0
+
+# Additional Utilities
+click>=8.1.0  # Command line interface
+rich>=13.5.0  # Rich text and beautiful formatting
+tqdm>=4.66.0  # Progress bars
+colorama>=0.4.6  # Cross-platform colored terminal text

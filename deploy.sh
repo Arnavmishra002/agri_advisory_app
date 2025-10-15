@@ -3,6 +3,11 @@
 # Quick Deployment Script for Agricultural Advisory App
 echo "🚀 Preparing for deployment..."
 
+# Clear Render build cache
+echo "🧹 Clearing build cache..."
+rm -rf .render-build-cache-bust
+echo "Build timestamp: $(date +%s)" > .render-build-cache-bust
+
 # Check if we're in the right directory
 if [ ! -f "manage.py" ]; then
     echo "❌ Error: Please run this script from the agri_advisory_app directory"
@@ -41,6 +46,11 @@ echo "   - Connect your GitHub repository"
 echo "   - Use Build Command: pip install -r requirements-production.txt"
 echo "   - Use Start Command: gunicorn core.wsgi:application --bind 0.0.0.0:\$PORT"
 echo "   - Set DEBUG=False"
+echo ""
+echo "3. Your app will be available at: https://your-app-name.onrender.com"
+echo ""
+echo "🎉 Happy farming with your online agricultural advisory app!"
+
 echo ""
 echo "3. Your app will be available at: https://your-app-name.onrender.com"
 echo ""

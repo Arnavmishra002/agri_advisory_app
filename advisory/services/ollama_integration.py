@@ -668,22 +668,24 @@ Be imaginative, engaging, and entertaining."""
             return self._get_enhanced_knowledge_base_response(query, language)
     
     def _call_ollama_api(self, query: str, language: str, timeout: int = 10) -> str:
-        """Call Ollama API directly with configurable timeout"""
+        """Call Ollama API directly with ChatGPT-like intelligence"""
         try:
-            # Prepare the prompt
+            # Enhanced ChatGPT-like system prompts
             if language in ['hi', 'hinglish']:
-                system_prompt = "आप एक सहायक AI हैं। हिंदी में उत्तर दें।"
+                system_prompt = """आप कृषिमित्र AI हैं - एक बहुत ही बुद्धिमान और सहायक AI सहायक। आपके पास व्यापक ज्ञान है और आप सभी विषयों पर सही, विस्तृत और उपयोगी जवाब दे सकते हैं। आप बातचीत में प्राकृतिक, मैत्रीपूर्ण और सहायक हैं। हिंदी में उत्तर दें और जब भी संभव हो उदाहरण और विस्तृत जानकारी प्रदान करें।"""
             else:
-                system_prompt = "You are a helpful AI assistant. Provide accurate and detailed responses."
+                system_prompt = """You are Krishimitra AI - a highly intelligent and helpful AI assistant. You have extensive knowledge across all domains and can provide accurate, detailed, and useful responses on any topic. You are natural, friendly, and helpful in conversation. Provide detailed explanations with examples whenever possible. Be conversational and engaging like ChatGPT."""
             
             payload = {
                 "model": self.current_model,
                 "prompt": f"{system_prompt}\n\nUser: {query}\n\nAssistant:",
                 "stream": False,
                 "options": {
-                    "temperature": 0.7,
-                    "top_p": 0.9,
-                    "max_tokens": 500
+                    "temperature": 0.8,
+                    "top_p": 0.95,
+                    "max_tokens": 800,
+                    "repeat_penalty": 1.1,
+                    "stop": ["User:", "Human:", "Human"]
                 }
             }
             
@@ -795,28 +797,32 @@ India's capital is **New Delhi**.
                 return "I am an AI assistant. I can help you with various questions. Please ask your question clearly."
     
     def _get_enhanced_knowledge_base_response(self, query: str, language: str) -> str:
-        """Get enhanced response from comprehensive knowledge base"""
+        """Get enhanced ChatGPT-like response from comprehensive knowledge base"""
         query_lower = query.lower()
         
-        # Enhanced comprehensive responses
+        # Enhanced comprehensive responses with ChatGPT-like intelligence
         responses = {
-            # General greetings
+            # General greetings and introductions
             'hello': {
-                'en': "Hello! I'm Krishimitra AI, your agricultural assistant. I can help you with farming, crops, weather, market prices, and government schemes. What would you like to know?",
-                'hi': "नमस्ते! मैं कृषिमित्र AI हूं, आपका कृषि सहायक। मैं खेती, फसल, मौसम, बाजार भाव और सरकारी योजनाओं में आपकी मदद कर सकता हूं। आप क्या जानना चाहते हैं?"
+                'en': "Hello! 👋 I'm Krishimitra AI, your intelligent agricultural assistant. I'm here to help you with everything related to farming, crops, weather, market prices, government schemes, and much more! I can provide real-time data and expert advice. What would you like to know today?",
+                'hi': "नमस्ते! 👋 मैं कृषिमित्र AI हूं, आपका बुद्धिमान कृषि सहायक। मैं यहां खेती, फसल, मौसम, बाजार भाव, सरकारी योजनाओं और बहुत कुछ में आपकी मदद के लिए हूं! मैं वास्तविक समय का डेटा और विशेषज्ञ सलाह प्रदान कर सकता हूं। आज आप क्या जानना चाहते हैं?"
+            },
+            'hi': {
+                'en': "Hi there! 😊 I'm Krishimitra AI, your friendly agricultural assistant. I'm excited to help you with farming questions, crop advice, weather updates, market prices, and any other agricultural information you need. How can I assist you today?",
+                'hi': "हाय! 😊 मैं कृषिमित्र AI हूं, आपका मैत्रीपूर्ण कृषि सहायक। मैं खेती के सवालों, फसल सलाह, मौसम अपडेट, बाजार भाव और आपके लिए आवश्यक किसी भी अन्य कृषि जानकारी में आपकी मदद करने के लिए उत्साहित हूं। आज मैं आपकी कैसे मदद कर सकता हूं?"
             },
             'who are you': {
-                'en': "I'm Krishimitra AI, your intelligent agricultural assistant. I provide real-time crop recommendations, weather forecasts, market prices, and government scheme information using official data sources.",
-                'hi': "मैं कृषिमित्र AI हूं, आपका बुद्धिमान कृषि सहायक। मैं सरकारी डेटा स्रोतों का उपयोग करके वास्तविक समय में फसल सुझाव, मौसम पूर्वानुमान, बाजार भाव और सरकारी योजना की जानकारी प्रदान करता हूं।"
+                'en': "I'm Krishimitra AI! 🤖✨ I'm your intelligent agricultural assistant powered by advanced AI technology. I specialize in providing real-time farming advice, crop recommendations, weather forecasts, market prices, and government scheme information. I can help with everything from basic farming questions to complex agricultural strategies. Think of me as your personal farming consultant available 24/7!",
+                'hi': "मैं कृषिमित्र AI हूं! 🤖✨ मैं उन्नत AI तकनीक से संचालित आपका बुद्धिमान कृषि सहायक हूं। मैं वास्तविक समय की खेती सलाह, फसल सुझाव, मौसम पूर्वानुमान, बाजार भाव और सरकारी योजना की जानकारी प्रदान करने में विशेषज्ञ हूं। मैं बुनियादी खेती के सवालों से लेकर जटिल कृषि रणनीतियों तक सब में मदद कर सकता हूं। मुझे अपना व्यक्तिगत खेती सलाहकार समझें जो 24/7 उपलब्ध है!"
             },
-            # Technology questions
+            # Technology questions with ChatGPT-like depth
             'artificial intelligence': {
-                'en': "Artificial Intelligence (AI) is technology that enables computers to think and learn like humans. In agriculture, AI helps with crop prediction, pest detection, weather forecasting, and optimizing farming practices for better yields and sustainability.",
-                'hi': "कृत्रिम बुद्धिमत्ता (AI) एक तकनीक है जो कंप्यूटर को मानव की तरह सोचने और सीखने की क्षमता देती है। कृषि में, AI फसल भविष्यवाणी, कीट पहचान, मौसम पूर्वानुमान और बेहतर उपज और स्थिरता के लिए खेती के तरीकों को अनुकूलित करने में मदद करता है।"
+                'en': "Artificial Intelligence (AI) is fascinating! 🤖 It's technology that enables computers to think, learn, and make decisions like humans. In agriculture, AI is revolutionizing farming through:\n\n• **Crop Prediction**: Analyzing weather patterns and soil conditions to predict optimal planting times\n• **Pest Detection**: Using computer vision to identify diseases and pests early\n• **Weather Forecasting**: Providing hyper-local weather predictions for better farming decisions\n• **Precision Agriculture**: Optimizing water, fertilizer, and pesticide usage\n• **Yield Optimization**: Maximizing crop production while minimizing environmental impact\n\nAI is making farming smarter, more sustainable, and more profitable! 🌱",
+                'hi': "कृत्रिम बुद्धिमत्ता (AI) बहुत रोमांचक है! 🤖 यह एक तकनीक है जो कंप्यूटर को मानव की तरह सोचने, सीखने और निर्णय लेने में सक्षम बनाती है। कृषि में, AI निम्नलिखित तरीकों से खेती में क्रांति ला रहा है:\n\n• **फसल भविष्यवाणी**: मौसम पैटर्न और मिट्टी की स्थिति का विश्लेषण करके इष्टतम बुवाई समय की भविष्यवाणी\n• **कीट पहचान**: रोगों और कीटों की जल्दी पहचान के लिए कंप्यूटर विजन का उपयोग\n• **मौसम पूर्वानुमान**: बेहतर खेती निर्णयों के लिए हाइपर-स्थानीय मौसम पूर्वानुमान\n• **सटीक कृषि**: पानी, उर्वरक और कीटनाशक के उपयोग को अनुकूलित करना\n• **उपज अनुकूलन**: पर्यावरणीय प्रभाव को कम करते हुए फसल उत्पादन को अधिकतम करना\n\nAI खेती को अधिक स्मार्ट, टिकाऊ और लाभदायक बना रहा है! 🌱"
             },
             'machine learning': {
-                'en': "Machine Learning is a subset of AI that enables systems to automatically learn and improve from experience. In agriculture, it's used for crop yield prediction, soil analysis, disease detection, and precision farming techniques.",
-                'hi': "मशीन लर्निंग AI का एक उपसमुच्चय है जो सिस्टम को अनुभव से स्वचालित रूप से सीखने और सुधारने में सक्षम बनाता है। कृषि में, इसका उपयोग फसल उपज भविष्यवाणी, मिट्टी विश्लेषण, रोग पहचान और सटीक खेती तकनीकों के लिए किया जाता है।"
+                'en': "Machine Learning is incredible! 🧠 It's a subset of AI that enables systems to automatically learn and improve from experience without being explicitly programmed. In agriculture, ML is transforming farming:\n\n• **Predictive Analytics**: Forecasting crop yields based on historical data and current conditions\n• **Soil Analysis**: Analyzing soil composition and recommending optimal nutrients\n• **Disease Detection**: Identifying plant diseases from images with high accuracy\n• **Precision Farming**: Optimizing irrigation, fertilization, and pest control\n• **Market Prediction**: Predicting crop prices and market trends\n\nMachine Learning is like having a farming expert that never stops learning and improving! 📈",
+                'hi': "मशीन लर्निंग अविश्वसनीय है! 🧠 यह AI का एक उपसमुच्चय है जो सिस्टम को स्पष्ट रूप से प्रोग्राम किए बिना अनुभव से स्वचालित रूप से सीखने और सुधारने में सक्षम बनाता है। कृषि में, ML खेती को बदल रहा है:\n\n• **भविष्यवाणी विश्लेषण**: ऐतिहासिक डेटा और वर्तमान स्थितियों के आधार पर फसल उपज की भविष्यवाणी\n• **मिट्टी विश्लेषण**: मिट्टी की संरचना का विश्लेषण और इष्टतम पोषक तत्वों की सिफारिश\n• **रोग पहचान**: उच्च सटीकता के साथ छवियों से पौधों के रोगों की पहचान\n• **सटीक खेती**: सिंचाई, उर्वरीकरण और कीट नियंत्रण को अनुकूलित करना\n• **बाजार भविष्यवाणी**: फसल कीमतों और बाजार रुझानों की भविष्यवाणी\n\nमशीन लर्निंग एक खेती विशेषज्ञ की तरह है जो कभी सीखना और सुधारना बंद नहीं करता! 📈"
             },
             # Geography questions
             'capital of india': {
@@ -861,6 +867,12 @@ India's capital is **New Delhi**.
         if language in ['hi', 'hinglish']:
             return "मैं कृषिमित्र AI हूं, आपका बुद्धिमान कृषि सहायक। मैं कृषि, फसल, मौसम, सरकारी योजनाओं के साथ-साथ सामान्य ज्ञान के प्रश्नों का भी उत्तर दे सकता हूं। आप क्या जानना चाहते हैं?"
         else:
+            return "I'm Krishimitra AI, your intelligent agricultural assistant. I can help with agriculture, crops, weather, government schemes, and also answer general knowledge questions. What would you like to know?"
+
+# Create global instance
+ollama_integration = OllamaIntegration()
+
+
             return "I'm Krishimitra AI, your intelligent agricultural assistant. I can help with agriculture, crops, weather, government schemes, and also answer general knowledge questions. What would you like to know?"
 
 # Create global instance

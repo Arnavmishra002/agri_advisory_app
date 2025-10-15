@@ -401,7 +401,7 @@ class DeepAIUnderstanding:
         
         # Farming-related intents
         farming_patterns = {
-            'crop_recommendation': ['फसल लगाएं', 'crop grow', 'what plant', 'suggest crop', 'बीज बोएं'],
+            'crop_recommendation': ['फसल लगाएं', 'crop grow', 'what plant', 'suggest crop', 'बीज बोएं', 'crops should', 'grow in', 'फसल कौन सी', 'कौन सी फसल'],
             'cultivation_guide': ['खेती कैसे', 'cultivation guide', 'growing guide', 'how to grow', 'बुवाई कैसे'],
             'pest_management': ['कीट नियंत्रण', 'pest control', 'disease treatment', 'रोग का इलाज'],
             'harvesting': ['कटाई', 'harvest', 'harvesting', 'picking', 'collection'],
@@ -431,7 +431,10 @@ class DeepAIUnderstanding:
             intent_scores[intent] = score
         
         # Determine primary intent
-        primary_intent = max(intent_scores, key=intent_scores.get) if intent_scores else 'general_inquiry'
+        if intent_scores and max(intent_scores.values()) > 0:
+            primary_intent = max(intent_scores, key=intent_scores.get)
+        else:
+            primary_intent = 'general_inquiry'
         
         # Sub-intent classification
         sub_intents = self._identify_sub_intents(query, primary_intent)
@@ -788,6 +791,9 @@ if __name__ == "__main__":
     test_query = "Delhi mein kya fasal lagayein kharif season mein?"
     result = analyze_query_deeply(test_query)
     print(json.dumps(result, indent=2))
+
+
+
 
 
 
