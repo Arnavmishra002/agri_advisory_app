@@ -346,6 +346,7 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
             
             if gov_data['status'] == 'success' and 'crop_recommendations' in gov_data['government_data']:
                 crop_data = gov_data['government_data']['crop_recommendations']
+                crop_analyses = crop_data.get('recommendations', [])
                 data_source = f"Ultra-Dynamic Government APIs - {', '.join(gov_data['sources'])}"
             else:
                 # Fallback to comprehensive analysis
