@@ -483,6 +483,179 @@ class EnhancedLocationService:
         
         return True
     
+    def search_locations(self, query: str) -> List[Dict[str, Any]]:
+        """Search for locations using open-source APIs (Nominatim, Photon)"""
+        try:
+            query_lower = query.lower().strip()
+            suggestions = []
+            
+            # Try Nominatim API (OpenStreetMap) - Free and comprehensive
+            nominatim_results = self._search_nominatim(query)
+            if nominatim_results:
+                suggestions.extend(nominatim_results)
+            
+            # Try Photon API as backup
+            if not suggestions:
+                photon_results = self._search_photon(query)
+                if photon_results:
+                    suggestions.extend(photon_results)
+            
+            # Fallback to local database if APIs fail
+            if not suggestions:
+                suggestions = self._search_local_database(query)
+            
+            # Sort by relevance and limit results
+            suggestions.sort(key=lambda x: (
+                0 if query_lower in x['name'].lower() else 1,
+                -x['confidence']
+            ))
+            
+            return suggestions[:15]  # Return top 15 results
+            
+        except Exception as e:
+            logger.error(f"Error searching locations: {e}")
+            return self._search_local_database(query)
+    
+    def _search_nominatim(self, query: str) -> List[Dict[str, Any]]:
+        """Search using Nominatim API (OpenStreetMap)"""
+        try:
+            url = "https://nominatim.openstreetmap.org/search"
+            params = {
+                'q': query,
+                'format': 'json',
+                'countrycodes': 'in',  # Limit to India
+                'limit': 15,
+                'addressdetails': 1,
+                'extratags': 1
+            }
+            
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            suggestions = []
+            for item in data:
+                address = item.get('address', {})
+                suggestions.append({
+                    'name': item.get('display_name', '').split(',')[0].strip(),
+                    'state': address.get('state', 'Unknown'),
+                    'type': self._determine_location_type(address),
+                    'confidence': 0.95,
+                    'lat': float(item.get('lat', 0)),
+                    'lon': float(item.get('lon', 0)),
+                    'region': self._get_region_from_state(address.get('state', '')),
+                    'source': 'Nominatim (OpenStreetMap)'
+                })
+            
+            logger.info(f"Found {len(suggestions)} locations from Nominatim for query: {query}")
+            return suggestions
+            
+        except Exception as e:
+            logger.warning(f"Nominatim API error: {e}")
+            return []
+    
+    def _search_photon(self, query: str) -> List[Dict[str, Any]]:
+        """Search using Photon API (Komoot)"""
+        try:
+            url = "https://photon.komoot.io/api"
+            params = {
+                'q': query,
+                'limit': 15,
+                'countrycodes': 'in'  # Limit to India
+            }
+            
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            suggestions = []
+            for item in data.get('features', []):
+                properties = item.get('properties', {})
+                geometry = item.get('geometry', {})
+                coordinates = geometry.get('coordinates', [0, 0])
+                
+                suggestions.append({
+                    'name': properties.get('name', 'Unknown'),
+                    'state': properties.get('state', 'Unknown'),
+                    'type': self._determine_location_type(properties),
+                    'confidence': 0.9,
+                    'lat': float(coordinates[1]) if len(coordinates) > 1 else 0,
+                    'lon': float(coordinates[0]) if len(coordinates) > 0 else 0,
+                    'region': self._get_region_from_state(properties.get('state', '')),
+                    'source': 'Photon (Komoot)'
+                })
+            
+            logger.info(f"Found {len(suggestions)} locations from Photon for query: {query}")
+            return suggestions
+            
+        except Exception as e:
+            logger.warning(f"Photon API error: {e}")
+            return []
+    
+    def _search_local_database(self, query: str) -> List[Dict[str, Any]]:
+        """Fallback search using local database"""
+        try:
+            query_lower = query.lower().strip()
+            suggestions = []
+            
+            # Search through all locations
+            for key, location in self.default_locations.items():
+                city_name = location['city'].lower()
+                state_name = location['state'].lower()
+                
+                # Check if query matches city or state
+                if (query_lower in city_name or 
+                    query_lower in state_name or
+                    city_name in query_lower or
+                    state_name in query_lower):
+                    
+                    suggestions.append({
+                        'name': location['city'],
+                        'state': location['state'],
+                        'type': 'metro' if location['city'] in ['Delhi', 'Mumbai', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune', 'Ahmedabad', 'Jaipur'] else 'city',
+                        'confidence': 0.8,
+                        'lat': location['lat'],
+                        'lon': location['lon'],
+                        'region': location.get('region', 'Unknown'),
+                        'source': 'Local Database'
+                    })
+            
+            return suggestions[:10]
+            
+        except Exception as e:
+            logger.error(f"Error in local database search: {e}")
+            return []
+    
+    def _determine_location_type(self, address_data: dict) -> str:
+        """Determine location type from address data"""
+        try:
+            # Check for metro cities
+            metro_cities = ['delhi', 'mumbai', 'bangalore', 'chennai', 'kolkata', 'hyderabad', 'pune', 'ahmedabad', 'jaipur']
+            city_name = address_data.get('city', '').lower()
+            
+            if city_name in metro_cities:
+                return 'metro'
+            
+            # Check for village indicators
+            village_indicators = ['village', 'gram', 'gaon', 'pura', 'nagar']
+            display_name = address_data.get('display_name', '').lower()
+            
+            for indicator in village_indicators:
+                if indicator in display_name:
+                    return 'village'
+            
+            # Check for town indicators
+            town_indicators = ['town', 'tehsil', 'taluka', 'block']
+            for indicator in town_indicators:
+                if indicator in display_name:
+                    return 'town'
+            
+            # Default to city
+            return 'city'
+            
+        except Exception:
+            return 'city'
+    
     def get_location_summary(self) -> Dict[str, Any]:
         """Get summary of current location detection"""
         if not self.current_location:

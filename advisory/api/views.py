@@ -1187,7 +1187,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def search(self, request):
-        """Manual location search for Indian villages, cities, districts, states"""
+        """Comprehensive location search for Indian villages, cities, districts, states"""
         try:
             query = request.GET.get('q', '').strip()
             if not query:
@@ -1196,57 +1196,31 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                     'suggestions': []
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Simple hardcoded suggestions for testing
-            suggestions = []
-            query_lower = query.lower().strip()
+            # Use comprehensive location service
+            location_service = EnhancedLocationService()
+            suggestions = location_service.search_locations(query)
             
-            # Check for Raebareli specifically
-            if 'raebareli' in query_lower:
-                suggestions.append({
-                    'name': 'Raebareli',
-                    'state': 'Uttar Pradesh',
-                    'type': 'city',
-                    'confidence': 0.9,
-                    'lat': 26.2,
-                    'lon': 81.2
-                })
-            
-            # Check for other major cities
-            if 'delhi' in query_lower:
-                suggestions.append({
-                    'name': 'Delhi',
-                    'state': 'Delhi',
-                    'type': 'metro',
-                    'confidence': 0.9,
-                    'lat': 28.7,
-                    'lon': 77.1
-                })
-            
-            if 'mumbai' in query_lower:
-                suggestions.append({
-                    'name': 'Mumbai',
-                    'state': 'Maharashtra',
-                    'type': 'metro',
-                    'confidence': 0.9,
-                    'lat': 19.1,
-                    'lon': 72.9
-                })
-            
-            # If no suggestions found, provide default
+            # If no suggestions found, provide comprehensive defaults
             if not suggestions:
                 suggestions = [
                     {'name': 'Delhi', 'state': 'Delhi', 'type': 'metro', 'confidence': 0.9, 'lat': 28.7041, 'lon': 77.1025},
                     {'name': 'Mumbai', 'state': 'Maharashtra', 'type': 'metro', 'confidence': 0.9, 'lat': 19.0760, 'lon': 72.8777},
                     {'name': 'Raebareli', 'state': 'Uttar Pradesh', 'type': 'city', 'confidence': 0.9, 'lat': 26.2, 'lon': 81.2},
                     {'name': 'Bangalore', 'state': 'Karnataka', 'type': 'metro', 'confidence': 0.9, 'lat': 12.9716, 'lon': 77.5946},
-                    {'name': 'Chennai', 'state': 'Tamil Nadu', 'type': 'metro', 'confidence': 0.9, 'lat': 13.0827, 'lon': 80.2707}
+                    {'name': 'Chennai', 'state': 'Tamil Nadu', 'type': 'metro', 'confidence': 0.9, 'lat': 13.0827, 'lon': 80.2707},
+                    {'name': 'Kolkata', 'state': 'West Bengal', 'type': 'metro', 'confidence': 0.9, 'lat': 22.5726, 'lon': 88.3639},
+                    {'name': 'Hyderabad', 'state': 'Telangana', 'type': 'metro', 'confidence': 0.9, 'lat': 17.3850, 'lon': 78.4867},
+                    {'name': 'Pune', 'state': 'Maharashtra', 'type': 'metro', 'confidence': 0.9, 'lat': 18.5204, 'lon': 73.8567},
+                    {'name': 'Ahmedabad', 'state': 'Gujarat', 'type': 'metro', 'confidence': 0.9, 'lat': 23.0225, 'lon': 72.5714},
+                    {'name': 'Jaipur', 'state': 'Rajasthan', 'type': 'metro', 'confidence': 0.9, 'lat': 26.9124, 'lon': 75.7873}
                 ]
             
             return Response({
                 'query': query,
                 'suggestions': suggestions,
                 'count': len(suggestions),
-                'features': ['Villages', 'Cities', 'Districts', '87.8% Accuracy', 'Open Source API'],
+                'features': ['Villages', 'Cities', 'Districts', 'States', 'Open Source APIs', 'Nominatim', 'Photon', 'Real-time Data'],
+                'data_sources': list(set([s.get('source', 'Unknown') for s in suggestions])),
                 'timestamp': datetime.now().isoformat()
             }, status=status.HTTP_200_OK)
             
@@ -2008,7 +1982,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def search(self, request):
-        """Manual location search for Indian villages, cities, districts, states"""
+        """Comprehensive location search for Indian villages, cities, districts, states"""
         try:
             query = request.GET.get('q', '').strip()
             if not query:
@@ -2017,57 +1991,31 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                     'suggestions': []
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Simple hardcoded suggestions for testing
-            suggestions = []
-            query_lower = query.lower().strip()
+            # Use comprehensive location service
+            location_service = EnhancedLocationService()
+            suggestions = location_service.search_locations(query)
             
-            # Check for Raebareli specifically
-            if 'raebareli' in query_lower:
-                suggestions.append({
-                    'name': 'Raebareli',
-                    'state': 'Uttar Pradesh',
-                    'type': 'city',
-                    'confidence': 0.9,
-                    'lat': 26.2,
-                    'lon': 81.2
-                })
-            
-            # Check for other major cities
-            if 'delhi' in query_lower:
-                suggestions.append({
-                    'name': 'Delhi',
-                    'state': 'Delhi',
-                    'type': 'metro',
-                    'confidence': 0.9,
-                    'lat': 28.7,
-                    'lon': 77.1
-                })
-            
-            if 'mumbai' in query_lower:
-                suggestions.append({
-                    'name': 'Mumbai',
-                    'state': 'Maharashtra',
-                    'type': 'metro',
-                    'confidence': 0.9,
-                    'lat': 19.1,
-                    'lon': 72.9
-                })
-            
-            # If no suggestions found, provide default
+            # If no suggestions found, provide comprehensive defaults
             if not suggestions:
                 suggestions = [
                     {'name': 'Delhi', 'state': 'Delhi', 'type': 'metro', 'confidence': 0.9, 'lat': 28.7041, 'lon': 77.1025},
                     {'name': 'Mumbai', 'state': 'Maharashtra', 'type': 'metro', 'confidence': 0.9, 'lat': 19.0760, 'lon': 72.8777},
                     {'name': 'Raebareli', 'state': 'Uttar Pradesh', 'type': 'city', 'confidence': 0.9, 'lat': 26.2, 'lon': 81.2},
                     {'name': 'Bangalore', 'state': 'Karnataka', 'type': 'metro', 'confidence': 0.9, 'lat': 12.9716, 'lon': 77.5946},
-                    {'name': 'Chennai', 'state': 'Tamil Nadu', 'type': 'metro', 'confidence': 0.9, 'lat': 13.0827, 'lon': 80.2707}
+                    {'name': 'Chennai', 'state': 'Tamil Nadu', 'type': 'metro', 'confidence': 0.9, 'lat': 13.0827, 'lon': 80.2707},
+                    {'name': 'Kolkata', 'state': 'West Bengal', 'type': 'metro', 'confidence': 0.9, 'lat': 22.5726, 'lon': 88.3639},
+                    {'name': 'Hyderabad', 'state': 'Telangana', 'type': 'metro', 'confidence': 0.9, 'lat': 17.3850, 'lon': 78.4867},
+                    {'name': 'Pune', 'state': 'Maharashtra', 'type': 'metro', 'confidence': 0.9, 'lat': 18.5204, 'lon': 73.8567},
+                    {'name': 'Ahmedabad', 'state': 'Gujarat', 'type': 'metro', 'confidence': 0.9, 'lat': 23.0225, 'lon': 72.5714},
+                    {'name': 'Jaipur', 'state': 'Rajasthan', 'type': 'metro', 'confidence': 0.9, 'lat': 26.9124, 'lon': 75.7873}
                 ]
             
             return Response({
                 'query': query,
                 'suggestions': suggestions,
                 'count': len(suggestions),
-                'features': ['Villages', 'Cities', 'Districts', '87.8% Accuracy', 'Open Source API'],
+                'features': ['Villages', 'Cities', 'Districts', 'States', 'Open Source APIs', 'Nominatim', 'Photon', 'Real-time Data'],
+                'data_sources': list(set([s.get('source', 'Unknown') for s in suggestions])),
                 'timestamp': datetime.now().isoformat()
             }, status=status.HTTP_200_OK)
             
