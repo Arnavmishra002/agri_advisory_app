@@ -21,6 +21,7 @@ from rest_framework.response import Response
 from ..services.enhanced_market_prices import EnhancedMarketPricesService
 from ..services.enhanced_pest_detection import pest_detection_service
 from ..services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
+from ..services.clean_weather_api import CleanWeatherAPI
 from ..services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
 from ..services.government_schemes_data import CENTRAL_GOVERNMENT_SCHEMES
 from ..services.enhanced_location_service import EnhancedLocationService
@@ -220,7 +221,7 @@ class ChatbotViewSet(viewsets.ViewSet):
             # Get market prices
             if 'market_prices' in self.services:
                 try:
-                    market_data = self.services['market_prices'].get_comprehensive_market_data(location)
+                    market_data = self.services['market_prices'].get_market_prices(location)
                     gov_data['market_prices'] = market_data
                 except Exception as e:
                     logger.warning(f"Market prices service failed: {e}")
@@ -707,8 +708,8 @@ class WeatherViewSet(viewsets.ViewSet):
             latitude = request.query_params.get('latitude', 28.6139)
             longitude = request.query_params.get('longitude', 77.2090)
             
-            gov_api = UltraDynamicGovernmentAPI()
-            weather_data = gov_api.get_weather_data(location, latitude, longitude)
+            clean_weather_api = CleanWeatherAPI()
+            weather_data = clean_weather_api.get_weather_data(location, latitude, longitude)
             
             weather_info = weather_data.get('data', {})
             

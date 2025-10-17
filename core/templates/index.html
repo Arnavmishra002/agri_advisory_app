@@ -1868,6 +1868,140 @@
         .notification.success { background: #28a745; }
         .notification.error { background: #dc3545; }
         .notification.info { background: #17a2b8; }
+        
+        /* Weather UI Improvements */
+        .weather-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .weather-temp {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #2d5016;
+            margin: 10px 0;
+        }
+        
+        .weather-condition {
+            font-size: 1.2rem;
+            color: #4a7c59;
+            margin-bottom: 10px;
+        }
+        
+        .weather-feels-like {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .detail-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-item .icon {
+            font-size: 1.2rem;
+            margin-right: 10px;
+            width: 25px;
+        }
+        
+        .detail-item .label {
+            font-weight: 500;
+            margin-right: 10px;
+            min-width: 100px;
+        }
+        
+        .detail-item .value {
+            font-weight: bold;
+            color: #2d5016;
+        }
+        
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .forecast-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(45, 80, 22, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(45, 80, 22, 0.2);
+        }
+        
+        .forecast-day {
+            font-weight: bold;
+            color: #2d5016;
+            margin-bottom: 8px;
+        }
+        
+        .forecast-temp {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #4a7c59;
+            margin-bottom: 5px;
+        }
+        
+        .forecast-condition {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .forecast-humidity, .forecast-wind {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        
+        .agricultural-advice {
+            background: rgba(74, 124, 89, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #4a7c59;
+        }
+        
+        .agricultural-advice p {
+            margin: 0;
+            color: #2d5016;
+            line-height: 1.6;
+        }
+        
+        .real-time-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(45, 80, 22, 0.2);
+        }
+        
+        .real-time-header h4 {
+            color: #2d5016;
+            margin-bottom: 10px;
+        }
+        
+        .data-source {
+            font-size: 0.9rem;
+            color: #4a7c59;
+            margin: 5px 0;
+        }
+        
+        .timestamp {
+            font-size: 0.8rem;
+            color: #666;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -2508,20 +2642,20 @@
                                         <span class="icon">📊</span>
                                         <span class="label">दबाव:</span>
                                         <span class="value">${data.current_weather.pressure || '1013'} ${data.current_weather.pressure_unit || 'hPa'}</span>
-                                </div>
+                                    </div>
                                     <div class="detail-item">
                                         <span class="icon">👁️</span>
                                         <span class="label">दृश्यता:</span>
                                         <span class="value">${data.current_weather.visibility || '10'} ${data.current_weather.visibility_unit || 'km'}</span>
-                            </div>
+                                    </div>
                                     <div class="detail-item">
                                         <span class="icon">☀️</span>
                                         <span class="label">UV सूचकांक:</span>
                                         <span class="value">${data.current_weather.uv_index || '5'}</span>
                                     </div>
-                                    </div>
-                                    </div>
-                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                             </div>
                         
@@ -2529,12 +2663,7 @@
                         <div class="weather-card">
                             <h5>🌾 कृषि सुझाव</h5>
                             <div class="agricultural-advice">
-                                ${data.agricultural_advice ? data.agricultural_advice.map(advice => `
-                                    <div class="advice-item">
-                                        <span class="advice-type">${advice.type}:</span>
-                                        <span class="advice-text">${advice.advice}</span>
-                                    </div>
-                                `).join('') : '<p>कोई सुझाव उपलब्ध नहीं</p>'}
+                                <p>${data.agricultural_advice || 'सामान्य कृषि गतिविधियां जारी रखें'}</p>
                             </div>
                         </div>
                         
@@ -2544,12 +2673,11 @@
                             <div class="forecast-grid">
                                 ${data.forecast_7_days ? data.forecast_7_days.map(day => `
                                     <div class="forecast-item">
-                                        <div class="forecast-day">${day.day}</div>
-                                        <div class="forecast-temps">
-                                            <span class="high">${day.high}</span>
-                                            <span class="low">${day.low}</span>
-                                        </div>
-                                        <div class="forecast-condition">${day.condition}</div>
+                                        <div class="forecast-day">${day.day || day.date}</div>
+                                        <div class="forecast-temp">${day.temperature || '28°C'}</div>
+                                        <div class="forecast-condition">${day.condition || 'साफ आसमान'}</div>
+                                        <div class="forecast-humidity">${day.humidity || '65%'}</div>
+                                        <div class="forecast-wind">${day.wind_speed || '12 km/h'}</div>
                                     </div>
                                 `).join('') : '<p>पूर्वानुमान उपलब्ध नहीं</p>'}
                             </div>
@@ -3888,6 +4016,15 @@
                 
                 // Setup service cards
                 setupServiceCards();
+                
+                // Setup location search input event handler
+                const locationInput = document.getElementById('locationSearchInput');
+                if (locationInput) {
+                    locationInput.addEventListener('input', searchLocations);
+                    console.log('✅ Location search input event handler set up');
+                } else {
+                    console.error('❌ Location search input not found');
+                }
                 
                 // Load initial service data
                 setTimeout(() => {
