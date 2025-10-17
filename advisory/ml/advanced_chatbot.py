@@ -192,9 +192,10 @@ class AdvancedAgriculturalChatbot:
         greetings = [
             'hello', 'hi', 'hey', 'namaste', 'namaskar', 'good morning', 
             'good afternoon', 'good evening', 'how are you', 'kaise ho',
-            'aap kaise hain', 'kya haal hai'
+            'aap kaise hain', 'kya haal hai', 'नमस्ते', 'नमस्कार', 'हैलो',
+            'hii', 'hiii', 'hey there', 'greetings'
         ]
-        return any(greeting in query for greeting in greetings)
+        return any(greeting in query.lower() for greeting in greetings)
     
     def _is_agricultural_query(self, query: str) -> bool:
         """Check if query is agricultural-related."""
@@ -387,7 +388,7 @@ Would you like to know about tomorrow's weather?"""
 • सरकारी मंडियों में बेचें
 
 किसी विशेष फसल की कीमत जानना चाहते हैं?"""
-        else:
+            else:
                 return f"""💰 **Market Prices:**
 
 🌾 Wheat: ₹{market_data[0].get('price', '2,450')}/quintal
@@ -411,7 +412,7 @@ Would you like to know prices for any specific crop?"""
             logger.error(f"Market query error: {e}")
             if language == 'hi':
                 return "क्षमा करें, बाजार कीमतें अभी उपलब्ध नहीं हैं। कृपया बाद में पूछें।"
-        else:
+            else:
                 return "Sorry, market prices are not available right now. Please try again later."
     
     def _handle_general_question(self, query: str, language: str) -> str:

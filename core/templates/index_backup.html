@@ -584,67 +584,6 @@
             transform: translateY(-1px);
         }
         
-        /* Mandi Dropdown and Crop Filter Styles */
-        .mandi-selection-container {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .mandi-dropdown-container, .crop-filter-container {
-            flex: 1;
-            min-width: 250px;
-        }
-        
-        .mandi-dropdown-container label, .crop-filter-container label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 14px;
-        }
-        
-        .mandi-dropdown {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 14px;
-            background-color: white;
-            transition: border-color 0.3s ease;
-        }
-        
-        .mandi-dropdown:focus {
-            border-color: #007bff;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-        }
-        
-        .mandi-info-text {
-            margin-top: 5px;
-        }
-        
-        .mandi-info-text small {
-            color: #6c757d;
-            font-size: 12px;
-        }
-        
-        #cropFilter {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-        
-        #cropFilter:focus {
-            border-color: #28a745;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
-        }
-        
         /* Mandi Prices Grid - Square Boxes */
         .mandi-prices-grid {
             display: grid;
@@ -652,7 +591,7 @@
             gap: 20px;
             margin-top: 20px;
         }
-
+        
         .mandi-price-square {
             background: white;
             border-radius: 15px;
@@ -1225,7 +1164,7 @@
         }
         
         .service-card * {
-            pointer-events: auto;
+            pointer-events: none;
         }
         
         .service-icon {
@@ -2145,14 +2084,6 @@
         let currentLongitude = 77.1025;
         let sessionId = 'session_' + Date.now();
         let locationSearchTimeout;
-        
-        // Function to decode HTML entities
-        function decodeHtmlEntities(text) {
-            if (!text) return text;
-            const textarea = document.createElement('textarea');
-            textarea.innerHTML = text;
-            return textarea.value;
-        }
 
         // Show service content
         function showService(serviceName) {
@@ -2213,7 +2144,7 @@
             try {
                 // Add cache-busting timestamp
                 const timestamp = new Date().getTime();
-                const response = await fetch(`/api/government-schemes/?location=${currentLocation}&t=${timestamp}`);
+                const response = await fetch(`/api/realtime-gov/government_schemes/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}`);
                 const data = await response.json();
                 
                 console.log('Government Schemes Data for', currentLocation, ':', data);
@@ -2316,75 +2247,73 @@
             try {
                 // Add cache-busting timestamp
                 const timestamp = new Date().getTime();
-                const response = await fetch(`/api/advisories/?location=${currentLocation}&t=${timestamp}`);
+                const response = await fetch(`/api/realtime-gov/crop_recommendations/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}`);
                 const data = await response.json();
                 
                 console.log('Crop Recommendations Data for', currentLocation, ':', data);
                 
                 if (data.top_4_recommendations && data.top_4_recommendations.length > 0) {
-                    const recommendations = data.top_4_recommendations;
                     container.innerHTML = `
                         <div class="real-time-header">
                             <h4>🌾 फसल सुझाव - ${data.location}</h4>
-                            <p class="data-source">📊 स्रोत: ${data.data_source || 'Ultra-Dynamic Government APIs'}</p>
+                            <p class="data-source">📊 स्रोत: ${data.data_source}</p>
                             <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
-                            <p class="analysis-info">📈 विश्लेषण: ${data.total_crops_analyzed || recommendations.length} फसलों का विश्लेषण</p>
+                            <p class="analysis-info">📈 विश्लेषण: ${data.total_crops_analyzed} फसलों का विश्लेषण</p>
                         </div>
                         <div class="crops-grid">
-                            ${recommendations.map((crop, index) => `
+                            ${data.top_4_recommendations.map((crop, index) => `
                                 <div class="crop-card">
                                     <div class="crop-header">
-                                        <h5>${decodeHtmlEntities(crop.name_hindi || crop.crop_name_hindi || crop.crop_name)}</h5>
+                                        <h5>${crop.crop_name}</h5>
                                         <div class="crop-rank">#${index + 1}</div>
-                                        <div class="profitability-score">${crop.profitability_score || 85}/100</div>
                                     </div>
                                     <div class="crop-content">
                                         <div class="crop-info">
                                             <div class="info-item">
                                                 <span class="info-label">💰 MSP:</span>
-                                                <span class="info-value">${crop.current_market_price || crop.msp || '₹2,000/quintal'}</span>
+                                                <span class="info-value">${crop.current_market_price}</span>
                                             </div>
                                             <div class="info-item">
                                                 <span class="info-label">📊 उत्पादन:</span>
-                                                <span class="info-value">${crop.yield_prediction || crop.yield || '50 quintals/hectare'}</span>
+                                                <span class="info-value">${crop.yield_prediction}</span>
                                             </div>
                                             <div class="info-item">
                                                 <span class="info-label">💵 लाभ:</span>
-                                                <span class="info-value">${crop.profit || crop.profit_per_hectare || '₹15,000/hectare'} (${crop.profit_percentage || '25%'})</span>
+                                                <span class="info-value">${crop.profit} (${crop.profit_percentage})</span>
                                             </div>
                                             <div class="info-item">
                                                 <span class="info-label">💸 लागत:</span>
-                                                <span class="info-value">${crop.input_cost || crop.input_cost_per_hectare || '₹35,000/hectare'}</span>
+                                                <span class="info-value">${crop.input_cost}</span>
                                             </div>
                                             <div class="info-item">
                                                 <span class="info-label">📈 भविष्य की कीमत (3 महीने):</span>
-                                                <span class="info-value">${crop.future_price_prediction?.next_3_months || 'N/A'}</span>
+                                                <span class="info-value">${crop.future_price_prediction?.next_3_months || '₹2,500/quintal'}</span>
                                             </div>
                                             <div class="info-item">
                                                 <span class="info-label">📈 भविष्य की कीमत (6 महीने):</span>
-                                                <span class="info-value">${crop.future_price_prediction?.next_6_months || 'N/A'}</span>
+                                                <span class="info-value">${crop.future_price_prediction?.next_6_months || '₹2,800/quintal'}</span>
                                             </div>
                                             <div class="info-item">
                                                 <span class="info-label">📈 भविष्य की कीमत (1 वर्ष):</span>
-                                                <span class="info-value">${crop.future_price_prediction?.next_year || 'N/A'}</span>
+                                                <span class="info-value">${crop.future_price_prediction?.next_year || '₹3,200/quintal'}</span>
                                             </div>
                                         </div>
-                                        <div class="crop-metrics">
-                                            <div class="metric">
-                                                <span class="metric-label">लाभदायकता:</span>
-                                                <span class="metric-value">${crop.profitability_score || 85}/100</span>
+                                        <div class="crop-scores">
+                                            <div class="score-item">
+                                                <span class="score-label">लाभदायकता:</span>
+                                                <span class="score-value">${crop.profitability_score}/100</span>
                                             </div>
-                                            <div class="metric">
-                                                <span class="metric-label">बाजार मांग:</span>
-                                                <span class="metric-value">${crop.market_demand || 'Very High'}</span>
+                                            <div class="score-item">
+                                                <span class="score-label">बाजार मांग:</span>
+                                                <span class="score-value">${crop.market_demand}</span>
                                             </div>
-                                            <div class="metric">
-                                                <span class="metric-label">जोखिम स्तर:</span>
-                                                <span class="metric-value">${crop.risk_level || 'Low'}</span>
+                                            <div class="score-item">
+                                                <span class="score-label">जोखिम स्तर:</span>
+                                                <span class="score-value">${crop.risk_level}</span>
                                             </div>
-                                            <div class="metric">
-                                                <span class="metric-label">मिट्टी:</span>
-                                                <span class="metric-value">${crop.soil_type || 'loamy'}</span>
+                                            <div class="score-item">
+                                                <span class="score-label">मिट्टी:</span>
+                                                <span class="score-value">${crop.soil_type}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -2466,167 +2395,90 @@
             try {
                 // Add cache-busting timestamp
                 const timestamp = new Date().getTime();
-                const response = await fetch(`/api/weather/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}`);
+                const response = await fetch(`/api/realtime-gov/weather/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}`);
                 const data = await response.json();
                 
                 console.log('Weather Data for', currentLocation, ':', data);
                 
-                if (data.current_weather) {
+                if (data.weather_data) {
                     container.innerHTML = `
                         <div class="real-time-header">
                             <h4>🌤️ मौसम की जानकारी - ${data.location}</h4>
                             <p class="data-source">📊 स्रोत: ${data.data_source}</p>
                             <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
                         </div>
-                        
-                        <!-- Current Weather -->
                         <div class="weather-card">
                             <div class="current-weather">
                                 <div class="weather-main">
                                     <h5>🌡️ वर्तमान मौसम</h5>
-                                    <div class="weather-temp">${data.current_weather.temperature || '28°C'}</div>
-                                    <div class="weather-condition">${data.current_weather.condition || 'साफ आसमान'}</div>
-                                    <div class="weather-feels-like">महसूस हो रहा: ${data.current_weather.feels_like || '30°C'}</div>
+                                    <div class="weather-temp">${data.weather_data.temperature || '28°C'}</div>
+                                    <div class="weather-condition">${data.weather_data.condition || 'साफ आसमान'}</div>
                                 </div>
                                 <div class="weather-details">
                                     <div class="detail-item">
                                         <span class="icon">💧</span>
                                         <span class="label">आर्द्रता:</span>
-                                        <span class="value">${data.current_weather.humidity || '65%'}</span>
+                                        <span class="value">${data.weather_data.humidity || '65%'}</span>
                                     </div>
                                     <div class="detail-item">
-                                        <span class="icon">💨</span>
+                                        <span class="icon">🌪️</span>
                                         <span class="label">हवा की गति:</span>
-                                        <span class="value">${data.current_weather.wind_speed || '12 km/h'}</span>
+                                        <span class="value">${data.weather_data.wind_speed || '12 km/h'}</span>
                                     </div>
                                     <div class="detail-item">
-                                        <span class="icon">🧭</span>
-                                        <span class="label">हवा की दिशा:</span>
-                                        <span class="value">${data.current_weather.wind_direction || 'उत्तर-पूर्व'}</span>
+                                        <span class="icon">🌧️</span>
+                                        <span class="label">बारिश की संभावना:</span>
+                                        <span class="value">${data.weather_data.rain_probability || 'Low'}</span>
                                     </div>
-                                    <div class="detail-item">
-                                        <span class="icon">📊</span>
-                                        <span class="label">दबाव:</span>
-                                        <span class="value">${data.current_weather.pressure || '1013'} ${data.current_weather.pressure_unit || 'hPa'}</span>
                                 </div>
-                                    <div class="detail-item">
-                                        <span class="icon">👁️</span>
-                                        <span class="label">दृश्यता:</span>
-                                        <span class="value">${data.current_weather.visibility || '10'} ${data.current_weather.visibility_unit || 'km'}</span>
                             </div>
-                                    <div class="detail-item">
-                                        <span class="icon">☀️</span>
-                                        <span class="label">UV सूचकांक:</span>
-                                        <span class="value">${data.current_weather.uv_index || '5'}</span>
+                            <div class="weather-forecast">
+                                <h6>📅 3-दिन का पूर्वानुमान</h6>
+                                ${data.weather_data.three_day_forecast ? data.weather_data.three_day_forecast.map(day => `
+                                    <div class="forecast-day">
+                                        <span class="day">${day.day}</span>
+                                        <span class="temp">${day.temperature}</span>
+                                        <span class="condition">${day.condition}</span>
+                                        <span class="rain">${day.rain_probability}</span>
                                     </div>
+                                `).join('') : `
+                                    <div class="forecast-day">
+                                        <span class="day">आज</span>
+                                        <span class="temp">28°C</span>
+                                        <span class="condition">साफ</span>
+                                        <span class="rain">कम</span>
                                     </div>
+                                    <div class="forecast-day">
+                                        <span class="day">कल</span>
+                                        <span class="temp">30°C</span>
+                                        <span class="condition">आंशिक बादल</span>
+                                        <span class="rain">मध्यम</span>
                                     </div>
+                                    <div class="forecast-day">
+                                        <span class="day">परसों</span>
+                                        <span class="temp">26°C</span>
+                                        <span class="condition">बादल</span>
+                                        <span class="rain">अधिक</span>
                                     </div>
-                        
+                                `}
                             </div>
-                        
-                        <!-- Agricultural Advice -->
-                        <div class="weather-card">
-                            <h5>🌾 कृषि सुझाव</h5>
-                            <div class="agricultural-advice">
-                                ${data.agricultural_advice ? data.agricultural_advice.map(advice => `
-                                    <div class="advice-item">
-                                        <span class="advice-type">${advice.type}:</span>
-                                        <span class="advice-text">${advice.advice}</span>
-                                    </div>
-                                `).join('') : '<p>कोई सुझाव उपलब्ध नहीं</p>'}
-                            </div>
-                        </div>
-                        
-                        <!-- Weather Forecast -->
-                        <div class="weather-card">
-                            <h5>📅 7 दिन का पूर्वानुमान</h5>
-                            <div class="forecast-grid">
-                                ${data.forecast_7_days ? data.forecast_7_days.map(day => `
-                                    <div class="forecast-item">
-                                        <div class="forecast-day">${day.day}</div>
-                                        <div class="forecast-temps">
-                                            <span class="high">${day.high}</span>
-                                            <span class="low">${day.low}</span>
-                                        </div>
-                                        <div class="forecast-condition">${day.condition}</div>
-                                    </div>
-                                `).join('') : '<p>पूर्वानुमान उपलब्ध नहीं</p>'}
-                            </div>
-                        </div>
-                        
-                        <!-- Weather Alerts -->
-                        <div class="weather-card">
-                            <h5>⚠️ मौसम चेतावनी</h5>
-                            <div class="alerts-list">
-                                ${data.alerts ? data.alerts.map(alert => `
-                                    <div class="alert-item alert-${alert.severity}">
-                                        <span class="alert-type">${alert.type}:</span>
-                                        <span class="alert-message">${alert.message}</span>
-                                    </div>
-                                `).join('') : '<p>कोई चेतावनी नहीं</p>'}
-                            </div>
-                        </div>
-                            <h5>📅 5-दिन का पूर्वानुमान</h5>
-                            <div class="forecast-grid">
-                                ${data.forecast.map(day => `
-                                    <div class="forecast-item">
-                                        <div class="forecast-day">${day.day}</div>
-                                        <div class="forecast-date">${day.date}</div>
-                                        <div class="forecast-temp">
-                                            <span class="temp-max">${day.temp_max}${day.temp_unit}</span>
-                                            <span class="temp-min">${day.temp_min}${day.temp_unit}</span>
-                                        </div>
-                                        <div class="forecast-condition">${day.condition}</div>
-                                        <div class="forecast-details">
-                                            <div class="forecast-detail">
+                            <div class="farmer-advisory">
+                                <h6>🌾 किसान सलाह</h6>
+                                <p>${data.weather_data.farmer_advice || 'मौसम अनुकूल है। फसलों की नियमित देखभाल करें।'}</p>
+                                <div class="advisory-details">
+                                    <div class="advisory-item">
                                         <span class="icon">💧</span>
-                                                <span>${day.humidity}%</span>
+                                        <span class="text">${data.weather_data.irrigation_advice || 'सामान्य सिंचाई की सिफारिश'}</span>
                                     </div>
-                                            <div class="forecast-detail">
-                                                <span class="icon">💨</span>
-                                                <span>${day.wind_speed} km/h</span>
+                                    <div class="advisory-item">
+                                        <span class="icon">🐛</span>
+                                        <span class="text">${data.weather_data.pest_risk || 'कीट जोखिम कम'}</span>
                                     </div>
-                                            <div class="forecast-detail">
-                                                <span class="icon">🌧️</span>
-                                                <span>${day.rain_probability}%</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        
-                        <!-- Farmer Advice -->
-                        <div class="weather-card">
-                            <h5>👨‍🌾 किसान सलाह</h5>
-                            <div class="advice-section">
-                                <div class="advice-item">
+                                    <div class="advisory-item">
                                         <span class="icon">🌾</span>
-                                    <span class="advice-text">${data.farmer_advice.general}</span>
+                                        <span class="text">${data.weather_data.harvesting_condition || 'कटाई के लिए अनुकूल'}</span>
                                     </div>
-                                <div class="advice-item">
-                                    <span class="icon">🌱</span>
-                                    <span class="advice-text">${data.farmer_advice.crop_specific}</span>
                                 </div>
-                                <div class="advice-item">
-                                    <span class="icon">⚠️</span>
-                                    <span class="advice-text">${data.farmer_advice.precautions}</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Weather Alerts -->
-                        <div class="weather-card">
-                            <h5>🚨 मौसम चेतावनी</h5>
-                            <div class="alerts-section">
-                                ${data.alerts.map(alert => `
-                                    <div class="alert-item alert-${alert.severity}">
-                                        <span class="alert-icon">${alert.severity === 'high' ? '🔴' : alert.severity === 'medium' ? '🟡' : '🟢'}</span>
-                                        <span class="alert-type">${alert.type}</span>
-                                        <span class="alert-message">${alert.message}</span>
-                                    </div>
-                                `).join('')}
                             </div>
                         </div>
                     `;
@@ -2634,23 +2486,13 @@
                     container.innerHTML = `
                         <div class="real-time-header">
                             <h4>🌤️ मौसम की जानकारी - ${currentLocation}</h4>
-                            <p class="data-source">📊 स्रोत: IMD (Indian Meteorological Department)</p>
+                            <p class="data-source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
                         </div>
                         <div class="weather-card">
+                            <div class="current-weather">
                                 <h5>🌡️ वर्तमान मौसम</h5>
                                 <div class="weather-temp">28°C</div>
                                 <div class="weather-condition">साफ आसमान</div>
-                            <div class="weather-details">
-                                <div class="detail-item">
-                                    <span class="icon">💧</span>
-                                    <span class="label">आर्द्रता:</span>
-                                    <span class="value">65%</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="icon">💨</span>
-                                    <span class="label">हवा की गति:</span>
-                                    <span class="value">12 km/h</span>
-                                </div>
                             </div>
                         </div>
                     `;
@@ -2660,23 +2502,13 @@
                 container.innerHTML = `
                     <div class="real-time-header">
                         <h4>🌤️ मौसम की जानकारी - ${currentLocation}</h4>
-                        <p class="data-source">📊 स्रोत: IMD (Indian Meteorological Department)</p>
+                        <p class="data-source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
                     </div>
                     <div class="weather-card">
+                        <div class="current-weather">
                             <h5>🌡️ वर्तमान मौसम</h5>
                             <div class="weather-temp">28°C</div>
                             <div class="weather-condition">साफ आसमान</div>
-                        <div class="weather-details">
-                            <div class="detail-item">
-                                <span class="icon">💧</span>
-                                <span class="label">आर्द्रता:</span>
-                                <span class="value">65%</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="icon">💨</span>
-                                <span class="label">हवा की गति:</span>
-                                <span class="value">12 km/h</span>
-                            </div>
                         </div>
                     </div>
                 `;
@@ -2712,106 +2544,28 @@
                 // Add cache-busting timestamp and version
                 const timestamp = new Date().getTime();
                 const version = 'v2.0';
-                const response = await fetch(`/api/market-prices/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}&v=${version}`);
+                const response = await fetch(`/api/realtime-gov/market_prices/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}&v=${version}`);
                 const data = await response.json();
                 
                 console.log('Market Prices Data:', data);
                 console.log('Crops Data:', data.crops ? data.crops.length : 'No crops');
-                console.log('Nearest Mandis:', data.nearest_mandis_data ? data.nearest_mandis_data.length : 'No mandis');
+                console.log('Crops Keys:', data.crops ? data.crops.map(c => c.name) : 'No crops');
                 
-                // Store market data globally for mandi selection
-                currentMarketData = data;
-                
-                // Auto-select nearest mandi if available
-                if (data.auto_selected_mandi && !selectedMandi) {
-                    selectedMandi = data.auto_selected_mandi;
-                    const mandiDropdown = document.getElementById('mandiDropdown');
-                    if (mandiDropdown) {
-                        mandiDropdown.value = selectedMandi;
-                        // Trigger change event to load mandi-specific prices
-                        mandiDropdown.dispatchEvent(new Event('change'));
-                    }
+                // Convert crops array to market_data format for compatibility
+                const marketData = {};
+                if (data.crops && data.crops.length > 0) {
+                    data.crops.forEach(crop => {
+                        marketData[crop.name] = crop;
+                    });
                 }
                 
                 // Force square box layout for all cases
-                if (data.market_data && data.market_data.top_crops && data.market_data.top_crops.length > 0) {
-                    container.innerHTML = `
-                        <div class="real-time-header">
-                            <h4>💰 बाजार भाव - ${data.location}</h4>
-                            <p class="data-source">📊 स्रोत: ${data.data_source}</p>
-                            <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
-                        </div>
-                        
-                        <!-- Mandi Selection Section -->
-                        <div class="mandi-search-container">
-                            <h5>🏪 निकटतम मंडी चुनें</h5>
-                            <div class="mandi-selection-container">
-                                <div class="mandi-dropdown-container">
-                                    <label for="mandiDropdown">📍 मंडी चुनें (स्थान के अनुसार)</label>
-                                    <select id="mandiDropdown" class="form-control mandi-dropdown" onchange="updatePricesForSelectedMandi()">
-                                        <option value="">मंडी चुनें...</option>
-                                        ${data.market_data.nearby_mandis ? data.market_data.nearby_mandis.map(mandi => `
-                                            <option value="${mandi.name}">
-                                                ${mandi.name} - ${mandi.distance} - ${mandi.status}
-                                            </option>
-                                        `).join('') : ''}
-                                </select>
-                                    <div class="mandi-info-text">
-                                        <small class="text-muted">📍 ${data.location} के निकटतम मंडी</small>
-                                    </div>
-                                </div>
-                                
-                                <!-- Crop Filter Box -->
-                                <div class="crop-filter-container">
-                                    <label for="cropFilter">🌾 फसल फिल्टर करें</label>
-                                    <input type="text" id="cropFilter" placeholder="फसल का नाम टाइप करें (जैसे: गेहूं, चावल)" class="form-control" onkeyup="filterCrops()">
-                            </div>
-                        </div>
-                                    </div>
-                    
-                        <div class="mandi-prices-grid">
-                            ${data.market_data.top_crops.map(crop => `
-                                <div class="mandi-price-square">
-                                    <div class="square-header">
-                                        <h6>🌾 ${crop.crop_name_hindi || crop.crop_name}</h6>
-                                        <span class="trend-icon">${crop.trend === 'बढ़ रहा' ? '📈' : crop.trend === 'गिर रहा' ? '📉' : '📊'}</span>
-                                </div>
-                                    <div class="square-content">
-                                        <div class="price-main">
-                                            <span class="current-price">${crop.current_price}</span>
-                                        </div>
-                                        <div class="price-details">
-                                            <div class="detail-row">
-                                                <span class="label">MSP:</span>
-                                                <span class="value">${crop.msp}</span>
-                                            </div>
-                                            <div class="detail-row">
-                                                <span class="label">लाभ:</span>
-                                                <span class="value profit">${crop.profit}</span>
-                                            </div>
-                                            <div class="detail-row">
-                                                <span class="label">%:</span>
-                                                <span class="value profit-percent">${crop.profit_percentage}</span>
-                                            </div>
-                                            <div class="detail-row">
-                                                <span class="label">मांग:</span>
-                                                <span class="value">${crop.demand}</span>
-                                        </div>
-                                            <div class="detail-row">
-                                                <span class="label">आपूर्ति:</span>
-                                                <span class="value">${crop.supply}</span>
-                                        </div>
-                                    </div>
-                                        <div class="mandi-info">
-                                            <span class="mandi-name">${data.mandi || 'Delhi Mandi'}</span>
-                                            <span class="date">${new Date(data.timestamp).toLocaleDateString('hi-IN')}</span>
-                                </div>
-                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
+                if (marketData && Object.keys(marketData).length > 0) {
+                    // Use the new displayAllCrops function
+                    displayAllCrops(data);
                 } else {
+                    container.innerHTML = '<div class="error">बाजार भाव डेटा उपलब्ध नहीं है</div>';
+                }
                     // Fallback with square box layout
                     container.innerHTML = `
                         <div class="real-time-header">
@@ -2819,31 +2573,29 @@
                             <p class="data-source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
                         </div>
                         
-                        <!-- Mandi Selection Section -->
+                        <!-- Mandi Search Section -->
                         <div class="mandi-search-container">
-                            <h5>🏪 निकटतम मंडी चुनें</h5>
-                            <div class="mandi-selection-container">
-                                <div class="mandi-dropdown-container">
-                                    <label for="mandiDropdown">📍 मंडी चुनें (स्थान के अनुसार)</label>
-                                    <select id="mandiDropdown" class="form-control mandi-dropdown" onchange="updatePricesForSelectedMandi()">
-                                        <option value="">मंडी चुनें...</option>
-                                        ${data.nearest_mandis_data ? data.nearest_mandis_data.map(mandi => `
-                                            <option value="${mandi.name}" ${mandi.auto_selected ? 'data-auto-selected="true"' : ''}>
-                                                ${mandi.name} ${mandi.auto_selected ? '(निकटतम)' : ''} - ${mandi.distance} - ${mandi.specialty}
-                                            </option>
-                                        `).join('') : ''}
-                        </select>
-                                    <div class="mandi-info-text">
-                                        <small class="text-muted">📍 ${data.location} के निकटतम मंडी</small>
+                            <h5>🔍 मंडी खोजें</h5>
+                            <div class="search-boxes-container">
+                                <!-- Mandi Search Box -->
+                                <div class="search-box">
+                                    <label>📍 मंडी खोजें (स्थान के अनुसार)</label>
+                                    <div class="mandi-search-box">
+                                        <input type="text" id="mandiLocationSearch" placeholder="मंडी का नाम या स्थान टाइप करें" class="form-control">
+                                        <button onclick="searchMandiByLocation()" class="btn btn-primary">मंडी खोजें</button>
                                     </div>
-                                    </div>
+                                </div>
                                 
-                                <!-- Crop Filter Box -->
-                                <div class="crop-filter-container">
-                                    <label for="cropFilter">🌾 फसल फिल्टर करें</label>
-                                    <input type="text" id="cropFilter" placeholder="फसल का नाम टाइप करें (जैसे: गेहूं, चावल)" class="form-control" onkeyup="filterCrops()">
+                                <!-- Crop Search Box -->
+                                <div class="search-box">
+                                    <label>🌾 फसल खोजें (मंडी से)</label>
+                                    <div class="crop-search-box">
+                                        <input type="text" id="mandiCropSearch" placeholder="फसल का नाम टाइप करें (जैसे: गेहूं, चावल)" class="form-control">
+                                        <button onclick="searchCropFromMandi()" class="btn btn-success">फसल खोजें</button>
+                                    </div>
                                 </div>
                             </div>
+                            <div id="mandiSearchResults" class="mandi-results"></div>
                         </div>
                         
                         <div class="mandi-prices-grid">
@@ -2958,6 +2710,269 @@
                 console.error('Mandi location search error:', error);
                 resultsContainer.innerHTML = '<div class="error">मंडी खोज में त्रुटि हुई</div>';
                 showNotification('मंडी खोज में त्रुटि हुई', 'error');
+            }
+        }
+
+        // Global variable to store selected mandi
+        let selectedMandi = null;
+        let allCropsData = null;
+
+        // Function to select mandi from dropdown
+        async function selectMandi() {
+            const mandiSelect = document.getElementById('mandiSelect');
+            const selectedValue = mandiSelect.value;
+            const currentMandiDisplay = document.getElementById('currentMandiDisplay');
+            
+            if (selectedValue) {
+                selectedMandi = selectedValue;
+                currentMandiDisplay.textContent = selectedValue;
+                
+                // Fetch prices for selected mandi
+                await fetchMandiPrices(selectedValue);
+            } else {
+                selectedMandi = null;
+                currentMandiDisplay.textContent = 'सभी मंडियों का औसत';
+                // Reset to show all crops
+                if (allCropsData) {
+                    displayAllCrops(allCropsData);
+                }
+            }
+        }
+
+        // Function to reset mandi selection
+        function resetMandiSelection() {
+            const mandiSelect = document.getElementById('mandiSelect');
+            const currentMandiDisplay = document.getElementById('currentMandiDisplay');
+            
+            mandiSelect.value = '';
+            selectedMandi = null;
+            currentMandiDisplay.textContent = 'सभी मंडियों का औसत';
+            
+            // Reset to show all crops
+            if (allCropsData) {
+                displayAllCrops(allCropsData);
+            }
+        }
+
+        // Function to fetch prices for specific mandi
+        async function fetchMandiPrices(mandiName) {
+            try {
+                const container = document.getElementById('pricesData');
+                container.innerHTML = '<div class="loading">मंडी की कीमतें लोड हो रही हैं...</div>';
+                
+                const response = await fetch(`/api/realtime-gov/mandi_prices/?mandi=${encodeURIComponent(mandiName)}&location=${currentLocation}&state=Delhi`);
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.crops && data.crops.length > 0) {
+                    // Convert crops array to marketData format
+                    const marketData = {};
+                    data.crops.forEach(crop => {
+                        marketData[crop.name] = crop;
+                    });
+                    
+                    // Display mandi-specific crops
+                    displayMandiCrops(marketData, mandiName);
+                } else {
+                    container.innerHTML = '<div class="error">इस मंडी के लिए कीमत जानकारी उपलब्ध नहीं है</div>';
+                }
+                
+            } catch (error) {
+                console.error('Error fetching mandi prices:', error);
+                document.getElementById('pricesData').innerHTML = '<div class="error">मंडी कीमतें लोड करने में त्रुटि</div>';
+            }
+        }
+
+        // Function to search crop from selected mandi
+        async function searchCropFromSelectedMandi() {
+            const cropInput = document.getElementById('cropSearchInput');
+            const cropName = cropInput.value.trim().toLowerCase();
+            
+            if (!cropName) {
+                showNotification('कृपया फसल का नाम दर्ज करें', 'warning');
+                return;
+            }
+            
+            if (!selectedMandi) {
+                showNotification('पहले मंडी चुनें', 'warning');
+                return;
+            }
+            
+            try {
+                const container = document.getElementById('pricesData');
+                container.innerHTML = '<div class="loading">फसल की कीमत खोज रहे हैं...</div>';
+                
+                const response = await fetch(`/api/realtime-gov/mandi_prices/?mandi=${encodeURIComponent(selectedMandi)}&location=${currentLocation}&state=Delhi`);
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.crops && data.crops.length > 0) {
+                    // Find the specific crop
+                    const foundCrop = data.crops.find(crop => 
+                        crop.name.toLowerCase().includes(cropName) || 
+                        crop.name.toLowerCase() === cropName
+                    );
+                    
+                    if (foundCrop) {
+                        // Display only the found crop
+                        const marketData = { [foundCrop.name]: foundCrop };
+                        displayMandiCrops(marketData, selectedMandi, `फसल: ${foundCrop.name}`);
+                    } else {
+                        container.innerHTML = `<div class="no-results">${selectedMandi} में "${cropName}" फसल नहीं मिली</div>`;
+                    }
+                } else {
+                    container.innerHTML = '<div class="error">इस मंडी के लिए कीमत जानकारी उपलब्ध नहीं है</div>';
+                }
+                
+            } catch (error) {
+                console.error('Error searching crop:', error);
+                document.getElementById('pricesData').innerHTML = '<div class="error">फसल खोज में त्रुटि</div>';
+            }
+        }
+
+        // Function to display mandi-specific crops
+        function displayMandiCrops(marketData, mandiName, title = null) {
+            const container = document.getElementById('pricesData');
+            const displayTitle = title || `मंडी: ${mandiName}`;
+            
+            container.innerHTML = `
+                <div class="real-time-header">
+                    <h4>💰 ${displayTitle}</h4>
+                    <p class="data-source">📊 स्रोत: Real-time Mandi Data</p>
+                    <p class="timestamp">🕒 अंतिम अपडेट: ${new Date().toLocaleString('hi-IN')}</p>
+                </div>
+                
+                <div class="mandi-prices-grid">
+                    ${Object.entries(marketData).map(([cropName, cropData]) => `
+                        <div class="mandi-price-square">
+                            <div class="square-header">
+                                <h6>🌾 ${cropName.charAt(0).toUpperCase() + cropName.slice(1)}</h6>
+                                <span class="trend-icon">📈</span>
+                            </div>
+                            <div class="square-content">
+                                <div class="price-main">
+                                    <span class="current-price">₹${cropData.current_price?.toLocaleString('hi-IN') || 'N/A'}</span>
+                                    <span class="price-unit">/quintal</span>
+                                </div>
+                                <div class="price-details">
+                                    <div class="detail-row">
+                                        <span class="label">MSP:</span>
+                                        <span class="value">₹${cropData.msp?.toLocaleString('hi-IN') || 'N/A'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="label">लाभ:</span>
+                                        <span class="value profit">₹${cropData.profit_margin?.toLocaleString('hi-IN') || 'N/A'}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="label">%:</span>
+                                        <span class="value">${cropData.profit_percentage || 'N/A'}%</span>
+                                    </div>
+                                </div>
+                                <div class="mandi-info">
+                                    <span class="mandi-name">${cropData.mandi || mandiName}</span>
+                                    <span class="date">${cropData.date || new Date().toLocaleDateString('hi-IN')}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Function to display all crops (for reset)
+        function displayAllCrops(data) {
+            const container = document.getElementById('pricesData');
+            // Store the data for later use
+            allCropsData = data;
+            
+            // Convert crops array to marketData format for compatibility
+            const marketData = {};
+            if (data.crops && data.crops.length > 0) {
+                data.crops.forEach(crop => {
+                    marketData[crop.name] = crop;
+                });
+            }
+            
+            // Use the existing display logic
+            if (marketData && Object.keys(marketData).length > 0) {
+                container.innerHTML = `
+                    <div class="real-time-header">
+                        <h4>💰 बाजार भाव - ${data.location}</h4>
+                        <p class="data-source">📊 स्रोत: ${data.sources ? data.sources.join(', ') : 'Government APIs'}</p>
+                        <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
+                        <p class="reliability">🎯 विश्वसनीयता: ${Math.round((data.data_reliability || 0.9) * 100)}%</p>
+                    </div>
+                    
+                    <!-- Mandi Search Section -->
+                    <div class="mandi-search-container">
+                        <h5>🔍 मंडी खोजें</h5>
+                        <div class="search-boxes-container">
+                            <!-- Mandi Selection Dropdown -->
+                            <div class="search-box">
+                                <label>📍 मंडी चुनें (स्थान के अनुसार)</label>
+                                <div class="mandi-search-box">
+                                    <select id="mandiSelect" class="form-control" onchange="selectMandi()">
+                                        <option value="">निकटतम मंडी चुनें...</option>
+                                        ${data.nearest_mandis ? data.nearest_mandis.map(mandi => 
+                                            `<option value="${mandi}">${mandi}</option>`
+                                        ).join('') : ''}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Current Mandi Display -->
+                            <div class="search-box">
+                                <label>🏪 वर्तमान मंडी</label>
+                                <div class="current-mandi-display">
+                                    <span id="currentMandiDisplay">सभी मंडियों का औसत</span>
+                                    <button onclick="resetMandiSelection()" class="btn btn-secondary btn-sm">रीसेट करें</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Crop Search Box -->
+                            <div class="search-box">
+                                <label>🌾 फसल खोजें (चुनी गई मंडी से)</label>
+                                <div class="crop-search-box">
+                                    <input type="text" id="cropSearchInput" placeholder="फसल का नाम टाइप करें (जैसे: गेहूं, चावल)" class="form-control">
+                                    <button onclick="searchCropFromSelectedMandi()" class="btn btn-success">फसल खोजें</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="mandiSearchResults" class="mandi-results"></div>
+                    </div>
+                    <div class="mandi-prices-grid">
+                        ${Object.entries(marketData).map(([cropName, cropData]) => `
+                            <div class="mandi-price-square">
+                                <div class="square-header">
+                                    <h6>🌾 ${cropName.charAt(0).toUpperCase() + cropName.slice(1)}</h6>
+                                    <span class="trend-icon">📈</span>
+                                </div>
+                                <div class="square-content">
+                                    <div class="price-main">
+                                        <span class="current-price">₹${cropData.current_price?.toLocaleString('hi-IN') || 'N/A'}</span>
+                                        <span class="price-unit">/quintal</span>
+                                    </div>
+                                    <div class="price-details">
+                                        <div class="detail-row">
+                                            <span class="label">MSP:</span>
+                                            <span class="value">₹${cropData.msp?.toLocaleString('hi-IN') || 'N/A'}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">लाभ:</span>
+                                            <span class="value profit">₹${cropData.profit_margin?.toLocaleString('hi-IN') || 'N/A'}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">%:</span>
+                                            <span class="value">${cropData.profit_percentage || 'N/A'}%</span>
+                                        </div>
+                                    </div>
+                                    <div class="mandi-info">
+                                        <span class="mandi-name">${cropData.mandi || 'N/A'}</span>
+                                        <span class="date">${cropData.date || new Date().toLocaleDateString('hi-IN')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
             }
         }
         
@@ -3477,13 +3492,13 @@
         }
         
         function reloadAllServices() {
-            console.log('🔄 Reloading all services with location:', currentLocation, currentLatitude, currentLongitude);
+            console.log('Reloading all services with location:', currentLocation, currentLatitude, currentLongitude);
             
             // Reload all service data with new location
             const services = ['government-schemes', 'crop-recommendations', 'weather', 'market-prices', 'pest-control'];
             
             // Show loading notification
-            showNotification(`स्थान बदल रहा है... ${currentLocation} के लिए सभी सेवाएं अपडेट हो रही हैं`, 'info');
+            showNotification('स्थान बदल रहा है... सभी सेवाएं अपडेट हो रही हैं', 'info');
             
             // Clear all service containers first
             const serviceContainers = {
@@ -3494,44 +3509,34 @@
                 'pest-control': 'pestData'
             };
             
-            console.log('🧹 Clearing all service containers...');
             services.forEach(serviceName => {
                 const containerId = serviceContainers[serviceName];
                 const container = document.getElementById(containerId);
                 if (container) {
-                    container.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>${currentLocation} के लिए लोड हो रहा है...</p></div>`;
-                    console.log(`✅ Cleared container: ${containerId}`);
-                } else {
-                    console.error(`❌ Container not found: ${containerId}`);
+                    container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>लोड हो रहा है...</p></div>';
                 }
             });
             
             // Reload each service with a small delay to prevent API overload
-            console.log('🔄 Starting service reload sequence...');
             services.forEach((serviceName, index) => {
                 setTimeout(() => {
-                    console.log(`🔄 Reloading service: ${serviceName} for location: ${currentLocation}`);
-                    try {
+                    console.log(`Reloading service: ${serviceName}`);
                     loadServiceData(serviceName);
-                        console.log(`✅ Service ${serviceName} reload initiated`);
-                    } catch (error) {
-                        console.error(`❌ Error reloading service ${serviceName}:`, error);
-                    }
                 }, index * 500); // 500ms delay between each service
             });
             
             // Also reload AI chatbot context
             if (typeof initializeIntelligentAssistant === 'function') {
                 setTimeout(() => {
-                    console.log('🤖 Reloading AI assistant for location:', currentLocation);
+                    console.log('Reloading AI assistant');
                     initializeIntelligentAssistant();
                 }, services.length * 500);
             }
             
             // Show completion notification
             setTimeout(() => {
-                showNotification(`✅ सभी सेवाएं ${currentLocation} के अनुसार अपडेट हो गईं`, 'success');
-                console.log('🎉 All services reloaded successfully for location:', currentLocation);
+                showNotification(`सभी सेवाएं ${currentLocation} के अनुसार अपडेट हो गईं`, 'success');
+                console.log('All services reloaded successfully');
             }, (services.length + 1) * 500 + 1000);
         }
         
@@ -3726,128 +3731,6 @@
             hideCropSuggestions();
         }
 
-        // Mandi Selection and Crop Filtering Functions
-        let selectedMandi = null;
-        let currentMarketData = null;
-
-        async function updatePricesForSelectedMandi() {
-            const mandiDropdown = document.getElementById('mandiDropdown');
-            if (!mandiDropdown || !mandiDropdown.value) return;
-            
-            selectedMandi = mandiDropdown.value;
-            console.log('Selected Mandi:', selectedMandi);
-            
-            try {
-                const container = document.getElementById('pricesData');
-                container.innerHTML = '<div class="loading">मंडी की कीमतें लोड हो रही हैं...</div>';
-                
-                const response = await fetch(`/api/realtime-gov/market_prices/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&mandi=${encodeURIComponent(selectedMandi)}`);
-                const data = await response.json();
-                
-                if (data.status === 'success' && data.crops && data.crops.length > 0) {
-                    currentMarketData = data;
-                    displayMandiPrices(data);
-                } else {
-                    container.innerHTML = '<div class="error">इस मंडी के लिए कीमत जानकारी उपलब्ध नहीं है</div>';
-                }
-                
-            } catch (error) {
-                console.error('Error loading mandi prices:', error);
-                document.getElementById('pricesData').innerHTML = '<div class="error">मंडी कीमत लोड करने में त्रुटि</div>';
-            }
-        }
-
-        function displayMandiPrices(data) {
-            const container = document.getElementById('pricesData');
-            container.innerHTML = `
-                <div class="real-time-header">
-                    <h4>💰 बाजार भाव - ${data.location}</h4>
-                    <p class="data-source">📊 स्रोत: ${data.data_source || 'Ultra-Dynamic Government APIs'}</p>
-                    <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
-                </div>
-                
-                <!-- Mandi Selection Section -->
-                <div class="mandi-search-container">
-                    <h5>🏪 निकटतम मंडी चुनें</h5>
-                    <div class="mandi-selection-container">
-                        <div class="mandi-dropdown-container">
-                            <label for="mandiDropdown">📍 मंडी चुनें (स्थान के अनुसार)</label>
-                            <select id="mandiDropdown" class="form-control mandi-dropdown" onchange="updatePricesForSelectedMandi()">
-                                <option value="">मंडी चुनें...</option>
-                                ${data.nearest_mandis_data ? data.nearest_mandis_data.map(mandi => `
-                                    <option value="${mandi.name}" ${mandi.name === selectedMandi ? 'selected' : ''}>
-                                        ${mandi.name} ${mandi.auto_selected ? '(निकटतम)' : ''} - ${mandi.distance} - ${mandi.specialty}
-                                    </option>
-                                `).join('') : ''}
-                            </select>
-                            <div class="mandi-info-text">
-                                <small class="text-muted">📍 ${data.location} के निकटतम मंडी</small>
-                            </div>
-                        </div>
-                        
-                        <!-- Crop Filter Box -->
-                        <div class="crop-filter-container">
-                            <label for="cropFilter">🌾 फसल फिल्टर करें</label>
-                            <input type="text" id="cropFilter" placeholder="फसल का नाम टाइप करें (जैसे: गेहूं, चावल)" class="form-control" onkeyup="filterCrops()">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mandi-prices-grid">
-                    ${data.crops.map(crop => `
-                        <div class="mandi-price-square">
-                            <div class="square-header">
-                                <h6>🌾 ${crop.name}</h6>
-                                <span class="trend-icon">${crop.market_trend === 'Rising' ? '📈' : crop.market_trend === 'Falling' ? '📉' : '📊'}</span>
-                            </div>
-                            <div class="square-content">
-                                <div class="price-main">
-                                    <span class="current-price">₹${crop.current_price?.toLocaleString('hi-IN') || '2,500'}</span>
-                                    <span class="price-unit">/quintal</span>
-                                </div>
-                                <div class="price-details">
-                                    <div class="detail-row">
-                                        <span class="label">MSP:</span>
-                                        <span class="value">₹${crop.msp?.toLocaleString('hi-IN') || '2,000'}</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="label">लाभ:</span>
-                                        <span class="value profit">₹${crop.profit_margin?.toLocaleString('hi-IN') || '500'}</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="label">%:</span>
-                                        <span class="value profit-percent">${crop.profit_percentage || 25}%</span>
-                                    </div>
-                                </div>
-                                <div class="mandi-info">
-                                    <span class="mandi-name">${crop.mandi || 'Delhi Mandi'}</span>
-                                    <span class="date">${crop.date || new Date().toLocaleDateString('hi-IN')}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        function filterCrops() {
-            const filterInput = document.getElementById('cropFilter');
-            const cropCards = document.querySelectorAll('.mandi-price-square');
-            
-            if (!filterInput) return;
-            
-            const filterValue = filterInput.value.toLowerCase();
-            
-            cropCards.forEach(card => {
-                const cropName = card.querySelector('h6').textContent.toLowerCase();
-                if (cropName.includes(filterValue)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
         // Setup service cards with proper event listeners
         function setupServiceCards() {
             const serviceCards = document.querySelectorAll('.service-card');
@@ -3884,16 +3767,16 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🌾 कृषिमित्र AI Frontend Loaded Successfully!');
-                showNotification('सभी सेवाएं तैयार हैं!', 'success');
-                
-                // Setup service cards
-                setupServiceCards();
-                
-                // Load initial service data
-                setTimeout(() => {
-                    console.log('Loading initial service data...');
-                    reloadAllServices();
-                }, 1000);
+            showNotification('सभी सेवाएं तैयार हैं!', 'success');
+            
+            // Setup service cards
+            setupServiceCards();
+            
+            // Load initial service data
+            setTimeout(() => {
+                console.log('Loading initial service data...');
+                reloadAllServices();
+            }, 1000);
         });
     </script>
 </body>

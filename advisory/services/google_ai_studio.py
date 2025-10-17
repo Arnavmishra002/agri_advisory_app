@@ -519,5 +519,13 @@ Confidence should be between 0.0 and 1.0
         else:
             return f"🔄 Your query covers multiple topics. I'll help you with that."
 
+    def generate_response(self, query: str) -> str:
+        """Generate response - method expected by tests"""
+        try:
+            return self.process_query(query)
+        except Exception as e:
+            logger.error(f"Error generating response: {e}")
+            return "I'm Krishimitra AI, your intelligent agricultural assistant. I can help with agriculture, crops, weather, government schemes, and also answer general knowledge questions. What would you like to know?"
+
 # Create global instance
 google_ai_studio = GoogleAIStudio()

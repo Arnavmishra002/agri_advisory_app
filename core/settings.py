@@ -173,6 +173,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'UNICODE_JSON': True,
 }
 
 # DRF Spectacular settings for faster Swagger UI loading
@@ -311,6 +312,15 @@ CACHE_BUST_TIMESTAMP = int(time.time())
 if DEBUG:
     CACHES = {
         'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'weather_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'market_cache': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        'schema_cache': {
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         }
     }

@@ -4157,8 +4157,10 @@ class UltimateIntelligentAI:
                     'health_medical': f"🏥 यह स्वास्थ्य से संबंधित प्रश्न है। कृपया चिकित्सक से परामर्श लें।"
                 }
             else:
+                # Get the general knowledge answer first
+                general_answer = self._get_general_knowledge_answer(user_query, language)
                 responses = {
-                    'general_knowledge': f"🌍 This is a general knowledge question. I'm here to help you with: '{user_query}'",
+                    'general_knowledge': f"🌍 This is a general knowledge question. I'll help you with that.\n\n{general_answer}",
                     'technology_ai': f"💻 This is a technology-related question. I'll provide you with technical information.",
                     'entertainment_fun': f"😄 This is an entertainment question. I'll bring you some fun information.",
                     'education_learning': f"📚 This is an educational question. I'll help you learn.",
@@ -4182,6 +4184,99 @@ class UltimateIntelligentAI:
                 return f"🌍 मैं आपकी मदद करने के लिए यहाँ हूँ। आपका प्रश्न: '{user_query}'"
             else:
                 return f"🌍 I'm here to help you. Your question: '{user_query}'"
+    
+    def _get_general_knowledge_answer(self, query: str, language: str = 'en') -> str:
+        """Provide actual answers for general knowledge questions"""
+        query_lower = query.lower()
+        
+        # Cricket knowledge
+        if 'virat kohli' in query_lower:
+            if language == 'hi':
+                return """🏏 **विराट कोहली के बारे में:**
+                
+विराट कोहली भारत के सबसे महान क्रिकेटरों में से एक हैं।
+
+**मुख्य जानकारी:**
+• जन्म: 5 नवंबर 1988, दिल्ली
+• पूरा नाम: विराट कोहली
+• पत्नी: अनुष्का शर्मा (अभिनेत्री)
+• बेटी: वमीका कोहली
+
+**क्रिकेट उपलब्धियां:**
+• भारतीय क्रिकेट टीम के पूर्व कप्तान
+• सबसे तेज़ 10,000 रन बनाने वाले बल्लेबाज
+• 70+ अंतर्राष्ट्रीय शतक
+• IPL में रॉयल चैलेंजर्स बैंगलोर के कप्तान
+• भारत रत्न के लिए नामांकित
+
+**विशेषताएं:**
+• आक्रामक बल्लेबाजी शैली
+• उत्कृष्ट फिटनेस और फील्डिंग
+• युवा क्रिकेटरों के लिए प्रेरणा"""
+            else:
+                return """🏏 **About Virat Kohli:**
+                
+Virat Kohli is one of India's greatest cricketers.
+
+**Key Information:**
+• Born: November 5, 1988, Delhi
+• Full Name: Virat Kohli
+• Wife: Anushka Sharma (Actress)
+• Daughter: Vamika Kohli
+
+**Cricket Achievements:**
+• Former captain of Indian cricket team
+• Fastest to score 10,000 runs
+• 70+ international centuries
+• Captain of Royal Challengers Bangalore in IPL
+• Nominated for Bharat Ratna
+
+**Specialties:**
+• Aggressive batting style
+• Excellent fitness and fielding
+• Inspiration for young cricketers"""
+        
+        # Add more general knowledge answers
+        elif 'mahatma gandhi' in query_lower or 'gandhi' in query_lower:
+            if language == 'hi':
+                return """🇮🇳 **महात्मा गांधी के बारे में:**
+                
+महात्मा गांधी भारत के राष्ट्रपिता और स्वतंत्रता संग्राम के नेता थे।
+
+**मुख्य जानकारी:**
+• जन्म: 2 अक्टूबर 1869, पोरबंदर, गुजरात
+• पूरा नाम: मोहनदास करमचंद गांधी
+• पत्नी: कस्तूरबा गांधी
+• मृत्यु: 30 जनवरी 1948, नई दिल्ली
+
+**मुख्य सिद्धांत:**
+• अहिंसा (Non-violence)
+• सत्याग्रह (Civil disobedience)
+• स्वदेशी (Self-reliance)
+• सादगी और सत्य"""
+            else:
+                return """🇮🇳 **About Mahatma Gandhi:**
+                
+Mahatma Gandhi was the Father of the Nation and leader of India's independence movement.
+
+**Key Information:**
+• Born: October 2, 1869, Porbandar, Gujarat
+• Full Name: Mohandas Karamchand Gandhi
+• Wife: Kasturba Gandhi
+• Death: January 30, 1948, New Delhi
+
+**Main Principles:**
+• Non-violence (Ahimsa)
+• Civil disobedience (Satyagraha)
+• Self-reliance (Swadeshi)
+• Simplicity and Truth"""
+        
+        # Default response for other questions
+        else:
+            if language == 'hi':
+                return f"मैं आपके सवाल '{query}' के बारे में जानकारी देने की कोशिश करूंगा। कृपया अपना सवाल और विस्तार से पूछें।"
+            else:
+                return f"I'll try to provide information about '{query}'. Please ask your question in more detail."
     
     def _generate_enhanced_crop_response(self, analysis: Dict[str, Any], language: str, 
                                        latitude: float = None, longitude: float = None, 

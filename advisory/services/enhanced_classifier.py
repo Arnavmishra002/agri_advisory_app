@@ -316,5 +316,69 @@ class EnhancedQueryClassifier:
         else:
             return f"🔄 Mixed Query ({subcategory}) - Confidence: {confidence:.2f}"
 
+    def classify_intent(self, query: str) -> Dict[str, Any]:
+        """Classify query intent - method expected by tests"""
+        return self.classify_query(query)
+    
+    def extract_entities(self, query: str) -> List[Dict[str, Any]]:
+        """Extract entities from query - method expected by tests"""
+        try:
+            entities = []
+            query_lower = query.lower()
+            
+            # Extract crop names
+            for crop_name, crop_info in self._get_crop_database().items():
+                if crop_name in query_lower or crop_info.get('name_hindi', '') in query:
+                    entities.append({
+                        'type': 'crop',
+                        'value': crop_name,
+                        'confidence': 0.9
+                    })
+            
+            # Extract locations
+            for location in self._get_location_keywords():
+                if location in query_lower:
+                    entities.append({
+                        'type': 'location',
+                        'value': location,
+                        'confidence': 0.8
+                    })
+            
+            # Extract numbers (prices, quantities)
+            numbers = re.findall(r'\d+(?:\.\d+)?', query)
+            for number in numbers:
+                entities.append({
+                    'type': 'number',
+                    'value': number,
+                    'confidence': 0.7
+                })
+            
+            return entities
+        except Exception as e:
+            logger.error(f"Error extracting entities: {e}")
+            return []
+    
+    def _get_crop_database(self) -> Dict[str, Any]:
+        """Get crop database for entity extraction"""
+        return {
+            'wheat': {'name_hindi': 'गेहूं'},
+            'rice': {'name_hindi': 'धान'},
+            'maize': {'name_hindi': 'मक्का'},
+            'cotton': {'name_hindi': 'कपास'},
+            'potato': {'name_hindi': 'आलू'},
+            'tomato': {'name_hindi': 'टमाटर'},
+            'onion': {'name_hindi': 'प्याज'},
+            'sugarcane': {'name_hindi': 'गन्ना'}
+        }
+    
+    def _get_location_keywords(self) -> List[str]:
+        """Get location keywords for entity extraction"""
+        return [
+            'delhi', 'mumbai', 'bangalore', 'kolkata', 'chennai', 'hyderabad',
+            'pune', 'ahmedabad', 'jaipur', 'lucknow', 'punjab', 'haryana',
+            'uttar pradesh', 'bihar', 'west bengal', 'tamil nadu', 'karnataka',
+            'maharashtra', 'gujarat', 'rajasthan'
+        ]
+
 # Create global instance
 enhanced_classifier = EnhancedQueryClassifier()

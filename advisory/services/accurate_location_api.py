@@ -328,6 +328,54 @@ class AccurateLocationAPI:
             'madhya pradesh': {'lat': 22.9734, 'lng': 78.6569}
         }
         return state_coords.get(state.lower(), {'lat': 20.5937, 'lng': 78.9629})
+    
+    def reverse_geocode(self, latitude: float, longitude: float) -> Dict[str, Any]:
+        """Reverse geocoding - convert coordinates to location name"""
+        try:
+            # Find the closest location from our database
+            min_distance = float('inf')
+            closest_location = None
+            
+            for state, cities in self.comprehensive_locations.items():
+                for city_data in cities:
+                    city_lat = city_data.get('lat', 0)
+                    city_lng = city_data.get('lng', 0)
+                    
+                    # Calculate distance using simple Euclidean distance
+                    distance = ((latitude - city_lat) ** 2 + (longitude - city_lng) ** 2) ** 0.5
+                    
+                    if distance < min_distance:
+                        min_distance = distance
+                        closest_location = {
+                            'name': city_data.get('name', 'Unknown'),
+                            'state': state,
+                            'district': city_data.get('district', 'Unknown'),
+                            'coordinates': {'lat': city_lat, 'lng': city_lng},
+                            'distance_km': round(distance * 111, 2)  # Approximate km conversion
+                        }
+            
+            if closest_location:
+                return {
+                    'status': 'success',
+                    'location': closest_location,
+                    'data_source': 'AccurateLocationAPI',
+                    'timestamp': datetime.now().isoformat()
+                }
+            else:
+                return {
+                    'status': 'error',
+                    'message': 'No location found for given coordinates',
+                    'data_source': 'AccurateLocationAPI',
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Reverse geocoding error: {str(e)}',
+                'data_source': 'AccurateLocationAPI',
+                'timestamp': datetime.now().isoformat()
+            }
 
 # Global instance for all services to use
 accurate_location_api = AccurateLocationAPI()
