@@ -332,44 +332,57 @@ class AccurateLocationAPI:
     def reverse_geocode(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """Reverse geocoding - convert coordinates to location name"""
         try:
-            # Find the closest location from our database
-            min_distance = float('inf')
-            closest_location = None
+            # Use Nominatim API for reverse geocoding
+            reverse_url = "https://nominatim.openstreetmap.org/reverse"
+            params = {
+                'lat': latitude,
+                'lon': longitude,
+                'format': 'json',
+                'addressdetails': 1,
+                'zoom': 10
+            }
             
-            for state, cities in self.comprehensive_locations.items():
-                for city_data in cities:
-                    city_lat = city_data.get('lat', 0)
-                    city_lng = city_data.get('lng', 0)
-                    
-                    # Calculate distance using simple Euclidean distance
-                    distance = ((latitude - city_lat) ** 2 + (longitude - city_lng) ** 2) ** 0.5
-                    
-                    if distance < min_distance:
-                        min_distance = distance
-                        closest_location = {
-                            'name': city_data.get('name', 'Unknown'),
-                            'state': state,
-                            'district': city_data.get('district', 'Unknown'),
-                            'coordinates': {'lat': city_lat, 'lng': city_lng},
-                            'distance_km': round(distance * 111, 2)  # Approximate km conversion
-                        }
+            headers = {
+                'User-Agent': 'KrisiMitra-AI-Assistant/2.0'
+            }
             
-            if closest_location:
+            response = self.session.get(reverse_url, params=params, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                address = data.get('address', {})
+                
+                # Extract location details
+                city = address.get('city', '') or address.get('town', '') or address.get('village', '') or address.get('municipality', '')
+                state = address.get('state', '')
+                district = address.get('county', '') or address.get('district', '')
+                
+                # Determine the main location name
+                location_name = city or district or state or data.get('display_name', '').split(',')[0].strip()
+                
                 return {
                     'status': 'success',
-                    'location': closest_location,
-                    'data_source': 'AccurateLocationAPI',
+                    'location': {
+                        'name': location_name,
+                        'city': city,
+                        'state': state,
+                        'district': district,
+                        'coordinates': {'lat': latitude, 'lng': longitude}
+                    },
+                    'data_source': 'Nominatim (OpenStreetMap)',
                     'timestamp': datetime.now().isoformat()
                 }
             else:
+                logger.warning(f"Reverse geocoding API returned status {response.status_code}")
                 return {
                     'status': 'error',
-                    'message': 'No location found for given coordinates',
+                    'message': f'API returned status {response.status_code}',
                     'data_source': 'AccurateLocationAPI',
                     'timestamp': datetime.now().isoformat()
                 }
                 
         except Exception as e:
+            logger.error(f"Reverse geocoding error: {e}")
             return {
                 'status': 'error',
                 'message': f'Reverse geocoding error: {str(e)}',
