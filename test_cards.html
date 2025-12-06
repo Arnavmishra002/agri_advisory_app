@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Service Card Test</title>
+    <script>
+        function testServiceCards() {
+            console.log("Testing service cards...");
+
+            // Test if showService function exists
+            if (typeof showService === 'function') {
+                console.log("✅ showService function exists");
+            } else {
+                console.error("❌ showService function NOT found");
+            }
+
+            // Test if loadServiceData function exists
+            if (typeof loadServiceData === 'function') {
+                console.log("✅ loadServiceData function exists");
+            } else {
+                console.error("❌ loadServiceData function NOT found");
+            }
+
+            // Test clicking weather card
+            console.log("Testing weather card click...");
+            try {
+                showService('weather');
+                console.log("✅ Weather service called");
+            } catch (e) {
+                console.error("❌ Error calling weather service:", e);
+            }
+        }
+
+        window.onload = testServiceCards;
+    </script>
+</head>
+
+<body>
+    <h1>Service Card Test</h1>
+    <p>Open browser console (F12) to see test results</p>
+    <button onclick="showService('weather')">Test Weather Card</button>
+    <button onclick="showService('market-prices')">Test Market Prices Card</button>
+    <button onclick="showService('crop-recommendations')">Test Crop Card</button>
+</body>
+
+</html>

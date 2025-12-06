@@ -1,7 +1,7 @@
 from django.urls import path, include
 from django.http import HttpResponse
 from rest_framework.routers import DefaultRouter
-from .views import CropAdvisoryViewSet, WeatherViewSet, MarketPricesViewSet, TrendingCropsViewSet, CropViewSet, SMSIVRViewSet, PestDetectionViewSet, UserViewSet, TextToSpeechViewSet, ForumPostViewSet, GovernmentSchemesViewSet, ChatbotViewSet, LocationRecommendationViewSet, RealTimeGovernmentDataViewSet
+from .views import CropAdvisoryViewSet, WeatherViewSet, MarketPricesViewSet, TrendingCropsViewSet, CropViewSet, SMSIVRViewSet, PestDetectionViewSet, UserViewSet, TextToSpeechViewSet, ForumPostViewSet, GovernmentSchemesViewSet, ChatbotViewSet, LocationRecommendationViewSet, RealTimeGovernmentDataViewSet, DiagnosticViewSet
 from .monitoring_views import MonitoringViewSet, RateLimitViewSet, simple_health_check, readiness_check, liveness_check
 
 router = DefaultRouter()
@@ -21,6 +21,7 @@ router.register(r'locations', LocationRecommendationViewSet, basename='locations
 router.register(r'realtime-gov', RealTimeGovernmentDataViewSet, basename='realtime-gov')
 router.register(r'monitoring', MonitoringViewSet, basename='monitoring')
 router.register(r'rate-limits', RateLimitViewSet, basename='rate-limits')
+router.register(r'diagnostics', DiagnosticViewSet, basename='diagnostics')
 
 urlpatterns = [
     path('', include(router.urls)),

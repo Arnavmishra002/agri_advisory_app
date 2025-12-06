@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Debug Service Cards</title>
+    <style>
+        .service-card {
+            background: white;
+            border: 2px solid #4a7c59;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px;
+            cursor: pointer;
+            width: 300px;
+        }
+
+        .service-card:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Service Card Click Test</h1>
+
+    <div class="service-card" onclick="testClick('weather')">
+        <h3>Weather Card</h3>
+        <p>Click me to test</p>
+        <button onclick="event.stopPropagation(); this.parentElement.click();">Button Inside</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        function testClick(service) {
+            console.log('Card clicked:', service);
+            document.getElementById('output').innerHTML = '<p style="color: green;">✅ Card clicked successfully: ' + service + '</p>';
+            alert('Card clicked: ' + service);
+        }
+    </script>
+</body>
+
+</html>

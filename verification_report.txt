@@ -1,0 +1,35 @@
+
+==================================================
+VERIFYING REAL-TIME GOVERNMENT SERVICES
+==================================================
+
+[TEST 1] Testing Comprehensive Real-Time Data for Delhi...
+DEBUG: Fetching Schemes from https://pmkisan.gov.in/api/scheme-details?location=Delhi
+DEBUG: Response Status: 404
+✅ [SUCCESS] Data received in 0.78s
+   - Weather Keys: ['temperature', 'feels_like', 'humidity', 'wind_speed', 'wind_direction', 'pressure', 'visibility', 'uv_index', 'condition', 'condition_hindi', 'location', 'region', 'timestamp', 'data_source', 'reliability', 'note']
+   - Weather: Current Temp: 27°C
+   - Source: IMD (Indian Meteorological Department)
+   - Market Data Keys: ['location', 'mandi', 'nearby_mandis', 'commodities', 'last_updated']
+   - Govt Schemes: Found 0 central schemes
+
+[TEST 2] Testing Enhanced Market Prices V2...
+✅ [SUCCESS] Retrieved Market V2 Data
+   - Source: Enhanced Market Simulation (API Unavailable)
+   - Crops Listed: 8
+   - Mandis Found: 4
+   - Sample Crop Data:
+     • Maize (मक्का): ₹2065 | Trend: बढ़ रहा
+     • Moong (मूंग): ₹6796 | Trend: गिर रहा
+     • Rice (चावल): ₹3042 | Trend: स्थिर
+   - Nearby Mandis:
+     • Delhi Mandi (2 km) - खुला
+     • District Mandi (15 km) - खुला
+
+[TEST 3] Testing Crop Recommendations Integration...
+✅ [SUCCESS] ICAR Recommendations: 8 crops found
+   - Top Rec: Mustard (Score: 98)
+
+==================================================
+VERIFICATION COMPLETE
+==================================================

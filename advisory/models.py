@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import uuid
 
 # Create your models here.
 
@@ -248,3 +249,35 @@ class ForumPost(models.Model):
 
     def __str__(self):
         return f"{self.title} by {self.user.username}"
+
+class DiagnosticSession(models.Model):
+    """
+    Tracks a user's multi-step diagnostic session (KrishiRaksha 2.0).
+    """
+    user_id = models.CharField(max_length=100, help_text="User ID")
+    session_id = models.CharField(max_length=100, unique=True, default=uuid.uuid4)
+    crop_detected = models.CharField(max_length=100, blank=True, null=True)
+    images_json = models.JSONField(default=dict, help_text="{'whole': '/path/to/img1', 'close_up': '/path/to/img2'}")
+    
+    # Analysis results
+    final_diagnosis = models.CharField(max_length=200, blank=True, null=True)
+    confidence_score = models.FloatField(default=0.0)
+    severity_level = models.CharField(max_length=50, blank=True, null=True) # Low, Medium, High
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Diagnostic {self.session_id} - {self.crop_detected}"
+
+class ExpertVerification(models.Model):
+    """
+    For 'Active Learning': difficult cases sent to experts.
+    """
+    diagnostic_session = models.ForeignKey(DiagnosticSession, on_delete=models.CASCADE)
+    is_verified = models.BooleanField(default=False)
+    expert_diagnosis = models.CharField(max_length=200, blank=True, null=True)
+    expert_notes = models.TextField(blank=True, null=True)
+    verified_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Verification for {self.diagnostic_session.session_id}"

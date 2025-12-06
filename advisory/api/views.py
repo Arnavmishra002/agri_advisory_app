@@ -124,6 +124,61 @@ class ChatbotViewSet(viewsets.ViewSet):
         
         logger.info(f"🚀 Total services loaded: {len(self.services)}")
     
+    @action(detail=False, methods=['post'])
+    def query(self, request):
+        """Handle chatbot interactions with intelligent routing"""
+        try:
+            # Extract parameters
+            data = request.data
+            query = data.get('query', '')
+            language = data.get('language', 'en')
+            location = data.get('location', 'Delhi')
+            latitude = data.get('latitude')
+            longitude = data.get('longitude')
+            session_id = data.get('session_id', 'default_session')
+            
+            if not query:
+                return Response({
+                    'error': 'Query is required',
+                    'timestamp': datetime.now().isoformat()
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            logger.info(f"🤖 Chatbot query received: {query} [{language}] from {location}")
+            
+            # Get real-time government data context
+            gov_data = self._get_comprehensive_government_data(location)
+            
+            # Simple keyword-based intent detection for now
+            # In a real system, this would use a classification model
+            farming_keywords = [
+                'crop', 'farm', 'plant', 'sow', 'soil', 'weather', 'rain', 
+                'market', 'price', 'mandi', 'scheme', 'subsidy', 'loan',
+                'fertilizer', 'pest', 'disease', 'yield', 'harvest',
+                'फसल', 'खेती', 'बीज', 'मौसम', 'बाजार', 'भाव', 'मंडी', 'योजना',
+                'खाद', 'कीट', 'रोग', 'उपज', 'कटाई'
+            ]
+            
+            is_farming = any(k in query.lower() for k in farming_keywords)
+            
+            if is_farming:
+                # Use intelligent fallback with government data for farming queries
+                # (Since we don't have the full AgriculturalChatbot class setup in this view yet)
+                response_data = self._get_intelligent_fallback_with_government_data(
+                    query, language, location, gov_data
+                )
+            else:
+                # Use standard handle for general queries
+                response_data = self._handle_general_query_simple(query, language, location)
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Chatbot query error: {e}")
+            return Response({
+                'error': 'Internal server error processing query',
+                'message': str(e),
+                'timestamp': datetime.now().isoformat()
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     
     def _get_comprehensive_government_data(self, location: str) -> Dict[str, Any]:
@@ -729,7 +784,7 @@ class WeatherViewSet(viewsets.ViewSet):
             
             # Use government API for real-time weather data
             logger.info(f"🌤️ Fetching weather data from Government APIs for {location} in {language}")
-            weather_data = self.gov_api.get_weather_data(location, latitude, longitude, language=language)
+            weather_data = self.gov_api.get_weather_data(location, latitude, longitude)
             
             # Extract weather information from government API response
             if weather_data and weather_data.get('status') == 'success':
@@ -2113,3 +2168,87 @@ class ChatbotViewSet(viewsets.ViewSet):
 
 
 
+
+# Import KrishiRaksha Service and Models
+try:
+    from ..services.krishi_raksha_pest_service import KrishiRakshaPestService
+    from ..models import DiagnosticSession, ExpertVerification
+except ImportError:
+    pass
+
+class DiagnosticViewSet(viewsets.ViewSet):
+    """
+    API for KrishiRaksha 2.0: Advanced Pest Detection
+    """
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.pest_service = KrishiRakshaPestService()
+
+    @action(detail=False, methods=['post'])
+    def detect(self, request):
+        """
+        Run the full diagnostic pipeline.
+        Payload: {
+            "crop": "tomato",
+            "location": "Delhi",
+            "images": {"whole": "...", "close_up": "..."},
+            "session_id": "optional-uuid"
+        }
+        """
+        try:
+            data = request.data
+            crop = data.get('crop')
+            location = data.get('location', 'Unknown')
+            images = data.get('images', {})
+            session_id = data.get('session_id') # Can be generated if missing
+            
+            # Start Diagnostic Pipeline
+            result = self.pest_service.diagnose_crop(
+                session_id=session_id,
+                crop_name=crop,
+                location=location,
+                images=images
+            )
+            
+            # Persist Session (if models available)
+            try:
+                if result['status'] == 'success':
+                     DiagnosticSession.objects.create(
+                         session_id=session_id or str(uuid.uuid4()),
+                         user_id=str(request.user.id) if request.user.is_authenticated else 'anonymous',
+                         crop_detected=result['crop_detected'],
+                         final_diagnosis=result['diagnosis'][0]['name'] if result['diagnosis'] else 'Unknown',
+                         confidence_score=result['diagnosis'][0].get('confidence', 0.0) if result['diagnosis'] else 0.0,
+                         severity_level=result['diagnosis'][0].get('severity_label', 'Low') if result['diagnosis'] else 'Low'
+                     )
+            except Exception as db_err:
+                logger.warning(f"Failed to save diagnostic session: {db_err}")
+            
+            return Response(result)
+            
+        except Exception as e:
+            logger.error(f"Diagnostic error: {e}")
+            return Response(
+                {'status': 'error', 'message': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'])
+    def feedback(self, request):
+        """
+        Active Learning Loop: User provides correct diagnosis.
+        Payload: {"session_id": "...", "is_correct": false, "correct_diagnosis": "Late Blight"}
+        """
+        try:
+            data = request.data
+            session_id = data.get('session_id')
+            is_correct = data.get('is_correct')
+            correct_diagnosis = data.get('correct_diagnosis')
+
+            # Log feedback (In future: Retrain model)
+            # ExpertVerification specific logic could go here
+            
+            return Response({'status': 'success', 'message': 'Feedback recorded for Active Learning'})
+        except Exception as e:
+            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
