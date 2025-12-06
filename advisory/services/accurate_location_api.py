@@ -10,6 +10,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import time
+from functools import lru_cache
+from ..rate_limiters import rate_limit, nominatim_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,6 @@ class AccurateLocationAPI:
         
         # Comprehensive Indian location database
         self.indian_locations = self._load_comprehensive_indian_locations()
-        self.location_cache = {}
     
     def _load_comprehensive_indian_locations(self) -> Dict[str, Any]:
         """Load comprehensive Indian location database"""
@@ -89,14 +90,10 @@ class AccurateLocationAPI:
             ]
         }
     
+    @lru_cache(maxsize=1024)
     def detect_accurate_location(self, query: str) -> Dict[str, Any]:
         """Detect accurate location with Google Maps-level precision"""
         query_lower = query.lower().strip()
-        
-        # Check cache first
-        cache_key = f"location_{query_lower}"
-        if cache_key in self.location_cache:
-            return self.location_cache[cache_key]
         
         result = {
             'location': None,
@@ -114,7 +111,6 @@ class AccurateLocationAPI:
         if geocoding_result['confidence'] > 0.8:
             result.update(geocoding_result)
             result['source'] = 'geocoding_api'
-            self.location_cache[cache_key] = result
             return result
         
         # 2. Enhanced database search
@@ -135,9 +131,9 @@ class AccurateLocationAPI:
             result.update(fuzzy_result)
             result['source'] = 'fuzzy'
         
-        self.location_cache[cache_key] = result
         return result
     
+    @rate_limit(nominatim_limiter)
     def _detect_via_geocoding(self, query_lower: str) -> Dict[str, Any]:
         """Use free geocoding service for accurate location detection"""
         try:
@@ -324,11 +320,12 @@ class AccurateLocationAPI:
             'bihar': {'lat': 25.0961, 'lng': 85.3131},
             'jharkhand': {'lat': 23.6102, 'lng': 85.2799},
             'chhattisgarh': {'lat': 21.2787, 'lng': 81.8661},
-            'uttar pradesh': {'lat': 26.8467, 'lng': 80.9462},
+            'uttar_pradesh': {'lat': 26.8467, 'lng': 80.9462},
             'madhya pradesh': {'lat': 22.9734, 'lng': 78.6569}
         }
         return state_coords.get(state.lower(), {'lat': 20.5937, 'lng': 78.9629})
     
+    @rate_limit(nominatim_limiter)
     def reverse_geocode(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """Reverse geocoding - convert coordinates to location name"""
         try:
@@ -412,4 +409,3 @@ if __name__ == "__main__":
         print(f"📍 {location}: {result['location']} in {result['state']} ({result['region']}) - Confidence: {result['confidence']:.2f} - Source: {result['source']}")
     
     print("\n✅ Accurate location detection testing completed!")
-

@@ -526,11 +526,11 @@ class UltraDynamicGovernmentAPI:
                 }
             else:
                  logger.warning("No data found from real-time sources")
-                 return self._get_fallback_market_data(location)
+                 return None # Return None to trigger V2 fallback logic
             
         except Exception as e:
             logger.error(f"Market prices API error: {e}")
-            return self._get_fallback_market_data(location)
+            return None # Return None to trigger V2 fallback logic
     
     def _fetch_crop_recommendations(self, location: str) -> Dict[str, Any]:
         """Fetch real-time crop recommendations from ICAR"""
@@ -1003,6 +1003,10 @@ class UltraDynamicGovernmentAPI:
         """Dynamic crop recommendations with comprehensive 95+ crop database"""
         import random
         from datetime import datetime
+        
+        # Seed random for consistent recommendations per location per day
+        seed_string = f"{location.lower().strip()}_{datetime.now().strftime('%Y-%m-%d')}"
+        random.seed(seed_string)
         
         # Get current month and season
         current_month = datetime.now().month
@@ -1480,11 +1484,13 @@ class UltraDynamicGovernmentAPI:
                 crops = []
                 for name, info in market_data.items():
                     crops.append({
+                        'name': name, # Added for JS compatibility
                         'crop_name': name,
                         'crop_name_hindi': name, # Simplified mapping needed or use translation service
                         'current_price': info.get('current_price'),
                         'msp': info.get('msp'),
                         'trend': 'Stable', # Real API might not give trend
+                        'profit_margin': info.get('current_price', 0) - info.get('msp', 0), # Added for JS compatibility
                         'profit': info.get('current_price', 0) - info.get('msp', 0),
                         'profit_percentage': "N/A",
                         'demand': 'Medium',
@@ -1505,9 +1511,7 @@ class UltraDynamicGovernmentAPI:
                     'data_source': 'Agmarknet + e-NAM (Real-Time)',
                     'timestamp': datetime.now().isoformat()
                 }
-
             # 2. Fallback: Generate comprehensive simulated data
-            import random
             import random
             
             # Define crop database with realistic prices
@@ -1524,6 +1528,10 @@ class UltraDynamicGovernmentAPI:
                 {'name': 'Urad', 'name_hindi': 'उड़द', 'base_price': 6300, 'msp': 6600, 'trend': 'स्थिर'},
             ]
             
+            # Seed random for consistent market prices per location per day
+            seed_string = f"{location.lower().strip()}_{datetime.now().strftime('%Y-%m-%d')}"
+            random.seed(seed_string)
+            
             # Select 8-10 crops randomly or based on location
             num_crops = random.randint(8, 10)
             selected_crops = random.sample(crop_database, min(num_crops, len(crop_database)))
@@ -1539,15 +1547,19 @@ class UltraDynamicGovernmentAPI:
                 profit_pct = round((profit / msp) * 100, 1) if msp > 0 else 0
                 
                 crops.append({
-                    'crop_name': crop_data['name'],
+                    'name': crop_data['name'], # Correct key for JS
+                    'crop_name': crop_data['name'], # Access key
                     'crop_name_hindi': crop_data['name_hindi'],
                     'current_price': current_price,
                     'msp': msp,
                     'trend': crop_data['trend'],
+                    'profit_margin': profit, # Correct key for JS
                     'profit': profit,
                     'profit_percentage': f"{profit_pct}%",
                     'demand': random.choice(['उच्च', 'मध्यम', 'कम']),
-                    'supply': random.choice(['उच्च', 'मध्यम', 'कम'])
+                    'supply': random.choice(['उच्च', 'मध्यम', 'कम']),
+                    'mandi': mandi or f"{location} Mandi",
+                    'date': datetime.now().strftime('%d/%m/%Y')
                 })
             
             # Generate nearby mandis based on location
@@ -1576,23 +1588,28 @@ class UltraDynamicGovernmentAPI:
                     'crops': crops,
                     'nearby_mandis': nearby_mandis
                 },
-                'crops': crops,  # For backward compatibility
-                'nearby_mandis': nearby_mandis,  # For backward compatibility
-                'nearest_mandis_data': nearby_mandis,  # Alternative key
+                'crops': crops,
+                'nearby_mandis': nearby_mandis,
+                'nearest_mandis_data': nearby_mandis,
                 'data_source': 'Enhanced Market Simulation (API Unavailable)',
                 'timestamp': datetime.now().isoformat()
             }
                 
         except Exception as e:
             logger.error(f"Error in get_market_prices_v2: {e}")
-            return self._get_enhanced_market_data(location, mandi)
-
-
+            # Crash safe fallback with minimal valid V2 structure
+            return {
+                'status': 'success',
+                'location': location,
+                'mandi': mandi or f"{location} Mandi",
+                'market_prices': {'crops': [], 'nearby_mandis': []},
+                'crops': [],
+                'data_source': 'System Error Fallback'
+            }
 
     def get_government_schemes(self, location: str) -> Dict[str, Any]:
         """
         Get real-time government schemes.
-        This method is called by GovernmentSchemesViewSet (implied).
         """
         try:
             raw_data = self._fetch_government_schemes(location)
