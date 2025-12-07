@@ -2223,7 +2223,8 @@
                         <p class="service-description" data-i18n="schemes_description">केंद्र और राज्य सरकार की कृषि
                             योजनाएं। सब्सिडी, ऋण और अन्य सहायता
                             की जानकारी।</p>
-                        \u003cbutton class="service-button" onclick="event.stopPropagation(); this.parentElement.click();" data-i18n="view_schemes">योजनाएं देखें</button>
+                        \u003cbutton class="service-button" onclick="event.stopPropagation();
+                        this.parentElement.click();" data-i18n="view_schemes">योजनाएं देखें</button>
                     </div>
                 </div>
 
@@ -2237,7 +2238,8 @@
                         <p class="service-description" data-i18n="crop_advisory_description">AI द्वारा आपके क्षेत्र के
                             लिए सर्वोत्तम फसलों की सिफारिश। मौसम,
                             मिट्टी, कीमतों के आधार पर।</p>
-                        \u003cbutton class="service-button" onclick="event.stopPropagation(); this.parentElement.click();" data-i18n="get_crop_advisory">फसल सुझाव प्राप्त करें</button>
+                        \u003cbutton class="service-button" onclick="event.stopPropagation();
+                        this.parentElement.click();" data-i18n="get_crop_advisory">फसल सुझाव प्राप्त करें</button>
                     </div>
                 </div>
 
@@ -2250,7 +2252,8 @@
                         <p class="service-description" data-i18n="weather_description">सटीक मौसम की जानकारी और
                             पूर्वानुमान। बारिश, तापमान, हवा की गति सब
                             कुछ पता करें।</p>
-                        \u003cbutton class="service-button" onclick="event.stopPropagation(); this.parentElement.click();" data-i18n="view_weather">मौसम देखें</button>
+                        \u003cbutton class="service-button" onclick="event.stopPropagation();
+                        this.parentElement.click();" data-i18n="view_weather">मौसम देखें</button>
                     </div>
                 </div>
 
@@ -2263,7 +2266,8 @@
                         <p class="service-description" data-i18n="market_prices_description">रियल-टाइम बाजार कीमतें और
                             रुझान। अपनी फसल की सही कीमत जानें और
                             बेचने का सही समय पता करें।</p>
-                        \u003cbutton class="service-button" onclick="event.stopPropagation(); this.parentElement.click();" data-i18n="view_prices">कीमतें देखें</button>
+                        \u003cbutton class="service-button" onclick="event.stopPropagation();
+                        this.parentElement.click();" data-i18n="view_prices">कीमतें देखें</button>
                     </div>
                 </div>
 
@@ -2276,7 +2280,8 @@
                         <p class="service-description" data-i18n="pest_control_description">AI द्वारा कीट और रोग की
                             पहचान। फसल की तस्वीर डालें और तुरंत जानें
                             कि क्या समस्या है और कैसे ठीक करें।</p>
-                        \u003cbutton class="service-button" onclick="event.stopPropagation(); this.parentElement.click();" data-i18n="check_now">जांच करें</button>
+                        \u003cbutton class="service-button" onclick="event.stopPropagation();
+                        this.parentElement.click();" data-i18n="check_now">जांच करें</button>
                     </div>
                 </div>
 
@@ -2289,7 +2294,8 @@
                         <p class="service-description" data-i18n="ai_assistant_description">कृषि से जुड़े किसी भी सवाल
                             का जवाब पाएं। 24/7 उपलब्ध AI सहायक से
                             बात करें और तुरंत सलाह लें।</p>
-                        \u003cbutton class="service-button" onclick="event.stopPropagation(); this.parentElement.click();" data-i18n="talk_now">बात करें</button>
+                        \u003cbutton class="service-button" onclick="event.stopPropagation();
+                        this.parentElement.click();" data-i18n="talk_now">बात करें</button>
                     </div>
                 </div>
             </div>
@@ -2579,36 +2585,37 @@
                                         </div>
                                     </div>
                                 </div>
-                            `).join('') : '\u003cp>??????????? ?????? ???? ??\u003c/p>'}
-                        </div>
+                            `).join('') : '\u003cp>??????????? ?????? ???? ??\u003c/p>'
+                }
+                        </div >
                     `;
                 } else {
                     container.innerHTML = `
-                        <div class="real-time-header">
+                    < div class="real-time-header" >
                             <h4 data-i18n="schemes_header">🏛️ सरकारी योजनाएं - ${currentLocation}</h4>
                             <p class="data-source" data-i18n="data_source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
+                        </div >
+                    <div class="scheme-card">
+                        <h5 data-i18n="pm_kisan_scheme">प्रधानमंत्री किसान सम्मान निधि</h5>
+                        <p><strong data-i18n="amount_label">💰 राशि:</strong> ₹6,000 प्रति वर्ष</p>
+                        <p><strong data-i18n="description_label">📝 विवरण:</strong> किसानों को प्रत्यक्ष आय सहायता</p>
+                        <p><strong data-i18n="eligibility_label">✅ पात्रता:</strong> सभी किसान परिवार</p>
+                        <p><strong data-i18n="helpline_label">📞 हेल्पलाइन:</strong> 1800-180-1551</p>
+                        <div class="scheme-actions">
+                            <button class="btn btn-primary" onclick="openSchemeApplication('https://pmkisan.gov.in/')"><span data-i18n="apply_now">आवेदन करें</span></button>
+                            <button class="btn btn-info" onclick="openGovernmentScheme('https://pmkisan.gov.in/')"><span data-i18n="official_website">आधिकारिक वेबसाइट</span></button>
                         </div>
-                        <div class="scheme-card">
-                            <h5 data-i18n="pm_kisan_scheme">प्रधानमंत्री किसान सम्मान निधि</h5>
-                            <p><strong data-i18n="amount_label">💰 राशि:</strong> ₹6,000 प्रति वर्ष</p>
-                            <p><strong data-i18n="description_label">📝 विवरण:</strong> किसानों को प्रत्यक्ष आय सहायता</p>
-                            <p><strong data-i18n="eligibility_label">✅ पात्रता:</strong> सभी किसान परिवार</p>
-                            <p><strong data-i18n="helpline_label">📞 हेल्पलाइन:</strong> 1800-180-1551</p>
-                            <div class="scheme-actions">
-                                <button class="btn btn-primary" onclick="openSchemeApplication('https://pmkisan.gov.in/')"><span data-i18n="apply_now">आवेदन करें</span></button>
-                                <button class="btn btn-info" onclick="openGovernmentScheme('https://pmkisan.gov.in/')"><span data-i18n="official_website">आधिकारिक वेबसाइट</span></button>
-                            </div>
-                        </div>
-                    `;
+                    </div>
+                `;
                 }
                 applyTranslations(lang); // Apply translations to dynamically loaded content
             } catch (error) {
                 console.error('Error loading schemes:', error);
                 container.innerHTML = `
-                    <div class="real-time-header">
+                    < div class="real-time-header" >
                         <h4 data-i18n="schemes_header">🏛️ सरकारी योजनाएं - ${currentLocation}</h4>
                         <p class="data-source" data-i18n="data_source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
-                    </div>
+                    </div >
                     <div class="scheme-card">
                         <h5 data-i18n="pm_kisan_scheme">प्रधानमंत्री किसान सम्मान निधि</h5>
                         <p><strong data-i18n="amount_label">💰 राशि:</strong> ₹6,000 प्रति वर्ष</p>
@@ -2633,7 +2640,7 @@
                 // Add cache-busting timestamp and language
                 const timestamp = new Date().getTime();
                 const lang = localStorage.getItem('selectedLanguage') || 'hi';
-                const response = await fetch(`/api/advisories/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}&lang=${lang}`);
+                const response = await fetch(`/ api / advisories /? location = ${ currentLocation }& latitude=${ currentLatitude }& longitude=${ currentLongitude }& t=${ timestamp }& lang=${ lang } `);
                 const data = await response.json();
 
                 console.log('Crop Recommendations Data for', currentLocation, ':', data);
@@ -2641,49 +2648,41 @@
                 if (data.top_4_recommendations && data.top_4_recommendations.length > 0) {
                     const recommendations = data.top_4_recommendations;
                     container.innerHTML = `
-                        <div class="real-time-header">
+                    < div class="real-time-header" >
                             <h4 data-i18n="crop_advisory_header">🌾 फसल सुझाव - ${data.location}</h4>
                             <p class="data-source" data-i18n="data_source">📊 स्रोत: ${data.data_source || 'Ultra-Dynamic Government APIs'}</p>
                             <p class="timestamp" data-i18n="last_updated">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString(lang === 'en' ? 'en-US' : 'hi-IN')}</p>
                             <p class="analysis-info">📈 विश्लेषण: ${data.total_crops_analyzed || recommendations.length} फसलों का विश्लेषण</p>
-                        </div>
-                        <div class="crops-grid">
-                            ${recommendations.map((crop, index) => `
+                        </div >
+                    <div class="crops-grid">
+                        ${recommendations.map((crop, index) => `
                                 <div class="crop-card">
                                     <div class="crop-header">
-                                        <h5>${decodeHtmlEntities(crop.name_hindi || crop.crop_name_hindi || crop.crop_name)}</h5>
+                                        <h5>${decodeHtmlEntities(crop.name_hindi || crop.crop_name_hindi || crop.name)}</h5>
                                         <div class="crop-rank">#${index + 1}</div>
-                                        <div class="profitability-score">${crop.profitability_score || 85}/100</div>
+                                        <div class="profitability-score">${crop.suitability_score || crop.profitability_score || 85}/100</div>
                                     </div>
                                     <div class="crop-content">
                                         <div class="crop-info">
                                             <div class="info-item">
-                                                <span class="info-label" data-i18n="msp_label">💰 MSP:</span>
-                                                <span class="info-value">${crop.current_market_price || crop.msp || '₹2,000/quintal'}</span>
+                                                <span class="info-label" data-i18n="reason_label">💡 मुख्य कारण:</span>
+                                                <span class="info-value">${crop.reason_hindi || crop.reason || 'N/A'}</span>
                                             </div>
                                             <div class="info-item">
                                                 <span class="info-label" data-i18n="yield_label">📊 उत्पादन:</span>
-                                                <span class="info-value">${crop.yield_prediction || crop.yield || '50 quintals/hectare'}</span>
+                                                <span class="info-value">${crop.financials?.yield || crop.yield_prediction || 'N/A'}</span>
                                             </div>
                                             <div class="info-item">
                                                 <span class="info-label" data-i18n="profit_label">💵 लाभ:</span>
-                                                <span class="info-value">${crop.profit || crop.profit_per_hectare || '₹15,000/hectare'} (${crop.profit_percentage || '25%'})</span>
+                                                <span class="info-value" style="color: #28a745;">${crop.financials?.profit_potential || crop.profit || 'N/A'}</span>
                                             </div>
                                             <div class="info-item">
-                                                <span class="info-label" data-i18n="cost_label">💸 लागत:</span>
-                                                <span class="info-value">${crop.input_cost || crop.input_cost_per_hectare || '₹35,000/hectare'}</span>
+                                                <span class="info-label" data-i18n="msp_label">💰 MSP:</span>
+                                                <span class="info-value">${crop.financials?.msp || crop.msp || 'N/A'}</span>
                                             </div>
                                             <div class="info-item">
-                                                <span class="info-label" data-i18n="future_price_3m">📈 भविष्य की कीमत (3 महीने):</span>
-                                                <span class="info-value">${crop.future_price_3m || crop.future_price_prediction?.next_3_months || 'N/A'}</span>
-                                            </div>
-                                            <div class="info-item">
-                                                <span class="info-label" data-i18n="future_price_6m">📈 भविष्य की कीमत (6 महीने):</span>
-                                                <span class="info-value">${crop.future_price_6m || crop.future_price_prediction?.next_6_months || 'N/A'}</span>
-                                            </div>
-                                            <div class="info-item">
-                                                <span class="info-label" data-i18n="future_price_1y">📈 भविष्य की कीमत (1 वर्ष):</span>
-                                                <span class="info-value">${crop.future_price_1y || crop.future_price_prediction?.next_year || 'N/A'}</span>
+                                                <span class="info-label" data-i18n="weather_outlook">🌦️ मौसम:</span>
+                                                <span class="info-value">${crop.outlook || 'N/A'}</span>
                                             </div>
                                         </div>
                                         <div class="crop-metrics">
@@ -2707,48 +2706,48 @@
                                     </div>
                                 </div>
                             `).join('') : '\u003cp>??????????? ?????? ???? ??\u003c/p>'}
-                        </div>
-                    `;
+                    </div>
+                `;
                 } else {
                     container.innerHTML = `
-                        <div class="real-time-header">
+                    < div class="real-time-header" >
                             <h4 data-i18n="crop_advisory_header">🌾 फसल सुझाव - ${currentLocation}</h4>
                             <p class="data-source" data-i18n="data_source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
+                        </div >
+                    <div class="crop-card">
+                        <div class="crop-header">
+                            <h5 data-i18n="wheat_crop">1. गेहूं</h5>
+                            <span class="profitability-score" data-i18n="profitability_score_value">85/100</span>
                         </div>
-                        <div class="crop-card">
-                            <div class="crop-header">
-                                <h5 data-i18n="wheat_crop">1. गेहूं</h5>
-                                <span class="profitability-score" data-i18n="profitability_score_value">85/100</span>
+                        <div class="crop-details">
+                            <div class="detail-row">
+                                <span class="label" data-i18n="msp_label">💰 MSP:</span>
+                                <span class="value">₹2,000/quintal</span>
                             </div>
-                            <div class="crop-details">
-                                <div class="detail-row">
-                                    <span class="label" data-i18n="msp_label">💰 MSP:</span>
-                                    <span class="value">₹2,000/quintal</span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="label" data-i18n="yield_label">📊 उत्पादन:</span>
-                                    <span class="value">50 quintals/hectare</span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="label" data-i18n="profit_label">💵 लाभ:</span>
-                                    <span class="value">₹15,000/hectare (25%)</span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="label" data-i18n="cost_label">💸 लागत:</span>
-                                    <span class="value">₹35,000/hectare</span>
-                                </div>
+                            <div class="detail-row">
+                                <span class="label" data-i18n="yield_label">📊 उत्पादन:</span>
+                                <span class="value">50 quintals/hectare</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label" data-i18n="profit_label">💵 लाभ:</span>
+                                <span class="value">₹15,000/hectare (25%)</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label" data-i18n="cost_label">💸 लागत:</span>
+                                <span class="value">₹35,000/hectare</span>
                             </div>
                         </div>
-                    `;
+                    </div>
+                `;
                 }
                 applyTranslations(lang); // Apply translations to dynamically loaded content
             } catch (error) {
                 console.error('Error loading crops:', error);
                 container.innerHTML = `
-                    <div class="real-time-header">
+                    < div class="real-time-header" >
                         <h4 data-i18n="crop_advisory_header">🌾 फसल सुझाव - ${currentLocation}</h4>
                         <p class="data-source" data-i18n="data_source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
-                    </div>
+                    </div >
                     <div class="crop-card">
                         <div class="crop-header">
                             <h5 data-i18n="wheat_crop">1. गेहूं</h5>
@@ -2786,19 +2785,19 @@
                 // Add cache-busting timestamp and language
                 const timestamp = new Date().getTime();
                 const lang = localStorage.getItem('selectedLanguage') || 'hi';
-                const response = await fetch(`/api/weather/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}&lang=${lang}`);
+                const response = await fetch(`/ api / weather /? location = ${ currentLocation }& latitude=${ currentLatitude }& longitude=${ currentLongitude }& t=${ timestamp }& lang=${ lang } `);
                 const data = await response.json();
 
                 console.log('Weather Data for', currentLocation, ':', data);
 
                 if (data.current_weather) {
                     container.innerHTML = `
-                        <div class="real-time-header">
+                    < div class="real-time-header" >
                             <h4 data-i18n="weather_info_header">🌤️ मौसम की जानकारी - ${data.location}</h4>
                             <p class="data-source" data-i18n="data_source">📊 स्रोत: ${data.data_source}</p>
                             <p class="timestamp" data-i18n="last_updated">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString(lang === 'en' ? 'en-US' : 'hi-IN')}</p>
-                        </div>
-                        
+                        </div >
+
                         <!-- Current Weather -->
                         <div class="weather-card">
                             <div class="current-weather">
@@ -2843,7 +2842,7 @@
                             </div>
                         </div>
                         
-                        <!-- Agricultural Advice -->
+                        <!--Agricultural Advice-- >
                         <div class="weather-card">
                             <h5 data-i18n="agricultural_advice_title">🌾 कृषि सुझाव</h5>
                             <div class="agricultural-advice">
@@ -2851,7 +2850,7 @@
                             </div>
                         </div>
                         
-                        <!-- Weather Forecast -->
+                        <!--Weather Forecast-- >
                         <div class="weather-card">
                             <h5 data-i18n="seven_day_forecast_title">📅 7 दिन का पूर्वानुमान</h5>
                             <div class="forecast-grid">
@@ -2867,7 +2866,7 @@
                             </div>
                         </div>
                         
-                        <!-- Weather Alerts -->
+                        <!--Weather Alerts-- >
                         <div class="weather-card">
                             <h5 data-i18n="weather_alerts_title">⚠️ मौसम चेतावनी</h5>
                             <div class="alerts-list">
@@ -2907,9 +2906,9 @@
                                     </div>
                                 `).join('') : '\u003cp>??????????? ?????? ???? ??\u003c/p>'}
                             </div>
-                        </div>
+                        </div >
                         
-                        <!-- Farmer Advice -->
+                        < !--Farmer Advice-- >
                         <div class="weather-card">
                             <h5 data-i18n="farmer_advice_title">👨‍🌾 किसान सलाह</h5>
                             <div class="advice-section">
@@ -2928,72 +2927,72 @@
                             </div>
                         </div>
                         
-                        <!-- Weather Alerts -->
-                        <div class="weather-card">
-                            <h5 data-i18n="weather_alerts_title">🚨 मौसम चेतावनी</h5>
-                            <div class="alerts-section">
-                                ${data.alerts.map(alert => `
+                        <!--Weather Alerts-- >
+                    <div class="weather-card">
+                        <h5 data-i18n="weather_alerts_title">🚨 मौसम चेतावनी</h5>
+                        <div class="alerts-section">
+                            ${data.alerts.map(alert => `
                                     <div class="alert-item alert-${alert.severity}">
                                         <span class="alert-icon">${alert.severity === 'high' ? '🔴' : alert.severity === 'medium' ? '🟡' : '🟢'}</span>
                                         <span class="alert-type">${alert.type}</span>
                                         <span class="alert-message">${alert.message}</span>
                                     </div>
                                 `).join('') : '\u003cp>??????????? ?????? ???? ??\u003c/p>'}
-                            </div>
                         </div>
-                    `;
+                    </div>
+                `;
                 } else {
                     container.innerHTML = `
-                        <div class="real-time-header">
+                    < div class="real-time-header" >
                             <h4 data-i18n="weather_info_header">🌤️ मौसम की जानकारी - ${currentLocation}</h4>
                             <p class="data-source" data-i18n="data_source">📊 स्रोत: IMD (Indian Meteorological Department)</p>
-                        </div>
-                        <div class="weather-card">
-                                <h5 data-i18n="current_weather_title">🌡️ वर्तमान मौसम</h5>
-                                <div class="weather-temp">28°C</div>
-                                <div class="weather-condition" data-i18n="clear_sky">साफ आसमान</div>
-                            <div class="weather-details">
-                                <div class="detail-item">
-                                    <span class="icon">💧</span>
-                                    <span class="label" data-i18n="humidity">आर्द्रता:</span>
-                                    <span class="value">65%</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="icon">💨</span>
-                                    <span class="label" data-i18n="wind_speed">हवा की गति:</span>
-                                    <span class="value">12 km/h</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="icon">📊</span>
-                                    <span class="label" data-i18n="pressure">दबाव:</span>
-                                    <span class="value">1013 hPa</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="icon">👁️</span>
-                                    <span class="label" data-i18n="visibility">दृश्यता:</span>
-                                    <span class="value">10 km</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="icon">☀️</span>
-                                    <span class="label" data-i18n="uv_index">UV सूचकांक:</span>
-                                    <span class="value">5</span>
-                                </div>
+                        </div >
+                    <div class="weather-card">
+                        <h5 data-i18n="current_weather_title">🌡️ वर्तमान मौसम</h5>
+                        <div class="weather-temp">28°C</div>
+                        <div class="weather-condition" data-i18n="clear_sky">साफ आसमान</div>
+                        <div class="weather-details">
+                            <div class="detail-item">
+                                <span class="icon">💧</span>
+                                <span class="label" data-i18n="humidity">आर्द्रता:</span>
+                                <span class="value">65%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="icon">💨</span>
+                                <span class="label" data-i18n="wind_speed">हवा की गति:</span>
+                                <span class="value">12 km/h</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="icon">📊</span>
+                                <span class="label" data-i18n="pressure">दबाव:</span>
+                                <span class="value">1013 hPa</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="icon">👁️</span>
+                                <span class="label" data-i18n="visibility">दृश्यता:</span>
+                                <span class="value">10 km</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="icon">☀️</span>
+                                <span class="label" data-i18n="uv_index">UV सूचकांक:</span>
+                                <span class="value">5</span>
                             </div>
                         </div>
-                    `;
+                    </div>
+                `;
                 }
                 applyTranslations(lang); // Apply translations to dynamically loaded content
             } catch (error) {
                 console.error('Error loading weather:', error);
                 container.innerHTML = `
-                    <div class="real-time-header">
+                    < div class="real-time-header" >
                         <h4 data-i18n="weather_info_header">🌤️ मौसम की जानकारी - ${currentLocation}</h4>
                         <p class="data-source" data-i18n="data_source">📊 स्रोत: IMD (Indian Meteorological Department)</p>
-                    </div>
+                    </div >
                     <div class="weather-card">
-                            <h5 data-i18n="current_weather_title">🌡️ वर्तमान मौसम</h5>
-                            <div class="weather-temp">28°C</div>
-                            <div class="weather-condition" data-i18n="clear_sky">साफ आसमान</div>
+                        <h5 data-i18n="current_weather_title">🌡️ वर्तमान मौसम</h5>
+                        <div class="weather-temp">28°C</div>
+                        <div class="weather-condition" data-i18n="clear_sky">साफ आसमान</div>
                         <div class="weather-details">
                             <div class="detail-item">
                                 <span class="icon">💧</span>
@@ -3064,10 +3063,10 @@
                 // Add cache-busting timestamp and version
                 const timestamp = new Date().getTime();
                 const version = 'v2.0';
-                const response = await fetch(`/api/market-prices/?location=${location}&latitude=${lat}&longitude=${lon}&t=${timestamp}&v=${version}`);
+                const response = await fetch(`/ api / market - prices /? location = ${ location }& latitude=${ lat }& longitude=${ lon }& t=${ timestamp }& v=${ version } `);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${ response.status } `);
                 }
 
                 const data = await response.json();
@@ -3093,13 +3092,13 @@
                 // Force square box layout for all cases
                 if (data.market_prices && data.market_prices.top_crops && data.market_prices.top_crops.length > 0) {
                     container.innerHTML = `
-                        <div class="real-time-header">
+                    < div class="real-time-header" >
                             <h4 data-i18n="market_prices_header">💰 बाजार भाव - ${data.location}</h4>
                             <p class="data-source" data-i18n="data_source">📊 स्रोत: ${data.data_source}</p>
                             <p class="timestamp" data-i18n="last_updated">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString(lang === 'en' ? 'en-US' : 'hi-IN')}</p>
-                        </div>
+                        </div >
                         
-                        <!-- Mandi Selection Section -->
+                        < !--Mandi Selection Section-- >
                         <div class="mandi-search-container">
                             <h5 data-i18n="select_nearest_mandi">🏪 निकटतम मंडी चुनें</h5>
                             <div class="mandi-selection-container">
@@ -3167,16 +3166,16 @@
                                 </div>
                             `).join('') : '\u003cp>??????????? ?????? ???? ??\u003c/p>'}
                         </div>
-                    `;
+                `;
                 } else {
                     // Fallback with square box layout
                     container.innerHTML = `
-                        <div class="real-time-header">
+                    < div class="real-time-header" >
                             <h4 data-i18n="market_prices_header">💰 बाजार भाव - ${currentLocation}</h4>
                             <p class="data-source" data-i18n="data_source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
-                        </div>
+                        </div >
                         
-                        <!-- Mandi Selection Section -->
+                        < !--Mandi Selection Section-- >
                         <div class="mandi-search-container">
                             <h5 data-i18n="select_nearest_mandi">🏪 निकटतम मंडी चुनें</h5>
                             <div class="mandi-selection-container">
@@ -3235,16 +3234,16 @@
                                 </div>
                             </div>
                         </div>
-                    `;
+                `;
                 }
                 applyTranslations(lang); // Apply translations to dynamically loaded content
             } catch (error) {
                 console.error('Error loading prices:', error);
                 container.innerHTML = `
-                    <div class="real-time-header">
+                    < div class="real-time-header" >
                         <h4 data-i18n="market_prices_header">💰 बाजार भाव - ${currentLocation}</h4>
                         <p class="data-source" data-i18n="data_source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
-                    </div>
+                    </div >
                     <div class="price-card">
                         <div class="price-header">
                             <h5 data-i18n="wheat_crop">🌾 गेहूं</h5>
@@ -3289,15 +3288,15 @@
                 const loadingMessage = translations[lang]?.loading_mandi_prices || 'मंडी की कीमतें लोड हो रही हैं...';
                 const pricesGrid = container.querySelector('.mandi-prices-grid');
                 if (pricesGrid) {
-                    pricesGrid.innerHTML = `<div class="loading">${loadingMessage}</div>`;
+                    pricesGrid.innerHTML = `< div class="loading" > ${ loadingMessage }</div > `;
                 }
 
                 // Fetch mandi-specific prices
                 const timestamp = new Date().getTime();
-                const response = await fetch(`/api/market-prices/?location=${location}&mandi=${encodeURIComponent(selectedMandiName)}&latitude=${lat}&longitude=${lon}&t=${timestamp}`);
+                const response = await fetch(`/ api / market - prices /? location = ${ location }& mandi=${ encodeURIComponent(selectedMandiName) }& latitude=${ lat }& longitude=${ lon }& t=${ timestamp } `);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${ response.status } `);
                 }
 
                 const data = await response.json();
@@ -3307,7 +3306,7 @@
                 // Update the prices grid with new data
                 if (data.market_prices && data.market_prices.top_crops && pricesGrid) {
                     pricesGrid.innerHTML = data.market_prices.top_crops.map(crop => `
-                        <div class="mandi-price-square">
+                    < div class="mandi-price-square" >
                             <div class="square-header">
                                 <h6>🌾 ${crop.crop_name_hindi || crop.crop_name}</h6>
                                 <span class="trend-icon">${crop.trend === 'बढ़ रहा' ? '📈' : crop.trend === 'गिर रहा' ? '📉' : '📊'}</span>
@@ -3335,7 +3334,7 @@
                                     <span class="date">${new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'hi-IN')}</span>
                                 </div>
                             </div>
-                        </div>
+                        </div >
                     `).join('');
                     applyTranslations(lang);
                 }
@@ -3344,10 +3343,10 @@
                 const errorMessage = translations[lang]?.error_loading_mandi_prices || 'मंडी कीमत लोड करने में त्रुटि';
                 const pricesGrid = container.querySelector('.mandi-prices-grid');
                 if (pricesGrid) {
-                    pricesGrid.innerHTML = `<div class="error-message" style="color: red; padding: 20px; text-align: center;">
+                    pricesGrid.innerHTML = `< div class="error-message" style = "color: red; padding: 20px; text-align: center;" >
                         <p>${errorMessage}</p>
                         <small>${error.message}</small>
-                    </div>`;
+                    </div > `;
                 }
             }
         }
@@ -3364,15 +3363,15 @@
             }
 
             try {
-                resultsContainer.innerHTML = `<div class="loading" data-i18n="searching_mandi">${translations[lang]['searching_mandi']}</div>`;
+                resultsContainer.innerHTML = `< div class="loading" data - i18n="searching_mandi" > ${ translations[lang]['searching_mandi'] }</div > `;
 
                 // Search for mandis in the specified location
-                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${encodeURIComponent(locationInput.value)}&latitude=${currentLatitude}&longitude=${currentLongitude}`);
+                const response = await fetch(`/ api / realtime - gov / mandi_search /? location = ${ encodeURIComponent(locationInput.value) }& latitude=${ currentLatitude }& longitude=${ currentLongitude } `);
                 const data = await response.json();
 
                 if (data.mandi_data) {
                     resultsContainer.innerHTML = `
-                        <div class="mandi-results-summary">
+                    < div class="mandi-results-summary" >
                             <h6 data-i18n="mandis_available_in">📍 ${data.location} में उपलब्ध मंडियां (${data.total_crops} ${translations[lang]['crops']})</h6>
                             <div class="mandi-grid">
                                 ${Object.entries(data.mandi_data).map(([cropName, mandiInfo]) => `
@@ -3394,15 +3393,15 @@
                                     </div>
                                 `).join('') : '\u003cp>??????????? ?????? ???? ??\u003c/p>'}
                             </div>
-                        </div>
+                        </div >
                     `;
                 } else {
-                    resultsContainer.innerHTML = `<div class="no-results" data-i18n="no_mandi_info">${translations[lang]['no_mandi_info']}</div>`;
+                    resultsContainer.innerHTML = `< div class="no-results" data - i18n="no_mandi_info" > ${ translations[lang]['no_mandi_info'] }</div > `;
                 }
                 applyTranslations(lang); // Apply translations to dynamically loaded content
             } catch (error) {
                 console.error('Mandi location search error:', error);
-                resultsContainer.innerHTML = `<div class="error" data-i18n="mandi_search_error">${translations[lang]['mandi_search_error']}</div>`;
+                resultsContainer.innerHTML = `< div class="error" data - i18n="mandi_search_error" > ${ translations[lang]['mandi_search_error'] }</div > `;
                 showNotification(translations[lang]['mandi_search_error'], 'error');
             }
         }
@@ -3418,15 +3417,15 @@
             }
 
             try {
-                resultsContainer.innerHTML = `<div class="loading" data-i18n="searching_crop">${translations[lang]['searching_crop']}</div>`;
+                resultsContainer.innerHTML = `< div class="loading" data - i18n="searching_crop" > ${ translations[lang]['searching_crop'] }</div > `;
 
-                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${currentLocation}&crop=${encodeURIComponent(cropInput.value)}&latitude=${currentLatitude}&longitude=${currentLongitude}`);
+                const response = await fetch(`/ api / realtime - gov / mandi_search /? location = ${ currentLocation }& crop=${ encodeURIComponent(cropInput.value) }& latitude=${ currentLatitude }& longitude=${ currentLongitude } `);
                 const data = await response.json();
 
                 if (data.mandi_info) {
                     const mandiInfo = data.mandi_info;
                     resultsContainer.innerHTML = `
-                        <div class="crop-result-card">
+                    < div class="crop-result-card" >
                             <h6>🌾 ${mandiInfo.crop_name} - ${mandiInfo.mandi_name}</h6>
                             <div class="crop-details-grid">
                                 <div class="crop-detail-square">
@@ -3454,15 +3453,15 @@
                                     <div class="detail-value">${mandiInfo.mandi_type}</div>
                                 </div>
                             </div>
-                        </div>
+                        </div >
                     `;
                 } else {
-                    resultsContainer.innerHTML = `<div class="no-results" data-i18n="no_crop_info">${translations[lang]['no_crop_info']}</div>`;
+                    resultsContainer.innerHTML = `< div class="no-results" data - i18n="no_crop_info" > ${ translations[lang]['no_crop_info'] }</div > `;
                 }
                 applyTranslations(lang); // Apply translations to dynamically loaded content
             } catch (error) {
                 console.error('Crop search error:', error);
-                resultsContainer.innerHTML = `<div class="error" data-i18n="crop_search_error">${translations[lang]['crop_search_error']}</div>`;
+                resultsContainer.innerHTML = `< div class="error" data - i18n="crop_search_error" > ${ translations[lang]['crop_search_error'] }</div > `;
                 showNotification(translations[lang]['crop_search_error'], 'error');
             }
         }
@@ -3483,7 +3482,7 @@
             }
 
             try {
-                container.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i><p data-i18n="analyzing_image">${translations[lang]['analyzing_image']}</p></div>`;
+                container.innerHTML = `< div class="loading" ><i class="fas fa-spinner fa-spin"></i><p data-i18n="analyzing_image">${translations[lang]['analyzing_image']}</p></div > `;
 
                 const formData = new FormData();
                 formData.append('image', imageFile);
@@ -3503,7 +3502,7 @@
 
             } catch (error) {
                 console.error('Image analysis error:', error);
-                container.innerHTML = `<div class="error-message" data-i18n="image_analysis_error">${translations[lang]['image_analysis_error']}</div>`;
+                container.innerHTML = `< div class="error-message" data - i18n="image_analysis_error" > ${ translations[lang]['image_analysis_error'] }</div > `;
                 showNotification(translations[lang]['image_analysis_error'], 'error');
             }
         });
@@ -3518,7 +3517,7 @@
                 const analysisResult = imageAnalysis.analysis_result;
 
                 container.innerHTML = `
-                    <div class="pest-analysis-container">
+                    < div class="pest-analysis-container" >
                         <div class="analysis-header">
                             <h4 data-i18n="image_analysis_results">🔍 तस्वीर विश्लेषण परिणाम</h4>
                             <p class="data-source" data-i18n="data_source">📊 स्रोत: ${data.data_source}</p>
@@ -3561,12 +3560,12 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div >
+                    `;
             } else {
                 // Regular pest analysis display
                 container.innerHTML = `
-                    <div class="pest-analysis-container">
+                    < div class="pest-analysis-container" >
                         <div class="analysis-header">
                             <h4 data-i18n="pest_control_info">🐛 कीट नियंत्रण जानकारी</h4>
                             <p class="data-source" data-i18n="data_source">📊 स्रोत: ${data.data_source}</p>
@@ -3598,8 +3597,8 @@
                                 `).join('') : '\u003cp>??????????? ?????? ???? ??\u003c/p>'}
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div >
+                    `;
             }
             applyTranslations(lang); // Apply translations to dynamically loaded content
         }
@@ -3612,7 +3611,7 @@
             try {
                 // Add cache-busting timestamp
                 const timestamp = new Date().getTime();
-                const response = await fetch(`/api/realtime-gov/pest_detection/?t=${timestamp}`, {
+                const response = await fetch(`/ api / realtime - gov / pest_detection /? t = ${ timestamp } `, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -3631,7 +3630,7 @@
                 displayPestAnalysis(data, false);
             } catch (error) {
                 console.error('Error loading pest control:', error);
-                container.innerHTML = `<div class="data-card"><h5 data-i18n="pest_control_header">🐛 कीट नियंत्रण</h5><p data-i18n="service_unavailable">${translations[lang]['service_unavailable']}</p></div>`;
+                container.innerHTML = `< div class="data-card" ><h5 data-i18n="pest_control_header">🐛 कीट नियंत्रण</h5><p data-i18n="service_unavailable">${translations[lang]['service_unavailable']}</p></div > `;
                 applyTranslations(lang); // Apply translations to dynamically loaded content
             }
         }
@@ -3660,7 +3659,7 @@
 
         // Ask about scheme
         function askAboutScheme(schemeName) {
-            const query = `${schemeName} योजना के बारे में विस्तार से बताएं`;
+            const query = `${ schemeName } योजना के बारे में विस्तार से बताएं`;
             const lang = localStorage.getItem('selectedLanguage') || 'hi';
 
             fetch('/api/chatbot/', {
@@ -3678,7 +3677,7 @@
                 .then(data => {
                     if (data.response) {
                         showNotification(translations[lang]['scheme_info_found'], 'success');
-                        alert(`${schemeName}\n\n${data.response}`);
+                        alert(`${ schemeName } \n\n${ data.response } `);
                     }
                 })
                 .catch(error => {
@@ -3698,7 +3697,7 @@
                 return;
             }
 
-            const query = `${crop} में ${problem} की समस्या है। इसका समाधान बताएं`;
+            const query = `${ crop } में ${ problem } की समस्या है। इसका समाधान बताएं`;
 
             fetch('/api/chatbot/', {
                 method: 'POST',
@@ -3757,7 +3756,7 @@
             const chatMessages = document.getElementById('chatMessages');
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'message bot-message loading-message';
-            loadingDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span data-i18n="thinking">${translations[lang]['thinking']}</span>`;
+            loadingDiv.innerHTML = `< i class="fas fa-spinner fa-spin" ></i > <span data-i18n="thinking">${translations[lang]['thinking']}</span>`;
             chatMessages.appendChild(loadingDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             applyTranslations(lang, loadingDiv); // Apply translation to loading message
@@ -3797,13 +3796,13 @@
         function addMessage(text, sender) {
             const chatMessages = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}-message`;
+            messageDiv.className = `message ${ sender } -message`;
             const lang = localStorage.getItem('selectedLanguage') || 'hi';
 
             if (sender === 'user') {
-                messageDiv.innerHTML = `<strong data-i18n="you">${translations[lang]['you']}:</strong> ${text}`;
+                messageDiv.innerHTML = `< strong data - i18n="you" > ${ translations[lang]['you'] }:</strong > ${ text } `;
             } else {
-                messageDiv.innerHTML = `<strong data-i18n="ai_assistant_name">${translations[lang]['ai_assistant_name']}:</strong> ${text}`;
+                messageDiv.innerHTML = `< strong data - i18n="ai_assistant_name" > ${ translations[lang]['ai_assistant_name'] }:</strong > ${ text } `;
             }
 
             chatMessages.appendChild(messageDiv);
@@ -3815,7 +3814,7 @@
         function showNotification(message, type = 'info') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
-            notification.className = `notification ${type}`;
+            notification.className = `notification ${ type } `;
             notification.style.display = 'block';
 
             setTimeout(() => {
@@ -3884,7 +3883,7 @@
             locationSearchTimeout = setTimeout(async () => {
                 try {
                     console.log('Making API request for:', query);
-                    const response = await fetch(`/api/locations/search/?q=${encodeURIComponent(query)}`);
+                    const response = await fetch(`/ api / locations / search /? q = ${ encodeURIComponent(query) } `);
                     console.log('API response status:', response.status);
                     const data = await response.json();
                     console.log('API response data:', data);
@@ -3907,14 +3906,14 @@
 
             if (suggestions) {
                 container.innerHTML = suggestions.map(suggestion => `
-                    <div class="location-suggestion" onclick="selectLocation('${suggestion.name}', ${suggestion.lat}, ${suggestion.lon})">
+                    < div class="location-suggestion" onclick = "selectLocation('${suggestion.name}', ${suggestion.lat}, ${suggestion.lon})" >
                         <div>
                             <div class="suggestion-name">${suggestion.name}</div>
                             <div class="suggestion-details">${suggestion.state || ''} ${suggestion.region || ''}</div>
                         </div>
                         <div class="suggestion-details">${suggestion.type || translations[lang]['location']}</div>
-                    </div>
-                `).join('');
+                    </div >
+                    `).join('');
             }
 
             container.style.display = 'block';
@@ -3955,7 +3954,7 @@
             }
 
             // Show notification
-            showNotification(`${translations[lang]['location_changed']}: ${name}`, 'success');
+            showNotification(`${ translations[lang]['location_changed'] }: ${ name } `, 'success');
 
             // Reload all services with new location for real-time data
             console.log('🔄 Reloading all services with new location:', name);
@@ -3982,7 +3981,7 @@
                         const lon = position.coords.longitude;
 
                         // Reverse geocoding to get location name
-                        fetch(`/api/locations/reverse/?lat=${lat}&lon=${lon}`)
+                        fetch(`/ api / locations / reverse /? lat = ${ lat }& lon=${ lon } `)
                             .then(response => response.json())
                             .then(data => {
                                 console.log('Reverse geocoding response:', data);
@@ -4035,7 +4034,7 @@
             const services = ['government-schemes', 'crop-recommendations', 'weather', 'market-prices', 'pest-control'];
 
             // Show loading notification
-            showNotification(`${translations[lang]['changing_location']}... ${currentLocation} ${translations[lang]['updating_services']}`, 'info');
+            showNotification(`${ translations[lang]['changing_location'] }... ${ currentLocation } ${ translations[lang]['updating_services'] } `, 'info');
 
             // Clear all service containers first
             const serviceContainers = {
@@ -4051,11 +4050,11 @@
                 const containerId = serviceContainers[serviceName];
                 const container = document.getElementById(containerId);
                 if (container) {
-                    container.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>${currentLocation} ${translations[lang]['loading_for']}</p></div>`;
-                    console.log(`✅ Cleared container: ${containerId}`);
+                    container.innerHTML = `< div class="loading" ><i class="fas fa-spinner fa-spin"></i><p>${currentLocation} ${translations[lang]['loading_for']}</p></div > `;
+                    console.log(`✅ Cleared container: ${ containerId } `);
                     applyTranslations(lang, container); // Apply translations to loading message
                 } else {
-                    console.error(`❌ Container not found: ${containerId}`);
+                    console.error(`❌ Container not found: ${ containerId } `);
                 }
             });
 
@@ -4063,12 +4062,12 @@
             console.log('🔄 Starting service reload sequence...');
             services.forEach((serviceName, index) => {
                 setTimeout(() => {
-                    console.log(`🔄 Reloading service: ${serviceName} for location: ${currentLocation}`);
+                    console.log(`🔄 Reloading service: ${ serviceName } for location: ${ currentLocation } `);
                     try {
                         loadServiceData(serviceName);
-                        console.log(`✅ Service ${serviceName} reload initiated`);
+                        console.log(`✅ Service ${ serviceName } reload initiated`);
                     } catch (error) {
-                        console.error(`❌ Error reloading service ${serviceName}:`, error);
+                        console.error(`❌ Error reloading service ${ serviceName }: `, error);
                     }
                 }, index * 500); // 500ms delay between each service
             });
@@ -4083,7 +4082,7 @@
 
             // Show completion notification
             setTimeout(() => {
-                showNotification(`✅ ${translations[lang]['all_services_updated_for']} ${currentLocation}`, 'success');
+                showNotification(`✅ ${ translations[lang]['all_services_updated_for'] } ${ currentLocation } `, 'success');
                 console.log('🎉 All services reloaded successfully for location:', currentLocation);
             }, (services.length + 1) * 500 + 1000);
         }
@@ -4136,7 +4135,7 @@
             // Debounce search
             cropSearchTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`/api/realtime-gov/crop_search/?crop=${encodeURIComponent(query)}&location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&language=${lang}`);
+                    const response = await fetch(`/ api / realtime - gov / crop_search /? crop = ${ encodeURIComponent(query) }& location=${ currentLocation }& latitude=${ currentLatitude }& longitude=${ currentLongitude }& language=${ lang } `);
                     const data = await response.json();
 
                     if (data.comprehensive_analysis) {
@@ -4161,14 +4160,14 @@
 
             if (crops) {
                 container.innerHTML = crops.map(crop => `
-                    <div class="crop-suggestion" onclick="selectCrop('${crop}')">
+                    < div class="crop-suggestion" onclick = "selectCrop('${crop}')" >
                         <div>
                             <div class="crop-suggestion-name">${crop}</div>
                             <div class="crop-suggestion-details" data-i18n="click_to_analyze">${translations[lang]['click_to_analyze']}</div>
                         </div>
                         <div class="crop-suggestion-details">🌾</div>
-                    </div>
-                `).join('');
+                    </div >
+                    `).join('');
             }
 
             container.style.display = 'block';
@@ -4199,86 +4198,86 @@
             const lang = localStorage.getItem('selectedLanguage') || 'hi';
 
             container.innerHTML = `
-                <div class="real-time-header">
+                    < div class="real-time-header" >
                     <h4 data-i18n="crop_analysis_header">🌾 ${analysis.crop_name} - ${data.location}</h4>
                     <p class="data-source" data-i18n="data_source">📊 स्रोत: ${data.data_source}</p>
                     <p class="timestamp" data-i18n="last_updated">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString(lang === 'en' ? 'en-US' : 'hi-IN')}</p>
-                </div>
-                
-                <div class="crop-analysis-container">
-                    <div class="crop-analysis-card">
-                        <h5 data-i18n="basic_info_title">📊 मूलभूत जानकारी</h5>
-                        <div class="analysis-grid">
-                            <div class="analysis-item">
-                                <strong data-i18n="season">मौसम:</strong> ${analysis.season}
+                </div >
+
+                    <div class="crop-analysis-container">
+                        <div class="crop-analysis-card">
+                            <h5 data-i18n="basic_info_title">📊 मूलभूत जानकारी</h5>
+                            <div class="analysis-grid">
+                                <div class="analysis-item">
+                                    <strong data-i18n="season">मौसम:</strong> ${analysis.season}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="duration">अवधि:</strong> ${analysis.duration_days} ${translations[lang]['days']}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="yield">उत्पादन:</strong> ${analysis.yield_prediction}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="market_price">बाजार भाव:</strong> ${analysis.current_market_price}
+                                </div>
                             </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="duration">अवधि:</strong> ${analysis.duration_days} ${translations[lang]['days']}
+                        </div>
+
+                        <div class="crop-analysis-card">
+                            <h5 data-i18n="profit_analysis_title">💰 लाभ विश्लेषण</h5>
+                            <div class="analysis-grid">
+                                <div class="analysis-item">
+                                    <strong data-i18n="cost">लागत:</strong> ${analysis.input_cost}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="revenue">आय:</strong> ${analysis.revenue}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="profit">लाभ:</strong> ${analysis.profit}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="profit_percentage">लाभ %:</strong> ${analysis.profit_percentage}
+                                </div>
                             </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="yield">उत्पादन:</strong> ${analysis.yield_prediction}
+                        </div>
+
+                        <div class="crop-analysis-card">
+                            <h5 data-i18n="cultivation_info_title">🌱 खेती की जानकारी</h5>
+                            <div class="analysis-grid">
+                                <div class="analysis-item">
+                                    <strong data-i18n="soil">मिट्टी:</strong> ${analysis.soil_type}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="water_requirement">पानी:</strong> ${analysis.water_requirement}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="temperature">तापमान:</strong> ${analysis.temperature_range}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="government_support">सरकारी सहायता:</strong> ${analysis.government_support}
+                                </div>
                             </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="market_price">बाजार भाव:</strong> ${analysis.current_market_price}
+                        </div>
+
+                        <div class="crop-analysis-card">
+                            <h5 data-i18n="future_prediction_title">📈 भविष्य की भविष्यवाणी</h5>
+                            <div class="analysis-grid">
+                                <div class="analysis-item">
+                                    <strong data-i18n="future_price">भविष्य की कीमत:</strong> ${analysis.future_price_prediction?.next_3_months || '₹2,500/quintal'}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="next_season_yield">अगले सीजन उत्पादन:</strong> ${analysis.yield_prediction_next_season?.predicted_yield || '40 quintals/hectare'}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="next_season_profit">अगले सीजन लाभ:</strong> ${analysis.profit_prediction_next_season?.predicted_profit || '₹60,000/hectare'}
+                                </div>
+                                <div class="analysis-item">
+                                    <strong data-i18n="risk_level">जोखिम स्तर:</strong> ${analysis.risk_level}
+                                </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="crop-analysis-card">
-                        <h5 data-i18n="profit_analysis_title">💰 लाभ विश्लेषण</h5>
-                        <div class="analysis-grid">
-                            <div class="analysis-item">
-                                <strong data-i18n="cost">लागत:</strong> ${analysis.input_cost}
-                            </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="revenue">आय:</strong> ${analysis.revenue}
-                            </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="profit">लाभ:</strong> ${analysis.profit}
-                            </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="profit_percentage">लाभ %:</strong> ${analysis.profit_percentage}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="crop-analysis-card">
-                        <h5 data-i18n="cultivation_info_title">🌱 खेती की जानकारी</h5>
-                        <div class="analysis-grid">
-                            <div class="analysis-item">
-                                <strong data-i18n="soil">मिट्टी:</strong> ${analysis.soil_type}
-                            </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="water_requirement">पानी:</strong> ${analysis.water_requirement}
-                            </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="temperature">तापमान:</strong> ${analysis.temperature_range}
-                            </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="government_support">सरकारी सहायता:</strong> ${analysis.government_support}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="crop-analysis-card">
-                        <h5 data-i18n="future_prediction_title">📈 भविष्य की भविष्यवाणी</h5>
-                        <div class="analysis-grid">
-                            <div class="analysis-item">
-                                <strong data-i18n="future_price">भविष्य की कीमत:</strong> ${analysis.future_price_prediction?.next_3_months || '₹2,500/quintal'}
-                            </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="next_season_yield">अगले सीजन उत्पादन:</strong> ${analysis.yield_prediction_next_season?.predicted_yield || '40 quintals/hectare'}
-                            </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="next_season_profit">अगले सीजन लाभ:</strong> ${analysis.profit_prediction_next_season?.predicted_profit || '₹60,000/hectare'}
-                            </div>
-                            <div class="analysis-item">
-                                <strong data-i18n="risk_level">जोखिम स्तर:</strong> ${analysis.risk_level}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+                `;
 
             hideCropSuggestions();
             applyTranslations(lang, container); // Apply translations to dynamically loaded content
@@ -4298,21 +4297,21 @@
 
             try {
                 const container = document.getElementById('pricesData');
-                container.innerHTML = `<div class="loading" data-i18n="loading_mandi_prices">${translations[lang]['loading_mandi_prices']}</div>`;
+                container.innerHTML = `< div class="loading" data - i18n="loading_mandi_prices" > ${ translations[lang]['loading_mandi_prices'] }</div > `;
 
-                const response = await fetch(`/api/realtime-gov/market_prices/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&mandi=${encodeURIComponent(selectedMandi)}`);
+                const response = await fetch(`/ api / realtime - gov / market_prices /? location = ${ currentLocation }& latitude=${ currentLatitude }& longitude=${ currentLongitude }& mandi=${ encodeURIComponent(selectedMandi) } `);
                 const data = await response.json();
 
                 if (data.status === 'success' && data.crops && data.crops.length > 0) {
                     currentMarketData = data;
                     displayMandiPrices(data);
                 } else {
-                    container.innerHTML = `<div class="error" data-i18n="no_price_info_for_mandi">${translations[lang]['no_price_info_for_mandi']}</div>`;
+                    container.innerHTML = `< div class="error" data - i18n="no_price_info_for_mandi" > ${ translations[lang]['no_price_info_for_mandi'] }</div > `;
                 }
                 applyTranslations(lang, container); // Apply translations to dynamically loaded content
             } catch (error) {
                 console.error('Error loading mandi prices:', error);
-                document.getElementById('pricesData').innerHTML = `<div class="error" data-i18n="error_loading_mandi_prices">${translations[lang]['error_loading_mandi_prices']}</div>`;
+                document.getElementById('pricesData').innerHTML = `< div class="error" data - i18n="error_loading_mandi_prices" > ${ translations[lang]['error_loading_mandi_prices'] }</div > `;
                 applyTranslations(lang, document.getElementById('pricesData')); // Apply translations to dynamically loaded content
             }
         }
@@ -4321,13 +4320,13 @@
             const container = document.getElementById('pricesData');
             const lang = localStorage.getItem('selectedLanguage') || 'hi';
             container.innerHTML = `
-                <div class="real-time-header">
+                    < div class="real-time-header" >
                     <h4 data-i18n="market_prices_header">💰 बाजार भाव - ${data.location}</h4>
                     <p class="data-source" data-i18n="data_source">📊 स्रोत: ${data.data_source || 'Ultra-Dynamic Government APIs'}</p>
                     <p class="timestamp" data-i18n="last_updated">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString(lang === 'en' ? 'en-US' : 'hi-IN')}</p>
-                </div>
+                </div >
                 
-                <!-- Mandi Selection Section -->
+                < !--Mandi Selection Section-- >
                 <div class="mandi-search-container">
                     <h5 data-i18n="select_nearest_mandi">🏪 निकटतम मंडी चुनें</h5>
                     <div class="mandi-selection-container">
@@ -4388,7 +4387,7 @@
                         </div>
                     `).join('') : '\u003cp>??????????? ?????? ???? ??\u003c/p>'}
                 </div>
-            `;
+                `;
             applyTranslations(lang, container); // Apply translations to dynamically loaded content
         }
 
@@ -4399,25 +4398,25 @@
 
             if (!selectedMandi) return;
 
-            console.log(`Updating prices for mandi: ${selectedMandi}`);
+            console.log(`Updating prices for mandi: ${ selectedMandi } `);
 
             const pricesGrid = document.querySelector('.mandi-prices-grid');
-            pricesGrid.innerHTML = `<div class="text-center p-4"><div class="spinner-border text-success" role="status"></div><p>${translations[lang]['loading_mandi_prices']}</p></div>`;
+            pricesGrid.innerHTML = `< div class="text-center p-4" ><div class="spinner-border text-success" role="status"></div><p>${translations[lang]['loading_mandi_prices']}</p></div > `;
 
             try {
-                const response = await fetch(`/api/realtime-gov/market_prices/?location=${currentLocation}&mandi=${encodeURIComponent(selectedMandi)}&language=${lang}`);
+                const response = await fetch(`/ api / realtime - gov / market_prices /? location = ${ currentLocation }& mandi=${ encodeURIComponent(selectedMandi) }& language=${ lang } `);
                 const data = await response.json();
 
                 if (data.status === 'success' && data.market_prices && data.market_prices.top_crops) {
                     const crops = data.market_prices.top_crops;
 
                     if (crops.length === 0) {
-                        pricesGrid.innerHTML = `<div class="text-center p-4"><p>${translations[lang]['no_price_info_for_mandi']}</p></div>`;
+                        pricesGrid.innerHTML = `< div class="text-center p-4" > <p>${translations[lang]['no_price_info_for_mandi']}</p></div > `;
                         return;
                     }
 
                     pricesGrid.innerHTML = crops.map(crop => `
-                        <div class="mandi-price-square">
+                    < div class="mandi-price-square" >
                             <div class="square-header">
                                 <h6>🌾 ${crop.crop_name_hindi || crop.crop_name}</h6>
                                 <span class="trend-icon">${crop.trend === 'बढ़ रहा' ? '📈' : crop.trend === 'गिर रहा' ? '📉' : '📊'}</span>
@@ -4454,16 +4453,16 @@
                                     <span class="date">${crop.date || new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'hi-IN')}</span>
                                 </div>
                             </div>
-                        </div>
+                        </div >
                     `).join('');
 
                     applyTranslations(lang, pricesGrid);
                 } else {
-                    pricesGrid.innerHTML = `<div class="text-center p-4"><p>${translations[lang]['error_loading_mandi_prices']}</p></div>`;
+                    pricesGrid.innerHTML = `< div class="text-center p-4" > <p>${translations[lang]['error_loading_mandi_prices']}</p></div > `;
                 }
             } catch (error) {
                 console.error('Error updating mandi prices:', error);
-                pricesGrid.innerHTML = `<div class="text-center p-4"><p>${translations[lang]['error_loading_mandi_prices']}</p></div>`;
+                pricesGrid.innerHTML = `< div class="text-center p-4" > <p>${translations[lang]['error_loading_mandi_prices']}</p></div > `;
             }
         }
 
@@ -4544,7 +4543,7 @@
                     });
                 }
 
-                console.log(`✅ Service card ${index + 1} setup complete: ${serviceName}`);
+                console.log(`✅ Service card ${ index + 1 } setup complete: ${ serviceName } `);
             });
         }
 

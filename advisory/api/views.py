@@ -168,7 +168,7 @@ class ChatbotViewSet(viewsets.ViewSet):
                 )
             else:
                 # Use standard handle for general queries
-                response_data = self._handle_general_query_simple(query, language, location)
+                response_data = self._handle_general_query_advanced(query, language, location)
             
             return Response(response_data, status=status.HTTP_200_OK)
             
@@ -493,6 +493,60 @@ Please ask your question in more detail."""
             logger.error(f"Error in intelligent fallback with government data: {e}")
             return self._get_intelligent_fallback_response(query, language, location)
     
+    def _handle_general_query_advanced(self, query: str, language: str, location: str) -> Dict[str, Any]:
+        """Handle ALL general queries using Google AI or Ollama (Advanced)"""
+        try:
+            logger.info(f"🤖 Processing general query (Advanced): {query}")
+            
+            # 1. Try Google AI Studio (Gemini) - Fluent Conversationalist
+            if self.services.get('google_ai'):
+                try: 
+                    response_text = self.services['google_ai'].process_query(query)
+                    return {
+                        'response': response_text,
+                        'data_source': 'google_gemini',
+                        'language': language,
+                        'location': location,
+                        'confidence': 0.9,
+                        'response_type': 'general',
+                        'model_used': 'gemini-1.5-flash',
+                        'timestamp': datetime.now().isoformat()
+                    }
+                except Exception as e:
+                    logger.warning(f"Google AI failed: {e}")
+
+            # 2. Try Ollama (Local LLM)
+            if self.services.get('ollama'):
+                try:
+                    logger.info("🦙 Using Ollama for general query")
+                    
+                    if language == 'hindi':
+                        prompt = f"सवाल: {query}\nस्थान: {location}\nकृषिमित्र AI के रूप में मददगार जवाब दें।"
+                    else:
+                        prompt = f"Question: {query}\nLocation: {location}\nAnswer as KrishiMitra AI."
+
+                    ollama_response = self.services['ollama'].generate_response(prompt, language)
+                    
+                    if ollama_response and len(ollama_response.strip()) > 5:
+                        return {
+                            'response': ollama_response,
+                            'data_source': 'ollama_ai',
+                            'language': language,
+                            'location': location,
+                            'confidence': 0.95,
+                            'response_type': 'ollama_ai',
+                            'timestamp': datetime.now().isoformat()
+                        }
+                except Exception as e:
+                    logger.warning(f"Ollama failed for general query: {e}")
+            
+            # 3. Fallback to intelligent response
+            return self._get_intelligent_fallback_response(query, language, location)
+            
+        except Exception as e:
+            logger.error(f"Error in advanced general query handling: {e}")
+            return self._get_intelligent_fallback_response(query, language, location)
+
     def _handle_general_query_simple(self, query: str, language: str, location: str) -> Dict[str, Any]:
         """Handle ALL general queries using Ollama - Simple and Effective"""
         try:
@@ -2252,3 +2306,98 @@ class DiagnosticViewSet(viewsets.ViewSet):
             return Response({'status': 'success', 'message': 'Feedback recorded for Active Learning'})
         except Exception as e:
             return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# -------------------------------------------------------------------------
+
+# Dynamic Extension for ChatbotViewSet (Fixing Indentation Issues)
+
+# -------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------
+# Dynamic Extension for ChatbotViewSet (Fixing Indentation Issues)
+# -------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# Dynamic Extension for ChatbotViewSet (Fixing Indentation Issues)
+# -------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# Dynamic Extension for ChatbotViewSet (Fixing Indentation Issues)
+# -------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# Dynamic Extension for ChatbotViewSet (Fixing Indentation Issues)
+# -------------------------------------------------------------------------
+def chatbot_handle_general_query_advanced(self, query: str, language: str, location: str):
+    """Handle ALL general queries using Google AI or Ollama (Advanced)"""
+    import datetime
+    from datetime import datetime
+    import logging
+    
+    # Setup logger locally to avoid scope issues
+    logger = logging.getLogger(__name__)
+
+    try:
+        # 1. Try Google AI Studio (Gemini)
+        if self.services.get('google_ai'):
+            try: 
+                response_text = self.services['google_ai'].process_query(query)
+                return {
+                    'response': response_text,
+                    'data_source': 'google_gemini',
+                    'language': language,
+                    'location': location,
+                    'confidence': 0.9,
+                    'response_type': 'general',
+                    'model_used': 'gemini-1.5-flash',
+                    'timestamp': datetime.now().isoformat()
+                }
+            except Exception as e:
+                logger.warning(f"Google AI failed: {e}")
+
+        # 2. Try Ollama (Local LLM)
+        if self.services.get('ollama'):
+            try:
+                if language == 'hindi':
+                    prompt = f"सवाल: {query}\nस्थान: {location}\nकृषिमित्र AI के रूप में मददगार जवाब दें।"
+                else:
+                    prompt = f"Question: {query}\nLocation: {location}\nAnswer as KrishiMitra AI."
+
+                ollama_response = self.services['ollama'].generate_response(prompt, language)
+                
+                if ollama_response and len(ollama_response.strip()) > 5:
+                    return {
+                        'response': ollama_response,
+                        'data_source': 'ollama_ai',
+                        'language': language,
+                        'location': location,
+                        'confidence': 0.95,
+                        'response_type': 'ollama_ai',
+                        'timestamp': datetime.now().isoformat()
+                    }
+            except Exception as e:
+                logger.warning(f"Ollama failed for general query: {e}")
+        
+        # 3. Fallback to intelligent response
+        # Using getattr to be safe
+        if hasattr(self, '_get_intelligent_fallback_response'):
+             return self._get_intelligent_fallback_response(query, language, location)
+        
+        return {
+             'response': "I am KrishiMitra. How can I help you?",
+             'data_source': 'hard_fallback',
+             'timestamp': datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        # Emergency error handling
+        return {
+            'response': f"System Error: {str(e)}",
+            'data_source': 'error',
+            'timestamp': "2024-01-01T00:00:00"
+        }
+
+# Apply Patch
+ChatbotViewSet._handle_general_query_advanced = chatbot_handle_general_query_advanced

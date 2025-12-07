@@ -1,0 +1,56 @@
+--- Testing Chatbot Context for Delhi ---
+Weather: 23.0°C, Risk: None
+PASS: Weather integrated
+Mandi: Okhla Mandi (Delhi)
+Top Market Crop: Tomato @ 3595
+PASS: Market integrated
+Soil Status: Wet (Moisture: 0.393)
+PASS: Soil integrated
+Schemes Found: 0
+
+Full Data:
+{
+  "location": "Delhi",
+  "timestamp": "2025-12-07T13:51:28.919668",
+  "weather": {
+    "temp_max": 23.0,
+    "rain_forecast_7d": 0.0,
+    "risk": "None",
+    "description": "Favorable Conditions"
+  },
+  "soil": {
+    "moisture": 0.393,
+    "status": "Wet"
+  },
+  "market": {
+    "mandi": "Okhla Mandi (Delhi)",
+    "top_crops": [
+      {
+        "name": "Tomato",
+        "price": 3595,
+        "trend": "बढ़ रहा"
+      },
+      {
+        "name": "Onion",
+        "price": 2686,
+        "trend": "गिर रहा"
+      },
+      {
+        "name": "Potato",
+        "price": 1144,
+        "trend": "स्थिर"
+      },
+      {
+        "name": "Rice",
+        "price": 2983,
+        "trend": "स्थिर"
+      },
+      {
+        "name": "Mustard",
+        "price": 5681,
+        "trend": "बढ़ रहा"
+      }
+    ]
+  },
+  "schemes": []
+}

@@ -3535,7 +3535,14 @@
             .then(data => {
                 document.getElementById('loading').style.display = 'none';
                 if (data.response) {
-                    addMessage(data.response, 'bot');
+                    // Enhanced response with metadata
+                    addMessage(data.response, 'bot', {
+                        dataSource: data.data_source || 'intelligent_fallback',
+                        confidence: data.confidence || 0.8,
+                        modelUsed: data.model_used || 'KrishiMitra AI',
+                        timestamp: data.timestamp,
+                        governmentData: data.government_data_included
+                    });
                 } else {
                     addMessage('क्षमा करें, मैं आपके सवाल का जवाब नहीं दे सका।', 'bot');
                 }

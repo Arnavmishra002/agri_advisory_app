@@ -194,6 +194,36 @@ Confidence should be between 0.0 and 1.0
             logger.error(f"Error in Google AI classification: {e}")
             return self._fallback_classification(query)
     
+    def _call_google_ai_text(self, prompt: str) -> str:
+        """Call Google AI to get raw text response (Conversational Mode)"""
+        try:
+            # Use Google Generative AI library if available
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=self.api_key)
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                
+                response = model.generate_content(prompt)
+                return response.text if response.text else "I am unable to process that right now."
+                
+            except ImportError:
+                 # Fallback to direct API call
+                url = f"{self.base_url}/models/{self.model}:generateContent"
+                headers = {"Content-Type": "application/json"}
+                data = {"contents": [{"parts": [{"text": prompt}]}]}
+                params = {"key": self.api_key}
+                
+                response = requests.post(url, headers=headers, json=data, params=params, timeout=30)
+                if response.status_code == 200:
+                    result = response.json()
+                    if 'candidates' in result and result['candidates']:
+                         return result['candidates'][0]['content']['parts'][0]['text']
+                return "AI Service Unavailable (Direct)"
+                
+        except Exception as e:
+            logger.error(f"Error calling Google AI Text: {e}")
+            return "I am currently experiencing connection issues."
+            
     def _call_google_ai(self, prompt: str) -> Optional[Dict[str, Any]]:
         """Call Google AI Studio API with enhanced error handling"""
         try:
@@ -519,13 +549,41 @@ Confidence should be between 0.0 and 1.0
         else:
             return f"🔄 Your query covers multiple topics. I'll help you with that."
 
+    def process_query(self, query: str) -> str:
+        """Process query and generate conversational response"""
+        # 1. Classify first
+        classification = self.classify_query(query)
+        category = classification.get('category', 'general_knowledge')
+        
+        # 2. If general/tech/fun/education, use LLM directly for conversation
+        conversational_categories = ['general_knowledge', 'technology_ai', 'entertainment_fun', 'education_learning', 'mixed_query']
+        
+        if category in conversational_categories or classification.get('confidence') < 0.6:
+            system_prompt = """
+            You are KrishiMitra, a helpful and friendly AI assistant for Indian farmers.
+            While your primary focus is agriculture, you are knowledgeable about the world and can engage in general conversation.
+            
+            Guidelines:
+            - Be polite, respectful, and helpful.
+            - If the query is about general knowledge (history, science, etc.), answer it accurately like a smart assistant.
+            - If the query is about farming, answer with expert agricultural knowledge.
+            - Keep answers concise and easy to understand.
+            - If the query is in Hindi/Hinglish, reply in the same language.
+            """
+            
+            full_prompt = f"{system_prompt}\n\nUser Query: {query}"
+            # Use text-specific method
+            return self._call_google_ai_text(full_prompt)
+
+        return self.generate_enhanced_response(query, classification)
+
     def generate_response(self, query: str) -> str:
         """Generate response - method expected by tests"""
         try:
             return self.process_query(query)
         except Exception as e:
             logger.error(f"Error generating response: {e}")
-            return "I'm Krishimitra AI, your intelligent agricultural assistant. I can help with agriculture, crops, weather, government schemes, and also answer general knowledge questions. What would you like to know?"
+            return "I'm KrishiMitra AI. I can help with agriculture, crops, weather, and general questions. What would you like to know?"
 
 # Create global instance
 google_ai_studio = GoogleAIStudio()
