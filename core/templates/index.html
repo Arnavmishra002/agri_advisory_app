@@ -2933,7 +2933,7 @@
                     contentHtml = `
             < div class="mandi-prices-grid" >
                 ${
-                    data.market_data.top_crops.map(crop => `
+            data.market_data.top_crops.map(crop => `
                                 <div class="mandi-price-square">
                                     <div class="square-header">
                                         <h6>🌾 ${crop.crop_name_hindi || crop.crop_name}</h6>
@@ -4995,6 +4995,7 @@
         })();
     </script>
 
+    <script src="/static/js/iot_blockchain.js"></script>
 </body>
 
 </html>
