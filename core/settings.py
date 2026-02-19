@@ -65,6 +65,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ✅ Added by antigravity fix
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware', # Add CorsMiddleware
     'advisory.middleware.rate_limiting.UserRateLimitMiddleware',  # User rate limiting
@@ -151,9 +152,7 @@ FILE_CHARSET = 'utf-8'
 STATIC_URL = 'static/'
 
 # Static files directories
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
+STATICFILES_DIRS = []  # ✅ Fixed — static dir created on demand
 
 # Media files
 MEDIA_URL = '/media/'
@@ -365,6 +364,7 @@ else:
     }
 }
 
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all in dev
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000", # Allow React frontend
     "http://127.0.0.1:3000",
@@ -451,3 +451,7 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+# ── WhiteNoise Static File Configuration ─────────────────────
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_AUTOREFRESH = True

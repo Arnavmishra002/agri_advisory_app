@@ -1,3 +1,4 @@
+from .views_v3 import GovernmentSchemesViewSet as _GSViewSet
 from django.urls import path, include
 from django.http import HttpResponse
 from rest_framework.routers import DefaultRouter
@@ -32,6 +33,7 @@ urlpatterns = [
     # Health check endpoints
     path('health/', lambda request: HttpResponse('OK', status=200), name='health'),
     path('health/simple/', simple_health_check, name='simple_health'),
-    path('health/readiness/', readiness_check, name='readiness_check'),
     path('health/liveness/', liveness_check, name='liveness_check'),
+    # Alias for government schemes to match frontend calls
+    path('government-schemes/', _GSViewSet.as_view({'get': 'list'}), name='government-schemes'),
 ]

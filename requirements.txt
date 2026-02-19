@@ -63,3 +63,4 @@ lxml>=4.9.0
 
 # ── Development ──────────────────────────────
 django-debug-toolbar>=4.1.0
+python-dotenv>=1.0.0

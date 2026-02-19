@@ -2336,8 +2336,7 @@
             <div class="chat-container" id="chatMessages">
                 <div class="message bot-message">
                     <strong>कृषिमित्र AI:</strong> नमस्ते! मैं आपकी कृषि संबंधी सभी समस्याओं में मदद कर सकता हूं। आप
-                    क्या जानना चाहते हैं?
-                </div>
+                    क्या जानना चाहते हैं?</div>
             </div>
             <div class="input-group">
                 <input type="text" class="form-control" id="messageInput" placeholder="अपना सवाल टाइप करें...">
@@ -2435,7 +2434,7 @@
                             try {
                                 // Add cache-busting timestamp
                                 const timestamp = new Date().getTime();
-                                const response = await fetch(`/api/government-schemes/?location=${currentLocation}&t=${timestamp}`);
+                                const response = await fetch(`/api/schemes/?location=${currentLocation}&t=${timestamp}`);
                                 const data = await response.json();
                                 
                                 console.log('Government Schemes Data for', currentLocation, ':', data);
@@ -2739,7 +2738,7 @@
                                     <label for="mandiDropdown">📍 मंडी चुनें (स्थान के अनुसार)</label>
                                     <select id="mandiDropdown" class="form-control mandi-dropdown" onchange="updatePricesForSelectedMandi()">
                                         <option value="">मंडी चुनें...</option>
-                                        ${data.market_data.nearby_mandis ? data.market_data.nearby_mandis.map(mandi => `
+                                        ${data.market_data.nearby_mandis ?data.market_data.nearby_mandis.map(mandi => `
                                             <option value="${mandi.name}">
                                                 ${mandi.name} - ${mandi.distance} - ${mandi.status}
                                             </option>
@@ -2763,7 +2762,7 @@
                                 <div class="mandi-price-square">
                                     <div class="square-header">
                                         <h6>🌾 ${crop.crop_name_hindi || crop.crop_name}</h6>
-                                        <span class="trend-icon">${crop.trend === 'बढ़ रहा' ? '📈' : crop.trend === 'गिर रहा' ? '📉' : '📊'}</span>
+                                        <span class="trend-icon">${crop.trend === 'बढ़ रहा' ?'📈' : crop.trend === 'गिर रहा' ?'📉' : '📊'}</span>
                                     </div>
                                     <div class="square-content">
                                         <div class="price-main">
@@ -2816,9 +2815,9 @@
                                     <label for="mandiDropdown">📍 मंडी चुनें (स्थान के अनुसार)</label>
                                     <select id="mandiDropdown" class="form-control mandi-dropdown" onchange="updatePricesForSelectedMandi()">
                                         <option value="">मंडी चुनें...</option>
-                                        ${data.nearest_mandis_data ? data.nearest_mandis_data.map(mandi => `
-                                            <option value="${mandi.name}" ${mandi.auto_selected ? 'data-auto-selected="true"' : ''}>
-                                                ${mandi.name} ${mandi.auto_selected ? '(निकटतम)' : ''} - ${mandi.distance} - ${mandi.specialty}
+                                        ${data.nearest_mandis_data ?data.nearest_mandis_data.map(mandi => `
+                                            <option value="${mandi.name}" ${mandi.auto_selected ?'data-auto-selected="true"' : ''}>
+                                                ${mandi.name} ${mandi.auto_selected ?'(निकटतम)' : ''} - ${mandi.distance} - ${mandi.specialty}
                                             </option>
                                         `).join('') : ''}
                                     </select>
@@ -2870,12 +2869,12 @@
                 // Add cache-busting timestamp and version
                 const timestamp = new Date().getTime();
                 const version = 'v2.0';
-                const response = await fetch(`/ api / market - prices /? location = ${ currentLocation }& latitude=${ currentLatitude }& longitude=${ currentLongitude }& t=${ timestamp }& v=${ version } `);
+                const response = await fetch(`/api/market-prices/?location=${ currentLocation }&latitude=${ currentLatitude }&longitude=${ currentLongitude }&t=${ timestamp }&v=${ version } `);
                 const data = await response.json();
 
                 console.log('Market Prices Data:', data);
-                console.log('Crops Data:', data.crops ? data.crops.length : 'No crops');
-                console.log('Nearest Mandis:', data.nearest_mandis_data ? data.nearest_mandis_data.length : 'No mandis');
+                console.log('Crops Data:', data.crops ?data.crops.length : 'No crops');
+                console.log('Nearest Mandis:', data.nearest_mandis_data ?data.nearest_mandis_data.length : 'No mandis');
 
                 // Store market data globally for mandi selection
                 currentMarketData = data;
@@ -2907,9 +2906,9 @@
                         <label for="mandiDropdown">📍 मंडी चुनें (स्थान के अनुसार)</label>
                         <select id="mandiDropdown" class="form-control mandi-dropdown" onchange="updatePricesForSelectedMandi()">
                             <option value="">मंडी चुनें...</option>
-                            ${data.market_data && data.market_data.nearby_mandis ? data.market_data.nearby_mandis.map(mandi => `
-                                        <option value="${mandi.name}" ${mandi.auto_selected ? 'selected' : ''}>
-                                            ${mandi.name} ${mandi.auto_selected ? '(निकटतम)' : ''} - ${mandi.distance || ''} - ${mandi.specialty || ''}
+                            ${data.market_data && data.market_data.nearby_mandis ?data.market_data.nearby_mandis.map(mandi => `
+                                        <option value="${mandi.name}" ${mandi.auto_selected ?'selected' : ''}>
+                                            ${mandi.name} ${mandi.auto_selected ?'(निकटतम)' : ''} - ${mandi.distance || ''} - ${mandi.specialty || ''}
                                         </option>
                                     `).join('') : ''}
                         </select>
@@ -2937,7 +2936,7 @@
                                 <div class="mandi-price-square">
                                     <div class="square-header">
                                         <h6>🌾 ${crop.crop_name_hindi || crop.crop_name}</h6>
-                                        <span class="trend-icon">${crop.trend === 'बढ़ रहा' ? '📈' : crop.trend === 'गिर रहा' ? '📉' : '📊'}</span>
+                                        <span class="trend-icon">${crop.trend === 'बढ़ रहा' ?'📈' : crop.trend === 'गिर रहा' ?'📉' : '📊'}</span>
                                     </div>
                                     <div class="square-content">
                                         <div class="price-main">
@@ -3006,7 +3005,7 @@
                 resultsContainer.innerHTML = '<div class="loading">मंडी खोज रहे हैं...</div>';
 
                 // Search for mandis in the specified location
-                const response = await fetch(`/ api / realtime - gov / mandi_search /? location = ${ encodeURIComponent(locationInput.value) }& latitude=${ currentLatitude }& longitude=${ currentLongitude } `);
+                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${ encodeURIComponent(locationInput.value) }&latitude=${ currentLatitude }&longitude=${ currentLongitude } `);
                 const data = await response.json();
 
                 if (data.mandi_data) {
@@ -3058,7 +3057,7 @@
             try {
                 resultsContainer.innerHTML = '<div class="loading">फसल खोज रहे हैं...</div>';
 
-                const response = await fetch(`/ api / realtime - gov / mandi_search /? location = ${ currentLocation }& crop=${ encodeURIComponent(cropInput.value) }& latitude=${ currentLatitude }& longitude=${ currentLongitude } `);
+                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${ currentLocation }&crop=${ encodeURIComponent(cropInput.value) }&latitude=${ currentLatitude }&longitude=${ currentLongitude } `);
                 const data = await response.json();
 
                 if (data.mandi_info) {
@@ -3246,7 +3245,7 @@
             try {
                 // Add cache-busting timestamp
                 const timestamp = new Date().getTime();
-                const response = await fetch(`/ api / realtime - gov / pest_detection /? t = ${ timestamp } `, {
+                const response = await fetch(`/api/realtime-gov/pest_detection/?t=${ timestamp } `, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -3390,7 +3389,7 @@
                     body: JSON.stringify({
                         query: message,
                         language: 'hi',
-                        location: typeof currentLocation !== 'undefined' ? currentLocation : 'Lucknow'
+                        location: typeof currentLocation !== 'undefined' ?currentLocation : 'Lucknow'
                     })
                 })
                     .then(response => {
@@ -3495,7 +3494,7 @@
             locationSearchTimeout = setTimeout(async () => {
                 try {
                     console.log('Making API request for:', query);
-                    const response = await fetch(`/ api / locations / search /? q = ${ encodeURIComponent(query) } `);
+                    const response = await fetch(`/api/locations/search/?q=${ encodeURIComponent(query) } `);
                     console.log('API response status:', response.status);
                     const data = await response.json();
                     console.log('API response data:', data);
@@ -3582,7 +3581,7 @@
                         const lon = position.coords.longitude;
 
                         // Reverse geocoding to get location name
-                        fetch(`/ api / locations / reverse /? lat = ${ lat }& lon=${ lon } `)
+                        fetch(`/api/locations/reverse/?lat=${ lat }&lon=${ lon } `)
                             .then(response => response.json())
                             .then(data => {
                                 if (data.location) {
@@ -3718,7 +3717,7 @@
             // Debounce search
             cropSearchTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`/ api / realtime - gov / crop_search /? crop = ${ encodeURIComponent(query) }& location=${ currentLocation }& latitude=${ currentLatitude }& longitude=${ currentLongitude } `);
+                    const response = await fetch(`/api/realtime-gov/crop_search/?crop=${ encodeURIComponent(query) }&location=${ currentLocation }&latitude=${ currentLatitude }&longitude=${ currentLongitude } `);
                     const data = await response.json();
 
                     if (data.comprehensive_analysis) {
@@ -3877,7 +3876,7 @@
                 const container = document.getElementById('pricesData');
                 container.innerHTML = '<div class="loading">मंडी की कीमतें लोड हो रही हैं...</div>';
 
-                const response = await fetch(`/ api / realtime - gov / market_prices /? location = ${ currentLocation }& latitude=${ currentLatitude }& longitude=${ currentLongitude }& mandi=${ encodeURIComponent(selectedMandi) } `);
+                const response = await fetch(`/api/realtime-gov/ market_prices /?location=${ currentLocation }&latitude=${ currentLatitude }&longitude=${ currentLongitude }&mandi=${ encodeURIComponent(selectedMandi) } `);
                 const data = await response.json();
 
                 if (data.status === 'success' && data.crops && data.crops.length > 0) {
@@ -3910,9 +3909,9 @@
                         <label for="mandiDropdown">📍 मंडी चुनें (स्थान के अनुसार)</label>
                         <select id="mandiDropdown" class="form-control mandi-dropdown" onchange="updatePricesForSelectedMandi()">
                             <option value="">मंडी चुनें...</option>
-                            ${data.nearest_mandis_data ? data.nearest_mandis_data.map(mandi => `
-                                    <option value="${mandi.name}" ${mandi.name === selectedMandi ? 'selected' : ''}>
-                                        ${mandi.name} ${mandi.auto_selected ? '(निकटतम)' : ''} - ${mandi.distance} - ${mandi.specialty}
+                            ${data.nearest_mandis_data ?data.nearest_mandis_data.map(mandi => `
+                                    <option value="${mandi.name}" ${mandi.name === selectedMandi ?'selected' : ''}>
+                                        ${mandi.name} ${mandi.auto_selected ?'(निकटतम)' : ''} - ${mandi.distance} - ${mandi.specialty}
                                     </option>
                                 `).join('') : ''}
                         </select>
@@ -3934,7 +3933,7 @@
                         <div class="mandi-price-square">
                             <div class="square-header">
                                 <h6>🌾 ${crop.name}</h6>
-                                <span class="trend-icon">${crop.market_trend === 'Rising' ? '📈' : crop.market_trend === 'Falling' ? '📉' : '📊'}</span>
+                                <span class="trend-icon">${crop.market_trend === 'Rising' ?'📈' : crop.market_trend === 'Falling' ?'📉' : '📊'}</span>
                             </div>
                             <div class="square-content">
                                 <div class="price-main">
@@ -4088,9 +4087,9 @@
                                     <label for="mandiDropdown">📍 मंडी चुनें (स्थान के अनुसार)</label>
                                     <select id="mandiDropdown" class="form-control mandi-dropdown" onchange="updatePricesForSelectedMandi()">
                                         <option value="">मंडी चुनें...</option>
-                                        ${data.nearest_mandis_data ? data.nearest_mandis_data.map(mandi => `
-                                            <option value="${mandi.name}" ${mandi.name === selectedMandi ? 'selected' : ''}>
-                                                ${mandi.name} ${mandi.auto_selected ? '(निकटतम)' : ''} - ${mandi.distance} - ${mandi.specialty}
+                                        ${data.nearest_mandis_data ?data.nearest_mandis_data.map(mandi => `
+                                            <option value="${mandi.name}" ${mandi.name === selectedMandi ?'selected' : ''}>
+                                                ${mandi.name} ${mandi.auto_selected ?'(निकटतम)' : ''} - ${mandi.distance} - ${mandi.specialty}
                                             </option>
                                         `).join('') : ''}
                                     </select>
@@ -4112,7 +4111,7 @@
                                 <div class="mandi-price-square">
                                     <div class="square-header">
                                         <h6>🌾 ${crop.name}</h6>
-                                        <span class="trend-icon">${crop.market_trend === 'Rising' ? '📈' : crop.market_trend === 'Falling' ? '📉' : '📊'}</span>
+                                        <span class="trend-icon">${crop.market_trend === 'Rising' ?'📈' : crop.market_trend === 'Falling' ?'📉' : '📊'}</span>
                                     </div>
                                     <div class="square-content">
                                         <div class="price-main">
@@ -4449,8 +4448,8 @@
                     `;
 
                         crops.forEach(crop => {
-                            const profitColor = crop.profit >= 0 ? '#28a745' : '#dc3545';
-                            const trendIcon = crop.trend === 'बढ़ रहा' ? '📈' : crop.trend === 'गिर रहा' ? '📉' : '📊';
+                            const profitColor = crop.profit >= 0 ?'#28a745' : '#dc3545';
+                            const trendIcon = crop.trend === 'बढ़ रहा' ?'📈' : crop.trend === 'गिर रहा' ?'📉' : '📊';
                             html += `
                             <div style="background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: transform 0.3s;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -4493,15 +4492,15 @@
                         `;
 
                             nearbyMandis.forEach(mandi => {
-                                const statusColor = mandi.status === 'खुला' ? '#28a745' : '#dc3545';
+                                const statusColor = mandi.status === 'खुला' ?'#28a745' : '#dc3545';
                                 const isSelected = currentMandi === mandi.name;
-                                const borderStyle = isSelected ? 'border: 3px solid #4a7c59;' : 'border: 1px solid #ddd;';
+                                const borderStyle = isSelected ?'border: 3px solid #4a7c59;' : 'border: 1px solid #ddd;';
                                 html += `
-                                <div style="background: ${isSelected ? '#f0f8f0' : '#f8f9fa'}; border-radius: 10px; padding: 15px; ${borderStyle} cursor: pointer; transition: all 0.3s;" 
+                                <div style="background: ${isSelected ?'#f0f8f0' : '#f8f9fa'}; border-radius: 10px; padding: 15px; ${borderStyle} cursor: pointer; transition: all 0.3s;" 
                                      onclick="selectMandi('${mandi.name}')"
                                      onmouseover="this.style.transform='scale(1.05)'"
                                      onmouseout="this.style.transform='scale(1)'">
-                                    <div style="font-weight: 700; color: #2d5016; margin-bottom: 5px;">${mandi.name} ${isSelected ? '✓' : ''}</div>
+                                    <div style="font-weight: 700; color: #2d5016; margin-bottom: 5px;">${mandi.name} ${isSelected ?'✓' : ''}</div>
                                     <div style="font-size: 0.85rem; color: #666;">📍 ${mandi.distance}</div>
                                     <div style="font-size: 0.85rem; color: #666;">🏷️ ${mandi.specialty}</div>
                                     <div style="font-size: 0.85rem; color: ${statusColor}; font-weight: 600;">${mandi.status}</div>
@@ -4699,7 +4698,7 @@
                     `;
 
                         recommendations.forEach(crop => {
-                            const suitabilityColor = crop.suitability_score >= 85 ? '#28a745' : crop.suitability_score >= 70 ? '#ffc107' : '#dc3545';
+                            const suitabilityColor = crop.suitability_score >= 85 ?'#28a745' : crop.suitability_score >= 70 ?'#ffc107' : '#dc3545';
                             const categoryIcon = getCategoryIcon(crop.category);
                             const waterColor = getWaterColor(crop.water_requirement);
 
@@ -4711,7 +4710,7 @@
                                 if (confidencePercent > 0) {
                                     mlBadge = `<div style="margin-top: 10px; background: #e8f0fe; padding: 8px; border-radius: 8px; font-size: 0.85rem; color: #1967d2; display: flex; align-items: center; gap: 5px; border: 1px solid #d2e3fc;">
                                         <span>🤖 AI Confidence: <strong>${confidencePercent}%</strong></span>
-                                        ${crop.prediction_data && crop.prediction_data.predicted_yield ? `<span style="margin-left: auto; border-left: 1px solid #ccc; padding-left: 8px;">Est. Yield: <strong>${crop.prediction_data.predicted_yield.toFixed(1)} Q/ha</strong></span>` : ''}
+                                        ${crop.prediction_data && crop.prediction_data.predicted_yield ?`<span style="margin-left: auto; border-left: 1px solid #ccc; padding-left: 8px;">Est. Yield: <strong>${crop.prediction_data.predicted_yield.toFixed(1)} Q/ha</strong></span>` : ''}
                                     </div>`;
                                 }
                             }
@@ -4845,7 +4844,7 @@
                 `;
 
                 diagnoses.forEach((d, idx) => {
-                    const severityColor = d.severity_label === 'High' ? '#dc3545' : (d.severity_label === 'Medium' ? '#ffc107' : '#28a745');
+                    const severityColor = d.severity_label === 'High' ?'#dc3545' : (d.severity_label === 'Medium' ?'#ffc107' : '#28a745');
                     const confidencePercent = Math.round(d.confidence * 100);
 
                     html += `
@@ -4894,13 +4893,13 @@
                                         </ul>
                                     </div>
 
-                                    ${d.verification_note ? `
+                                    ${d.verification_note ?`
                                         <div class="alert alert-info py-2 px-3 mt-3 mb-0" style="background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460;">
                                             <small><i class="fas fa-info-circle"></i> ${d.verification_note}</small>
                                         </div>
                                     ` : ''}
 
-                                    ${d.explanation ? `
+                                    ${d.explanation ?`
                                         <div class="alert alert-secondary py-2 px-3 mt-2 mb-0" style="background-color: #e2e3e5; border-color: #d6d8db; color: #383d41;">
                                             <small><strong>Explanation:</strong> ${d.explanation}</small>
                                         </div>
@@ -4943,7 +4942,7 @@
                             is_correct: isCorrect
                         })
                     });
-                    alert(isCorrect ? 'धन्यवाद! Feedback recorded.' : 'Thank you. We will improve our model.');
+                    alert(isCorrect ?'धन्यवाद! Feedback recorded.' : 'Thank you. We will improve our model.');
                 } catch (error) {
                     console.error('Feedback error:', error);
                 }
