@@ -4366,7 +4366,7 @@ class EnhancedGovernmentAPI:
             'local_market_size': 'Large' if location.lower() in ['delhi', 'mumbai', 'bangalore'] else 'Medium'
         }
     
-    def get_weather_data(self, lat: float, lon: float) -> Dict[str, Any]:
+    def get_weather_data(self, location_or_lat=None, lat=None, lon=None, language='en', **kwargs):
         """Get real-time weather data from government APIs"""
         try:
             # Try IMD (Indian Meteorological Department) API

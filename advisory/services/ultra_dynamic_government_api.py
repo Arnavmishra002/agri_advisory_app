@@ -11,6 +11,7 @@ import logging
 import time
 from datetime import datetime
 from typing import Dict, List, Any, Optional
+from .enhanced_market_prices import EnhancedMarketPricesService
 from concurrent.futures import ThreadPoolExecutor
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
@@ -26,9 +27,11 @@ class UltraDynamicGovernmentAPI:
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'KrisiMitra-AI/4.0 (Ultra-Dynamic Government API)',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
+            'Referer': 'https://www.google.com/',
+            'Connection': 'keep-alive'
         })
         
         # Government API Endpoints (Real-time)
@@ -86,6 +89,10 @@ class UltraDynamicGovernmentAPI:
             'sources': [' detailed_market_analysis (Fallback)'],
             'message': 'Market data temporarily unavailable'
         }
+
+    def get_crop_recommendations(self, location: str) -> Dict[str, Any]:
+        """Get crop recommendations for a location"""
+        return self._fetch_crop_recommendations(location)
 
     def get_weather_data(self, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Get weather data for a location - ALWAYS try real-time government APIs first"""
@@ -150,7 +157,7 @@ class UltraDynamicGovernmentAPI:
                     try:
                         result = future.result(timeout=10)  # 10 second timeout per API
                         if result and result.get('status') == 'success':
-                            government_data[data_type] = result['data']
+                            government_data[data_type] = result.get('data', result)
                             sources.extend(result.get('sources', []))
                             reliability_scores.append(result.get('reliability_score', 0.8))
                         else:
@@ -474,74 +481,39 @@ class UltraDynamicGovernmentAPI:
             return None
     
     def _fetch_market_prices(self, location: str, mandi_filter: str = None) -> Dict[str, Any]:
-        """Fetch real-time market prices from Agmarknet and e-NAM with enhanced reliability"""
+        """Fetch real-time market prices using EnhancedMarketPricesService"""
         try:
-            market_data = {}
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/json,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://agmarknet.gov.in/'
-            }
+            # Initialize the enhanced service
+            market_service = EnhancedMarketPricesService()
             
-            # 1. Try Agmarknet (Xml/HTML scraping fallback or direct API)
-            # Utilizing a known open endpoint or scraping target
-            agmarknet_url = f"{self.government_apis['market_prices']['agmarknet']}?state={location}"
-            if mandi_filter:
-                agmarknet_url += f"&market={mandi_filter}"
-
+            # Fetch data with robust fallback
+            result = market_service.get_market_prices(location)
             
-            try:
-                response = self.session.get(agmarknet_url, timeout=25, headers=headers, verify=False)
-                if response.status_code == 200:
-                    try:
-                        data = response.json()
-                        for commodity in data.get('data', data.get('commodities', [])):
-                             name = commodity.get('commodity', commodity.get('name'))
-                             if name:
-                                market_data[name] = {
-                                    'current_price': float(commodity.get('modal_price', commodity.get('price', 0))),
-                                    'msp': float(commodity.get('msp', 0)),
-                                    'source': 'Agmarknet (Real-time)',
-                                    'date': datetime.now().strftime('%Y-%m-%d')
-                                }
-                    except json.JSONDecodeError:
-                        # If HTML, just log for now (scraping is complex to implement robustly in one step)
-                        logger.warning("Agmarknet returned HTML, skipping parse")
-            except Exception as e:
-                logger.warning(f"Agmarknet primary fetch failed: {e}")
-
-            # 2. Try e-NAM (National Agriculture Market)
-            if not market_data:
-                enam_url = f"{self.government_apis['market_prices']['enam']}?location={location}"
-
-                try:
-                    response = self.session.get(enam_url, timeout=25, headers=headers, verify=False)
-                    if response.status_code == 200:
-                        data = response.json()
-                        for commodity in data.get('records', []):
-                            name = commodity.get('commodity')
-                            if name:
-                                market_data[name] = {
-                                    'current_price': float(commodity.get('modal_price', 0)),
-                                    'msp': 0,
-                                    'source': 'e-NAM (Real-time)',
-                                    'date': datetime.now().strftime('%Y-%m-%d')
-                                }
-                except Exception as e:
-                     logger.warning(f"e-NAM fetch failed: {e}")
-
-            if market_data:
-                logger.info(f"✅ Successfully fetched real-time market data for {location}")
+            if result and result.get('status') == 'success' and result.get('crops'):
+                # Transform to the format expected by UltraDynamicGovernmentAPI
+                # EnhancedService returns list of dicts, UltraDynamic expects dict of dicts (name -> data)
+                
+                market_data = {}
+                for crop in result.get('crops', []):
+                    name = crop.get('name')
+                    if name:
+                        market_data[name] = {
+                            'current_price': crop.get('current_price', 0),
+                            'msp': crop.get('msp', 0),
+                            'source': crop.get('source', 'Government API'),
+                            'date': crop.get('date', datetime.now().strftime('%Y-%m-%d'))
+                        }
+                
                 return {
                     'status': 'success',
                     'data': market_data,
-                    'sources': ['Agmarknet', 'e-NAM'],
-                    'reliability_score': 0.95
+                    'sources': result.get('sources', ['Agmarknet', 'e-NAM']),
+                    'reliability_score': result.get('data_reliability', 0.95)
                 }
-            else:
-                 logger.warning("No data found from real-time sources")
-                 return None # Return None to trigger V2 fallback logic
+            
+            # If enhanced service returns no crops (unlikely with fallback), return None
+            logger.warning("EnhancedMarketPricesService returned no crops")
+            return None 
             
         except Exception as e:
             logger.error(f"Market prices API error: {e}")

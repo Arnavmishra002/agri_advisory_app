@@ -1805,7 +1805,7 @@ class ComprehensiveCropRecommendations:
             # Fallback to enhanced government API
             try:
                 enhanced_api = EnhancedGovernmentAPI()
-                market_data = enhanced_api.get_market_data(location)
+                market_data = enhanced_api.get_enhanced_market_prices(location)
                 if market_data:
                     return {
                         'current_demand': market_data.get('demand', 'High'),
@@ -2226,6 +2226,7 @@ class ComprehensiveCropRecommendations:
                     
                     crop_data = {
                         'crop_name': crop_name.title(),
+                        'name': crop_name.title(),
                         'crop_name_hindi': details.get('name_hindi', crop_name),
                         'category': 'Cereal', # Simplified default
                         'suitability_score': min(score + random.randint(30, 48), 98), # Ensure high score for demo
@@ -2256,6 +2257,7 @@ class ComprehensiveCropRecommendations:
                         # Use a default structure
                         recommended_crops.append({
                             'crop_name': crop_name.title(),
+                            'name': crop_name.title(),
                             'crop_name_hindi': details.get('name_hindi', crop_name),
                             'category': 'Cereal',
                             'suitability_score': 70, # Default decent score

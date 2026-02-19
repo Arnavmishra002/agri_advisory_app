@@ -6,7 +6,7 @@ Real Government API Integration for Mandi Prices
 
 import requests
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -17,9 +17,17 @@ class EnhancedMarketPricesService:
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'Krishimitra-AI/1.0 (Agricultural Advisory System)',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
+            'Referer': 'https://www.google.com/',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0'
         })
         
         # OFFICIAL GOVERNMENT MANDI API ENDPOINTS - REAL-TIME DATA
@@ -326,44 +334,153 @@ class EnhancedMarketPricesService:
         
         return None
     
+    # Reverse-Engineered Mappings from Agmarknet Portal (2026)
+    STATE_MAPPING = {
+        'andaman and nicobar': 1, 'andhra pradesh': 2, 'arunachal pradesh': 3, 'assam': 4,
+        'bihar': 5, 'chandigarh': 6, 'chattisgarh': 7, 'dadra and nagar haveli': 8,
+        'daman and diu': 9, 'delhi': 10, 'goa': 11, 'gujarat': 12, 'haryana': 13,
+        'himachal pradesh': 14, 'jammu and kashmir': 15, 'jharkhand': 16, 'karnataka': 17,
+        'kerala': 18, 'lakshadweep': 19, 'madhya pradesh': 20, 'maharashtra': 21,
+        'manipur': 22, 'meghalaya': 23, 'mizoram': 24, 'nagaland': 25, 'odisha': 26,
+        'puducherry': 27, 'punjab': 28, 'rajasthan': 29, 'sikkim': 30, 'tamil nadu': 31,
+        'telangana': 32, 'tripura': 33, 'uttar pradesh': 34, 'uttarakhand': 35,
+        'west bengal': 36
+    }
+
+    # Common Commodities (Group 2: Cereals)
+    # TODO: Add Vegetables (Group 15) and others dynamically
+    COMMODITY_MAPPING = {
+        'wheat': {'id': 26, 'group': 2},
+        'rice': {'id': 20, 'group': 2},
+        'paddy(common)': {'id': 16, 'group': 2},
+        'maize': {'id': 14, 'group': 2},
+        'bajra': {'id': 1, 'group': 2},
+        'jowar': {'id': 10, 'group': 2},
+        'barley': {'id': 2, 'group': 2}
+    }
+
     def _fetch_agmarknet_data(self, state: str, location: str) -> Optional[Dict[str, Any]]:
-        """Fetch data from Agmarknet API with proper error handling"""
+        """
+        Fetch REAL data from Agmarknet Internal API (Reverse Engineered).
+        """
         try:
-            # Use real Agmarknet API endpoints
-            url = f"{self.government_apis['agmarknet']['base_url']}?state={state}&limit=20"
-            response = self.session.get(url, timeout=15, verify=False)
+            state_lower = state.lower().replace('nct of ', '').strip()
+            if 'delhi' in state_lower: state_lower = 'delhi' # Normalize Delhi
             
-            if response.status_code == 200:
-                data = response.json()
-                crops = []
-                
-                # Process real government data
-                for item in data.get('data', []):
-                    commodity = item.get('commodity', 'Unknown')
-                    price = item.get('price', 0)
-                    msp = item.get('msp', 0)
-                    
-                    crops.append({
-                        'name': commodity,
-                        'current_price': price,
-                        'msp': msp,
-                        'mandi': item.get('mandi', location),
-                        'state': item.get('state', state),
-                        'date': item.get('date', datetime.now().strftime('%Y-%m-%d')),
-                        'source': 'Agmarknet Government API',
-                        'profit_margin': max(0, price - msp),
-                        'profit_percentage': round(((price - msp) / msp) * 100, 2) if msp > 0 else 0
-                    })
-                
-                logger.info(f"Successfully fetched {len(crops)} crops from Agmarknet for {location}")
-                return {'crops': crops}
-            else:
-                logger.warning(f"Agmarknet API returned status {response.status_code}")
+            state_id = self.STATE_MAPPING.get(state_lower)
+            if not state_id:
+                logger.warning(f"State mapping not found for {state}")
+                return None
+
+            full_crops = []
             
+            # Fetch for key commodities to ensure we get some data
+            target_commodities = [
+                self.COMMODITY_MAPPING['wheat'],
+                self.COMMODITY_MAPPING['rice'],
+                self.COMMODITY_MAPPING['paddy(common)'],
+                self.COMMODITY_MAPPING['maize']
+            ]
+
+            # Try today and yesterday
+            dates_to_try = [
+                datetime.now().strftime('%Y-%m-%d'),
+                (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d'),
+                (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d') # Fallback to 2 days ago
+            ]
+            
+            headers = {
+                'Origin': 'https://agmarknet.gov.in',
+                'Referer': 'https://agmarknet.gov.in/',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Content-Type': 'application/json'
+            }
+
+            successful_fetch = False
+            
+            # Optimization: Try fetching all major commodities in parallel or just one by one
+            # The API seems to accept single commodity. 
+            # Let's loop through target commodities
+            
+            for commodity in target_commodities:
+                for date in dates_to_try:
+                    try:
+                        # Construct URL for Internal API
+                        # https://api.agmarknet.gov.in/v1/daily-price-arrival/report?from_date=2024-04-26&to_date=2024-04-26&data_type=100004&group=1&commodity=1&state=[28]
+                        # Note: Brackets must be URL encoded usually, but requests handles params well. 
+                        # However, the API *expects* literally `[ID]`.
+                        
+                        url = "https://api.agmarknet.gov.in/v1/daily-price-arrival/report"
+                        params = {
+                            'from_date': date,
+                            'to_date': date,
+                            'data_type': '100004', # Price
+                            'group': str(commodity['group']),
+                            'commodity': str(commodity['id']),
+                            'state': f"[{state_id}]",
+                            'district': '[]',
+                            'market': '[]',
+                            'grade': '[]',
+                            'variety': '[]',
+                            'page': '1',
+                            'limit': '50'
+                        }
+                        
+                        response = self.session.get(url, params=params, headers=headers, timeout=5, verify=False)
+                        
+                        if response.status_code == 200:
+                            data = response.json()
+                            if data.get('data'):
+                                for item in data['data']:
+                                    full_crops.append({
+                                        'name': item.get('CommodityName', 'Unknown'),
+                                        'current_price': float(item.get('ModalPrice', 0)),
+                                        'min_price': float(item.get('MinPrice', 0)),
+                                        'max_price': float(item.get('MaxPrice', 0)),
+                                        'mandi': item.get('MarketName', ''),
+                                        'district': item.get('DistrictName', ''),
+                                        'state': item.get('StateName', state),
+                                        'date': item.get('PriceDate', date),
+                                        'source': 'Agmarknet (Real-time)',
+                                        'unit': f"Rs./{item.get('UnitName', 'Quintal')}",
+                                        'api_source': 'agmarknet_v1'
+                                    })
+                                successful_fetch = True
+                                break # Found data for this commodity, move to next
+                    except Exception as e:
+                        logger.debug(f"Agmarknet fetch failed for {commodity}: {e}")
+                        continue
+                        
+            if full_crops:
+                logger.info(f"✅ Successfully fetched {len(full_crops)} real-time prices from Agmarknet V1 API")
+                return {'crops': full_crops, 'sources': ['Agmarknet (Real-time)']}
+            
+            logger.warning(f"No REAL data found from Agmarknet V1 for {location} (Checked {dates_to_try})")
+            return None
+
         except Exception as e:
-            logger.warning(f"Agmarknet API error: {e}")
+            logger.warning(f"Agmarknet real fetch error: {e}")
         
         return None
+
+    def _get_crops_for_state(self, state: str) -> Dict[str, float]:
+        """Get realistic base prices for crops based on state"""
+        common_crops = {
+            'Wheat': 2275, 'Rice': 2300, 'Maize': 2090, 
+            'Onion': 1500, 'Potato': 1200, 'Tomato': 1800
+        }
+        
+        state = state.lower()
+        if 'maharashtra' in state or 'pune' in state:
+            common_crops.update({'Cotton': 6620, 'Soybean': 4600, 'Sugarcane': 315, 'Turmeric': 7500, 'Pomegranate': 6000})
+        elif 'delhi' in state:
+            common_crops.update({'Mustard': 5650, 'Cauliflower': 1500, 'Carrot': 1800})
+        elif 'karnataka' in state or 'bangalore' in state:
+            common_crops.update({'Ragi': 3846, 'Coconut': 11000, 'Arecanut': 45000, 'Coffee': 15000})
+        elif 'punjab' in state:
+            common_crops.update({'Wheat': 2400, 'Rice': 2500, 'Cotton': 6800})
+            
+        return common_crops
     
     def _fetch_enam_data(self, state: str, location: str) -> Optional[Dict[str, Any]]:
         """Fetch data from e-NAM API with proper error handling"""
@@ -1198,6 +1315,8 @@ class EnhancedMarketPricesService:
     
     def _get_enhanced_fallback_data(self, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Enhanced fallback data using real government MSP data with location-specific pricing"""
+        # STRICT VERIFICATION: Return None to fail if real-time data is missing
+        return None
         
         # Get real government MSP data (2024-25)
         government_msp_data = self._get_real_government_msp_data()
