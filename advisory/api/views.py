@@ -102,11 +102,18 @@ class ChatbotViewSet(viewsets.ViewSet):
             logger.warning(f"Could not import UltraDynamicGovernmentAPI: {e}")
         
         try:
-            from ..services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
-            self.services['crop_recommendations'] = ComprehensiveCropRecommendations()
-            logger.info("✅ ComprehensiveCropRecommendations loaded")
+            from ..services.enhanced_crop_recommendations import EnhancedCropRecommendations
+            self.services['crop_recommendations'] = EnhancedCropRecommendations()
+            logger.info("✅ EnhancedCropRecommendations loaded with ML capabilities")
         except ImportError as e:
-            logger.warning(f"Could not import ComprehensiveCropRecommendations: {e}")
+            logger.warning(f"Could not import EnhancedCropRecommendations: {e}")
+            # Fallback to comprehensive
+            try:
+                from ..services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
+                self.services['crop_recommendations'] = ComprehensiveCropRecommendations()
+                logger.info("⚠️ Fallback to ComprehensiveCropRecommendations")
+            except ImportError:
+                pass
         
         try:
             from ..services.enhanced_market_prices import EnhancedMarketPricesService
@@ -123,6 +130,10 @@ class ChatbotViewSet(viewsets.ViewSet):
             logger.warning(f"Could not import GoogleAIStudio: {e}")
         
         logger.info(f"🚀 Total services loaded: {len(self.services)}")
+    
+    def create(self, request):
+        """Handle POST requests to /api/chatbot/ - workaround for action routing"""
+        return self.query(request)
     
     @action(detail=False, methods=['post'])
     def query(self, request):
@@ -790,16 +801,27 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
                     }, status=status.HTTP_200_OK)
             except Exception as e:
                 logger.warning(f"Government API error in crop recommendations: {e}")
-                # Fallback to crop service without government data
-                if self.crop_service:
-                    recommendations = self.crop_service.get_crop_recommendations(
-                        location=location,
-                        latitude=latitude,
+                try:
+                    logger.info(f"💰 Fetching market prices from primary API for {location}")
+                    # Fix: Use correct method name 'get_market_prices'
+                    market_data = self.market_service.get_market_prices(
+                        location, 
+                        latitude=latitude, 
                         longitude=longitude
                     )
                     return Response(recommendations, status=status.HTTP_200_OK)
-                else:
-                    raise
+                except Exception as market_e:
+                    logger.error(f"Fallback market price fetching failed: {market_e}")
+                    # Fallback to crop service without government data
+                    if self.crop_service:
+                        recommendations = self.crop_service.get_crop_recommendations(
+                            location=location,
+                            latitude=latitude,
+                            longitude=longitude
+                        )
+                        return Response(recommendations, status=status.HTTP_200_OK)
+                    else:
+                        raise
             
         except Exception as e:
             logger.error(f"Crop advisory error: {e}")
@@ -939,7 +961,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
             
             # Try government API first
             try:
-                gov_market_data = self.gov_api.get_market_prices_v2(location, latitude, longitude, language=language, mandi=mandi)
+                gov_market_data = self.gov_api.get_market_prices(location, latitude, longitude, language=language, mandi=mandi)
                 
                 if gov_market_data and (gov_market_data.get('status') == 'success' or 'prices' in gov_market_data or 'crops' in gov_market_data):
                     logger.info(f"✅ Market prices retrieved from Government APIs")
@@ -1837,8 +1859,8 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
         super().__init__(*args, **kwargs)
         self.gov_api = UltraDynamicGovernmentAPI()
         try:
-            from advisory.services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
-            self.crop_service = ComprehensiveCropRecommendations()
+            from advisory.services.enhanced_crop_recommendations import EnhancedCropRecommendations
+            self.crop_service = EnhancedCropRecommendations()
         except ImportError:
             self.crop_service = None
     
@@ -1847,8 +1869,8 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
         """Get real-time weather data"""
         try:
             location = request.query_params.get('location', 'Delhi')
-            latitude = request.query_params.get('latitude')
-            longitude = request.query_params.get('longitude')
+            latitude = float(request.query_params.get('latitude', 0)) if request.query_params.get('latitude') else None
+            longitude = float(request.query_params.get('longitude', 0)) if request.query_params.get('longitude') else None
             
             weather_data = self.gov_api.get_weather_data(location, latitude, longitude)
             return Response(weather_data)
@@ -1862,13 +1884,13 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
         """Get real-time market prices"""
         try:
             location = request.query_params.get('location', 'Delhi')
-            latitude = request.query_params.get('latitude')
-            longitude = request.query_params.get('longitude')
+            latitude = float(request.query_params.get('latitude', 0)) if request.query_params.get('latitude') else None
+            longitude = float(request.query_params.get('longitude', 0)) if request.query_params.get('longitude') else None
             language = request.query_params.get('language', 'hi')
             mandi = request.query_params.get('mandi')
             
             # Use v2 which prioritizes real-time data
-            data = self.gov_api.get_market_prices_v2(location, latitude, longitude, language=language, mandi=mandi)
+            data = self.gov_api.get_market_prices(location, latitude, longitude, language=language, mandi=mandi)
             return Response(data)
             
         except Exception as e:
@@ -1877,14 +1899,26 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def crop_recommendations(self, request):
-        """Get crop recommendations"""
+        """Get crop recommendations with ML enhancements"""
         try:
             location = request.query_params.get('location', 'Delhi')
-            latitude = request.query_params.get('latitude')
-            longitude = request.query_params.get('longitude')
+            latitude = float(request.query_params.get('latitude', 0)) if request.query_params.get('latitude') else None
+            longitude = float(request.query_params.get('longitude', 0)) if request.query_params.get('longitude') else None
+            season = request.query_params.get('season')
+            soil_type = request.query_params.get('soil_type')
             
-            crop_service = ComprehensiveCropRecommendations()
-            recommendations = crop_service.get_crop_recommendations(location, latitude, longitude)
+            if not self.crop_service:
+                from advisory.services.enhanced_crop_recommendations import EnhancedCropRecommendations
+                self.crop_service = EnhancedCropRecommendations()
+            
+            # Use enhanced recommendations with ML
+            recommendations = self.crop_service.get_enhanced_recommendations(
+                location=location,
+                latitude=latitude,
+                longitude=longitude,
+                season=season,
+                soil_type=soil_type
+            )
             return Response(recommendations)
             
         except Exception as e:
@@ -1926,7 +1960,7 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
             language = request.query_params.get('language', 'hi')
             
             # Get market data which includes mandi info
-            market_data = self.gov_api.get_market_prices_v2(location, latitude, longitude, language=language)
+            market_data = self.gov_api.get_market_prices(location, latitude, longitude, language=language)
             
             mandis = []
             mandis = []
@@ -2088,7 +2122,7 @@ class ChatbotViewSet(viewsets.ViewSet):
             # Market price queries
             elif any(word in query_lower for word in ['price', 'भाव', 'कीमत', 'mandi', 'मंडी', 'market', 'बाजार']):
                 try:
-                    market_data = self.gov_api.get_market_prices_v2(location, language=language)
+                    market_data = self.gov_api.get_market_prices(location, language=language)
                     if market_data and market_data.get('status') == 'success':
                         crops = market_data.get('market_prices', {}).get('top_crops', [])[:3]
                         if crops:

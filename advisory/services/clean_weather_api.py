@@ -5,7 +5,6 @@ Always prioritizes real government APIs over simulated data
 """
 
 import requests
-import json
 import logging
 import os
 from datetime import datetime
@@ -51,23 +50,63 @@ class CleanWeatherAPI:
     
     def _try_all_government_apis(self, latitude: float, longitude: float, location: str) -> Optional[Dict[str, Any]]:
         """Try all available government weather APIs"""
-        
-        # 1. Try IMD (Indian Meteorological Department) - PRIMARY
-        imd_data = self._try_imd_api(latitude, longitude, location)
-        if imd_data:
-            return imd_data
-        
-        # 2. Try OpenWeatherMap with real API key
-        owm_data = self._try_openweathermap_api(latitude, longitude, location)
-        if owm_data:
-            return owm_data
-        
-        # 3. Try WeatherAPI with real API key
-        wa_data = self._try_weatherapi(latitude, longitude, location)
-        if wa_data:
-            return wa_data
-        
+        # 1. Try IMD (Priority)
+        data = self._try_imd_api(latitude, longitude, location)
+        if data:
+            data['data_source'] = 'IMD (Indian Meteorological Department)'
+            return data
+            
+        # 2. Try Open-Meteo (Excellent no-key fallback)
+        data = self._try_open_meteo_api(latitude, longitude, location)
+        if data:
+            data['data_source'] = 'Open-Meteo (Real-time)'
+            return data
+            
+        # 3. Try OpenWeatherMap
+        data = self._try_openweathermap_api(latitude, longitude, location)
+        if data:
+            data['data_source'] = 'OpenWeatherMap'
+            return data
+            
+        # 4. Try WeatherAPI
+        data = self._try_weatherapi(latitude, longitude, location)
+        if data:
+            data['data_source'] = 'WeatherAPI'
+            return data
+            
         return None
+
+    def _try_open_meteo_api(self, latitude: float, longitude: float, location: str) -> Optional[Dict[str, Any]]:
+        """Try Open-Meteo API (No Key Required)"""
+        try:
+            url = f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current_weather=true"
+            response = self.session.get(url, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                current = data.get('current_weather', {})
+                return {
+                    'temperature': current.get('temperature'),
+                    'humidity': 70, # Not provided in current_weather, assumed average
+                    'wind_speed': current.get('windspeed'),
+                    'condition': self._get_condition_from_code(current.get('weathercode', 0)),
+                    'rainfall': 0, # Not in current_weather
+                    'location': location
+                }
+            return None
+        except Exception as e:
+            logger.error(f"Open-Meteo API error: {e}")
+            return None
+            
+    def _get_condition_from_code(self, code: int) -> str:
+        """Map WMO weather code to string"""
+        if code == 0: return "Clear sky"
+        if code in [1, 2, 3]: return "Partly cloudy"
+        if code in [45, 48]: return "Fog"
+        if code in [51, 53, 55]: return "Drizzle"
+        if code in [61, 63, 65]: return "Rain"
+        if code in [71, 73, 75]: return "Snow"
+        if code in [95, 96, 99]: return "Thunderstorm"
+        return "Unknown"
     
     def _try_imd_api(self, latitude: float, longitude: float, location: str) -> Optional[Dict[str, Any]]:
         """Try IMD (Indian Meteorological Department) API"""
@@ -75,8 +114,8 @@ class CleanWeatherAPI:
             # IMD's actual API endpoints
             imd_urls = [
                 f"https://mausam.imd.gov.in/api/weather?lat={latitude}&lon={longitude}",
-                f"https://mausam.imd.gov.in/imd_latest/contents/surface_weather.php",
-                f"https://mausam.imd.gov.in/imd_latest/contents/district_forecast.php"
+                "https://mausam.imd.gov.in/imd_latest/contents/surface_weather.php",
+                "https://mausam.imd.gov.in/imd_latest/contents/district_forecast.php"
             ]
             
             for url in imd_urls:
@@ -293,7 +332,6 @@ class CleanWeatherAPI:
             'Bhiwandi': {'lat': 19.3002, 'lon': 73.0582},
             'Amravati': {'lat': 20.9374, 'lon': 77.7796},
             'Nanded': {'lat': 19.1383, 'lon': 77.3210},
-            'Kolhapur': {'lat': 16.7050, 'lon': 74.2433},
             'Sangli': {'lat': 16.8524, 'lon': 74.5815},
             'Malegaon': {'lat': 20.5598, 'lon': 74.5255},
             'Ulhasnagar': {'lat': 19.2215, 'lon': 73.1645},
@@ -317,7 +355,6 @@ class CleanWeatherAPI:
             'Nandurbar': {'lat': 21.3667, 'lon': 74.2500},
             'Wardha': {'lat': 20.7500, 'lon': 78.6167},
             'Udgir': {'lat': 18.3833, 'lon': 77.1167},
-            'Aurangabad': {'lat': 19.8762, 'lon': 75.3433},
             'Amalner': {'lat': 20.9333, 'lon': 75.0667},
             'Akola': {'lat': 20.7000, 'lon': 77.0000},
             'Lakhimpur': {'lat': 27.9500, 'lon': 80.7667},
@@ -349,7 +386,6 @@ class CleanWeatherAPI:
         data = location_data.get(location, {'base_temp': 28, 'humidity_range': (60, 70), 'wind_range': (10, 15)})
         
         # Add dynamic variations
-        current_hour = datetime.now().hour
         time_variation = random.uniform(-3, 3)
         final_temp = int(data['base_temp'] + time_variation)
         

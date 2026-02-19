@@ -6,7 +6,11 @@ import json
 
 def home(request):
     """Main frontend page view"""
-    return render(request, 'index.html')
+    response = render(request, 'index.html')
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 @csrf_exempt
 @require_http_methods(["POST"])
