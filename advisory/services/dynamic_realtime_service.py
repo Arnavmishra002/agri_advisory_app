@@ -397,12 +397,12 @@ class DynamicRealTimeService:
             'cache_hit_potential': f"{(valid_entries / len(self.real_time_cache) * 100):.1f}%" if self.real_time_cache else "0%",
             'cache_duration': self.cache_duration,
             'timestamp': current_time
-        }
+                }
 
-Ultra-Dynamic Real-Time Government API Service System
-Ensures all farming-related queries use real-time government data with maximum accuracy
-Integrates with: IMD, Agmarknet, e-NAM, ICAR, Soil Health Card, PM-Kisan
-"""
+# ─── DynamicRealTimeService (second class in this module) ───────────
+# Ultra-Dynamic Real-Time Government API Service System
+# Ensures farming queries use real-time government data with maximum accuracy
+# Integrates with: IMD, Agmarknet, e-NAM, ICAR, Soil Health Card, PM-Kisan
 
 import json
 import time

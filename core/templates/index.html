@@ -2731,7 +2731,7 @@
                         </div>
                         
                         <!-- Mandi Selection Section -->
-            < div class="mandi-search-container" >
+            <div class="mandi-search-container" >
                             <h5>🏪 निकटतम मंडी चुनें</h5>
                             <div class="mandi-selection-container">
                                 <div class="mandi-dropdown-container">
@@ -2802,7 +2802,7 @@
                     } else {
                         // Fallback with square box layout
                         container.innerHTML = `
-            < div class="real-time-header" >
+            <div class="real-time-header" >
                             <h4>💰 बाजार भाव - ${currentLocation}</h4>
                             <p class="data-source">📊 स्रोत: Ultra-Dynamic Government APIs</p>
                         </div >
@@ -2869,7 +2869,7 @@
                 // Add cache-busting timestamp and version
                 const timestamp = new Date().getTime();
                 const version = 'v2.0';
-                const response = await fetch(`/api/market-prices/?location=${ currentLocation }&latitude=${ currentLatitude }&longitude=${ currentLongitude }&t=${ timestamp }&v=${ version } `);
+                const response = await fetch(`/api/market-prices/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&t=${timestamp}&v=${version} `);
                 const data = await response.json();
 
                 console.log('Market Prices Data:', data);
@@ -2892,7 +2892,7 @@
 
                 // Header and Mandi Selection (Common for both cases)
                 const headerHtml = `
-            < div class="real-time-header" >
+            <div class="real-time-header" >
                         <h4>💰 बाजार भाव - ${data.location || currentLocation}</h4>
                         <p class="data-source">📊 स्रोत: ${data.data_source || 'Government APIs'}</p>
                         <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp || Date.now()).toLocaleString('hi-IN')}</p>
@@ -2930,7 +2930,7 @@
                 let contentHtml = '';
                 if (data.market_data && data.market_data.top_crops && data.market_data.top_crops.length > 0) {
                     contentHtml = `
-            < div class="mandi-prices-grid" >
+            <div class="mandi-prices-grid" >
                 ${
             data.market_data.top_crops.map(crop => `
                                 <div class="mandi-price-square">
@@ -2969,7 +2969,7 @@
                 } else {
                     // Empty state but showing functionality
                     contentHtml = `
-            < div class="alert alert-info text-center my-4" >
+            <div class="alert alert-info text-center my-4" >
                             <h4>🌾 इस क्षेत्र के लिए मुख्य फसल डेटा उपलब्ध नहीं है</h4>
                             <p>कृपया ऊपर दिए गए ड्रॉपडाउन से एक विशिष्ट मंडी चुनें या दूसरी फसल खोजें।</p>
                         </div >
@@ -2981,7 +2981,7 @@
             } catch (error) {
                 console.error('Error loading prices:', error);
                 container.innerHTML = `
-            < div class="text-center p-4" >
+            <div class="text-center p-4" >
                         <div class="text-danger mb-3">❌ डेटा लोड करने में त्रुटि</div>
                         <button onclick="loadMarketPrices()" class="btn btn-primary btn-sm">पुनः प्रयास करें 🔄</button>
                     </div >
@@ -3005,12 +3005,12 @@
                 resultsContainer.innerHTML = '<div class="loading">मंडी खोज रहे हैं...</div>';
 
                 // Search for mandis in the specified location
-                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${ encodeURIComponent(locationInput.value) }&latitude=${ currentLatitude }&longitude=${ currentLongitude } `);
+                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${ encodeURIComponent(locationInput.value) }&latitude=${currentLatitude}&longitude=${currentLongitude} `);
                 const data = await response.json();
 
                 if (data.mandi_data) {
                     resultsContainer.innerHTML = `
-            < div class="mandi-results-summary" >
+            <div class="mandi-results-summary" >
                             <h6>📍 ${data.location} में उपलब्ध मंडियां (${data.total_crops} फसलें)</h6>
                             <div class="mandi-grid">
                                 ${Object.entries(data.mandi_data).map(([cropName, mandiInfo]) => `
@@ -3057,13 +3057,13 @@
             try {
                 resultsContainer.innerHTML = '<div class="loading">फसल खोज रहे हैं...</div>';
 
-                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${ currentLocation }&crop=${ encodeURIComponent(cropInput.value) }&latitude=${ currentLatitude }&longitude=${ currentLongitude } `);
+                const response = await fetch(`/api/realtime-gov/mandi_search/?location=${currentLocation}&crop=${ encodeURIComponent(cropInput.value) }&latitude=${currentLatitude}&longitude=${currentLongitude} `);
                 const data = await response.json();
 
                 if (data.mandi_info) {
                     const mandiInfo = data.mandi_info;
                     resultsContainer.innerHTML = `
-            < div class="crop-result-card" >
+            <div class="crop-result-card" >
                 <h6>🌾 ${mandiInfo.crop_name} - ${mandiInfo.mandi_name}</h6>
                 <div class="crop-details-grid">
                     <div class="crop-detail-square">
@@ -3153,7 +3153,7 @@
                 const analysisResult = imageAnalysis.analysis_result;
 
                 container.innerHTML = `
-            < div class="pest-analysis-container" >
+            <div class="pest-analysis-container" >
                 <div class="analysis-header">
                     <h4>🔍 तस्वीर विश्लेषण परिणाम</h4>
                     <p class="data-source">📊 स्रोत: ${data.data_source}</p>
@@ -3201,7 +3201,7 @@
             } else {
                 // Regular pest analysis display
                 container.innerHTML = `
-            < div class="pest-analysis-container" >
+            <div class="pest-analysis-container" >
                         <div class="analysis-header">
                             <h4>🐛 कीट नियंत्रण जानकारी</h4>
                             <p class="data-source">📊 स्रोत: ${data.data_source}</p>
@@ -3245,7 +3245,7 @@
             try {
                 // Add cache-busting timestamp
                 const timestamp = new Date().getTime();
-                const response = await fetch(`/api/realtime-gov/pest_detection/?t=${ timestamp } `, {
+                const response = await fetch(`/api/realtime-gov/pest_detection/?t=${timestamp} `, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -3290,7 +3290,7 @@
 
         // Ask about scheme
         function askAboutScheme(schemeName) {
-            const query = `${ schemeName } योजना के बारे में विस्तार से बताएं`;
+            const query = `${schemeName} योजना के बारे में विस्तार से बताएं`;
 
             fetch('/api/chatbot/', {
                 method: 'POST',
@@ -3307,7 +3307,7 @@
                 .then(data => {
                     if (data.response) {
                         showNotification('योजना की जानकारी मिल गई!', 'success');
-                        alert(`${ schemeName } \n\n${ data.response } `);
+                        alert(`${schemeName} \n\n${ data.response } `);
                     }
                 })
                 .catch(error => {
@@ -3326,7 +3326,7 @@
                 return;
             }
 
-            const query = `${ crop } में ${ problem } की समस्या है। इसका समाधान बताएं`;
+            const query = `${crop} में ${problem} की समस्या है। इसका समाधान बताएं`;
 
             fetch('/api/chatbot/', {
                 method: 'POST',
@@ -3444,12 +3444,12 @@
         function addMessage(text, sender) {
             const chatMessages = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${ sender } -message`;
+            messageDiv.className = `message ${sender} -message`;
 
             if (sender === 'user') {
-                messageDiv.innerHTML = `< strong > आप:</strong > ${ text } `;
+                messageDiv.innerHTML = `< strong > आप:</strong > ${text} `;
             } else {
-                messageDiv.innerHTML = `< strong > कृषिमित्र AI:</strong > ${ text } `;
+                messageDiv.innerHTML = `< strong > कृषिमित्र AI:</strong > ${text} `;
             }
 
             chatMessages.appendChild(messageDiv);
@@ -3460,7 +3460,7 @@
         function showNotification(message, type = 'info') {
             const notification = document.getElementById('notification');
             notification.textContent = message;
-            notification.className = `notification ${ type } `;
+            notification.className = `notification ${type} `;
             notification.style.display = 'block';
 
             setTimeout(() => {
@@ -3516,7 +3516,7 @@
 
             if (suggestions) {
                 container.innerHTML = suggestions.map(suggestion => `
-            < div class="location-suggestion" onclick = "selectLocation('${suggestion.name}', ${suggestion.lat}, ${suggestion.lon})" >
+            <div class="location-suggestion" onclick="selectLocation('${suggestion.name}', ${suggestion.lat}, ${suggestion.lon})" >
                         <div>
                             <div class="suggestion-name">${suggestion.name}</div>
                             <div class="suggestion-details">${suggestion.state || ''} ${suggestion.region || ''}</div>
@@ -3557,7 +3557,7 @@
             hideLocationSuggestions();
 
             // Show notification
-            showNotification(`स्थान बदला गया: ${ name } `, 'success');
+            showNotification(`स्थान बदला गया: ${name} `, 'success');
 
             // Reload all services with new location
             console.log('Reloading all services with new location:', name);
@@ -3581,7 +3581,7 @@
                         const lon = position.coords.longitude;
 
                         // Reverse geocoding to get location name
-                        fetch(`/api/locations/reverse/?lat=${ lat }&lon=${ lon } `)
+                        fetch(`/api/locations/reverse/?lat=${lat}&lon=${lon} `)
                             .then(response => response.json())
                             .then(data => {
                                 if (data.location) {
@@ -3612,7 +3612,7 @@
             const services = ['government-schemes', 'crop-recommendations', 'weather', 'market-prices', 'pest-control'];
 
             // Show loading notification
-            showNotification(`स्थान बदल रहा है... ${ currentLocation } के लिए सभी सेवाएं अपडेट हो रही हैं`, 'info');
+            showNotification(`स्थान बदल रहा है... ${currentLocation} के लिए सभी सेवाएं अपडेट हो रही हैं`, 'info');
 
             // Clear all service containers first
             const serviceContainers = {
@@ -3628,10 +3628,10 @@
                                 const containerId = serviceContainers[serviceName];
             const container = document.getElementById(containerId);
             if (container) {
-                container.innerHTML = `< div class="loading" ><i class="fas fa-spinner fa-spin"></i><p>${currentLocation} के लिए लोड हो रहा है...</p></div > `;
-            console.log(`✅ Cleared container: ${ containerId } `);
+                container.innerHTML = `<div class="loading" ><i class="fas fa-spinner fa-spin"></i><p>${currentLocation} के लिए लोड हो रहा है...</p></div > `;
+            console.log(`✅ Cleared container: ${containerId} `);
                                 } else {
-                console.error(`❌ Container not found: ${ containerId } `);
+                console.error(`❌ Container not found: ${containerId} `);
                                 }
                             });
 
@@ -3639,12 +3639,12 @@
             console.log('🔄 Starting service reload sequence...');
                             services.forEach((serviceName, index) => {
                 setTimeout(() => {
-                    console.log(`🔄 Reloading service: ${ serviceName } for location: ${ currentLocation } `);
+                    console.log(`🔄 Reloading service: ${serviceName} for location: ${currentLocation} `);
                     try {
                         loadServiceData(serviceName);
-                        console.log(`✅ Service ${ serviceName } reload initiated`);
+                        console.log(`✅ Service ${serviceName} reload initiated`);
                     } catch (error) {
-                        console.error(`❌ Error reloading service ${ serviceName }: `, error);
+                        console.error(`❌ Error reloading service ${serviceName}: `, error);
                     }
                 }, index * 500); // 500ms delay between each service
                             });
@@ -3659,7 +3659,7 @@
 
                             // Show completion notification
                             setTimeout(() => {
-                showNotification(`✅ सभी सेवाएं ${ currentLocation } के अनुसार अपडेट हो गईं`, 'success');
+                showNotification(`✅ सभी सेवाएं ${currentLocation} के अनुसार अपडेट हो गईं`, 'success');
             console.log('🎉 All services reloaded successfully for location:', currentLocation);
                             }, (services.length + 1) * 500 + 1000);
                         }
@@ -3717,7 +3717,7 @@
             // Debounce search
             cropSearchTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`/api/realtime-gov/crop_search/?crop=${ encodeURIComponent(query) }&location=${ currentLocation }&latitude=${ currentLatitude }&longitude=${ currentLongitude } `);
+                    const response = await fetch(`/api/realtime-gov/crop_search/?crop=${ encodeURIComponent(query) }&location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude} `);
                     const data = await response.json();
 
                     if (data.comprehensive_analysis) {
@@ -3741,7 +3741,7 @@
 
             if (crops) {
                 container.innerHTML = crops.map(crop => `
-            < div class="crop-suggestion" onclick = "selectCrop('${crop}')" >
+            <div class="crop-suggestion" onclick="selectCrop('${crop}')" >
                         <div>
                             <div class="crop-suggestion-name">${crop}</div>
                             <div class="crop-suggestion-details">Click to analyze</div>
@@ -3777,7 +3777,7 @@
             const analysis = data.comprehensive_analysis;
 
             container.innerHTML = `
-            < div class="real-time-header" >
+            <div class="real-time-header" >
                 <h4>🌾 ${analysis.crop_name} - ${data.location}</h4>
                 <p class="data-source">📊 स्रोत: ${data.data_source}</p>
                 <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
@@ -3876,7 +3876,7 @@
                 const container = document.getElementById('pricesData');
                 container.innerHTML = '<div class="loading">मंडी की कीमतें लोड हो रही हैं...</div>';
 
-                const response = await fetch(`/api/realtime-gov/ market_prices /?location=${ currentLocation }&latitude=${ currentLatitude }&longitude=${ currentLongitude }&mandi=${ encodeURIComponent(selectedMandi) } `);
+                const response = await fetch(`/api/realtime-gov/market_prices/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&mandi=${ encodeURIComponent(selectedMandi) } `);
                 const data = await response.json();
 
                 if (data.status === 'success' && data.crops && data.crops.length > 0) {
@@ -3895,7 +3895,7 @@
         function displayMandiPrices(data) {
             const container = document.getElementById('pricesData');
             container.innerHTML = `
-            < div class="real-time-header" >
+            <div class="real-time-header" >
                 <h4>💰 बाजार भाव - ${data.location}</h4>
                 <p class="data-source">📊 स्रोत: ${data.data_source || 'Ultra-Dynamic Government APIs'}</p>
                 <p class="timestamp">🕒 अंतिम अपडेट: ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
@@ -4308,7 +4308,7 @@
                 let html = '';
                 suggestions.forEach(location => {
                     html += `
-            < div class="location-suggestion" onclick = "selectLocation('${location.name}', ${location.lat}, ${location.lon})" >
+            <div class="location-suggestion" onclick="selectLocation('${location.name}', ${location.lat}, ${location.lon})" >
                         📍 ${location.name}
                     </div >
             `;

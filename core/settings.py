@@ -291,23 +291,17 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'advisory.User'
 
-# Celery Configuration - Temporarily disabled for testing
-# CELERY_BROKER_URL = 'redis://localhost:6379/0' # Using Redis as the message broker
-# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0' # Storing results in Redis
-# CELERY_ACCEPT_CONTENT = ['json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
-# CELERY_TIMEZONE = 'Asia/Kolkata' # Or your appropriate timezone
-# CELERY_BEAT_SCHEDULE = {
-#     'update-weather-every-hour': {
-#         'task': 'advisory.tasks.update_weather_data',
-#         'schedule': timedelta(hours=1),
-#     },
-#     'update-market-data-daily': {
-#         'task': 'advisory.tasks.update_market_data',
-#         'schedule': timedelta(days=1),
-#     },
-# }
+# ── Celery Configuration ──────────────────────────────────────────────────
+# Uses Redis if REDIS_URL is set; falls back silently to sync mode otherwise.
+import os as _os
+_REDIS_URL = _os.getenv('REDIS_URL', '')
+if _REDIS_URL:
+    CELERY_BROKER_URL = _REDIS_URL
+    CELERY_RESULT_BACKEND = _REDIS_URL
+    CELERY_ACCEPT_CONTENT = ['json']
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_TIMEZONE = 'Asia/Kolkata'
 
 # Cache busting for frontend files
 CACHE_BUST_TIMESTAMP = int(time.time())
@@ -440,18 +434,11 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Security settings for production
-if not DEBUG:
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-
 # ── WhiteNoise Static File Configuration ─────────────────────
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 WHITENOISE_AUTOREFRESH = True
+
+# ── Cookie Security (auto-enabled in production) ─────────────────
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_SSL_REDIRECT = not DEBUG  # Force HTTPS in production

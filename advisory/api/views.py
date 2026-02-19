@@ -926,7 +926,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
         self.gov_api = UltraDynamicGovernmentAPI()
         # Keep EnhancedMarketPricesService as fallback
         try:
-            from advisory.services.market_prices_service import EnhancedMarketPricesService
+            from advisory.services.enhanced_market_prices import EnhancedMarketPricesService
             self.market_service = EnhancedMarketPricesService()
         except:
             self.market_service = None
