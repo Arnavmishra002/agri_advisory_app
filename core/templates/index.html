@@ -2094,9 +2094,10 @@
                 <div class="search-box">
                     <i class="fas fa-search"></i>
                     <input type="text" id="locationSearchInput" placeholder="शहर, जिला या गाँव खोजें..."
-                        onkeyup="searchLocations(event)" onfocus="showLocationSuggestions()">
-                    <button class="btn btn-primary" onclick="searchCurrentLocation()">
-                        <i class="fas fa-map-marker-alt"></i>
+                        onkeyup="searchLocations(event)"
+                        onkeydown="if(event.key==='Enter'){event.preventDefault();applyManualLocation();}">
+                    <button class="btn btn-primary" onclick="applyManualLocation()" title="खोजें">
+                        <i class="fas fa-search"></i>
                     </button>
                 </div>
                 <div id="locationSuggestions" class="location-suggestions"></div>
@@ -2730,10 +2731,67 @@
             }
 
             function searchCurrentLocation() {
+                applyManualLocation();
+            }
+
+            function applyManualLocation() {
                 const input = document.getElementById('locationSearchInput');
-                if (input && input.value.trim()) {
-                    const event = new Event('keyup');
-                    input.dispatchEvent(event);
+                if (!input || !input.value.trim()) return;
+                const query = input.value.trim();
+                hideLocationSuggestions();
+
+                // Full list of known cities with coordinates
+                const indianCities = [
+                    { name: 'Delhi', lat: 28.7041, lon: 77.1025 },
+                    { name: 'Mumbai', lat: 19.0760, lon: 72.8777 },
+                    { name: 'Bangalore', lat: 12.9716, lon: 77.5946 },
+                    { name: 'Hyderabad', lat: 17.3850, lon: 78.4867 },
+                    { name: 'Chennai', lat: 13.0827, lon: 80.2707 },
+                    { name: 'Kolkata', lat: 22.5726, lon: 88.3639 },
+                    { name: 'Pune', lat: 18.5204, lon: 73.8567 },
+                    { name: 'Ahmedabad', lat: 23.0225, lon: 72.5714 },
+                    { name: 'Jaipur', lat: 26.9124, lon: 75.7873 },
+                    { name: 'Lucknow', lat: 26.8467, lon: 80.9462 },
+                    { name: 'Chandigarh', lat: 30.7333, lon: 76.7794 },
+                    { name: 'Indore', lat: 22.7196, lon: 75.8577 },
+                    { name: 'Bhopal', lat: 23.2599, lon: 77.4126 },
+                    { name: 'Patna', lat: 25.5941, lon: 85.1376 },
+                    { name: 'Nagpur', lat: 21.1458, lon: 79.0882 },
+                    { name: 'Noida', lat: 28.5355, lon: 77.3910 },
+                    { name: 'Gurgaon', lat: 28.4595, lon: 77.0266 },
+                    { name: 'Surat', lat: 21.1702, lon: 72.8311 },
+                    { name: 'Vadodara', lat: 22.3072, lon: 73.1812 },
+                    { name: 'Rajkot', lat: 22.3039, lon: 70.8022 },
+                    { name: 'Ludhiana', lat: 30.9010, lon: 75.8573 },
+                    { name: 'Amritsar', lat: 31.6340, lon: 74.8723 },
+                    { name: 'Kanpur', lat: 26.4499, lon: 80.3319 },
+                    { name: 'Varanasi', lat: 25.3176, lon: 82.9739 },
+                    { name: 'Agra', lat: 27.1767, lon: 78.0081 },
+                    { name: 'Coimbatore', lat: 11.0168, lon: 76.9558 },
+                    { name: 'Visakhapatnam', lat: 17.6868, lon: 83.2185 },
+                    { name: 'Nashik', lat: 19.9975, lon: 73.7898 },
+                    { name: 'Mysore', lat: 12.2958, lon: 76.6394 },
+                    { name: 'Dehradun', lat: 30.3165, lon: 78.0322 },
+                    { name: 'Jodhpur', lat: 26.2389, lon: 73.0243 },
+                    { name: 'Kochi', lat: 9.9312, lon: 76.2673 },
+                    { name: 'Thiruvananthapuram', lat: 8.5241, lon: 76.9366 },
+                    { name: 'Bhubaneswar', lat: 20.2961, lon: 85.8245 },
+                    { name: 'Guwahati', lat: 26.1445, lon: 91.7362 },
+                    { name: 'Ranchi', lat: 23.3441, lon: 85.3096 },
+                    { name: 'Raipur', lat: 21.2514, lon: 81.6296 },
+                    { name: 'Greater Noida', lat: 28.4745, lon: 77.5040 },
+                ];
+
+                // Try exact or partial match
+                const match = indianCities.find(c => c.name.toLowerCase() === query.toLowerCase())
+                    || indianCities.find(c => c.name.toLowerCase().includes(query.toLowerCase()));
+
+                if (match) {
+                    input.value = match.name;
+                    updateLocation(match.name, match.lat, match.lon);
+                } else {
+                    // Unknown city — use as-is (backend will handle it)
+                    updateLocation(query, null, null);
                 }
             }
 
@@ -2945,26 +3003,26 @@
                 loadMarketPrices();
             }
 
-                    async function loadWeatherData() {
-                        try {
-                            const container = document.getElementById('weatherData');
-                            if (!container) return;
+            async function loadWeatherData() {
+                try {
+                    const container = document.getElementById('weatherData');
+                    if (!container) return;
 
-                            container.innerHTML = '<div class="loading">मौसम डेटा लोड हो रहा है...</div>';
+                    container.innerHTML = '<div class="loading">मौसम डेटा लोड हो रहा है...</div>';
 
-                            const response = await fetch(`/api/weather/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}`);
-                            const data = await response.json();
-                            // Store weather data globally for chatbot context
-                            window.lastWeatherData = data;
+                    const response = await fetch(`/api/weather/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}`);
+                    const data = await response.json();
+                    // Store weather data globally for chatbot context
+                    window.lastWeatherData = data;
 
-                            console.log('Weather data:', data);
+                    console.log('Weather data:', data);
 
-                            // Support both API response formats (current vs current_weather)
-                            const weather = data.current_weather || data.current || {};
-                            const forecast = data.forecast_7_days || data.forecast_7day || [];
+                    // Support both API response formats (current vs current_weather)
+                    const weather = data.current_weather || data.current || {};
+                    const forecast = data.forecast_7_days || data.forecast_7day || [];
 
-                            if (weather && data.location) {
-                                let html = `
+                    if (weather && data.location) {
+                        let html = `
                         <div style="background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px;">
                             <h4 style="color: #2d5016; margin-bottom: 20px;">🌤️ मौसम की जानकारी - ${data.location}</h4>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
@@ -2982,15 +3040,15 @@
                         </div>
                     `;
 
-                                if (forecast && forecast.length > 0) {
-                                    html += `
+                        if (forecast && forecast.length > 0) {
+                            html += `
                             <div style="background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
                                 <h5 style="color: #2d5016; margin-bottom: 15px;">📅 7 दिन का पूर्वानुमान</h5>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
                         `;
 
-                                    forecast.slice(0, 7).forEach(day => {
-                                        html += `
+                            forecast.slice(0, 7).forEach(day => {
+                                html += `
                                 <div style="background: #f8f9fa; border-radius: 10px; padding: 15px; text-align: center;">
                                     <div style="font-weight: 700; color: #2d5016; margin-bottom: 5px;">${day.day || day.date}</div>
                                     <div style="font-size: 1.5rem; color: #4a7c59; margin: 10px 0;">${day.temperature || (day.max_temp ? day.max_temp + '°C' : '28°C')}</div>
@@ -2998,52 +3056,52 @@
                                     ${day.rainfall_mm !== undefined ? `<div style="font-size: 0.8rem; color: #007bff; margin-top: 4px;">🌧 ${day.rainfall_mm}mm</div>` : ''}
                                 </div>
                             `;
-                                    });
+                            });
 
-                                    html += '</div></div>';
-                                }
-
-                                container.innerHTML = html;
-                                console.log('✅ Weather loaded with', forecast.length, 'day forecast');
-                            } else {
-                                container.innerHTML = '<div style="padding: 20px; text-align: center;">मौसम डेटा उपलब्ध नहीं है</div>';
-                            }
-                        } catch (error) {
-                            console.error('Weather error:', error);
-                            const container = document.getElementById('weatherData');
-                            if (container) container.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc3545;">मौसम लोड करने में त्रुटि</div>';
+                            html += '</div></div>';
                         }
+
+                        container.innerHTML = html;
+                        console.log('✅ Weather loaded with', forecast.length, 'day forecast');
+                    } else {
+                        container.innerHTML = '<div style="padding: 20px; text-align: center;">मौसम डेटा उपलब्ध नहीं है</div>';
+                    }
+                } catch (error) {
+                    console.error('Weather error:', error);
+                    const container = document.getElementById('weatherData');
+                    if (container) container.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc3545;">मौसम लोड करने में त्रुटि</div>';
+                }
+            }
+
+            async function loadGovernmentSchemes() {
+                const container = document.getElementById('schemesData');
+                if (!container) return;
+
+                try {
+                    container.innerHTML = '<div class="loading">योजनाएं लोड हो रही हैं... (Fetching)</div>';
+
+                    const response = await fetch(`/api/government-schemes/?location=${currentLocation}`);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
-                    async function loadGovernmentSchemes() {
-                        const container = document.getElementById('schemesData');
-                        if (!container) return;
+                    container.innerHTML = '<div class="loading">योजनाएं पार्स हो रही हैं... (Parsing)</div>';
+                    const data = await response.json();
+                    console.log('Schemes data:', data);
 
-                        try {
-                            container.innerHTML = '<div class="loading">योजनाएं लोड हो रही हैं... (Fetching)</div>';
+                    const schemes = data.schemes || [];
 
-                            const response = await fetch(`/api/government-schemes/?location=${currentLocation}`);
+                    if (schemes && schemes.length > 0) {
+                        let html = '<div style="display: grid; gap: 20px;">';
 
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
+                        schemes.forEach(scheme => {
+                            const officialUrl = scheme.official_website || scheme.website || scheme.apply_url || '#';
+                            const benefitText = scheme.benefits_hindi || scheme.benefit_hindi || scheme.benefit || 'विवरण उपलब्ध नहीं';
+                            const eligibilityText = scheme.eligibility_hindi || scheme.eligibility || 'सभी किसान';
+                            const descText = scheme.description_hindi || scheme.description || '';
 
-                            container.innerHTML = '<div class="loading">योजनाएं पार्स हो रही हैं... (Parsing)</div>';
-                            const data = await response.json();
-                            console.log('Schemes data:', data);
-
-                            const schemes = data.schemes || [];
-
-                            if (schemes && schemes.length > 0) {
-                                let html = '<div style="display: grid; gap: 20px;">';
-
-                                schemes.forEach(scheme => {
-                                    const officialUrl = scheme.official_website || scheme.website || scheme.apply_url || '#';
-                                    const benefitText = scheme.benefits_hindi || scheme.benefit_hindi || scheme.benefit || 'विवरण उपलब्ध नहीं';
-                                    const eligibilityText = scheme.eligibility_hindi || scheme.eligibility || 'सभी किसान';
-                                    const descText = scheme.description_hindi || scheme.description || '';
-
-                                    html += `
+                            html += `
                             <div style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #4a7c59; cursor: pointer; transition: transform 0.3s;"
                                  onclick="window.open('${officialUrl}', '_blank')"
                                  onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'"
@@ -3068,57 +3126,57 @@
                                 </div>
                             </div>
                         `;
-                                });
+                        });
 
-                                html += '</div>';
-                                container.innerHTML = html;
-                                console.log('✅ Schemes loaded:', schemes.length, 'schemes');
-                            } else {
-                                container.innerHTML = '<div style="padding: 20px; text-align: center;">योजनाएं उपलब्ध नहीं हैं (No schemes data)</div>';
-                            }
-                        } catch (error) {
-                            console.error('Schemes error:', error);
-                            container.innerHTML = `<div style="padding: 20px; text-align: center; color: #dc3545;">
+                        html += '</div>';
+                        container.innerHTML = html;
+                        console.log('✅ Schemes loaded:', schemes.length, 'schemes');
+                    } else {
+                        container.innerHTML = '<div style="padding: 20px; text-align: center;">योजनाएं उपलब्ध नहीं हैं (No schemes data)</div>';
+                    }
+                } catch (error) {
+                    console.error('Schemes error:', error);
+                    container.innerHTML = `<div style="padding: 20px; text-align: center; color: #dc3545;">
                         <strong>योजनाएं लोड करने में त्रुटि</strong><br>
                         <small>${error.message}</small>
                     </div>`;
-                        }
-                    }
+                }
+            }
 
-                    async function loadCropRecommendations() {
-                        try {
-                            const container = document.getElementById('cropsData');
-                            if (!container) return;
+            async function loadCropRecommendations() {
+                try {
+                    const container = document.getElementById('cropsData');
+                    if (!container) return;
 
-                            container.innerHTML = '<div class="loading">फसल सुझाव लोड हो रहे हैं...</div>';
+                    container.innerHTML = '<div class="loading">फसल सुझाव लोड हो रहे हैं...</div>';
 
-                            const response = await fetch(`/api/advisories/?location=${currentLocation}`);
-                            const data = await response.json();
+                    const response = await fetch(`/api/advisories/?location=${currentLocation}`);
+                    const data = await response.json();
 
-                            console.log('Crops data:', data);
+                    console.log('Crops data:', data);
 
-                            const recommendations = data.recommendations || [];
+                    const recommendations = data.recommendations || [];
 
-                            // Helper for category icons
-                            const getCategoryIcon = (category) => {
-                                const icons = {
-                                    'Cereal': '🌾', 'Pulse': '🫘', 'Oilseed': '🌻', 'Vegetable': '🥦',
-                                    'Fruit': '🍎', 'Spice': '🌶️', 'Commercial': '💰', 'Medicinal': '🌿',
-                                    'Fiber': 'cotton', 'Beverage': '☕', 'Nut': '🥜', 'Sugar': '🍬',
-                                    'Fungi': '🍄', 'Algae': '🦠', 'Exotic': '✨', 'Flower': '🌸'
-                                };
-                                return icons[category] || '🌱';
-                            };
+                    // Helper for category icons
+                    const getCategoryIcon = (category) => {
+                        const icons = {
+                            'Cereal': '🌾', 'Pulse': '🫘', 'Oilseed': '🌻', 'Vegetable': '🥦',
+                            'Fruit': '🍎', 'Spice': '🌶️', 'Commercial': '💰', 'Medicinal': '🌿',
+                            'Fiber': 'cotton', 'Beverage': '☕', 'Nut': '🥜', 'Sugar': '🍬',
+                            'Fungi': '🍄', 'Algae': '🦠', 'Exotic': '✨', 'Flower': '🌸'
+                        };
+                        return icons[category] || '🌱';
+                    };
 
-                            // Helper for water requirement color
-                            const getWaterColor = (req) => {
-                                if (req === 'high' || req === 'High') return '#007bff'; // Blue
-                                if (req === 'moderate' || req === 'Moderate') return '#28a745'; // Green
-                                return '#fd7e14'; // Orange for low
-                            };
+                    // Helper for water requirement color
+                    const getWaterColor = (req) => {
+                        if (req === 'high' || req === 'High') return '#007bff'; // Blue
+                        if (req === 'moderate' || req === 'Moderate') return '#28a745'; // Green
+                        return '#fd7e14'; // Orange for low
+                    };
 
-                            if (recommendations && recommendations.length > 0) {
-                                let html = `
+                    if (recommendations && recommendations.length > 0) {
+                        let html = `
                         <div class="real-time-header" style="background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%); margin-bottom: 25px;">
                             <h4 style="color: white; margin-bottom: 10px;">${data.season} के लिए सर्वोत्तम फसल सुझाव - ${data.region}</h4>
                             <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">📊 स्रोत: ${data.data_source}</p>
@@ -3127,25 +3185,25 @@
                         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
                     `;
 
-                                recommendations.forEach(crop => {
-                                    const suitabilityColor = crop.suitability_score >= 85 ? '#28a745' : crop.suitability_score >= 70 ? '#ffc107' : '#dc3545';
-                                    const categoryIcon = getCategoryIcon(crop.category);
-                                    const waterColor = getWaterColor(crop.water_requirement);
+                        recommendations.forEach(crop => {
+                            const suitabilityColor = crop.suitability_score >= 85 ? '#28a745' : crop.suitability_score >= 70 ? '#ffc107' : '#dc3545';
+                            const categoryIcon = getCategoryIcon(crop.category);
+                            const waterColor = getWaterColor(crop.water_requirement);
 
-                                    // Check for ML predictions
-                                    let mlBadge = '';
-                                    if (crop.ml_confidence || (crop.prediction_data && crop.prediction_data.confidence)) {
-                                        const confidence = crop.ml_confidence || crop.prediction_data.confidence;
-                                        const confidencePercent = Math.round(confidence * 100);
-                                        if (confidencePercent > 0) {
-                                            mlBadge = `<div style="margin-top: 10px; background: #e8f0fe; padding: 8px; border-radius: 8px; font-size: 0.85rem; color: #1967d2; display: flex; align-items: center; gap: 5px; border: 1px solid #d2e3fc;">
+                            // Check for ML predictions
+                            let mlBadge = '';
+                            if (crop.ml_confidence || (crop.prediction_data && crop.prediction_data.confidence)) {
+                                const confidence = crop.ml_confidence || crop.prediction_data.confidence;
+                                const confidencePercent = Math.round(confidence * 100);
+                                if (confidencePercent > 0) {
+                                    mlBadge = `<div style="margin-top: 10px; background: #e8f0fe; padding: 8px; border-radius: 8px; font-size: 0.85rem; color: #1967d2; display: flex; align-items: center; gap: 5px; border: 1px solid #d2e3fc;">
                                         <span>🤖 AI Confidence: <strong>${confidencePercent}%</strong></span>
                                         ${crop.prediction_data && crop.prediction_data.predicted_yield ? `<span style="margin-left: auto; border-left: 1px solid #ccc; padding-left: 8px;">Est. Yield: <strong>${crop.prediction_data.predicted_yield.toFixed(1)} Q/ha</strong></span>` : ''}
                                     </div>`;
-                                        }
-                                    }
+                                }
+                            }
 
-                                    html += `
+                            html += `
                             <div style="background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); transition: transform 0.3s; position: relative; overflow: hidden; border-top: 4px solid ${suitabilityColor};">
                                 <div style="position: absolute; top: 10px; right: 10px; background: #f8f9fa; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; color: #333; border: 1px solid #ddd;">
                                     ${categoryIcon} ${crop.category}
@@ -3187,37 +3245,37 @@
                                 </div>
                             </div>
                         `;
-                                });
+                        });
 
-                                html += '</div>';
-                                container.innerHTML = html;
-                                console.log('✅ Crops loaded:', recommendations.length, 'recommendations');
-                            } else {
-                                container.innerHTML = '<div style="padding: 20px; text-align: center;">फसल सुझाव उपलब्ध नहीं हैं</div>';
-                            }
-                        } catch (error) {
-                            console.error('Crops error:', error);
-                            const container = document.getElementById('cropsData');
-                            if (container) container.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc3545;">फसल सुझाव लोड करने में त्रुटि</div>';
-                        }
+                        html += '</div>';
+                        container.innerHTML = html;
+                        console.log('✅ Crops loaded:', recommendations.length, 'recommendations');
+                    } else {
+                        container.innerHTML = '<div style="padding: 20px; text-align: center;">फसल सुझाव उपलब्ध नहीं हैं</div>';
                     }
+                } catch (error) {
+                    console.error('Crops error:', error);
+                    const container = document.getElementById('cropsData');
+                    if (container) container.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc3545;">फसल सुझाव लोड करने में त्रुटि</div>';
+                }
+            }
 
-                    // ========================================
-                    // KRISHI RAKSHA 2.0 DIAGNOSTICS
-                    // ========================================
-                    async function runKrishiRakshaDiagnosis() {
-                        const cropSelect = document.getElementById('krCropSelect');
-                        const resultsContainer = document.getElementById('krishiRakshaResults');
+            // ========================================
+            // KRISHI RAKSHA 2.0 DIAGNOSTICS
+            // ========================================
+            async function runKrishiRakshaDiagnosis() {
+                const cropSelect = document.getElementById('krCropSelect');
+                const resultsContainer = document.getElementById('krishiRakshaResults');
 
-                        const crop = cropSelect.value;
-                        if (!crop) {
-                            alert('कृपया फसल चुनें / Please select a crop first');
-                            return;
-                        }
+                const crop = cropSelect.value;
+                if (!crop) {
+                    alert('कृपया फसल चुनें / Please select a crop first');
+                    return;
+                }
 
-                        // Show loading state
-                        resultsContainer.style.display = 'block';
-                        resultsContainer.innerHTML = `
+                // Show loading state
+                resultsContainer.style.display = 'block';
+                resultsContainer.innerHTML = `
                     <div class="text-center p-5">
                         <i class="fas fa-spinner fa-spin fa-3x text-success"></i>
                         <h4 class="mt-3">Analyzing ${crop.charAt(0).toUpperCase() + crop.slice(1)}...</h4>
@@ -3225,45 +3283,45 @@
                     </div>
                 `;
 
-                        try {
-                            const response = await fetch('/api/diagnostics/detect/', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    crop: crop,
-                                    location: currentLocation,
-                                    images: {},
-                                    session_id: 'kr_' + Date.now()
-                                })
-                            });
+                try {
+                    const response = await fetch('/api/diagnostics/detect/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            crop: crop,
+                            location: currentLocation,
+                            images: {},
+                            session_id: 'kr_' + Date.now()
+                        })
+                    });
 
-                            const data = await response.json();
-                            console.log('KrishiRaksha Response:', data);
+                    const data = await response.json();
+                    console.log('KrishiRaksha Response:', data);
 
-                            if (data.status === 'success') {
-                                displayKrishiRakshaResults(data);
-                            } else {
-                                resultsContainer.innerHTML = `
+                    if (data.status === 'success') {
+                        displayKrishiRakshaResults(data);
+                    } else {
+                        resultsContainer.innerHTML = `
                             <div class="alert alert-danger">
                                 <i class="fas fa-exclamation-triangle"></i> ${data.message || 'Diagnosis failed'}
                             </div>
                         `;
-                            }
-                        } catch (error) {
-                            console.error('KrishiRaksha Error:', error);
-                            resultsContainer.innerHTML = `
+                    }
+                } catch (error) {
+                    console.error('KrishiRaksha Error:', error);
+                    resultsContainer.innerHTML = `
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-triangle"></i> Error connecting to diagnostic service
                         </div>
                     `;
-                        }
-                    }
+                }
+            }
 
-                    function displayKrishiRakshaResults(data) {
-                        const resultsContainer = document.getElementById('krishiRakshaResults');
-                        const diagnoses = data.diagnosis || [];
+            function displayKrishiRakshaResults(data) {
+                const resultsContainer = document.getElementById('krishiRakshaResults');
+                const diagnoses = data.diagnosis || [];
 
-                        let html = `
+                let html = `
                     <div class="real-time-header">
                         <h4>🩺 Diagnostic Report: ${data.crop_detected.charAt(0).toUpperCase() + data.crop_detected.slice(1)}</h4>
                         <p class="data-source">📍 Location: ${data.location}</p>
@@ -3273,11 +3331,11 @@
                     <div class="row g-4 mt-3">
                 `;
 
-                        diagnoses.forEach((d, idx) => {
-                            const severityColor = d.severity_label === 'High' ? '#dc3545' : (d.severity_label === 'Medium' ? '#ffc107' : '#28a745');
-                            const confidencePercent = Math.round(d.confidence * 100);
+                diagnoses.forEach((d, idx) => {
+                    const severityColor = d.severity_label === 'High' ? '#dc3545' : (d.severity_label === 'Medium' ? '#ffc107' : '#28a745');
+                    const confidencePercent = Math.round(d.confidence * 100);
 
-                            html += `
+                    html += `
                         <div class="col-md-6">
                             <div class="card shadow-sm h-100" style="border-left: 4px solid ${severityColor};">
                                 <div class="card-header bg-light">
@@ -3338,9 +3396,9 @@
                             </div>
                         </div>
                     `;
-                        });
+                });
 
-                        html += `
+                html += `
                     </div>
 
                     <!-- Feedback Section -->
@@ -3359,152 +3417,153 @@
                     </div>
                 `;
 
-                        resultsContainer.innerHTML = html;
-                    }
+                resultsContainer.innerHTML = html;
+            }
 
-                    async function submitKRFeedback(isCorrect) {
-                        try {
-                            await fetch('/api/diagnostics/feedback/', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    session_id: 'kr_' + Date.now(),
-                                    is_correct: isCorrect
-                                })
-                            });
-                            alert(isCorrect ? 'धन्यवाद! Feedback recorded.' : 'Thank you. We will improve our model.');
-                        } catch (error) {
-                            console.error('Feedback error:', error);
-                        }
-                    }
+            async function submitKRFeedback(isCorrect) {
+                try {
+                    await fetch('/api/diagnostics/feedback/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            session_id: 'kr_' + Date.now(),
+                            is_correct: isCorrect
+                        })
+                    });
+                    alert(isCorrect ? 'धन्यवाद! Feedback recorded.' : 'Thank you. We will improve our model.');
+                } catch (error) {
+                    console.error('Feedback error:', error);
+                }
+            }
 
-                    // ========================================
-                    // AI CHAT FUNCTIONS
-                    // ========================================
-                    async function handleChatUserMessage() {
-                        const input = document.getElementById('messageInput');
-                        const chatMessages = document.getElementById('chatMessages');
-                        if (!input || !chatMessages) return;
+            // ========================================
+            // AI CHAT FUNCTIONS
+            // ========================================
+            async function handleChatUserMessage() {
+                const input = document.getElementById('messageInput');
+                const chatMessages = document.getElementById('chatMessages');
+                if (!input || !chatMessages) return;
 
-                        const message = input.value.trim();
-                        if (!message) return;
+                const message = input.value.trim();
+                if (!message) return;
 
-                        // Add user message to chat
-                        const userDiv = document.createElement('div');
-                        userDiv.className = 'message user-message';
-                        userDiv.style.cssText = 'background:#4a7c59;color:white;padding:12px 16px;border-radius:12px 12px 4px 12px;margin:8px 0 8px auto;max-width:80%;text-align:right;';
-                        userDiv.textContent = message;
-                        chatMessages.appendChild(userDiv);
-                        input.value = '';
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                // Add user message to chat
+                const userDiv = document.createElement('div');
+                userDiv.className = 'message user-message';
+                userDiv.style.cssText = 'background:#4a7c59;color:white;padding:12px 16px;border-radius:12px 12px 4px 12px;margin:8px 0 8px auto;max-width:80%;text-align:right;';
+                userDiv.textContent = message;
+                chatMessages.appendChild(userDiv);
+                input.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                        // Show loading indicator (inline, not the shared #loading div)
-                        const loadingDiv = document.createElement('div');
-                        loadingDiv.id = 'chatLoadingMsg';
-                        loadingDiv.style.cssText = 'padding:12px;color:#4a7c59;font-size:0.9rem;';
-                        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> KrishiMitra AI सोच रहा है...';
-                        chatMessages.appendChild(loadingDiv);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                // Show loading indicator (inline, not the shared #loading div)
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = 'chatLoadingMsg';
+                loadingDiv.style.cssText = 'padding:12px;color:#4a7c59;font-size:0.9rem;';
+                loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> KrishiMitra AI सोच रहा है...';
+                chatMessages.appendChild(loadingDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                        try {
-                            const response = await fetch('/api/chatbot/query/', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    query: message,
-                                    location: currentLocation,
-                                    session_id: sessionId
-                                })
-                            });
-                            const data = await response.json();
-                            const botReply = data.response || data.answer || data.message || 'मुझे समझ नहीं आया, कृपया फिर से पूछें।';
+                try {
+                    const response = await fetch('/api/chatbot/query/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            query: message,
+                            location: currentLocation,
+                            session_id: sessionId
+                        })
+                    });
+                    const data = await response.json();
+                    const botReply = data.response || data.answer || data.message || 'मुझे समझ नहीं आया, कृपया फिर से पूछें।';
 
-                            // Remove loading indicator
-                            const ld = document.getElementById('chatLoadingMsg');
-                            if (ld) ld.remove();
+                    // Remove loading indicator
+                    const ld = document.getElementById('chatLoadingMsg');
+                    if (ld) ld.remove();
 
-                            const botDiv = document.createElement('div');
-                            botDiv.className = 'message bot-message';
-                            botDiv.style.cssText = 'background:linear-gradient(135deg,#e8f5e8,#f0fff0);border-left:4px solid #4a7c59;border-radius:10px;padding:15px;margin:8px 0;';
-                            botDiv.innerHTML = '<strong style="color:#2d5016;">🌾 KrishiMitra AI:</strong><div style="margin-top:8px;color:#333;line-height:1.6;white-space:pre-wrap;">' + botReply + '</div>';
-                            chatMessages.appendChild(botDiv);
-                        } catch (error) {
-                            const ld = document.getElementById('chatLoadingMsg');
-                            if (ld) ld.remove();
+                    const botDiv = document.createElement('div');
+                    botDiv.className = 'message bot-message';
+                    botDiv.style.cssText = 'background:linear-gradient(135deg,#e8f5e8,#f0fff0);border-left:4px solid #4a7c59;border-radius:10px;padding:15px;margin:8px 0;';
+                    botDiv.innerHTML = '<strong style="color:#2d5016;">🌾 KrishiMitra AI:</strong><div style="margin-top:8px;color:#333;line-height:1.6;white-space:pre-wrap;">' + botReply + '</div>';
+                    chatMessages.appendChild(botDiv);
+                } catch (error) {
+                    const ld = document.getElementById('chatLoadingMsg');
+                    if (ld) ld.remove();
 
-                            const errDiv = document.createElement('div');
-                            errDiv.style.cssText = 'background:#fff3cd;border-left:4px solid #ffc107;border-radius:10px;padding:12px;margin:8px 0;color:#856404;';
-                            errDiv.textContent = 'नेटवर्क त्रुटि। कृपया दोबारा प्रयास करें।';
-                            chatMessages.appendChild(errDiv);
-                        } finally {
-                            chatMessages.scrollTop = chatMessages.scrollHeight;
-                        }
-                    }
+                    const errDiv = document.createElement('div');
+                    errDiv.style.cssText = 'background:#fff3cd;border-left:4px solid #ffc107;border-radius:10px;padding:12px;margin:8px 0;color:#856404;';
+                    errDiv.textContent = 'नेटवर्क त्रुटि। कृपया दोबारा प्रयास करें।';
+                    chatMessages.appendChild(errDiv);
+                } finally {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
 
-                    function askSuggested(question) {
-                        const input = document.getElementById('messageInput');
-                        if (input) {
-                            input.value = question;
-                            handleChatUserMessage();
-                        }
-                    }
+            function askSuggested(question) {
+                const input = document.getElementById('messageInput');
+                if (input) {
+                    input.value = question;
+                    handleChatUserMessage();
+                }
+            }
 
-                    function clearChat() {
-                        const chatMessages = document.getElementById('chatMessages');
-                        if (chatMessages) {
-                            chatMessages.innerHTML = '<div class="message bot-message" style="background:linear-gradient(135deg,#e8f5e8,#f0fff0);border-left:4px solid #4a7c59;border-radius:10px;padding:15px;"><strong style="color:#2d5016;">🌾 KrishiMitra AI:</strong><div style="margin-top:8px;color:#333;line-height:1.6;">नमस्ते! मैं KrishiMitra AI हूँ। कोई भी कृषि संबंधी सवाल पूछें! 🌾</div></div>';
-                        }
-                    }
+            function clearChat() {
+                const chatMessages = document.getElementById('chatMessages');
+                if (chatMessages) {
+                    chatMessages.innerHTML = '<div class="message bot-message" style="background:linear-gradient(135deg,#e8f5e8,#f0fff0);border-left:4px solid #4a7c59;border-radius:10px;padding:15px;"><strong style="color:#2d5016;">🌾 KrishiMitra AI:</strong><div style="margin-top:8px;color:#333;line-height:1.6;">नमस्ते! मैं KrishiMitra AI हूँ। कोई भी कृषि संबंधी सवाल पूछें! 🌾</div></div>';
+                }
+            }
 
-                    // ========================================
-                    // MAKE FUNCTIONS GLOBALLY AVAILABLE
-                    // ========================================
-                    window.updateLocation = updateLocation;
-                    window.searchLocations = searchLocations;
-                    window.showLocationSuggestions = showLocationSuggestions;
-                    window.selectLocation = selectLocation;
-                    window.searchCurrentLocation = searchCurrentLocation;
-                    window.detectLocation = detectLocation;
-                    window.selectMandi = selectMandi;
-                    window.onMandiSelected = onMandiSelected;
-                    window.populateMandiDropdown = populateMandiDropdown;
-                    window.showService = showService;
-                    window.loadMarketPrices = loadMarketPrices;
-                    window.loadWeatherData = loadWeatherData;
-                    window.loadGovernmentSchemes = loadGovernmentSchemes;
-                    window.loadCropRecommendations = loadCropRecommendations;
-                    window.runKrishiRakshaDiagnosis = runKrishiRakshaDiagnosis;
-                    window.submitKRFeedback = submitKRFeedback;
-                    window.handleChatUserMessage = handleChatUserMessage;
-                    window.sendMessage = handleChatUserMessage;
-                    window.askSuggested = askSuggested;
-                    window.clearChat = clearChat;
+            // ========================================
+            // MAKE FUNCTIONS GLOBALLY AVAILABLE
+            // ========================================
+            window.updateLocation = updateLocation;
+            window.searchLocations = searchLocations;
+            window.showLocationSuggestions = showLocationSuggestions;
+            window.selectLocation = selectLocation;
+            window.searchCurrentLocation = searchCurrentLocation;
+            window.detectLocation = detectLocation;
+            window.selectMandi = selectMandi;
+            window.onMandiSelected = onMandiSelected;
+            window.populateMandiDropdown = populateMandiDropdown;
+            window.applyManualLocation = applyManualLocation;
+            window.showService = showService;
+            window.loadMarketPrices = loadMarketPrices;
+            window.loadWeatherData = loadWeatherData;
+            window.loadGovernmentSchemes = loadGovernmentSchemes;
+            window.loadCropRecommendations = loadCropRecommendations;
+            window.runKrishiRakshaDiagnosis = runKrishiRakshaDiagnosis;
+            window.submitKRFeedback = submitKRFeedback;
+            window.handleChatUserMessage = handleChatUserMessage;
+            window.sendMessage = handleChatUserMessage;
+            window.askSuggested = askSuggested;
+            window.clearChat = clearChat;
 
-                    // ========================================
-                    // AUTO-INITIALIZE
-                    // ========================================
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', function () {
-                            console.log('📊 Page loaded, initializing...');
-                            setupServiceCards();
-                            setTimeout(() => {
-                                loadMarketPrices();
-                                loadWeatherData();
-                                loadGovernmentSchemes();
-                                loadCropRecommendations();
-                            }, 500);
-                        });
-                    } else {
-                        console.log('📊 Page already loaded, initializing...');
-                        setupServiceCards();
-                        setTimeout(() => {
-                            loadMarketPrices();
-                            loadWeatherData();
-                            loadGovernmentSchemes();
-                            loadCropRecommendations();
-                        }, 500);
-                    }
-                }) ();
+            // ========================================
+            // AUTO-INITIALIZE
+            // ========================================
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    console.log('📊 Page loaded, initializing...');
+                    setupServiceCards();
+                    setTimeout(() => {
+                        loadMarketPrices();
+                        loadWeatherData();
+                        loadGovernmentSchemes();
+                        loadCropRecommendations();
+                    }, 500);
+                });
+            } else {
+                console.log('📊 Page already loaded, initializing...');
+                setupServiceCards();
+                setTimeout(() => {
+                    loadMarketPrices();
+                    loadWeatherData();
+                    loadGovernmentSchemes();
+                    loadCropRecommendations();
+                }, 500);
+            }
+        })();
     </script>
 
     <!-- iot_blockchain.js inlined to avoid 404 static serving issues -->
