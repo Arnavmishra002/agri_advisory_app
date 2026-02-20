@@ -3345,6 +3345,75 @@
             }
 
             // ========================================
+            // AI CHAT FUNCTIONS
+            // ========================================
+            async function handleChatUserMessage() {
+                const input = document.getElementById('messageInput');
+                const chatMessages = document.getElementById('chatMessages');
+                if (!input || !chatMessages) return;
+
+                const message = input.value.trim();
+                if (!message) return;
+
+                // Add user message to chat
+                const userDiv = document.createElement('div');
+                userDiv.className = 'message user-message';
+                userDiv.style.cssText = 'background:#4a7c59;color:white;padding:12px 16px;border-radius:12px 12px 4px 12px;margin:8px 0 8px auto;max-width:80%;text-align:right;';
+                userDiv.textContent = message;
+                chatMessages.appendChild(userDiv);
+                input.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // Show loading indicator
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) loadingEl.style.display = 'block';
+
+                try {
+                    const response = await fetch('/api/chatbot/query/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            query: message,
+                            location: currentLocation,
+                            session_id: sessionId
+                        })
+                    });
+                    const data = await response.json();
+                    const botReply = data.response || data.answer || data.message || 'मुझे समझ नहीं आया, कृपया फिर से पूछें।';
+
+                    const botDiv = document.createElement('div');
+                    botDiv.className = 'message bot-message';
+                    botDiv.style.cssText = 'background:linear-gradient(135deg,#e8f5e8,#f0fff0);border-left:4px solid #4a7c59;border-radius:10px;padding:15px;margin:8px 0;';
+                    botDiv.innerHTML = '<strong style="color:#2d5016;">🌾 KrishiMitra AI:</strong><div style="margin-top:8px;color:#333;line-height:1.6;white-space:pre-wrap;">' + botReply + '</div>';
+                    chatMessages.appendChild(botDiv);
+                } catch (error) {
+                    const errDiv = document.createElement('div');
+                    errDiv.className = 'message bot-message';
+                    errDiv.style.cssText = 'background:#fff3cd;border-left:4px solid #ffc107;border-radius:10px;padding:12px;margin:8px 0;color:#856404;';
+                    errDiv.textContent = 'नेटवर्क त्रुटि। कृपया दोबारा प्रयास करें।';
+                    chatMessages.appendChild(errDiv);
+                } finally {
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
+
+            function askSuggested(question) {
+                const input = document.getElementById('messageInput');
+                if (input) {
+                    input.value = question;
+                    handleChatUserMessage();
+                }
+            }
+
+            function clearChat() {
+                const chatMessages = document.getElementById('chatMessages');
+                if (chatMessages) {
+                    chatMessages.innerHTML = '<div class="message bot-message" style="background:linear-gradient(135deg,#e8f5e8,#f0fff0);border-left:4px solid #4a7c59;border-radius:10px;padding:15px;"><strong style="color:#2d5016;">🌾 KrishiMitra AI:</strong><div style="margin-top:8px;color:#333;line-height:1.6;">नमस्ते! मैं KrishiMitra AI हूँ। कोई भी कृषि संबंधी सवाल पूछें! 🌾</div></div>';
+                }
+            }
+
+            // ========================================
             // MAKE FUNCTIONS GLOBALLY AVAILABLE
             // ========================================
             window.updateLocation = updateLocation;
@@ -3361,6 +3430,7 @@
             window.loadCropRecommendations = loadCropRecommendations;
             window.runKrishiRakshaDiagnosis = runKrishiRakshaDiagnosis;
             window.submitKRFeedback = submitKRFeedback;
+            window.handleChatUserMessage = handleChatUserMessage;
             window.sendMessage = handleChatUserMessage;
             window.askSuggested = askSuggested;
             window.clearChat = clearChat;
@@ -3392,7 +3462,7 @@
         })();
     </script>
 
-    <script src="/static/js/iot_blockchain.js"></script>
+    <!-- iot_blockchain.js inlined to avoid 404 static serving issues -->
     <!-- Compatibility Elements for Legacy JS -->
     <div id="legacy-compat-layer" style="display: none;">
         <form id="pestImageForm"></form>

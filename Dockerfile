@@ -57,6 +57,10 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p /app/staticfiles /app/media /app/logs
 
+# Collect static files at build time so Whitenoise can serve them
+RUN SECRET_KEY=build-dummy-key DJANGO_SETTINGS_MODULE=core.settings DEBUG=False \
+    python manage.py collectstatic --noinput --clear 2>&1 | tail -3
+
 # Set permissions
 RUN chown -R appuser:appuser /app
 
