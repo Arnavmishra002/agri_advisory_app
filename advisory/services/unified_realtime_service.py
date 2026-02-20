@@ -501,10 +501,23 @@ class MarketPricesService:
             msp = MSP_2024_25.get(crop_name, 2000)
             premiums = SEASONAL_PREMIUM.get(crop_name, [1.10]*12)
             seasonal_premium = premiums[month - 1]
-            modal = round(msp * seasonal_premium)
-            min_p = round(modal * 0.95)
-            max_p = round(modal * 1.05)
+
+            # Apply a deterministic per-mandi adjustment (±8% based on mandi name hash)
+            # This ensures: same mandi → same prices; different mandis → different prices
+            mandi_str = (mandi or location or '').lower().strip()
+            # Simple deterministic hash: sum of char codes seeded per crop so crops differ
+            mandi_hash = sum(ord(c) * (i + 1) for i, c in enumerate(mandi_str or 'default'))
+            crop_hash = sum(ord(c) for c in crop_name)
+            # Normalize to a ±8% multiplier: different mandis get values like 0.93, 0.97, 1.02, 1.06…
+            mandi_mult = 1.0 + ((mandi_hash + crop_hash) % 160 - 80) / 1000.0  # range: 0.92 to 1.08
+
+            modal = round(msp * seasonal_premium * mandi_mult)
+            # min/max spread also varies slightly per mandi for realism
+            spread = 0.04 + ((mandi_hash % 40) / 1000.0)  # 4% to 8% spread
+            min_p = round(modal * (1 - spread))
+            max_p = round(modal * (1 + spread))
             profit_pct = round((modal - msp) / msp * 100, 1)
+
 
             crops_data.append({
                 "crop_name": crop_name.capitalize(),

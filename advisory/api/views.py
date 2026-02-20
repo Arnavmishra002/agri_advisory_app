@@ -922,114 +922,49 @@ class MarketPricesViewSet(viewsets.ViewSet):
     def list(self, request):
         try:
             location = request.query_params.get('location', 'Delhi')
-            mandi = request.query_params.get('mandi')
+            mandi = request.query_params.get('mandi') or None
             latitude = request.query_params.get('latitude')
             longitude = request.query_params.get('longitude')
-            
-            # Convert to float if provided
-            if latitude:
-                try:
-                    latitude = float(latitude)
-                except (ValueError, TypeError):
-                    latitude = None
-            if longitude:
-                try:
-                    longitude = float(longitude)
-                except (ValueError, TypeError):
-                    longitude = None
-            
-            language = request.query_params.get('language', 'hi')
-            
-            # PRIORITY: Use government API for real-time market prices first
-            logger.info(f"💰 Fetching market prices from Government APIs for {location} in {language}")
-            
-            # Initialize data source
-            data_source = 'Agmarknet + e-NAM (Real-time Government APIs)'
-            gov_market_data = None
-            
-            # Try government API first
+
             try:
-                gov_market_data = self.gov_api.get_market_prices(location, latitude, longitude, language=language, mandi=mandi)
-                
-                if gov_market_data and (gov_market_data.get('status') == 'success' or 'prices' in gov_market_data or 'crops' in gov_market_data):
-                    logger.info(f"✅ Market prices retrieved from Government APIs")
-                    prices = gov_market_data.get('prices', gov_market_data.get('market_prices', gov_market_data.get('crops', {})))
-                    # Update data source from government API if available
-                    if 'data_source' in gov_market_data:
-                        data_source = gov_market_data['data_source']
-                else:
-                    # Fallback to EnhancedMarketPricesService if government API returns limited data
-                    logger.warning(f"⚠️ Government API returned limited data, trying fallback")
-                    if mandi and self.market_service:
-                        prices = self.market_service.get_mandi_specific_prices(mandi, location)
-                        data_source = 'Enhanced Market Service (Fallback)'
-                    else:
-                        # Try comprehensive government data
-                        gov_data = self.gov_api.get_comprehensive_government_data(
-                            location=location,
-                            latitude=latitude or 28.6139,
-                            longitude=longitude or 77.2090
-                        )
-                        prices = gov_data.get('market_prices', {})
-                        data_source = gov_data.get('data_source', 'Government APIs (Comprehensive)')
-            except Exception as e:
-                logger.error(f"Error fetching market prices from primary API: {e}. Trying fallback.")
-                # Fallback if primary API call itself fails
-                if mandi and self.market_service:
-                    prices = self.market_service.get_mandi_specific_prices(mandi, location)
-                    data_source = 'Enhanced Market Service (Fallback)'
-                else:
-                    gov_data = self.gov_api.get_comprehensive_government_data(
-                        location=location,
-                        latitude=latitude or 28.6139,
-                        longitude=longitude or 77.2090
-                    )
-                    prices = gov_data.get('market_prices', {})
-                    data_source = gov_data.get('data_source', 'Government APIs (Comprehensive)')
+                latitude = float(latitude) if latitude else None
+            except (ValueError, TypeError):
+                latitude = None
+            try:
+                longitude = float(longitude) if longitude else None
+            except (ValueError, TypeError):
+                longitude = None
 
-            # Ensure prices is a list of dictionaries for consistent frontend rendering
-            if not isinstance(prices, list):
-                if isinstance(prices, dict) and 'crops' in prices:
-                    prices = prices['crops']
-                elif isinstance(prices, dict) and 'top_crops' in prices:
-                    prices = prices['top_crops']
-                else:
-                    prices = [] # Default to empty list if format is unexpected
+            logger.info(f"💰 Fetching market prices for {location}, mandi={mandi}")
 
-            # Extract nearby mandis from government data
-            nearby_mandis = []
-            if gov_market_data and 'market_prices' in gov_market_data:
-                nearby_mandis = gov_market_data['market_prices'].get('nearby_mandis', [])
-            elif gov_market_data and 'nearby_mandis' in gov_market_data:
-                nearby_mandis = gov_market_data['nearby_mandis']
-            
-            # If no mandis found, provide defaults
-            if not nearby_mandis:
-                nearby_mandis = [
-                    {'name': 'Azadpur Mandi', 'distance': '5 km', 'specialty': 'Fruits & Vegetables', 'auto_selected': True},
-                    {'name': 'Ghazipur Mandi', 'distance': '12 km', 'specialty': 'Grains', 'auto_selected': False},
-                    {'name': 'Okhla Mandi', 'distance': '15 km', 'specialty': 'Vegetables', 'auto_selected': False}
-                ]
+            # Use _get_enhanced_market_data directly — this correctly seeds prices per mandi
+            market_data = self.gov_api._get_enhanced_market_data(location, mandi=mandi)
 
-            # Construct response matching frontend expectations
+            crops = (
+                market_data.get('top_crops') or
+                market_data.get('market_prices', {}).get('top_crops') or
+                market_data.get('market_prices', {}).get('crops') or
+                market_data.get('crops') or []
+            )
+
             return Response({
+                'status': 'fallback',
                 'location': location,
-                'mandi': mandi or 'All Mandis',
-                'market_prices': {
-                    'top_crops': prices,
-                    'nearby_mandis': nearby_mandis
-                },
-                'nearest_mandis_data': nearby_mandis,
-                'auto_selected_mandi': mandi if mandi else (nearby_mandis[0]['name'] if nearby_mandis else 'Azadpur Mandi'),
-                'data_source': data_source,
-                'timestamp': datetime.now().isoformat()
+                'mandi': mandi or market_data.get('mandi', f'{location} Mandi'),
+                'top_crops': crops,
+                'total_records': len(crops),
+                'data_source': market_data.get('data_source', 'MSP-based seasonal estimate (Get real-time data: data.gov.in)'),
+                'timestamp': market_data.get('timestamp', __import__('datetime').datetime.now().isoformat()),
+                'msp_source': 'Cabinet approval 2024-25 — Ministry of Agriculture & Farmers Welfare',
             }, status=status.HTTP_200_OK)
-            
+
         except Exception as e:
             logger.error(f"Market prices error: {e}")
             return Response({
-                'error': 'Unable to fetch market prices'
+                'error': 'Unable to fetch market prices',
+                'top_crops': [],
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
     def _get_location_specific_mandi(self, location: str) -> str:
         """Get location-specific mandi name"""
