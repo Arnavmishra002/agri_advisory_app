@@ -93,10 +93,8 @@ class EnhancedMarketPricesService:
         # Cache duration (5 minutes for market data)
         self.cache_duration = 300
         
-        # Add SSL verification disable for development
-        import urllib3
-        from urllib3.exceptions import InsecureRequestWarning
-        urllib3.disable_warnings(InsecureRequestWarning)
+        # SSL verification: enabled by default for security
+        # Only disable for specific government sites with cert issues if needed
         
     def get_market_prices(self, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Get REAL-TIME market prices from government APIs with live mandi data"""

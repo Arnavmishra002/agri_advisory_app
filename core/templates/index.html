@@ -2857,8 +2857,7 @@
                     loadMarketPrices();
                                 }, 100);
                             }
-                */
-            */
+
 
         // Load Market Prices - Ultra-Dynamic Real-Time Agmarknet/e-NAM Data (v2.0)
         // COMMENTED OUT - Using enhanced_services.js instead
@@ -2989,8 +2988,7 @@
             `;
             }
         }
-            */
-            */
+
 
         // Mandi Search Functions
         async function searchMandiByLocation() {
@@ -4539,6 +4537,8 @@
 
                     const response = await fetch(`/api/weather/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}`);
                     const data = await response.json();
+                    // Store weather data globally for chatbot context
+                    window.lastWeatherData = data;
 
                     console.log('Weather data:', data);
 
