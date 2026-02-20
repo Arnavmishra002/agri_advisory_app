@@ -372,7 +372,7 @@ class EnhancedMarketPricesService:
             try:
                 cc_url = "https://commoditiescontrol.com/eagritrader/revamp/commodity.php?cid=8"
                 logger.info(f"Checking CommoditiesControl connectivity: {cc_url}")
-                cc_resp = self.session.get(cc_url, timeout=10, verify=False)
+                cc_resp = self.session.get(cc_url, timeout=3, verify=False)
                 
                 if cc_resp.status_code == 200:
                     today_str = datetime.now().strftime("%d %b %Y").upper() # e.g. 19 FEB 2026
@@ -431,7 +431,7 @@ class EnhancedMarketPricesService:
         try:
             # e-NAM API call with proper parameters
             url = f"{self.government_apis['enam']['base_url']}?state={state}&limit=20"
-            response = self.session.get(url, timeout=15, verify=False)
+            response = self.session.get(url, timeout=3, verify=False)
             
             if response.status_code == 200:
                 data = response.json()
@@ -470,7 +470,7 @@ class EnhancedMarketPricesService:
         try:
             # FCI Data Center API call with proper parameters
             url = f"{self.government_apis['fcidatacenter']['base_url']}?state={state}&limit=20"
-            response = self.session.get(url, timeout=15, verify=False)
+            response = self.session.get(url, timeout=3, verify=False)
             
             if response.status_code == 200:
                 data = response.json()
@@ -531,7 +531,7 @@ class EnhancedMarketPricesService:
         try:
             # Real Agmarknet API call for specific mandi
             url = f"{self.government_apis['agmarknet']['base_url']}?state={state}&mandi={mandi_name}&limit=50"
-            response = self.session.get(url, timeout=15, verify=False)
+            response = self.session.get(url, timeout=3, verify=False)
             
             if response.status_code == 200:
                 data = response.json()
@@ -571,7 +571,7 @@ class EnhancedMarketPricesService:
         try:
             # Real e-NAM API call for specific mandi
             url = f"{self.government_apis['enam']['base_url']}?state={state}&mandi={mandi_name}&limit=50"
-            response = self.session.get(url, timeout=15, verify=False)
+            response = self.session.get(url, timeout=3, verify=False)
             
             if response.status_code == 200:
                 data = response.json()
@@ -611,7 +611,7 @@ class EnhancedMarketPricesService:
         try:
             # Real FCI API call for state
             url = f"{self.government_apis['fcidatacenter']['base_url']}?state={state}&limit=50"
-            response = self.session.get(url, timeout=15, verify=False)
+            response = self.session.get(url, timeout=3, verify=False)
             
             if response.status_code == 200:
                 data = response.json()
@@ -721,7 +721,7 @@ class EnhancedMarketPricesService:
             
             for endpoint in endpoints:
                 try:
-                    response = self.session.get(endpoint, timeout=10, verify=False)
+                    response = self.session.get(endpoint, timeout=3, verify=False)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_ministry_agriculture_response(data, location)
@@ -751,7 +751,7 @@ class EnhancedMarketPricesService:
             endpoint = state_endpoints.get(state)
             if endpoint:
                 try:
-                    response = self.session.get(endpoint, timeout=10, verify=False)
+                    response = self.session.get(endpoint, timeout=3, verify=False)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_state_agriculture_response(data, location)
@@ -777,7 +777,7 @@ class EnhancedMarketPricesService:
             
             for endpoint in endpoints:
                 try:
-                    response = self.session.get(endpoint, timeout=10, verify=False)
+                    response = self.session.get(endpoint, timeout=3, verify=False)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_commodity_exchange_response(data, location)

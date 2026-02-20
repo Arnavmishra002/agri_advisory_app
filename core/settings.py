@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'drf_spectacular', # Register drf-spectacular
     'corsheaders', # Add corsheaders
     'rest_framework_simplejwt', # Add simple JWT
+    'django_filters',  # FIX: Required for DRF DEFAULT_FILTER_BACKENDS
 ]
 
 MIDDLEWARE = [
@@ -189,17 +190,9 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': False,  # Simplified for faster generation
     'COMPONENT_NO_READ_ONLY_REQUIRED': True,
     'SCHEMA_PATH_PREFIX': '/api/',
-    'SWAGGER_UI_SETTINGS': {
-        'deepLinking': True,
-        'displayRequestDuration': True,
-        'docExpansion': 'none',
-        'filter': True,
-        'showExtensions': False,
-        'showCommonExtensions': False,
-        'tryItOutEnabled': True,
-    },
+    # FIX: Removed duplicate SWAGGER_UI_SETTINGS key; kept the fuller config below
     'SCHEMA_PATH_PREFIX_TRIM': True,
-    'SORT_OPERATIONS': False,  # Don't sort operations for faster generation
+    'SORT_OPERATIONS': False,
     'COMPONENT_SPLIT_PATCH': True,
     'COMPONENT_SPLIT_POST': True,
     'ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE': False,
@@ -208,7 +201,6 @@ SPECTACULAR_SETTINGS = {
     'SERVE_URLCONF': None,
     'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
     'SERVE_AUTHENTICATION': None,
-    'SERVE_INCLUDE_SCHEMA': False,
     'SERVE_FAVICON': None,
     'SERVE_CDN': 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0',
     'SWAGGER_UI_SETTINGS': {
@@ -216,7 +208,7 @@ SPECTACULAR_SETTINGS = {
         'persistAuthorization': True,
         'displayOperationId': False,
         'displayRequestDuration': True,
-        'docExpansion': 'none',  # Start with collapsed sections
+        'docExpansion': 'none',
         'filter': True,
         'showExtensions': False,
         'showCommonExtensions': False,
@@ -435,7 +427,15 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 # ── WhiteNoise Static File Configuration ─────────────────────
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# FIX: STATICFILES_STORAGE is deprecated in Django 5.2+; use STORAGES dict instead
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 WHITENOISE_AUTOREFRESH = True
 
 # ── Cookie Security (auto-enabled in production) ─────────────────

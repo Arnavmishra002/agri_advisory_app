@@ -197,14 +197,7 @@ class WeatherService:
                     )
                 })
 
-            return {
-                "status": "success",
-                "location": location,
-                "latitude": lat,
-                "longitude": lon,
-                "data_source": "Open-Meteo (Real-time, Free)",
-                "timestamp": datetime.now().isoformat(),
-                "current": {
+            current_data = {
                     "temperature": curr.get("temperature_2m"),
                     "feels_like": curr.get("apparent_temperature"),
                     "humidity": curr.get("relative_humidity_2m"),  # BUG-04 FIXED: Real humidity
@@ -215,8 +208,19 @@ class WeatherService:
                     "pressure": curr.get("surface_pressure"),
                     "condition": _wmo_to_condition(curr.get("weather_code", 0)),
                     "condition_hindi": _wmo_to_condition_hindi(curr.get("weather_code", 0)),
-                },
+                }
+
+            return {
+                "status": "success",
+                "location": location,
+                "latitude": lat,
+                "longitude": lon,
+                "data_source": "Open-Meteo (Real-time, Free)",
+                "timestamp": datetime.now().isoformat(),
+                "current": current_data,
+                "current_weather": current_data,      # alias for frontend compatibility
                 "forecast_7day": forecast,
+                "forecast_7_days": forecast,          # alias for frontend compatibility
                 "farming_alerts": _generate_farming_alerts(forecast),
             }
         except Exception as e:
@@ -396,7 +400,7 @@ class MarketPricesService:
             resp = self.session.get(
                 f"{DATA_GOV_BASE}/{resource_id}",
                 params=params,
-                timeout=12,
+                timeout=3,
                 # BUG-06 FIXED: SSL verification enabled
             )
             if resp.status_code == 200:
@@ -701,10 +705,19 @@ class GovernmentSchemesService:
         schemes = GOVERNMENT_SCHEMES
         if category:
             schemes = [s for s in schemes if s.get("category") == category]
+        # FIX: Add field aliases so both old and new frontend code works
+        normalized = []
+        for s in schemes:
+            sc = s.copy()
+            sc["official_website"] = sc.get("official_website") or sc.get("website", "")
+            sc["benefits_hindi"] = sc.get("benefits_hindi") or sc.get("benefit_hindi") or sc.get("benefit", "")
+            sc["eligibility_hindi"] = sc.get("eligibility_hindi") or sc.get("eligibility", "")
+            sc["description_hindi"] = sc.get("description_hindi") or sc.get("description", sc.get("benefit", ""))
+            normalized.append(sc)
         return {
             "status": "success",
-            "total": len(schemes),
-            "schemes": schemes,
+            "total": len(normalized),
+            "schemes": normalized,
             "source": "Ministry of Agriculture & Farmers Welfare",
             "last_updated": "2024-25 Season",
         }

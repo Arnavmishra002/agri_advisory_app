@@ -2057,8 +2057,12 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
             logger.error(f"Crop search error: {e}")
             return Response({'error': 'Unable to search crops', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class ChatbotViewSet(viewsets.ViewSet):
-    """AI Chatbot Service for Agricultural Queries"""
+# FIXED: Renamed from ChatbotViewSet to ChatbotViewSetLegacy to avoid shadowing
+# the primary ChatbotViewSet defined above (lines 67+).
+# The URL router uses ChatbotViewSetV3 from views_v3.py, so this class is kept
+# only for internal reference / backward compatibility.
+class ChatbotViewSetLegacy(viewsets.ViewSet):
+    """AI Chatbot Service for Agricultural Queries (Legacy — not mounted in URLs)"""
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

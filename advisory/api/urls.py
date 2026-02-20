@@ -27,6 +27,7 @@ router.register(r'realtime-gov', RealTimeGovernmentDataViewSet, basename='realti
 router.register(r'monitoring', MonitoringViewSet, basename='monitoring')
 router.register(r'rate-limits', RateLimitViewSet, basename='rate-limits')
 router.register(r'diagnostics', DiagnosticViewSet, basename='diagnostics')
+router.register(r'iot-blockchain', IoTBlockchainViewSet, basename='iot-blockchain')  # FIX: IoT endpoint now registered
 
 urlpatterns = [
     path('', include(router.urls)),
