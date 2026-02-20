@@ -2945,67 +2945,6 @@
                 loadMarketPrices();
             }
 
-            if (!container) return;
-
-            try {
-                container.innerHTML = '<div class="loading">बाजार भाव लोड हो रहे हैं...</div>';
-
-                const response = await fetch(`/api/market-prices/?location=${currentLocation}&latitude=${currentLatitude}&longitude=${currentLongitude}&v=v2.0`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-
-                console.log('Market data:', data);
-
-                // API returns top_crops at the root level
-                const crops = data.top_crops || data.crops || [];
-
-                if (crops && crops.length > 0) {
-                    let html = `
-                        <div style="margin-bottom: 20px;">
-                            <h4 style="color: #2d5016;">💰 बाजार भाव — ${data.location || currentLocation}</h4>
-                            <p style="color: #888; margin: 4px 0; font-size:0.9rem;">📊 ${data.data_source || 'Agmarknet + MSP'}</p>
-                            <p style="color: #888; margin: 4px 0; font-size:0.9rem;">🕒 ${data.timestamp ? new Date(data.timestamp).toLocaleDateString('hi-IN') : ''}</p>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px;">`;
-
-                    crops.forEach(crop => {
-                        // Support both old and new API field names
-                        const price = crop.modal_price || crop.current_price || crop.min_price || 0;
-                        const msp = crop.msp || 0;
-                        const profit = crop.profit_vs_msp !== undefined ? crop.profit_vs_msp : (crop.profit || 0);
-                        const profitLabel = typeof profit === 'number' && msp > 0 ? `+${profit}% vs MSP` : (profit >= 0 ? `₹${profit}` : `₹${profit}`);
-                        const profitColor = profit >= 0 ? '#28a745' : '#dc3545';
-                        const indicator = crop.profit_indicator || (profit >= 0 ? '📈' : '📉');
-                        const mandiName = crop.mandi_name || `${currentLocation} मंडी`;
-
-                        html += `
-                            <div style="background:white;border-radius:15px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                                    <h6 style="margin:0;color:#2d5016;font-weight:700;">🌾 ${crop.crop_name_hindi || crop.crop_name}</h6>
-                                    <span style="font-size:1.3rem;">${indicator}</span>
-                                </div>
-                                <div style="text-align:center;margin-bottom:12px;">
-                                    <div style="font-size:1.8rem;font-weight:700;color:#4a7c59;">₹${price.toLocaleString('hi-IN')}</div>
-                                    <div style="color:#888;font-size:0.85rem;">प्रति क्विंटल</div>
-                                </div>
-                                <div style="font-size:0.88rem;line-height:2;">
-                                    <div style="display:flex;justify-content:space-between;">
-                                        <span style="color:#666;">MSP 2024-25:</span>
-                                        <span style="font-weight:600;">₹${msp.toLocaleString('hi-IN')}</span>
-                                    </div>
-                                    <div style="display:flex;justify-content:space-between;">
-                                        <span style="color:#666;">MSP से लाभ:</span>
-                                        <span style="font-weight:600;color:${profitColor};">${profitLabel}</span>
-                                    </div>
-                                    <div style="display:flex;justify-content:space-between;">
-                                        <span style="color:#666;">मंडी:</span>
-                                        <span style="font-weight:600;font-size:0.82rem;">${mandiName}</span>
-                                    </div>
-                                    ${crop.season_note ? `<div style="display:flex;justify-content:space-between;"><span style="color:#666;">सीजन:</span><span style="font-weight:600;">${crop.season_note}</span></div>` : ''}
-                                </div>
-                            </div>`;
-                    });
-
                     async function loadWeatherData() {
                         try {
                             const container = document.getElementById('weatherData');
