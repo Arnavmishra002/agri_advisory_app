@@ -441,5 +441,5 @@ WHITENOISE_AUTOREFRESH = True
 # ── Cookie Security (auto-enabled in production) ─────────────────
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
-SECURE_SSL_REDIRECT = not DEBUG  # Force HTTPS in production
+SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', str(not DEBUG)).lower() == 'true'  # Force HTTPS in production unless overridden
 SECURE_REDIRECT_EXEMPT = [r'^api/health/']
