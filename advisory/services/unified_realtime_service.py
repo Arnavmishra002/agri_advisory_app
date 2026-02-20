@@ -1016,7 +1016,7 @@ GOVERNMENT_SCHEMES = [
         "benefit": "Credit up to ₹3 lakh at 4% interest",
         "benefit_hindi": "₹3 लाख तक ऋण, 4% ब्याज दर",
         "eligibility": "All farmers, sharecroppers, oral lessees",
-        "documents": ["Aadhaar", "Land documents", "Bank account"],
+        "documents": ["Aadhaar", "Land records", "Bank account"],
         "website": "https://www.nabard.org/content1.aspx?id=595",
         "helpline": "1800-200-1025 (NABARD)",
         "category": "credit",

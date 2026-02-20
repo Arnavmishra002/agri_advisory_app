@@ -1,0 +1,23 @@
+#!/bin/sh
+# KrishiMitra — Git pre-push hook
+# Runs regression guard before every `git push`
+#
+# INSTALL: cp hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+# SKIP:    git push --no-verify (emergency only)
+
+echo ""
+echo "🌾 KrishiMitra pre-push check running..."
+echo ""
+
+python check_before_push.py --fast
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Pre-push checks failed. Fix issues before pushing."
+    echo "   To skip (emergency only): git push --no-verify"
+    exit 1
+fi
+
+echo ""
+echo "✅ Pre-push checks passed. Pushing..."
+exit 0
