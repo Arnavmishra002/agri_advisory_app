@@ -760,8 +760,7 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
                 gov_data = self.gov_api.get_comprehensive_government_data(
                     location=location,
                     latitude=latitude,
-                    longitude=longitude,
-                    language=language
+                    longitude=longitude
                 )
                 
                 # Use ComprehensiveCropRecommendations with government data
@@ -801,27 +800,16 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
                     }, status=status.HTTP_200_OK)
             except Exception as e:
                 logger.warning(f"Government API error in crop recommendations: {e}")
-                try:
-                    logger.info(f"💰 Fetching market prices from primary API for {location}")
-                    # Fix: Use correct method name 'get_market_prices'
-                    market_data = self.market_service.get_market_prices(
-                        location, 
-                        latitude=latitude, 
+                # Fallback to crop service without government data
+                if self.crop_service:
+                    recommendations = self.crop_service.get_crop_recommendations(
+                        location=location,
+                        latitude=latitude,
                         longitude=longitude
                     )
                     return Response(recommendations, status=status.HTTP_200_OK)
-                except Exception as market_e:
-                    logger.error(f"Fallback market price fetching failed: {market_e}")
-                    # Fallback to crop service without government data
-                    if self.crop_service:
-                        recommendations = self.crop_service.get_crop_recommendations(
-                            location=location,
-                            latitude=latitude,
-                            longitude=longitude
-                        )
-                        return Response(recommendations, status=status.HTTP_200_OK)
-                    else:
-                        raise
+                else:
+                    raise
             
         except Exception as e:
             logger.error(f"Crop advisory error: {e}")
@@ -978,10 +966,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
                     else:
                         # Try comprehensive government data
                         gov_data = self.gov_api.get_comprehensive_government_data(
-                            location=location, 
-                            latitude=latitude or 28.6139, 
-                            longitude=longitude or 77.2090,
-                            language=language
+                            location=location,
+                            latitude=latitude or 28.6139,
+                            longitude=longitude or 77.2090
                         )
                         prices = gov_data.get('market_prices', {})
                         data_source = gov_data.get('data_source', 'Government APIs (Comprehensive)')
@@ -993,10 +980,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
                     data_source = 'Enhanced Market Service (Fallback)'
                 else:
                     gov_data = self.gov_api.get_comprehensive_government_data(
-                        location=location, 
-                        latitude=latitude or 28.6139, 
-                        longitude=longitude or 77.2090,
-                        language=language
+                        location=location,
+                        latitude=latitude or 28.6139,
+                        longitude=longitude or 77.2090
                     )
                     prices = gov_data.get('market_prices', {})
                     data_source = gov_data.get('data_source', 'Government APIs (Comprehensive)')
@@ -1224,8 +1210,7 @@ class TrendingCropsViewSet(viewsets.ViewSet):
             gov_data = self.gov_api.get_comprehensive_government_data(
                 location=location,
                 latitude=latitude,
-                longitude=longitude,
-                language=language
+                longitude=longitude
             )
             
             # Extract crop recommendations as trending crops
@@ -1289,8 +1274,7 @@ class CropViewSet(viewsets.ViewSet):
             gov_data = self.gov_api.get_comprehensive_government_data(
                 location=location,
                 latitude=latitude,
-                longitude=longitude,
-                language=language
+                longitude=longitude
             )
             
             # Extract crop-specific data
