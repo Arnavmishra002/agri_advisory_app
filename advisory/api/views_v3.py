@@ -127,7 +127,7 @@ Top 3 Market Prices Today:
 
 User Question: {query}
 """
-        response_text = gemini_service.generate(enriched_prompt, self.SYSTEM_PROMPT)
+        response_text = gemini_service.generate(enriched_prompt, self.SYSTEM_PROMPT, user_query=query)
 
         return Response({
             "status": "success",

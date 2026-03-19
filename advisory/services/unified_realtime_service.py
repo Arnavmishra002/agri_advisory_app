@@ -558,10 +558,10 @@ class GeminiService:
         self.api_key = GOOGLE_AI_KEY
         self.session = requests.Session()
 
-    def generate(self, prompt: str, system_prompt: str = "", max_tokens: int = 1024) -> str:
+    def generate(self, prompt: str, system_prompt: str = "", max_tokens: int = 1024, user_query: str = None) -> str:
         """Generate response with pro → flash fallback"""
         if not self.api_key or self.api_key == "YOUR_GEMINI_API_KEY_HERE":
-            return self._rule_based_response(prompt)
+            return self._rule_based_response(user_query or prompt)
 
         for model in [GEMINI_MODEL, GEMINI_FLASH]:
             try:
@@ -571,7 +571,7 @@ class GeminiService:
             except Exception as e:
                 logger.warning(f"Gemini {model} failed: {e}")
 
-        return self._rule_based_response(prompt)
+        return self._rule_based_response(user_query or prompt)
 
     def _call_api(self, model: str, prompt: str, system_prompt: str, max_tokens: int) -> Optional[str]:
         url = f"{self.BASE_URL}/models/{model}:generateContent?key={self.api_key}"
