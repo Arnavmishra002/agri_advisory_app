@@ -1,17 +1,21 @@
 (function () {
     console.log('🌾 Complete Service Loader Starting...');
 
-    /** Resolve API URL (config.js module may load slightly after this script). */
+    /** Resolve API URL — always use same-origin relative paths in production.
+     *  If API_BASE_URL is set to the same host/port as current page, strip it
+     *  so Django/Nginx can handle routing correctly without CORS issues.
+     */
     function apiFetch(path) {
-        if (typeof window.apiUrl === 'function') {
-            return window.apiUrl(path);
-        }
-        const base = String(window.API_BASE_URL || '').replace(/\/$/, '');
         const p = path.startsWith('/') ? path : `/${path}`;
-        if (base) {
-            return `${base}${p}`;
-        }
-        return p;
+        // If no API base or it points to same origin — use relative path (works in Docker, Nginx, Gunicorn)
+        const base = String(window.API_BASE_URL || '').replace(/\/$/, '');
+        if (!base) return p;
+        // Check if base is same origin as current page
+        try {
+            const baseOrigin = new URL(base).origin;
+            if (baseOrigin === window.location.origin) return p;
+        } catch (e) { /* ignore parse errors */ }
+        return `${base}${p}`;
     }
 
     async function apiGetJson(path) {
@@ -446,6 +450,19 @@
     // ========================================
 
     function showService(serviceName) {
+        // 'home' — hide all panels and scroll back to services section
+        if (serviceName === 'home') {
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => { section.style.display = 'none'; });
+            const servicesContainer = document.querySelector('.services-container');
+            if (servicesContainer) {
+                servicesContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            return;
+        }
+
         const sections = document.querySelectorAll('.content-section');
         sections.forEach(section => {
             section.style.display = 'none';
@@ -455,6 +472,8 @@
         if (targetSection) {
             targetSection.style.display = 'block';
             targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            console.warn(`⚠️ No content section found for service: ${serviceName}`);
         }
 
         // Reload live data when user opens a service panel
@@ -480,21 +499,27 @@
     }
 
     function setupServiceCards() {
-        const serviceCards = document.querySelectorAll('.service-card, [onclick*="showService"]');
-        serviceCards.forEach((card, index) => {
-            const onclickAttr = card.getAttribute('onclick');
-            if (onclickAttr) {
-                const match = onclickAttr.match(/showService\('([^']+)'\)/);
-                if (match) {
-                    const serviceName = match[1];
-                    card.onclick = function (e) {
-                        e.preventDefault();
-                        showService(serviceName);
-                    };
-                }
+        // Bind service cards — both onclick attribute cards and nav links
+        const clickableEls = document.querySelectorAll(
+            '.service-card[onclick], [onclick*="showService"], nav [onclick*="showService"]'
+        );
+        let bound = 0;
+        clickableEls.forEach((el) => {
+            const onclickAttr = el.getAttribute('onclick');
+            if (!onclickAttr) return;
+            const match = onclickAttr.match(/showService\('([^']+)'\)/);
+            if (match) {
+                const serviceName = match[1];
+                // Ensure pointer cursor is visible
+                el.style.cursor = 'pointer';
+                el.onclick = function (e) {
+                    e.preventDefault();
+                    showService(serviceName);
+                };
+                bound++;
             }
         });
-        console.log('✅ Service cards setup complete');
+        console.log(`✅ Service cards setup complete — ${bound} elements bound`);
     }
 
     // ========================================
