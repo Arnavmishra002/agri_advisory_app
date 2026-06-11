@@ -1,13 +1,9 @@
 # KrishiMitra AI — Procfile
-# Used by Render, Railway, Heroku, and other Procfile-based PaaS.
-#
-# Render auto-runs the release command before each deploy.
-# Set environment variables in the Render dashboard (not here).
+# Used by Render, Railway, Heroku.
+# Render runs 'release' before each deploy, then starts 'web'.
 
-# Release: run migrations before the web process starts
 release: cd backend && python manage.py migrate --noinput
 
-# Web: start Django with Gunicorn
 web: cd backend && gunicorn \
   --bind 0.0.0.0:$PORT \
   --workers ${WEB_CONCURRENCY:-4} \

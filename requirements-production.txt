@@ -1,0 +1,4 @@
+# KrishiMitra AI — Root requirements-production.txt
+# Render looks for this file at repo root.
+# Installs from the backend/ requirements.
+-r backend/requirements.txt

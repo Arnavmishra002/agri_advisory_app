@@ -1,5 +1,8 @@
 # KrishiMitra AI — Render Build Configuration
-# Render uses this to detect build/start commands automatically.
+# Render auto-detects this file to override dashboard settings.
+#
+# Build runs from repo root.
+# requirements-production.txt at root redirects to backend/requirements.txt
 
-buildCommand: pip install -r backend/requirements.txt && cd backend && python manage.py collectstatic --noinput
-startCommand: cd backend && gunicorn --bind 0.0.0.0:$PORT --workers 4 --threads 4 --worker-class gthread --timeout 120 core.wsgi:application
+buildCommand: pip install -r requirements-production.txt && cd backend && python manage.py collectstatic --noinput
+startCommand: cd backend && gunicorn --bind 0.0.0.0:$PORT --workers 4 --threads 4 --worker-class gthread --timeout 120 --max-requests 1000 --access-logfile - --error-logfile - core.wsgi:application
