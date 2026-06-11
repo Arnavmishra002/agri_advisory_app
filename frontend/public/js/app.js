@@ -1573,7 +1573,6 @@
         }
 
     }  // end loadCropRecommendations
-    }
 
     // ========================================
     // KRISHI RAKSHA 2.0 DIAGNOSTICS
