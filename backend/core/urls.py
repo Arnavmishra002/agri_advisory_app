@@ -38,13 +38,17 @@ urlpatterns = [
 if getattr(settings, 'SERVE_FRONTEND', False):
     dist = settings.FRONTEND_DIST
     urlpatterns += [
+        # Serve Vite-built assets (hashed filenames: /assets/index-abc123.js)
         re_path(
             r'^assets/(?P<path>.*)$',
             static_serve,
             {'document_root': str(dist / 'assets')},
         ),
+        # Serve /js/* and /css/* static files from dist/
+        # NOTE: Django serve() only accepts 'path' kwarg — both dir + filename
+        # must be captured in a single group so serve() gets e.g. path=js/app.js
         re_path(
-            r'^(?P<path>css|js)/(?P<file>.*)$',
+            r'^(?P<path>(?:css|js)/.*)$',
             static_serve,
             {'document_root': str(dist)},
         ),
