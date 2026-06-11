@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import logging
 import math
+import threading
+import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import lru_cache
@@ -24,6 +26,15 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 
 from ..rate_limiters import nominatim_limiter, rate_limit
+
+# Global lock — ensures only one Nominatim reverse call runs at a time,
+# eliminating "Rate limit exceeded" errors when multiple services fire
+# simultaneously on page load (weather + market + crop + field advisory).
+_nominatim_lock = threading.Lock()
+
+# In-process cache: (lat_rounded, lon_rounded) -> LocationContext
+# Prevents duplicate Nominatim calls for the same GPS coordinates.
+_reverse_cache: Dict[tuple, Any] = {}
 
 logger = logging.getLogger(__name__)
 
@@ -367,59 +378,87 @@ class LocationResolver:
             logger.debug("BigDataCloud reverse failed: %s", exc)
         return None
 
-    @rate_limit(nominatim_limiter)
     def _reverse_nominatim(
         self, lat: float, lon: float, accuracy_meters: Optional[float]
-    ) -> Optional[LocationContext]:
-        try:
-            zoom = _zoom_for_accuracy(accuracy_meters)
-            resp = self.session.get(
-                NOMINATIM_REVERSE,
-                params={
-                    "lat": lat,
-                    "lon": lon,
-                    "format": "json",
-                    "addressdetails": 1,
-                    "zoom": zoom,
-                },
-                timeout=(3, 15),
-            )
-            if resp.status_code != 200:
-                return None
-            data = resp.json()
-            address = data.get("address") or {}
-            if address.get("country_code", "").lower() not in ("in", "ind"):
-                return None
+    ) -> Optional["LocationContext"]:
+        """Thread-safe, cached Nominatim reverse geocode.
 
-            parsed = _parse_osm_address(address, data.get("display_name", ""))
-            display = _pick_display_name(**parsed)
+        Uses a global lock so concurrent requests from multiple services
+        (weather, market, crop, field-advisory) on page load never fire
+        Nominatim simultaneously — which caused 'Rate limit exceeded' HTTP 500.
+        Results are cached in-process by rounded coordinates.
+        """
+        # Round to ~100 m grid for cache key
+        cache_key = (round(lat, 3), round(lon, 3))
+        cached = _reverse_cache.get(cache_key)
+        if cached is not None:
+            return cached
 
-            return LocationContext(
-                latitude=lat,
-                longitude=lon,
-                display_name=display,
-                city=parsed["city"],
-                village=parsed["village"],
-                locality=parsed["locality"],
-                sublocality=parsed["sublocality"],
-                district=parsed["district"],
-                state=parsed["state"],
-                pincode=parsed["pincode"],
-                region=_region_from_state(parsed["state"]),
-                country="India",
-                location_type=_infer_type(
-                    parsed["village"], parsed["city"], parsed["district"]
-                ),
-                accuracy_meters=accuracy_meters,
-                accuracy_label=_accuracy_label(accuracy_meters),
-                source="nominatim_reverse",
-                confidence=0.9 if zoom >= 17 else 0.8,
-                is_gps=True,
-                full_address=data.get("display_name", display),
-            )
-        except requests.RequestException as exc:
-            logger.debug("Nominatim reverse failed: %s", exc)
-        return None
+        with _nominatim_lock:
+            # Double-check inside lock (another thread may have filled it)
+            cached = _reverse_cache.get(cache_key)
+            if cached is not None:
+                return cached
+
+            # Honour Nominatim 1 req/sec policy
+            if not nominatim_limiter.is_allowed("_reverse_nominatim"):
+                wait = nominatim_limiter.wait_time("_reverse_nominatim")
+                logger.debug("Nominatim rate limit — sleeping %.2fs", wait)
+                time.sleep(max(wait, 0.05))
+
+            try:
+                zoom = _zoom_for_accuracy(accuracy_meters)
+                resp = self.session.get(
+                    NOMINATIM_REVERSE,
+                    params={
+                        "lat": lat,
+                        "lon": lon,
+                        "format": "json",
+                        "addressdetails": 1,
+                        "zoom": zoom,
+                    },
+                    timeout=(3, 15),
+                )
+                if resp.status_code != 200:
+                    return None
+                data = resp.json()
+                address = data.get("address") or {}
+                if address.get("country_code", "").lower() not in ("in", "ind"):
+                    return None
+
+                parsed = _parse_osm_address(address, data.get("display_name", ""))
+                display = _pick_display_name(**parsed)
+
+                result = LocationContext(
+                    latitude=lat,
+                    longitude=lon,
+                    display_name=display,
+                    city=parsed["city"],
+                    village=parsed["village"],
+                    locality=parsed["locality"],
+                    sublocality=parsed["sublocality"],
+                    district=parsed["district"],
+                    state=parsed["state"],
+                    pincode=parsed["pincode"],
+                    region=_region_from_state(parsed["state"]),
+                    country="India",
+                    location_type=_infer_type(
+                        parsed["village"], parsed["city"], parsed["district"]
+                    ),
+                    accuracy_meters=accuracy_meters,
+                    accuracy_label=_accuracy_label(accuracy_meters),
+                    source="nominatim_reverse",
+                    confidence=0.9 if zoom >= 17 else 0.8,
+                    is_gps=True,
+                    full_address=data.get("display_name", display),
+                )
+                # Cache for the lifetime of this worker process
+                _reverse_cache[cache_key] = result
+                return result
+
+            except requests.RequestException as exc:
+                logger.debug("Nominatim reverse failed: %s", exc)
+            return None
 
     def _resolve_known_place(self, query: str, fuzzy: bool = False) -> Optional[LocationContext]:
         """Resolve major Indian cities without external geocoding."""
