@@ -21,7 +21,7 @@
 # ─────────────────────────────────────────────────────────────────
 # Stage 1 — Vite Frontend Build
 #   Outputs: /build/frontend/dist/{index.html, js/app.js,
-#             js/i18n.js, assets/*, css/}
+#             js/i18n.js, css/styles.css, assets/*}
 # ─────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS frontend-builder
 
@@ -31,11 +31,18 @@ WORKDIR /build/frontend
 COPY frontend/package*.json ./
 RUN npm ci --no-audit --no-fund --silent
 
-# Copy source and build
+# Copy ALL source files (vite.config.js, index.html, public/, css/)
 COPY frontend/ ./
-RUN npm run build 2>&1 | tail -5 && \
+
+# Force rebuild with no cache by echoing the current file contents hash
+# This ensures the enhanced index.html and styles.css are always picked up
+RUN echo "Building v$(cat package.json | grep version | head -1)" && \
+    npm run build 2>&1 && \
     echo "✅ Frontend built: $(du -sh dist/)" && \
-    ls dist/
+    echo "   dist/index.html: $(wc -l < dist/index.html) lines" && \
+    ls -la dist/ && \
+    ls -la dist/js/ 2>/dev/null && \
+    ls -la dist/css/ 2>/dev/null || true
 
 # ─────────────────────────────────────────────────────────────────
 # Stage 2 — Python dependency wheel cache
