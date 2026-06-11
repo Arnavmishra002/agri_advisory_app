@@ -26,3 +26,8 @@ loglevel  = "info"
 
 # Bind
 bind = f"0.0.0.0:{os.environ.get('PORT', '8000')}"
+
+# Forward proxy headers from Render/Railway/Heroku
+# Without this Django sees plain HTTP internally → SECURE_SSL_REDIRECT causes 400
+forwarded_allow_ips = "*"
+proxy_allow_ips = "*"

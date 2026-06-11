@@ -8,13 +8,19 @@ import json
 
 
 def api_root(request):
-    """API-only root; farmer UI runs from frontend/ (Vite dev or static build)."""
+    """Root handler — serves frontend SPA or JSON API info."""
+    # If SERVE_FRONTEND + FRONTEND_AT_ROOT, serve_frontend_index handles this.
+    # This fallback handles any HEAD/GET that reaches here.
+    if request.method == "HEAD":
+        from django.http import HttpResponse
+        return HttpResponse(status=200)
+
     payload = {
-        "service": "KrishiMitra API",
+        "service": "KrishiMitra AI",
         "version": "2.1",
+        "status": "running",
         "docs": "/api/schema/swagger-ui/",
         "health": "/api/health/",
-        "frontend": "Run separately: see frontend/README.md",
     }
     if getattr(settings, "SERVE_FRONTEND", False):
         payload["ui"] = "/"

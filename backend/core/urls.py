@@ -38,7 +38,6 @@ urlpatterns = [
 if getattr(settings, 'SERVE_FRONTEND', False):
     dist = settings.FRONTEND_DIST
     urlpatterns += [
-        path('app/', views.serve_frontend_index, name='frontend_app'),
         re_path(
             r'^assets/(?P<path>.*)$',
             static_serve,
@@ -50,8 +49,14 @@ if getattr(settings, 'SERVE_FRONTEND', False):
             {'document_root': str(dist)},
         ),
     ]
-    # Optional: mount SPA at site root when explicitly requested
+    # Serve SPA at root — this must be LAST (catch-all)
     if settings.FRONTEND_AT_ROOT:
-        urlpatterns.insert(0, path('', views.serve_frontend_index, name='frontend_root'))
+        # Replace the api_root with the actual HTML frontend
+        urlpatterns[0] = path('', views.serve_frontend_index, name='frontend_root')
+        # Also catch all non-API paths so React/Vite router works
+        urlpatterns += [
+            re_path(r'^(?!api/|admin/|static/|media/).*$',
+                    views.serve_frontend_index, name='frontend_spa'),
+        ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

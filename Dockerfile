@@ -103,10 +103,9 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY backend/ /app/backend/
 
 # ── Frontend static files ─────────────────────────────────────
-COPY --from=frontend-builder /build/frontend/dist /app/frontend/dist
-
-# Also copy public JS files so Django collectstatic can serve i18n.js & app.js
-COPY --from=frontend-builder /build/frontend/public /app/frontend/public
+COPY --from=frontend-builder /build/frontend/dist    /app/frontend/dist
+COPY --from=frontend-builder /build/frontend/public  /app/frontend/public
+COPY --from=frontend-builder /build/frontend/css     /app/frontend/css
 
 # ── Persistent directories (mounted as volumes in production) ──
 RUN mkdir -p \

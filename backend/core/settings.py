@@ -469,11 +469,13 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    # CRITICAL: Tell Django that Render's proxy sends HTTPS
+    # Without this, Django sees plain HTTP and may reject requests
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_HTTPONLY = True
     CSRF_COOKIE_HTTPONLY = True
+
 # ── WhiteNoise Static File Configuration ─────────────────────
-# FIX: STATICFILES_STORAGE is deprecated in Django 5.2+; use STORAGES dict instead
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -484,11 +486,28 @@ STORAGES = {
 }
 WHITENOISE_AUTOREFRESH = True
 
-# ── Cookie Security (auto-enabled in production) ─────────────────
+# ── Cookie Security ───────────────────────────────────────────
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
-if DEBUG or _RUNNING_PYTEST:
-    SECURE_SSL_REDIRECT = False
-else:
-    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'true').lower() == 'true'
+
+# ── SSL Redirect — DISABLED on Render (proxy handles HTTPS) ──
+# Render terminates SSL at the edge. Enabling SECURE_SSL_REDIRECT
+# causes Django to see plain HTTP internally → infinite redirect → 400.
+# Always False here; set SECURE_SSL_REDIRECT=false in Render env vars.
+SECURE_SSL_REDIRECT = False
+
 SECURE_REDIRECT_EXEMPT = [r'^api/health/', r'^api/health/simple/', r'^api/health/liveness/']
+
+# ── CSRF Trusted Origins ─────────────────────────────────────
+# Automatically trust Render, Railway, Heroku + anything in CSRF_TRUSTED_ORIGINS env
+_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+_auto_trusted = [
+    'https://*.onrender.com',
+    'https://*.railway.app',
+    'https://*.herokuapp.com',
+    'https://*.up.railway.app',
+]
+if _csrf_origins:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(',') if o.strip()] + _auto_trusted
+else:
+    CSRF_TRUSTED_ORIGINS = _auto_trusted
