@@ -9,8 +9,9 @@ services:
     name: agri-advisory-web
     env: python
     plan: free
+    rootDir: backend
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
-    startCommand: "gunicorn core.wsgi:application"
+    startCommand: "gunicorn core.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -21,11 +22,10 @@ services:
       - key: DEBUG
         value: "False"
       - key: PYTHON_VERSION
-        value: "3.10.0"
-      # Add default fallbacks for required APIs below:
+        value: "3.11.0"
       - key: DATA_GOV_IN_API_KEY
-        value: "579b464db66ec23bdd000001859bf9ec42d44fcbae244f0ceacc52db" # Public fallback key
+        value: ""
       - key: SENTRY_DSN
-        value: "" # Fill this in your dashboard if needed
-      - key: GEMINI_API_KEY
-        value: "YOUR_GEMINI_API_KEY_HERE" # Update this in the dashboard
+        value: ""
+      - key: GOOGLE_AI_API_KEY
+        value: ""

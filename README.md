@@ -1,74 +1,102 @@
-# KrishiMitra - AI-Powered Agri-Advisory Platform 🌾
+# KrishiMitra — Agricultural Advisory App
 
-**KrishiMitra** is a next-generation agricultural advisory platform designed to empower Indian farmers with real-time, data-driven insights. By leveraging advanced AI and government APIs, it provides accurate weather forecasts, market prices, crop recommendations, and government scheme information in local languages.
+Monorepo with a **Django + DRF API** (`backend/`) and a **standalone Vite frontend** (`frontend/`).
 
-![KrishiMitra Dashboard](https://raw.githubusercontent.com/Arnavmishra002/agri_advisory_app/main/docs/dashboard_preview.png)
+## Project layout
 
-## 🚀 Key Features
+```
+agri_advisory_app/
+├── backend/              # Django API (manage.py, advisory/, core/)
+├── frontend/             # Vite static UI (VITE_API_BASE_URL → API)
+├── scripts/              # Ops: deploy, quick_services_check, production verify
+├── docs/                 # Architecture & service audit
+├── manage.py             # Wrapper — runs backend/manage.py from repo root
+├── Dockerfile            # Multi-stage: API + optional nginx UI
+└── docker-compose.yml
+```
 
-### 1. 🌦️ Hyper-Local Weather Forecasts
-- **Real-time Weather:** Get accurate temperature, humidity, and wind speed data for your specific village or district.
-- **7-Day Forecast:** Plan your farming activities with a detailed 7-day weather outlook.
-- **Advisories:** Receive timely alerts for rain, storms, or extreme heat.
+**Tests:** The pytest suite under `tests/` was removed. Use `python scripts/quick_services_check.py` or `python scripts/production_service_verification.py` for smoke checks.
 
-### 2. 💰 Real-Time Market Prices (Mandi Bhav)
-- **Live Data:** Access up-to-date market prices from nearby Mandis (e.g., Azadpur, Ghazipur, Okhla).
-- **Profit Analysis:** See calculated profit margins based on MSP and current market rates.
-- **Trend Indicators:** Visual indicators (📈/📉) to show if prices are rising or falling.
-- **Mandi Selection:** Easily switch between different Mandis to find the best price for your crops.
+## Quick start (backend)
 
-### 3. 🤖 AI Crop Recommendations
-- **Personalized Advice:** Get crop suggestions based on your soil type, season, and local climate.
-- **Profitability Score:** Each recommendation includes a projected profitability analysis.
-- **Detailed Insights:** Learn about seed varieties, fertilizer requirements, and expected yield.
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt
+cp .env.example .env   # SECRET_KEY, DATA_GOV_IN_API_KEY, GOOGLE_AI_API_KEY
+python manage.py migrate    # from repo root
+python manage.py runserver
+```
 
-### 4. 🏛️ Government Schemes
-- **Comprehensive List:** Access a database of central and state government schemes (e.g., PM-Kisan).
-- **Eligibility Check:** Find out which schemes you are eligible for.
-- **Application Guide:** Step-by-step instructions on how to apply.
+- API root: http://127.0.0.1:8000/
+- Health: http://127.0.0.1:8000/api/health/
+- Swagger: http://127.0.0.1:8000/api/schema/swagger-ui/
 
-### 5. 🗣️ Multilingual Support
-- **Hindi & English:** Fully localized interface for Hindi and English speakers.
-- **Voice Support:** (Coming Soon) Voice-activated commands for easier accessibility.
+Equivalent from `backend/`: `cd backend && python manage.py runserver`
 
-## 🛠️ Technology Stack
+## Quick start (frontend)
 
-- **Backend:** Django (Python), Django REST Framework
-- **Frontend:** HTML5, CSS3, Vanilla JavaScript (Responsive Design)
-- **Database:** PostgreSQL (Production), SQLite (Development)
-- **AI/ML:** Google Gemini Pro (for intelligent insights), Scikit-Learn (for crop prediction)
-- **APIs:** Open-Meteo (Weather), Government Data APIs (Market Prices)
-- **Deployment:** Render / Railway
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
 
-## 📋 Recent Updates (v2.0)
+Open http://localhost:5173 — set `VITE_API_BASE_URL=http://localhost:8000` in `frontend/.env`.
 
-- **✅ Fixed MSP Display:** Corrected Minimum Support Price (MSP) data for fruits and vegetables.
-- **✅ Enhanced Weather:** Implemented a full 7-day weather forecast with detailed metrics.
-- **✅ Mandi Dropdown Fix:** Resolved issues with Mandi selection to ensure accurate price loading for specific markets like Ghazipur and Okhla.
-- **✅ UI Improvements:** Modernized the dashboard with a clean, mobile-friendly design.
+## Run both (local dev)
 
-## 🚀 Deployment Guide
+1. Terminal A: `python manage.py runserver` (port 8000)
+2. Terminal B: `cd frontend && npm run dev` (port 5173)
 
-### Deploying to Render
+CORS allows `localhost:5173` when `DEBUG=True`.
 
-1.  **Fork/Clone this repository.**
-2.  **Create a new Web Service** on [Render](https://render.com/).
-3.  **Connect your GitHub repository.**
-4.  **Settings:**
-    -   **Runtime:** Python 3
-    -   **Build Command:** pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
-    -   **Start Command:** gunicorn agri_advisory_app.wsgi:application
-5.  **Environment Variables:**
-    -   PYTHON_VERSION: 3.9.0 (or your preferred version)
-    -   SECRET_KEY: (Generate a strong random key)
-    -   DEBUG: False
-    -   ALLOWED_HOSTS: * (or your specific domain)
-    -   DATABASE_URL: (Add your internal/external database URL)
+## Optional: serve built UI from Django
 
-## 🤝 Contributing
+```bash
+cd frontend && npm run build
+export SERVE_FRONTEND=true
+python manage.py runserver
+```
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Built files: `frontend/dist/`.
 
-## 📄 License
+## Docker
 
-This project is licensed under the MIT License.
+```bash
+# API only (host port 8001)
+docker compose up web --build
+
+# API + nginx static UI (host port 8080)
+docker compose --profile full up --build
+```
+
+## Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `SECRET_KEY` | Django secret |
+| `DEBUG` | `true` for local dev |
+| `DATABASE_URL` | Postgres/SQLite URL |
+| `DATA_GOV_IN_API_KEY` | Live mandi prices ([data.gov.in](https://data.gov.in/user/register)) |
+| `GOOGLE_AI_API_KEY` | Gemini chatbot |
+| `CORS_ALLOWED_ORIGINS` | Production frontend origin(s) |
+| `SERVE_FRONTEND` | Serve `frontend/dist` from Django |
+| `VITE_API_BASE_URL` | Frontend → API (in `frontend/.env`) |
+
+## Verification (no pytest)
+
+```bash
+python manage.py check
+python scripts/quick_services_check.py
+python scripts/production_service_verification.py
+```
+
+Pre-push: `python scripts/check_before_push.py`
+
+## Deployment
+
+- **API only:** Gunicorn from `backend/` (`Procfile`, Render `rootDir: backend`) — host frontend on CDN.
+- **Combined:** Build frontend, set `SERVE_FRONTEND=true`, or use `docker compose --profile full`.
+
+See `Dockerfile`, `render.yaml`, `scripts/deploy.sh`.

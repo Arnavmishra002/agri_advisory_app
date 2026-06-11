@@ -9,7 +9,7 @@ echo ""
 echo "🌾 KrishiMitra pre-push check running..."
 echo ""
 
-python check_before_push.py --fast
+python scripts/check_before_push.py --fast
 
 if [ $? -ne 0 ]; then
     echo ""

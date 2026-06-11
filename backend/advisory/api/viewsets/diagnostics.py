@@ -1,0 +1,206 @@
+import logging
+import uuid
+from datetime import datetime
+
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from ..errors import safe_error_message
+from ..location_utils import attach_location_metadata, resolve_request_location
+from ..validation import (
+    MAX_DIAGNOSTIC_CROP_LENGTH,
+    read_upload_with_limit,
+    query_too_long,
+)
+from ...models import DiagnosticSession
+from ...services.crop_catalog import crop_catalog
+from ...services.crop_disease_ml_service import crop_disease_ml_service
+from ...services.krishi_raksha_pest_service import KrishiRakshaPestService
+
+logger = logging.getLogger(__name__)
+
+class DiagnosticViewSet(viewsets.ViewSet):
+    """
+    API for KrishiRaksha 2.0: Advanced Pest Detection
+    """
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.pest_service = KrishiRakshaPestService()
+
+    @action(detail=False, methods=["get"], url_path="crop-search")
+    def crop_search(self, request):
+        """Crop autocomplete for disease detection (any Indian crop)."""
+        query = request.query_params.get("q", "").strip()
+        too_long = query_too_long(query, MAX_DIAGNOSTIC_CROP_LENGTH, field="q")
+        if too_long:
+            return too_long
+        try:
+            limit = min(int(request.query_params.get("limit", 10)), 20)
+        except (ValueError, TypeError):
+            limit = 10
+        results = crop_catalog.search(query, limit=limit) if query else crop_catalog.popular(limit)
+        return Response({
+            "query": query,
+            "results": results,
+            "total": len(results),
+            "timestamp": datetime.now().isoformat(),
+        })
+
+    @action(detail=False, methods=['post'])
+    def detect(self, request):
+        """
+        Run the full diagnostic pipeline.
+        Payload: {
+            "crop": "tomato",
+            "location": "Delhi",
+            "images": {"whole": "...", "close_up": "..."},
+            "session_id": "optional-uuid"
+        }
+        """
+        try:
+            data = request.data
+            crop_raw = data.get('crop')
+            if crop_raw:
+                too_long = query_too_long(str(crop_raw).strip(), MAX_DIAGNOSTIC_CROP_LENGTH, field="crop")
+                if too_long:
+                    return too_long
+            norm = crop_catalog.normalize(crop_raw) if crop_raw else None
+            crop = norm["id"] if norm else crop_raw
+            ctx = resolve_request_location(request)
+            images = data.get('images', {})
+            session_id = data.get('session_id') # Can be generated if missing
+            
+            # Start Diagnostic Pipeline
+            result = self.pest_service.diagnose_crop(
+                session_id=session_id,
+                crop_name=crop,
+                location=ctx.query_label,
+                images=images,
+                latitude=ctx.latitude,
+                longitude=ctx.longitude,
+                state=ctx.state,
+            )
+            
+            # Persist Session (if models available)
+            try:
+                if result['status'] == 'success':
+                     DiagnosticSession.objects.create(
+                         session_id=session_id or str(uuid.uuid4()),
+                         user_id=str(request.user.id) if request.user.is_authenticated else 'anonymous',
+                         crop_detected=result['crop_detected'],
+                         final_diagnosis=result['diagnosis'][0]['name'] if result['diagnosis'] else 'Unknown',
+                         confidence_score=result['diagnosis'][0].get('confidence', 0.0) if result['diagnosis'] else 0.0,
+                         severity_level=result['diagnosis'][0].get('severity_label', 'Low') if result['diagnosis'] else 'Low'
+                     )
+            except Exception as db_err:
+                logger.warning(f"Failed to save diagnostic session: {db_err}")
+            
+            return Response(attach_location_metadata(result, ctx))
+            
+        except Exception as e:
+            return Response(
+                {'status': 'error', 'message': safe_error_message(e, context="diagnostics")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=["post"], url_path="predict")
+    def predict(self, request):
+        """
+        ML-only crop/disease prediction (EfficientNet-B3).
+
+        Payload: {"images": {"close_up": "<base64>"}} or multipart file field "image".
+        Returns: crop_name, disease_name, confidence, top_predictions
+        """
+        try:
+            upload = request.FILES.get("image")
+            if upload:
+                image_bytes, size_err = read_upload_with_limit(upload)
+                if size_err:
+                    return size_err
+                result = crop_disease_ml_service.predict_image(
+                    image_bytes=image_bytes
+                )
+            else:
+                data = request.data
+                images = data.get("images", {})
+                if images:
+                    result = crop_disease_ml_service.predict_from_upload_dict(images)
+                elif data.get("image") or data.get("image_base64"):
+                    b64 = data.get("image") or data.get("image_base64")
+                    result = crop_disease_ml_service.predict_image(image_data=b64)
+                else:
+                    return Response(
+                        {"status": "error", "message": "Provide image or images.close_up"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            payload = {
+                "status": result.get("status", "error"),
+                "crop_name": result.get("crop_name"),
+                "disease_name": result.get("disease_name"),
+                "confidence": result.get("confidence", 0.0),
+                "confidence_percent": result.get("confidence_percent"),
+                "top_predictions": result.get("top_predictions", []),
+                "message": result.get("message"),
+                "model": result.get("model"),
+                "threshold": result.get("threshold"),
+            }
+            return Response(payload)
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": safe_error_message(e, context="diagnostics_predict")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=['post'])
+    def feedback(self, request):
+        """
+        Active Learning Loop: User provides correct diagnosis.
+        Payload: {"session_id": "...", "is_correct": false, "correct_diagnosis": "Late Blight"}
+        """
+        try:
+            data = request.data
+            session_id = data.get('session_id')
+            is_correct = data.get('is_correct')
+            correct_diagnosis = data.get('correct_diagnosis', '')
+
+            if not session_id:
+                return Response(
+                    {'status': 'error', 'message': 'session_id is required'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Persist feedback to ExpertVerification for Active Learning
+            try:
+                diagnostic = DiagnosticSession.objects.filter(session_id=session_id).first()
+                if diagnostic:
+                    from ...models import ExpertVerification
+                    from django.utils import timezone
+                    ExpertVerification.objects.update_or_create(
+                        diagnostic_session=diagnostic,
+                        defaults={
+                            'is_verified': True,
+                            'expert_diagnosis': correct_diagnosis if not is_correct else diagnostic.final_diagnosis,
+                            'expert_notes': f"User feedback: is_correct={is_correct}",
+                            'verified_at': timezone.now(),
+                        }
+                    )
+                    logger.info(
+                        "Feedback recorded for session %s — is_correct=%s correction='%s'",
+                        session_id, is_correct, correct_diagnosis,
+                    )
+                else:
+                    logger.warning("Feedback: no DiagnosticSession found for session_id=%s", session_id)
+            except Exception as db_err:
+                logger.warning("Failed to persist feedback: %s", db_err)
+
+            return Response({
+                'status': 'success',
+                'message': 'Feedback recorded for Active Learning',
+                'session_id': session_id,
+                'is_correct': is_correct,
+            })
+        except Exception as e:
+            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)

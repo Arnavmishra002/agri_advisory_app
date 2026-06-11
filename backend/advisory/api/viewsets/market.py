@@ -1,0 +1,216 @@
+"""Realtime mandi / market price API."""
+
+import logging
+from datetime import datetime
+
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+from ..location_utils import attach_location_metadata, resolve_request_location
+from ...services.crop_catalog import crop_catalog
+from ...services.unified_realtime_service import market_service
+
+logger = logging.getLogger(__name__)
+
+
+class MarketPricesViewSet(viewsets.ViewSet):
+    permission_classes = [AllowAny]
+
+    def list(self, request):
+        """
+        Get real-time mandi prices for the user's location.
+        Hits Agmarknet 2.0 API → data.gov.in → MSP estimate (labeled).
+        """
+        try:
+            ctx = resolve_request_location(request)
+            mandi = request.GET.get("mandi")
+            crop  = request.GET.get("crop") or request.GET.get("q")
+            norm  = crop_catalog.normalize(crop) if crop else None
+            commodity = norm["name"] if norm else crop
+
+            include_estimates = request.GET.get("include_estimates", "").lower() in (
+                "1", "true", "yes",
+            )
+
+            data = market_service.get_prices(
+                ctx.query_label,
+                mandi=mandi,
+                crop=commodity,
+                lat=ctx.latitude,
+                lon=ctx.longitude,
+                state=ctx.state or None,
+                include_estimates=include_estimates,
+            )
+            if norm:
+                data["crop_suggestion"] = norm
+
+            # Always surface data freshness info
+            data.setdefault("fetched_at", datetime.now().isoformat())
+            return Response(attach_location_metadata(data, ctx))
+
+        except Exception as exc:
+            logger.exception("Market prices API error: %s", exc)
+            return Response(
+                {
+                    "status": "error",
+                    "error": "Unable to fetch market prices",
+                    "message": str(exc),
+                    "top_crops": [],
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["get"])
+    def mandis(self, request):
+        """
+        Live mandi list for user's GPS location / state.
+        Sources: Agmarknet 2.0 registry → data.gov.in → reference DB.
+        Sorted by distance from user's GPS when coordinates are available.
+        """
+        try:
+            ctx = resolve_request_location(request)
+            data = market_service.list_mandis(
+                ctx.query_label,
+                lat=ctx.latitude,
+                lon=ctx.longitude,
+                state=ctx.state or None,
+            )
+            return Response(attach_location_metadata(data, ctx))
+        except Exception as exc:
+            logger.exception("Mandi list API error: %s", exc)
+            return Response(
+                {
+                    "status": "error",
+                    "error": "Unable to fetch mandi list",
+                    "message": str(exc),
+                    "mandis": [],
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["get"], url_path="mandi-prices")
+    def mandi_prices(self, request):
+        """
+        Get real-time prices specifically for a single selected mandi.
+        Tries Agmarknet 2.0 with mandi filter → data.gov.in filtered →
+        MSP seasonal estimate (labeled) as last resort.
+
+        Query params:
+          mandi       — mandi name (required)
+          state       — state name (optional, improves accuracy)
+          crop        — optional commodity filter
+          include_estimates — show MSP estimates if no live data (default false)
+        """
+        try:
+            ctx  = resolve_request_location(request)
+            mandi = request.GET.get("mandi", "").strip()
+            crop  = request.GET.get("crop", "").strip() or None
+            include_estimates = request.GET.get("include_estimates", "").lower() in (
+                "1", "true", "yes",
+            )
+
+            if not mandi:
+                return Response(
+                    {"status": "error", "message": "mandi parameter is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            norm = crop_catalog.normalize(crop) if crop else None
+            commodity = norm["name"] if norm else crop
+
+            # Force mandi-specific fetch — bypass cache to get freshest data
+            data = market_service.get_prices(
+                ctx.query_label,
+                mandi=mandi,
+                crop=commodity,
+                lat=ctx.latitude,
+                lon=ctx.longitude,
+                state=ctx.state or None,
+                include_estimates=include_estimates,
+            )
+
+            # Tag each row with the selected mandi name for frontend clarity
+            for row in data.get("top_crops", []):
+                row.setdefault("selected_mandi", mandi)
+                row.setdefault("mandi_name", row.get("mandi_name") or mandi)
+
+            data["selected_mandi"] = mandi
+            data["fetched_at"] = datetime.now().isoformat()
+            data["refresh_interval_seconds"] = 300  # tell frontend when to refresh
+
+            return Response(attach_location_metadata(data, ctx))
+
+        except Exception as exc:
+            logger.exception("Mandi-specific prices error: %s", exc)
+            return Response(
+                {
+                    "status": "error",
+                    "error": "Unable to fetch mandi prices",
+                    "message": str(exc),
+                    "top_crops": [],
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["get"], url_path="crop-search")
+    def crop_search(self, request):
+        """Google-style crop autocomplete for mandi price lookup."""
+        query = request.query_params.get("q", "").strip()
+        try:
+            limit = min(int(request.query_params.get("limit", 10)), 20)
+        except (ValueError, TypeError):
+            limit = 10
+        results = crop_catalog.search(query, limit=limit) if query else crop_catalog.popular(limit)
+        return Response({
+            "query": query,
+            "results": results,
+            "total": len(results),
+            "timestamp": datetime.now().isoformat(),
+        })
+
+    @action(detail=False, methods=["get"], url_path="live-status")
+    def live_status(self, request):
+        """
+        Check whether live mandi data is available for the user's location.
+        Returns the data source status and setup instructions if key is missing.
+        """
+        try:
+            ctx = resolve_request_location(request)
+            registered = market_service._has_registered_data_gov_key()
+            using_demo = not registered
+
+            # Quick probe — don't cache
+            probe = market_service.get_prices(
+                ctx.query_label,
+                lat=ctx.latitude,
+                lon=ctx.longitude,
+                state=ctx.state or None,
+            )
+
+            live_count = len([c for c in probe.get("top_crops", []) if c.get("is_live")])
+
+            return Response(attach_location_metadata({
+                "status": "success",
+                "is_live":            probe.get("is_live", False),
+                "live_rows_available": live_count,
+                "api_key_registered": registered,
+                "using_demo_key":     using_demo,
+                "data_source":        probe.get("data_source", ""),
+                "coverage":           probe.get("coverage", ""),
+                "setup_required": not registered,
+                "setup_instructions": (
+                    None if registered else
+                    "Register free at https://data.gov.in/user/register → "
+                    "API Keys → copy key → set DATA_GOV_IN_API_KEY in .env"
+                ),
+                "timestamp": datetime.now().isoformat(),
+            }, ctx))
+
+        except Exception as exc:
+            logger.exception("Live status check error: %s", exc)
+            return Response(
+                {"status": "error", "message": str(exc)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
