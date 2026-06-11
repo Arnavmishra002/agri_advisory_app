@@ -3,734 +3,799 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="KrishiMitra AI — किसानों का सबसे अच्छा डिजिटल सहायक। रियल-टाइम मंडी भाव, मौसम, फसल सलाह, IoT सेंसर विश्लेषण।">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>🌾 कृषिमित्र AI - किसानों का सब्से अच्छा दोस्त</title>
+    <title>🌾 कृषिमित्र AI — किसानों का डिजिटल सहायक</title>
+
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- App styles -->
     <link rel="stylesheet" href="/css/styles.css">
-    <!-- Language switcher styles -->
+
     <style>
-        .language-switcher option { color: #333; background: white; }
-        [dir="rtl"] .navbar-nav { flex-direction: row-reverse; }
-        [dir="rtl"] .text-muted, [dir="rtl"] p, [dir="rtl"] li { text-align: right; }
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; }
+
+        /* ── Floating label inputs ── */
+        .form-floating > .form-control { font-size: 0.9rem; }
+
+        /* ── Chat suggested question chips ── */
+        .chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #e8f5e8; border: 1px solid #a5d6a7;
+            color: #1a3a0a; padding: 5px 14px; border-radius: 999px;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s ease; white-space: nowrap;
+        }
+        .chip:hover { background: #2d5016; color: white; border-color: #2d5016; transform: translateY(-1px); }
+
+        /* ── Upload box ── */
+        .upload-zone {
+            border: 2px dashed #a5d6a7; border-radius: 14px;
+            padding: 20px 14px; text-align: center;
+            background: #f0fff4; cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .upload-zone:hover { border-color: #2d5016; background: #e8f5e8; }
+
+        /* ── Section header decoration ── */
+        .section-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 6px;
+        }
+        .section-header h2 {
+            margin: 0; font-weight: 800; color: #1a3a0a; letter-spacing: -0.02em;
+        }
+
+        /* ── Live badge ── */
+        .live-dot {
+            display: inline-block; width: 8px; height: 8px;
+            background: #28a745; border-radius: 50%;
+            animation: pulse-green 2s infinite;
+        }
+
+        /* ── Mandi selector styled ── */
+        .mandi-bar {
+            background: white; border-radius: 14px; padding: 14px 18px;
+            border: 1.5px solid #d4edda; margin-bottom: 18px;
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        /* ── Card hover accent ── */
+        .service-card[onclick*="field-advisory"]::before { background: linear-gradient(90deg, #e65100, #ff8f00); }
+        .service-card[onclick*="ai-assistant"]::before    { background: linear-gradient(90deg, #5b2c6f, #8e44ad); }
+        .service-card[onclick*="pest"]::before            { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+        .service-card[onclick*="weather"]::before         { background: linear-gradient(90deg, #0277bd, #29b6f6); }
+        .service-card[onclick*="market"]::before          { background: linear-gradient(90deg, #f57f17, #ffc107); }
+        .service-card[onclick*="crop-rec"]::before        { background: linear-gradient(90deg, #2e7d32, #66bb6a); }
+
+        /* ── Scroll to top button ── */
+        #scrollTopBtn {
+            position: fixed; bottom: 24px; right: 24px;
+            width: 44px; height: 44px; border-radius: 50%;
+            background: #2d5016; color: white; border: none;
+            font-size: 1.1rem; cursor: pointer; display: none;
+            box-shadow: 0 4px 14px rgba(45,80,22,0.4);
+            transition: all 0.25s ease; z-index: 999;
+        }
+        #scrollTopBtn:hover { background: #1a3a0a; transform: translateY(-2px); }
+        #scrollTopBtn.show { display: flex; align-items: center; justify-content: center; }
+
+        /* ── Market estimates toggle ── */
+        .market-estimates-toggle {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.85rem; color: #666; cursor: pointer;
+            padding: 7px 12px; background: #f8f9fa; border-radius: 8px;
+            margin-bottom: 12px; user-select: none;
+        }
+
+        @media (max-width: 576px) {
+            .chip { font-size: 0.75rem; padding: 4px 10px; }
+        }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                🌾 <span data-i18n="hero_title">कृषिमित्र AI</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+
+<!-- ══════════════════════════════════════════════════════════
+     NAVBAR
+     ══════════════════════════════════════════════════════════ -->
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="#" onclick="showService('home');return false;">
+            🌾 <span data-i18n="hero_title">कृषिमित्र AI</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center gap-1">
+                <li class="nav-item"><a class="nav-link" href="#" onclick="showService('home');return false;" data-i18n="nav_home">होम</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" onclick="showService('government-schemes');return false;" data-i18n="nav_schemes">योजनाएं</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" onclick="showService('ai-assistant');return false;" data-i18n="nav_ai">AI सहायक</a></li>
+                <!-- Language switcher injected by i18n.js -->
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO
+     ══════════════════════════════════════════════════════════ -->
+<div class="hero-section">
+    <div class="container">
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:999px;padding:5px 16px;font-size:0.78rem;font-weight:600;margin-bottom:16px;backdrop-filter:blur(8px);">
+            <span class="live-dot"></span> Live • Open-Meteo + Agmarknet + Gemini AI
+        </div>
+        <h1 class="hero-title" data-i18n="hero_title">🌾 कृषिमित्र AI</h1>
+        <p class="hero-subtitle" data-i18n="hero_subtitle">किसानों का सबसे अच्छा दोस्त — AI से स्मार्ट खेती करें</p>
+
+        <!-- Search -->
+        <div class="location-search-container">
+            <div class="search-box">
+                <i class="fas fa-map-marker-alt" style="color:#4a7c59;"></i>
+                <input type="text" id="locationSearchInput"
+                    placeholder="शहर, जिला या गाँव खोजें..."
+                    data-i18n="location_placeholder" data-i18n-target="placeholder"
+                    onkeyup="searchLocations(event)"
+                    onfocus="searchLocations(event)"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();applyManualLocation();}"
+                    autocomplete="off">
+                <button class="btn btn-primary btn-sm" onclick="applyManualLocation()" title="खोजें" style="font-size:0.82rem;">
+                    <i class="fas fa-search"></i> खोजें
+                </button>
+            </div>
+            <div id="locationSuggestions" class="location-suggestions"></div>
+        </div>
+
+        <!-- Current location bar -->
+        <div class="current-location-display mt-3">
+            <span class="location-label">📍 स्थान:</span>
+            <span id="currentLocationDisplay" class="location-name">Delhi</span>
+            <span id="locationAccuracyBadge" class="location-accuracy-badge" style="display:none;"></span>
+            <button class="btn btn-sm btn-outline-light" onclick="detectLocation()" style="font-size:0.8rem;border-radius:999px;">
+                <i class="fas fa-crosshairs"></i> <span data-i18n="detect_location">GPS</span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showService('home')" data-i18n="nav_home">होम</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showService('government-schemes')" data-i18n="nav_schemes">योजनाएं</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showService('ai-assistant')" data-i18n="nav_ai">AI सहायक</a>
-                    </li>
-                    <!-- Language switcher injected here by i18n.js -->
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <div class="hero-section">
-        <div class="container">
-            <h1 class="hero-title" data-i18n="hero_title">🌾 कृषिमित्र AI</h1>
-            <p class="hero-subtitle" data-i18n="hero_subtitle">किसानों का सबसे अच्छा दोस्त - AI से स्मार्ट खेती करें</p>
-
-            <!-- Location Search Bar -->
-            <div class="location-search-container">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="locationSearchInput" placeholder="शहर, जिला या गाँव खोजें..."
-                        data-i18n="location_placeholder" data-i18n-target="placeholder"
-                        onkeyup="searchLocations(event)"
-                        onfocus="searchLocations(event)"
-                        onkeydown="if(event.key==='Enter'){event.preventDefault();applyManualLocation();}"
-                        autocomplete="off">
-                    <button class="btn btn-primary" onclick="applyManualLocation()" title="खोजें">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-                <div id="locationSuggestions" class="location-suggestions"></div>
-            </div>
-
-            <div class="current-location-display">
-                <span class="location-label">📍 वर्तमान स्थान:</span>
-                <span id="currentLocationDisplay" class="location-name">Delhi</span>
-                <span id="locationAccuracyBadge" class="location-accuracy-badge" style="display:none;"
-                    title="GPS accuracy"></span>
-                <button class="btn btn-sm btn-outline-light" onclick="detectLocation()">
-                    <i class="fas fa-crosshairs"></i> स्थान पता करें
-                </button>
-            </div>
         </div>
     </div>
+</div>
 
-    <!-- Services Section -->
-    <div class="services-container">
-        <div class="container">
-            <h2 class="text-center mb-2" style="color: #2d5016;">किसानों के लिए आवश्यक सेवाएं</h2>
-            <p class="text-center mb-5" style="color: #666; font-size: 1rem;">🌾 AI-Powered • Real-Time Data •
-                Government APIs</p>
+<!-- ══════════════════════════════════════════════════════════
+     SERVICES SECTION
+     ══════════════════════════════════════════════════════════ -->
+<div class="services-container">
+    <div class="container">
 
-            <!-- Quick Stats Bar -->
-            <div
-                style="background: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%); border-radius: 15px; padding: 20px 30px; margin-bottom: 35px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-around; color: white;">
-                <div style="text-align:center;">
-                    <div style="font-size: 1.8rem; font-weight: 800;">₹2,275</div>
-                    <div style="font-size: 0.85rem; opacity: 0.9;">गेहूँ MSP 2024-25</div>
-                </div>
-                <div style="text-align:center;">
-                    <div style="font-size: 1.8rem; font-weight: 800;">₹2,300</div>
-                    <div style="font-size: 0.85rem; opacity: 0.9;">धान MSP 2024-25</div>
-                </div>
-                <div style="text-align:center;">
-                    <div style="font-size: 1.8rem; font-weight: 800;">₹6,000</div>
-                    <div style="font-size: 0.85rem; opacity: 0.9;">PM-Kisan वार्षिक</div>
-                </div>
-                <div style="text-align:center;">
-                    <div style="font-size: 1.8rem; font-weight: 800;">4%</div>
-                    <div style="font-size: 0.85rem; opacity: 0.9;">KCC ब्याज दर</div>
-                </div>
-                <div style="text-align:center;">
-                    <div style="font-size: 1.8rem; font-weight: 800;">90%</div>
-                    <div style="font-size: 0.85rem; opacity: 0.9;">सोलर पंप सब्सिडी</div>
+        <!-- Section title -->
+        <div class="text-center mb-2">
+            <h2 style="color:#1a3a0a;font-weight:800;letter-spacing:-0.02em;">किसानों के लिए आवश्यक सेवाएं</h2>
+            <p style="color:#666;font-size:0.92rem;margin-top:4px;">🌾 AI-Powered &nbsp;•&nbsp; Real-Time Data &nbsp;•&nbsp; Government APIs &nbsp;•&nbsp; 22 Languages</p>
+        </div>
+
+        <!-- MSP Stats bar -->
+        <div class="stats-bar mb-4">
+            <div class="stat-item">
+                <div class="stat-value">₹2,275</div>
+                <div class="stat-label">🌾 गेहूँ MSP 2024-25</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">₹2,300</div>
+                <div class="stat-label">🍚 धान MSP 2024-25</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">₹6,000</div>
+                <div class="stat-label">🏛️ PM-Kisan वार्षिक</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">4%</div>
+                <div class="stat-label">💳 KCC ब्याज दर</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">80</div>
+                <div class="stat-label">🌱 फसलें विश्लेषण DB</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">22</div>
+                <div class="stat-label">🌐 भारतीय भाषाएं</div>
+            </div>
+        </div>
+
+        <!-- Service Cards -->
+        <div class="row g-4">
+
+            <!-- Government Schemes -->
+            <div class="col-xl-4 col-md-6">
+                <div class="service-card" onclick="showService('government-schemes')">
+                    <div class="status-indicator"></div>
+                    <div class="service-icon">🏛️</div>
+                    <h3 class="service-title" data-i18n="service_schemes">सरकारी योजनाएं</h3>
+                    <p class="service-description">केंद्र और राज्य सरकार की कृषि योजनाएं — पात्रता जांचें</p>
+                    <div class="service-info-panel" style="border-left-color:#28a745;">
+                        <div class="service-info-panel-label" style="color:#155724;">📌 प्रमुख योजनाएं</div>
+                        <div class="service-info-panel-body">
+                            🌾 PM-Kisan — <strong>₹6,000/वर्ष</strong><br>
+                            🛡️ PMFBY — <strong>2% प्रीमियम</strong> पर बीमा<br>
+                            💳 KCC — <strong>₹3L @4% ब्याज</strong><br>
+                            ☀️ PM-KUSUM — <strong>90% सब्सिडी</strong>
+                        </div>
+                    </div>
+                    <button class="service-button">योजनाएं देखें →</button>
                 </div>
             </div>
 
-            <div class="row">
-                <!-- Government Schemes -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card" onclick="showService('government-schemes')">
-                        <div class="status-indicator"></div>
-                        <div class="service-icon">🏛️</div>
-                        <h3 class="service-title">सरकारी योजनाएं</h3>
-                        <p class="service-description">केंद्र और राज्य सरकार की कृषि योजनाएं</p>
-                        <div
-                            style="background: #f8fff8; border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 0.88rem;">
-                            <div style="color: #2d5016; margin-bottom: 5px;"><strong>📌 प्रमुख योजनाएं:</strong></div>
-                            <div style="color: #444; line-height: 1.7;">
-                                🌾 PM-Kisan: <strong>₹6,000/वर्ष</strong><br>
-                                🛡️ PMFBY: <strong>2% प्रीमियम</strong> पर बीमा<br>
-                                💳 KCC: <strong>₹3L ऋण @4%</strong><br>
-                                ☀️ PM-KUSUM: <strong>90% सब्सिडी</strong>
-                            </div>
+            <!-- Crop Recommendations -->
+            <div class="col-xl-4 col-md-6">
+                <div class="service-card" onclick="showService('crop-recommendations')">
+                    <div class="status-indicator"></div>
+                    <div class="service-icon">🌾</div>
+                    <h3 class="service-title" data-i18n="service_crops">फसल सुझाव</h3>
+                    <p class="service-description">80 फसलें · 126 जिले · लाइव मौसम + मंडी भाव विश्लेषण</p>
+                    <div class="service-info-panel" style="border-left-color:#388e3c;">
+                        <div class="service-info-panel-label" style="color:#1b5e20;">🌱 Multi-Factor Score</div>
+                        <div class="service-info-panel-body">
+                            🌡️ लाइव मौसम (Open-Meteo)<br>
+                            💰 मंडी भाव vs MSP<br>
+                            🌍 जिला-स्तरीय मिट्टी प्रोफाइल<br>
+                            📅 सीजन + सिंचाई विश्लेषण
                         </div>
-                        <button class="service-button">योजनाएं देखें</button>
                     </div>
-                </div>
-
-                <!-- Crop Recommendations -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card" onclick="showService('crop-recommendations')">
-                        <div class="status-indicator"></div>
-                        <div class="service-icon">🌾</div>
-                        <h3 class="service-title">फसल सुझाव</h3>
-                        <p class="service-description">AI द्वारा आपके क्षेत्र के लिए सर्वोत्तम फसलें</p>
-                        <div
-                            style="background: #f8fff8; border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 0.88rem;">
-                            <div style="color: #2d5016; margin-bottom: 5px;"><strong>🌱 रबी सीजन
-                                    (अक्टूबर–मार्च):</strong></div>
-                            <div style="color: #444; line-height: 1.7;">
-                                🌾 गेहूँ — MSP ₹2,275/क्विंटल<br>
-                                🌼 सरसों — MSP ₹5,650/क्विंटल<br>
-                                🫘 चना — MSP ₹5,440/क्विंटल<br>
-                                🌿 मसूर — MSP ₹6,425/क्विंटल
-                            </div>
-                        </div>
-                        <button class="service-button">फसल सुझाव प्राप्त करें</button>
-                    </div>
-                </div>
-
-                <!-- Weather -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card" onclick="showService('weather')">
-                        <div class="status-indicator"></div>
-                        <div class="service-icon">🌤️</div>
-                        <h3 class="service-title">मौसम पूर्वानुमान</h3>
-                        <p class="service-description">7 दिन का विस्तृत मौसम पूर्वानुमान</p>
-                        <div
-                            style="background: #f0f8ff; border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 0.88rem;">
-                            <div style="color: #1a5276; margin-bottom: 5px;"><strong>🌾 मौसम-कृषि सलाह:</strong></div>
-                            <div style="color: #444; line-height: 1.7;">
-                                🔥 लू (40°C+): सुबह/शाम सींचें<br>
-                                🌧️ भारी बारिश: जल निकासी करें<br>
-                                ❄️ पाला (5°C-): फसल ढकें<br>
-                                📱 IMD App: Meghdoot
-                            </div>
-                        </div>
-                        <button class="service-button">मौसम देखें</button>
-                    </div>
-                </div>
-
-                <!-- Market Prices -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card" onclick="showService('market-prices')">
-                        <div class="status-indicator"></div>
-                        <div class="service-icon">💰</div>
-                        <h3 class="service-title">बाजार कीमतें</h3>
-                        <p class="service-description">Agmarknet/eNAM से रियल-टाइम मंडी भाव</p>
-                        <div
-                            style="background: #fffdf0; border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 0.88rem;">
-                            <div style="color: #7d6608; margin-bottom: 5px;"><strong>📊 MSP 2024-25:</strong></div>
-                            <div style="color: #444; line-height: 1.7;">
-                                🌾 गेहूँ: <strong>₹2,275</strong>/क्विंटल<br>
-                                🍚 चावल: <strong>₹2,300</strong>/क्विंटल<br>
-                                🌻 सोयाबीन: <strong>₹4,892</strong>/क्विंटल<br>
-                                🌿 कपास: <strong>₹7,121</strong>/क्विंटल
-                            </div>
-                        </div>
-                        <button class="service-button">कीमतें देखें</button>
-                    </div>
-                </div>
-
-                <!-- Pest Control -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card" onclick="showService('pest-control')">
-                        <div class="status-indicator"></div>
-                        <div class="service-icon">🐛</div>
-                        <h3 class="service-title">KrishiRaksha — फसल रक्षा</h3>
-                        <p class="service-description">AI द्वारा कीट-रोग की पहचान व उपचार</p>
-                        <div
-                            style="background: #fff8f8; border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 0.88rem;">
-                            <div style="color: #c0392b; margin-bottom: 5px;"><strong>🔬 सामान्य कीट-रोग:</strong></div>
-                            <div style="color: #444; line-height: 1.7;">
-                                🐛 माहू: Imidacloprid से नियंत्रण<br>
-                                🦠 झुलसा: Metalaxyl उपचार<br>
-                                🌿 नीम तेल: जैविक विकल्प<br>
-                                📞 ICAR: 1800-180-1551
-                            </div>
-                        </div>
-                        <button class="service-button">जांच करें</button>
-                    </div>
-                </div>
-
-                <!-- AI Assistant -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card" onclick="showService('ai-assistant')">
-                        <div class="status-indicator"></div>
-                        <div class="service-icon">🤖</div>
-                        <h3 class="service-title" data-i18n="service_ai">AI सहायक</h3>
-                        <p class="service-description">24/7 कृषि विशेषज्ञ — हिंदी में बात करें</p>
-                        <div
-                            style="background: #f3f0ff; border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 0.88rem;">
-                            <div style="color: #5b2c6f; margin-bottom: 5px;"><strong>💬 पूछ सकते हैं:</strong></div>
-                            <div style="color: #444; line-height: 1.7;">
-                                🌾 "गेहूँ कब बोएं?"<br>
-                                💰 "PM-Kisan status कैसे देखें?"<br>
-                                🐛 "टमाटर में रोग क्यों?"<br>
-                                🌤️ "आज खेत में क्या करें?"
-                            </div>
-                        </div>
-                        <button class="service-button">बात करें</button>
-                    </div>
-                </div>
-
-                <!-- Field Advisory (IoT + Precision) -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="service-card" onclick="showService('field-advisory')" style="border-top: 3px solid #ff6f00;">
-                        <div class="status-indicator" style="background:#ff6f00;"></div>
-                        <div class="service-icon">🧪</div>
-                        <h3 class="service-title" data-i18n="service_field">खेत-स्तरीय सलाह</h3>
-                        <p class="service-description">NPK सेंसर + मिट्टी नमी + 16-दिन मौसम से सटीक फसल चयन</p>
-                        <div style="background:#fff3e0;border-radius:10px;padding:12px;margin:12px 0;font-size:0.88rem;">
-                            <div style="color:#e65100;margin-bottom:5px;"><strong>🔬 विश्लेषण स्रोत:</strong></div>
-                            <div style="color:#444;line-height:1.7;">
-                                🌱 IoT NPK/pH/EC सेंसर<br>
-                                💧 Open-Meteo मिट्टी नमी (5 layers)<br>
-                                🏛️ Soil Health Card (सरकार)<br>
-                                📊 ICAR खाद सुझाव
-                            </div>
-                        </div>
-                        <button class="service-button" style="background:linear-gradient(135deg,#e65100,#ff8f00);">खेत जांचें</button>
-                    </div>
+                    <button class="service-button">फसल सुझाव →</button>
                 </div>
             </div>
 
-            <!-- Farming Calendar Section -->
-            <div
-                style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-top: 10px; margin-bottom: 30px;">
-                <h4 style="color: #2d5016; margin-bottom: 20px; text-align: center;">📅 कृषि कैलेंडर 2025-26</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div
-                        style="background: #fff3cd; border-radius: 10px; padding: 15px; border-left: 4px solid #ffc107;">
-                        <strong style="color: #856404;">☀️ खरीफ (जून-नवंबर)</strong>
-                        <ul
-                            style="margin: 8px 0 0 0; padding-left: 18px; color: #444; font-size: 0.9rem; line-height: 1.8;">
-                            <li>धान — जून-जुलाई बुवाई</li>
-                            <li>मक्का — जून बुवाई</li>
-                            <li>सोयाबीन — जुलाई बुवाई</li>
-                            <li>कपास — मई-जून बुवाई</li>
+            <!-- Weather -->
+            <div class="col-xl-4 col-md-6">
+                <div class="service-card" onclick="showService('weather')">
+                    <div class="status-indicator"></div>
+                    <div class="service-icon">🌤️</div>
+                    <h3 class="service-title" data-i18n="service_weather">मौसम पूर्वानुमान</h3>
+                    <p class="service-description">16-दिन पूर्वानुमान + ET₀ सिंचाई शेड्यूल + कृषि चेतावनी</p>
+                    <div class="service-info-panel" style="border-left-color:#0277bd;">
+                        <div class="service-info-panel-label" style="color:#01579b;">🛰️ Open-Meteo (Free, 1km)</div>
+                        <div class="service-info-panel-body">
+                            🌡️ तापमान, नमी, UV, ET₀<br>
+                            💧 मिट्टी नमी (5 परतें)<br>
+                            🌧️ वर्षा + जल संतुलन<br>
+                            ⚠️ लू / बाढ़ / पाला अलर्ट
+                        </div>
+                    </div>
+                    <button class="service-button">मौसम देखें →</button>
+                </div>
+            </div>
+
+            <!-- Market Prices -->
+            <div class="col-xl-4 col-md-6">
+                <div class="service-card" onclick="showService('market-prices')">
+                    <div class="status-indicator"></div>
+                    <div class="service-icon">💰</div>
+                    <h3 class="service-title" data-i18n="service_market">बाजार कीमतें</h3>
+                    <p class="service-description">Agmarknet 2.0 + data.gov.in से रियल-टाइम मंडी भाव</p>
+                    <div class="service-info-panel" style="border-left-color:#f57f17;">
+                        <div class="service-info-panel-label" style="color:#e65100;">📊 Live Mandi Data</div>
+                        <div class="service-info-panel-body">
+                            🌾 गेहूँ MSP ₹2,275 / q<br>
+                            🍚 धान MSP ₹2,300 / q<br>
+                            🌻 सोयाबीन MSP ₹4,892 / q<br>
+                            🔄 हर 3 मिनट अपडेट
+                        </div>
+                    </div>
+                    <button class="service-button">मंडी भाव →</button>
+                </div>
+            </div>
+
+            <!-- KrishiRaksha -->
+            <div class="col-xl-4 col-md-6">
+                <div class="service-card" onclick="showService('pest-control')">
+                    <div class="status-indicator"></div>
+                    <div class="service-icon">🩺</div>
+                    <h3 class="service-title" data-i18n="service_pest">KrishiRaksha 2.0</h3>
+                    <p class="service-description">EfficientNet-B3 AI से फोटो देखकर कीट-रोग पहचान</p>
+                    <div class="service-info-panel" style="border-left-color:#c62828;">
+                        <div class="service-info-panel-label" style="color:#b71c1c;">🔬 AI-Powered Diagnosis</div>
+                        <div class="service-info-panel-body">
+                            📸 3-angle photo upload<br>
+                            🤖 150+ disease database<br>
+                            🌡️ मौसम + क्षेत्र सत्यापन<br>
+                            📞 ICAR: 1800-180-1551
+                        </div>
+                    </div>
+                    <button class="service-button" style="background:linear-gradient(135deg,#b71c1c,#e53935);">जांच शुरू →</button>
+                </div>
+            </div>
+
+            <!-- AI Assistant -->
+            <div class="col-xl-4 col-md-6">
+                <div class="service-card" onclick="showService('ai-assistant')">
+                    <div class="status-indicator"></div>
+                    <div class="service-icon">🤖</div>
+                    <h3 class="service-title" data-i18n="service_ai">AI सहायक</h3>
+                    <p class="service-description">22 भाषाएं · Gemini AI + ICAR data grounding · 24/7</p>
+                    <div class="service-info-panel" style="border-left-color:#6a1b9a;">
+                        <div class="service-info-panel-label" style="color:#4a148c;">💬 किसी भी भाषा में पूछें</div>
+                        <div class="service-info-panel-body">
+                            🌾 "गेहूँ की बुवाई कब?"<br>
+                            💰 "PM-Kisan status कैसे?"<br>
+                            🐛 "टमाटर में रोग क्यों?"<br>
+                            🌤️ "आज खेत में क्या करें?"
+                        </div>
+                    </div>
+                    <button class="service-button" style="background:linear-gradient(135deg,#4a148c,#7b1fa2);">बात करें →</button>
+                </div>
+            </div>
+
+            <!-- Field Advisory -->
+            <div class="col-xl-4 col-md-6">
+                <div class="service-card" onclick="showService('field-advisory')">
+                    <div class="status-indicator" style="background:#ff6f00;"></div>
+                    <div class="service-icon">🧪</div>
+                    <h3 class="service-title" data-i18n="service_field">खेत-स्तरीय सलाह</h3>
+                    <p class="service-description">IoT NPK सेंसर + Open-Meteo मिट्टी + ICAR खाद योजना</p>
+                    <div class="service-info-panel" style="border-left-color:#e65100;background:#fff8f5;">
+                        <div class="service-info-panel-label" style="color:#bf360c;">📡 Field-Level Precision</div>
+                        <div class="service-info-panel-body">
+                            🌱 NPK / pH / EC / Moisture<br>
+                            💧 Open-Meteo 5-layer soil<br>
+                            🏛️ Soil Health Card (GOI)<br>
+                            📊 ICAR fertiliser gaps
+                        </div>
+                    </div>
+                    <button class="service-button" style="background:linear-gradient(135deg,#bf360c,#ff6f00);">खेत जांचें →</button>
+                </div>
+            </div>
+
+        </div><!-- /row -->
+
+        <!-- Farming Calendar -->
+        <div class="farming-calendar mt-2">
+            <h4 style="color:#1a3a0a;font-weight:800;text-align:center;margin-bottom:20px;letter-spacing:-0.01em;">📅 कृषि कैलेंडर 2025-26</h4>
+            <div class="row g-3">
+                <div class="col-md-3 col-6">
+                    <div class="calendar-season" style="background:#fff3cd;border-left-color:#ffc107;">
+                        <strong style="color:#856404;">☀️ खरीफ</strong><small style="color:#a0780f;display:block;margin-bottom:6px;">जून–नवंबर</small>
+                        <ul style="list-style:none;padding:0;margin:0;font-size:0.85rem;color:#555;line-height:2;">
+                            <li>🍚 धान — जून-जुलाई</li>
+                            <li>🌽 मक्का — जून</li>
+                            <li>🫘 सोयाबीन — जुलाई</li>
+                            <li>🌿 कपास — मई-जून</li>
                         </ul>
                     </div>
-                    <div
-                        style="background: #d1ecf1; border-radius: 10px; padding: 15px; border-left: 4px solid #17a2b8;">
-                        <strong style="color: #0c5460;">❄️ रबी (अक्टूबर-मार्च)</strong>
-                        <ul
-                            style="margin: 8px 0 0 0; padding-left: 18px; color: #444; font-size: 0.9rem; line-height: 1.8;">
-                            <li>गेहूँ — नवंबर बुवाई</li>
-                            <li>सरसों — अक्टूबर बुवाई</li>
-                            <li>चना — नवंबर बुवाई</li>
-                            <li>मटर — अक्टूबर बुवाई</li>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="calendar-season" style="background:#d1ecf1;border-left-color:#17a2b8;">
+                        <strong style="color:#0c5460;">❄️ रबी</strong><small style="color:#0e7384;display:block;margin-bottom:6px;">अक्टूबर–मार्च</small>
+                        <ul style="list-style:none;padding:0;margin:0;font-size:0.85rem;color:#555;line-height:2;">
+                            <li>🌾 गेहूँ — नवंबर</li>
+                            <li>🌼 सरसों — अक्टूबर</li>
+                            <li>🫘 चना — नवंबर</li>
+                            <li>🟢 मटर — अक्टूबर</li>
                         </ul>
                     </div>
-                    <div
-                        style="background: #d4edda; border-radius: 10px; padding: 15px; border-left: 4px solid #28a745;">
-                        <strong style="color: #155724;">🌸 जायद (मार्च-जून)</strong>
-                        <ul
-                            style="margin: 8px 0 0 0; padding-left: 18px; color: #444; font-size: 0.9rem; line-height: 1.8;">
-                            <li>मूंग — मार्च बुवाई</li>
-                            <li>तरबूज — फरवरी-मार्च</li>
-                            <li>खीरा — मार्च बुवाई</li>
-                            <li>भिंडी — मार्च-अप्रैल</li>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="calendar-season" style="background:#d4edda;border-left-color:#28a745;">
+                        <strong style="color:#155724;">🌸 जायद</strong><small style="color:#1e7e34;display:block;margin-bottom:6px;">मार्च–जून</small>
+                        <ul style="list-style:none;padding:0;margin:0;font-size:0.85rem;color:#555;line-height:2;">
+                            <li>🫘 मूंग — मार्च</li>
+                            <li>🍉 तरबूज — फरवरी</li>
+                            <li>🥒 खीरा — मार्च</li>
+                            <li>🌿 भिंडी — मार्च-अप्रैल</li>
                         </ul>
                     </div>
-                    <div
-                        style="background: #f8d7da; border-radius: 10px; padding: 15px; border-left: 4px solid #dc3545;">
-                        <strong style="color: #721c24;">📞 हेल्पलाइन नंबर</strong>
-                        <ul
-                            style="margin: 8px 0 0 0; padding-left: 18px; color: #444; font-size: 0.9rem; line-height: 1.8;">
-                            <li>Kisan: <strong>1800-180-1551</strong></li>
-                            <li>PM-Kisan: <strong>155261</strong></li>
-                            <li>NABARD: <strong>1800-200-1025</strong></li>
-                            <li>eNAM: <strong>1800-270-0224</strong></li>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="calendar-season" style="background:#f8d7da;border-left-color:#dc3545;">
+                        <strong style="color:#721c24;">📞 हेल्पलाइन</strong><small style="color:#a01c26;display:block;margin-bottom:6px;">निःशुल्क 24×7</small>
+                        <ul style="list-style:none;padding:0;margin:0;font-size:0.85rem;color:#555;line-height:2;">
+                            <li>Kisan <strong>1800-180-1551</strong></li>
+                            <li>PM-Kisan <strong>155261</strong></li>
+                            <li>NABARD <strong>1800-200-1025</strong></li>
+                            <li>eNAM <strong>1800-270-0224</strong></li>
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Content Sections -->
-    <div class="content-section" id="government-schemes-content">
-        <div class="container">
-            <h2 class="text-center mb-4">🏛️ सरकारी योजनाएं</h2>
-            <div id="schemesData" class="loading">
-                <i class="fas fa-spinner"></i>
-                <p>योजनाएं लोड हो रही हैं...</p>
-            </div>
+    </div><!-- /container -->
+</div><!-- /services-container -->
+
+<!-- ══════════════════════════════════════════════════════════
+     CONTENT PANELS
+     ══════════════════════════════════════════════════════════ -->
+
+<!-- Government Schemes -->
+<div class="content-section" id="government-schemes-content">
+    <div class="container">
+        <div class="section-header"><h2>🏛️ सरकारी योजनाएं</h2></div>
+        <p class="text-muted mb-4">केंद्र सरकार की कृषि योजनाएं — official MoAFW catalog</p>
+        <div id="schemesData" class="loading">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
+            <p class="mt-3">योजनाएं लोड हो रही हैं...</p>
         </div>
     </div>
+</div>
 
-    <div class="content-section" id="crop-recommendations-content">
-        <div class="container">
-            <h2 class="text-center mb-4">🌾 फसल सुझाव</h2>
-
-            <!-- Crop Search Bar -->
-            <div class="crop-search-container mb-4">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="cropSearchInput" placeholder="फसल खोजें (जैसे: गेहूं, धान, मक्का)..."
-                        onkeyup="searchCrop(event)" onfocus="showCropSuggestions()">
-                    <button class="btn btn-primary" onclick="searchSpecificCrop()">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-                <div id="cropSuggestions" class="crop-suggestions"></div>
+<!-- Crop Recommendations -->
+<div class="content-section" id="crop-recommendations-content">
+    <div class="container">
+        <div class="section-header"><h2>🌾 फसल सुझाव</h2><span class="live-dot ms-2"></span></div>
+        <p class="text-muted mb-4">80 फसलें · 126 जिले · लाइव मौसम + मंडी भाव विश्लेषण</p>
+        <div class="crop-search-container mb-4" style="position:relative;max-width:560px;">
+            <div class="search-box">
+                <i class="fas fa-seedling"></i>
+                <input type="text" id="cropSearchInput"
+                    placeholder="फसल खोजें — Wheat, गेहूँ, Cotton..."
+                    onkeyup="searchCrop(event)" onfocus="showCropSuggestions()" autocomplete="off">
+                <button class="btn btn-success btn-sm" onclick="searchSpecificCrop()" style="font-size:0.82rem;">खोजें</button>
             </div>
-
-            <div id="cropsData" class="loading">
-                <i class="fas fa-spinner"></i>
-                <p>फसल सुझाव लोड हो रहे हैं...</p>
-            </div>
+            <div id="cropSuggestions" class="crop-suggestions"></div>
+        </div>
+        <div id="cropsData" class="loading">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
+            <p class="mt-3">फसल सुझाव लोड हो रहे हैं...</p>
         </div>
     </div>
+</div>
 
-    <div class="content-section" id="weather-content">
-        <div class="container">
-            <h2 class="text-center mb-4">🌤️ मौसम पूर्वानुमान</h2>
-            <div id="weatherData" class="loading">
-                <i class="fas fa-spinner"></i>
-                <p>मौसम की जानकारी लोड हो रही है...</p>
-            </div>
+<!-- Weather -->
+<div class="content-section" id="weather-content">
+    <div class="container">
+        <div class="section-header"><h2>🌤️ मौसम पूर्वानुमान</h2><span class="live-dot ms-2"></span></div>
+        <p class="text-muted mb-4">Open-Meteo · 16-दिन · ET₀ · मिट्टी नमी · कृषि चेतावनी</p>
+        <div id="weatherData" class="loading">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
+            <p class="mt-3">मौसम की जानकारी लोड हो रही है...</p>
         </div>
     </div>
+</div>
 
-    <div class="content-section" id="market-prices-content">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="mb-0">💰 बाजार कीमतें</h2>
-                <button onclick="forceReloadMarketPrices()" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-sync-alt"></i> रिफ्रेश करें
-                </button>
+<!-- Market Prices -->
+<div class="content-section" id="market-prices-content">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div class="section-header"><h2>💰 बाजार कीमतें</h2><span class="live-dot ms-2"></span></div>
+            <button onclick="loadMarketPrices()" class="btn btn-outline-success btn-sm" style="border-radius:999px;">
+                <i class="fas fa-sync-alt"></i> रिफ्रेश
+            </button>
+        </div>
+        <p class="text-muted mb-3">Agmarknet 2.0 + data.gov.in — मंडी-स्तरीय असली भाव</p>
+
+        <!-- Crop search -->
+        <div style="position:relative;margin-bottom:14px;">
+            <label class="fw-semibold mb-1" style="color:#2d5016;font-size:0.88rem;">🌾 फसल खोजें</label>
+            <div style="display:flex;gap:8px;">
+                <input type="text" id="cropPriceSearchInput" class="form-control"
+                    placeholder="गेहूँ, Onion, Maize, टमाटर..."
+                    oninput="searchCropsForMarket(event)" autocomplete="off">
+                <button type="button" class="btn btn-outline-success btn-sm" onclick="clearCropPriceSearch()" style="white-space:nowrap;">सभी फसलें</button>
             </div>
+            <div id="cropPriceSuggestions" class="crop-suggestions" style="display:none;"></div>
+            <div id="selectedCropBadge" style="margin-top:6px;font-size:0.85rem;color:#4a7c59;font-weight:600;"></div>
+        </div>
 
-            <!-- Crop price search (Google-style) -->
-            <div class="crop-search-container" style="position:relative;margin-bottom:14px;">
-                <label style="font-weight:600;color:#2d5016;display:block;margin-bottom:8px;">🌾 फसल की कीमत खोजें (किसी भी फसल का नाम लिखें)</label>
-                <div class="crop-search-box" style="display:flex;gap:8px;">
-                    <input type="text" id="cropPriceSearchInput" class="form-control form-control-lg"
-                        placeholder="जैसे: गेहूँ, Onion, Maize, टमाटर..."
-                        oninput="searchCropsForMarket(event)" autocomplete="off" style="flex:1;">
-                    <button type="button" class="btn btn-success" onclick="clearCropPriceSearch()">सभी फसलें</button>
-                </div>
-                <div id="cropPriceSuggestions" class="crop-suggestions" style="display:none;"></div>
-                <div id="selectedCropBadge" style="margin-top:8px;font-size:0.88rem;color:#4a7c59;font-weight:600;"></div>
-            </div>
+        <!-- Live banner -->
+        <div id="marketLiveBanner" class="market-live-banner" style="display:none;" role="alert"></div>
 
-            <!-- Mandi Selector -->
-            <div id="marketLiveBanner" class="market-live-banner" style="display:none;" role="alert"></div>
+        <!-- MSP estimates toggle -->
+        <label class="market-estimates-toggle">
+            <input type="checkbox" id="showMspEstimates" onchange="loadMarketPrices()">
+            MSP अनुमान भी दिखाएं (live mandi न होने पर — असली भाव नहीं)
+        </label>
 
-            <label class="market-estimates-toggle" style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:0.9rem;color:#555;">
-                <input type="checkbox" id="showMspEstimates" onchange="loadMarketPrices()">
-                MSP अनुमान दिखाएं (live mandi न होने पर — यह असली मंडी भाव नहीं है)
-            </label>
+        <!-- Mandi selector -->
+        <div class="mandi-bar">
+            <label class="fw-bold m-0" style="color:#2d5016;font-size:0.9rem;white-space:nowrap;">🏪 मंडी चुनें:</label>
+            <select id="mandiSelector" onchange="onMandiSelected(this.value)" class="form-select form-select-sm" style="flex:1;min-width:180px;max-width:320px;border-color:#a5d6a7;">
+                <option value="">-- सभी मंडियां (All Mandis) --</option>
+            </select>
+            <span id="mandiStatusBadge" style="font-size:0.8rem;color:#666;"></span>
+            <button id="mandiLoadMoreBtn" class="btn btn-sm btn-outline-success" style="display:none;border-radius:999px;" onclick="loadMoreMandis()">और मंडियां</button>
+        </div>
 
-            <div
-                style="background:#f0f8f0;border:1px solid #d4edda;border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                <label style="font-weight:600;color:#2d5016;margin:0;white-space:nowrap;">🏪 मंडी चुनें:</label>
-                <select id="mandiSelector" onchange="onMandiSelected(this.value)"
-                    style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1.5px solid #4a7c59;font-size:0.95rem;color:#2d5016;background:white;cursor:pointer;">
-                    <option value="">-- सभी मंडियां (All Mandis) --</option>
-                </select>
-                <span id="mandiStatusBadge" style="font-size:0.82rem;color:#666;"></span>
-                <button type="button" id="mandiLoadMoreBtn" class="btn btn-sm btn-outline-success"
-                    style="display:none;" onclick="loadMoreMandis()">और मंडियां</button>
-            </div>
-
-            <div id="pricesData" class="loading">
-                <i class="fas fa-spinner"></i>
-                <p>बाजार कीमतें लोड हो रही हैं...</p>
-            </div>
+        <div id="pricesData" class="loading">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
+            <p class="mt-3">बाजार कीमतें लोड हो रही हैं...</p>
         </div>
     </div>
+</div>
 
-    <div class="content-section" id="pest-control-content">
-        <div class="container">
-            <h2 class="text-center mb-4">🩺 KrishiRaksha 2.0: Advanced Diagnostics</h2>
+<!-- KrishiRaksha / Pest Control -->
+<div class="content-section" id="pest-control-content">
+    <div class="container">
+        <div class="section-header mb-1"><h2>🩺 KrishiRaksha 2.0</h2></div>
+        <p class="text-muted mb-4">EfficientNet-B3 AI · 150+ disease database · GPS weather verification</p>
 
-            <!-- Step 1: Crop Selection -->
-            <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-seedling"></i> Step 1: Select Your Crop (फसल चुनें)</h5>
-                </div>
-                <div class="card-body" style="position:relative;">
-                    <input type="text" id="krCropSearchInput" class="form-control form-control-lg"
-                        placeholder="फसल खोजें — Wheat, Cotton, भिंडी, आम..."
-                        oninput="searchCropsForDiagnostics(event)" autocomplete="off">
-                    <input type="hidden" id="krCropValue" value="">
-                    <div id="krCropSuggestions" class="crop-suggestions" style="display:none;"></div>
-                    <div id="krSelectedCropLabel" style="margin-top:10px;font-size:0.9rem;color:#2d5016;font-weight:600;"></div>
-                    <small class="text-muted d-block mt-2">Popular: Tomato, Rice, Potato, Onion, Wheat, Cotton, Maize</small>
+        <div class="row g-4">
+            <!-- Step 1 -->
+            <div class="col-12">
+                <div class="card border-0 shadow-sm" style="border-radius:16px;overflow:hidden;">
+                    <div class="card-header" style="background:linear-gradient(135deg,#1b5e20,#388e3c);color:white;border:none;padding:14px 22px;">
+                        <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Step 1 — फसल चुनें</h5>
+                    </div>
+                    <div class="card-body" style="position:relative;">
+                        <input type="text" id="krCropSearchInput" class="form-control form-control-lg"
+                            placeholder="Wheat, Cotton, भिंडी, आम, Tomato..."
+                            oninput="searchCropsForDiagnostics(event)" autocomplete="off">
+                        <input type="hidden" id="krCropValue" value="">
+                        <div id="krCropSuggestions" class="crop-suggestions" style="display:none;"></div>
+                        <div id="krSelectedCropLabel" style="margin-top:8px;font-size:0.9rem;color:#2d5016;font-weight:600;"></div>
+                        <small class="text-muted d-block mt-2">Popular: Tomato, Rice, Potato, Wheat, Cotton, Maize, Onion</small>
+                    </div>
                 </div>
             </div>
 
-            <!-- Step 2: Multi-Image Upload -->
-            <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-camera"></i> Step 2: Multi-Angle Analysis (तस्वीरें अपलोड करें)
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <div class="upload-box text-center p-3 border rounded bg-light h-100">
-                                <i class="fas fa-tree fa-2x text-success mb-2"></i>
-                                <h6>Whole Plant (पूरी फसल)</h6>
-                                <input type="file" id="imgWhole" class="form-control mb-2" accept="image/*">
-                                <small class="text-muted d-block">Take a photo from 5-10ft away</small>
+            <!-- Step 2 -->
+            <div class="col-12">
+                <div class="card border-0 shadow-sm" style="border-radius:16px;overflow:hidden;">
+                    <div class="card-header" style="background:linear-gradient(135deg,#0d47a1,#1976d2);color:white;border:none;padding:14px 22px;">
+                        <h5 class="mb-0"><i class="fas fa-camera me-2"></i>Step 2 — तस्वीरें अपलोड करें (Multi-Angle)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="upload-zone">
+                                    <i class="fas fa-tree fa-2x mb-2" style="color:#388e3c;"></i>
+                                    <h6 class="mb-1">Whole Plant</h6>
+                                    <small class="text-muted d-block mb-2">5-10 फीट दूर से पूरी फसल</small>
+                                    <input type="file" id="imgWhole" class="form-control form-control-sm" accept="image/*">
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="upload-box text-center p-3 border rounded bg-light h-100">
-                                <i class="fas fa-search-plus fa-2x text-danger mb-2"></i>
-                                <h6>Affected Part (नजदीक से)</h6>
-                                <input type="file" id="imgCloseUp" class="form-control mb-2" accept="image/*">
-                                <small class="text-muted d-block">Zoom in on the disease/pest</small>
+                            <div class="col-md-4">
+                                <div class="upload-zone">
+                                    <i class="fas fa-microscope fa-2x mb-2" style="color:#c62828;"></i>
+                                    <h6 class="mb-1">Affected Part</h6>
+                                    <small class="text-muted d-block mb-2">रोग/कीट वाले भाग का नजदीकी फोटो</small>
+                                    <input type="file" id="imgCloseUp" class="form-control form-control-sm" accept="image/*">
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="upload-box text-center p-3 border rounded bg-light h-100">
-                                <i class="fas fa-leaf fa-2x text-warning mb-2"></i>
-                                <h6>Leaf Texture (पत्ती का पैटर्न)</h6>
-                                <input type="file" id="imgLeaf" class="form-control mb-2" accept="image/*">
-                                <small class="text-muted d-block">Clear photo of leaf veins/spots</small>
+                            <div class="col-md-4">
+                                <div class="upload-zone">
+                                    <i class="fas fa-leaf fa-2x mb-2" style="color:#f57f17;"></i>
+                                    <h6 class="mb-1">Leaf Texture</h6>
+                                    <small class="text-muted d-block mb-2">पत्ती की नसें और धब्बे स्पष्ट दिखें</small>
+                                    <input type="file" id="imgLeaf" class="form-control form-control-sm" accept="image/*">
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Action -->
-            <div class="text-center mb-5">
-                <button class="btn btn-lg btn-danger px-5 py-3 rounded-pill shadow"
+            <!-- Run button -->
+            <div class="col-12 text-center">
+                <button class="btn btn-lg px-5 py-3 text-white fw-bold rounded-pill shadow"
+                    style="background:linear-gradient(135deg,#b71c1c,#e53935);border:none;font-size:1rem;letter-spacing:0.02em;"
                     onclick="runKrishiRakshaDiagnosis()">
-                    <i class="fas fa-microscope fa-lg"></i> Run Diagnosis (जांच शुरू करें)
+                    <i class="fas fa-microscope me-2"></i> Run AI Diagnosis — जांच शुरू करें
+                </button>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="krishiRakshaResults" style="display:none;" class="animated-result mt-4">
+            <div class="text-center py-5">
+                <i class="fas fa-spinner fa-spin fa-3x" style="color:#4a7c59;"></i>
+                <h4 class="mt-3">Analyzing Crop Health...</h4>
+                <p class="text-muted">Plant validation · EfficientNet-B3 · Weather verification</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Field Advisory -->
+<div class="content-section" id="field-advisory-content">
+    <div class="container">
+        <div class="section-header mb-1"><h2>🧪 Field-Level Precision Advisory</h2></div>
+        <p class="text-muted mb-3">IoT सेंसर + Open-Meteo 5-layer soil + Soil Health Card + ICAR fertiliser plan</p>
+
+        <!-- Source badges -->
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <span class="chip" style="background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20;">✅ Open-Meteo (free, 1km)</span>
+            <span class="chip" style="background:#e3f2fd;border-color:#90caf9;color:#0d47a1;">🏛️ Soil Health Card (GOI)</span>
+            <span class="chip" style="background:#fff3e0;border-color:#ffcc80;color:#bf360c;">📡 IoT Sensor (optional)</span>
+            <span class="chip" style="background:#f3e5f5;border-color:#ce93d8;color:#4a148c;">📊 ICAR Requirements</span>
+        </div>
+
+        <!-- Sensor input -->
+        <div class="sensor-input-panel">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h5 style="color:#e65100;margin:0;">📡 IoT सेंसर डेटा
+                    <small style="font-size:0.75rem;font-weight:400;color:#999;">(वैकल्पिक — बिना सेंसर भी काम करता है)</small>
+                </h5>
+                <button onclick="loadFieldAdvisoryWithoutSensor()" class="btn btn-outline-secondary btn-sm" style="border-radius:999px;">
+                    🛰️ GPS + Satellite Only
                 </button>
             </div>
 
-            <!-- Results Container -->
-            <div id="krishiRakshaResults" style="display:none;" class="animated-result">
-                <div class="text-center p-5">
-                    <i class="fas fa-spinner fa-spin fa-3x text-success"></i>
-                    <h4 class="mt-3">Analyzing Crop Health...</h4>
-                    <p>Checking 150+ Diseases • Verifying with Weather Data...</p>
+            <div class="row g-3">
+                <div class="col-6 col-md-4">
+                    <label class="form-label fw-semibold" style="color:#2e7d32;font-size:0.82rem;">🌱 N — Nitrogen kg/ha</label>
+                    <input type="number" id="fa_n" class="form-control form-control-sm" placeholder="e.g. 140" min="0" max="500">
+                    <span class="sensor-hint">ICAR optimal: 120–280</span>
                 </div>
+                <div class="col-6 col-md-4">
+                    <label class="form-label fw-semibold" style="color:#e65100;font-size:0.82rem;">🔴 P — Phosphorus kg/ha</label>
+                    <input type="number" id="fa_p" class="form-control form-control-sm" placeholder="e.g. 22" min="0" max="200">
+                    <span class="sensor-hint">ICAR optimal: 10–25</span>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label class="form-label fw-semibold" style="color:#1565c0;font-size:0.82rem;">🟡 K — Potassium kg/ha</label>
+                    <input type="number" id="fa_k" class="form-control form-control-sm" placeholder="e.g. 180" min="0" max="500">
+                    <span class="sensor-hint">ICAR optimal: 108–280</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label fw-semibold" style="color:#6a1b9a;font-size:0.82rem;">⚗️ Soil pH</label>
+                    <input type="number" id="fa_ph" class="form-control form-control-sm" placeholder="6.8" step="0.1" min="3" max="10">
+                    <span class="sensor-hint">Optimal: 6.5–7.5</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label fw-semibold" style="color:#00695c;font-size:0.82rem;">⚡ EC dS/m</label>
+                    <input type="number" id="fa_ec" class="form-control form-control-sm" placeholder="0.4" step="0.1" min="0" max="20">
+                    <span class="sensor-hint">Safe: &lt;2.0</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label fw-semibold" style="color:#0277bd;font-size:0.82rem;">💧 Moisture %</label>
+                    <input type="number" id="fa_moisture" class="form-control form-control-sm" placeholder="38" min="0" max="100">
+                    <span class="sensor-hint">Good: 35–65%</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label fw-semibold" style="color:#c62828;font-size:0.82rem;">🌡️ Soil Temp °C</label>
+                    <input type="number" id="fa_soil_temp" class="form-control form-control-sm" placeholder="24" min="-5" max="60">
+                    <span class="sensor-hint">From sensor or satellite</span>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label class="form-label fw-semibold" style="color:#558b2f;font-size:0.82rem;">🍂 Organic Carbon %</label>
+                    <input type="number" id="fa_oc" class="form-control form-control-sm" placeholder="0.65" step="0.01" min="0" max="10">
+                    <span class="sensor-hint">Good: &gt;0.75%</span>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label class="form-label fw-semibold" style="font-size:0.82rem;">🔄 पिछली फसल</label>
+                    <input type="text" id="fa_prev_crop" class="form-control form-control-sm" placeholder="wheat / rice / cotton">
+                    <span class="sensor-hint">Rotation bonus/penalty</span>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label class="form-label fw-semibold" style="font-size:0.82rem;">🚿 सिंचाई प्रकार</label>
+                    <select id="fa_irrigation" class="form-select form-select-sm">
+                        <option value="unknown">-- चुनें --</option>
+                        <option value="drip">💧 ड्रिप इरिगेशन</option>
+                        <option value="sprinkler">🌧 स्प्रिंकलर</option>
+                        <option value="flood">🌊 बाढ़ सिंचाई</option>
+                        <option value="rainfed">🌦 वर्षा आधारित</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Quick presets -->
+            <div class="mt-3 pt-3" style="border-top:1px solid #f0f0f0;">
+                <span style="font-size:0.78rem;color:#999;margin-right:8px;">Quick fill:</span>
+                <button onclick="fillPreset('fertile')"   class="btn btn-outline-success btn-sm me-1" style="font-size:0.73rem;border-radius:999px;">✅ उपजाऊ</button>
+                <button onclick="fillPreset('deficient')" class="btn btn-outline-warning btn-sm me-1" style="font-size:0.73rem;border-radius:999px;">⚠️ पोषण-कमी</button>
+                <button onclick="fillPreset('saline')"    class="btn btn-outline-danger btn-sm me-1"  style="font-size:0.73rem;border-radius:999px;">🧂 लवणीय</button>
+                <button onclick="fillPreset('acidic')"    class="btn btn-outline-secondary btn-sm"    style="font-size:0.73rem;border-radius:999px;">⚗️ अम्लीय</button>
+            </div>
+
+            <div class="text-center mt-4">
+                <button class="btn btn-lg px-5 py-2 rounded-pill text-white fw-bold"
+                    style="background:linear-gradient(135deg,#bf360c,#ff6f00);border:none;box-shadow:0 4px 16px rgba(191,54,12,0.35);font-size:0.95rem;"
+                    onclick="loadFieldAdvisory()">
+                    🔬 फसल सलाह प्राप्त करें
+                </button>
             </div>
         </div>
+
+        <div id="fieldAdvisoryResults"></div>
     </div>
+</div>
 
-    <div class="content-section" id="field-advisory-content">
-        <div class="container">
-            <h2 class="text-center mb-2">🧪 Field-Level Precision Advisory</h2>
-            <p class="text-center text-muted mb-4" style="font-size:0.92rem;">IoT सेंसर + Open-Meteo मिट्टी (5 layers) + Soil Health Card + ICAR खाद मार्गदर्शन</p>
+<!-- AI Assistant -->
+<div class="content-section" id="ai-assistant-content">
+    <div class="container" style="max-width:860px;">
+        <div class="section-header mb-1"><h2>🤖 KrishiMitra AI सहायक</h2></div>
+        <p class="text-muted mb-3">22 भाषाएं · Gemini AI + ICAR data · 24/7 उपलब्ध</p>
 
-            <!-- Data source badges -->
-            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:20px;">
-                <span style="background:#e8f5e9;color:#2d5016;border:1px solid #a5d6a7;border-radius:20px;padding:4px 14px;font-size:0.78rem;font-weight:600;">✅ Open-Meteo (free, 1km, real-time)</span>
-                <span style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:20px;padding:4px 14px;font-size:0.78rem;font-weight:600;">🏛️ Soil Health Card (soilhealth.dac.gov.in)</span>
-                <span style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:20px;padding:4px 14px;font-size:0.78rem;font-weight:600;">📡 IoT NPK/pH/EC Sensor (optional)</span>
-                <span style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:20px;padding:4px 14px;font-size:0.78rem;font-weight:600;">📊 ICAR Nutrient Requirements</span>
-            </div>
-
-            <!-- Sensor Input Panel -->
-            <div style="background:white;border-radius:16px;padding:24px;box-shadow:0 4px 18px rgba(0,0,0,0.08);margin-bottom:24px;border-top:4px solid #ff6f00;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-                    <h5 style="color:#e65100;margin:0;">📡 IoT सेंसर डेटा <span style="font-size:0.78rem;font-weight:400;color:#888;">(वैकल्पिक — बिना सेंसर भी सटीक सलाह मिलेगी)</span></h5>
-                    <button onclick="loadFieldAdvisoryWithoutSensor()" class="btn btn-outline-secondary btn-sm">
-                        🛰️ Only GPS + Satellite
-                    </button>
-                </div>
-                <div class="row g-3">
-                    <div class="col-6 col-md-4">
-                        <label class="form-label fw-semibold" style="color:#2d5016;font-size:0.88rem;">🌱 N — Nitrogen kg/ha</label>
-                        <input type="number" id="fa_n" class="form-control form-control-sm" placeholder="e.g. 140" min="0" max="500">
-                        <div style="font-size:0.7rem;color:#888;margin-top:2px;">ICAR optimal: 120–280</div>
-                    </div>
-                    <div class="col-6 col-md-4">
-                        <label class="form-label fw-semibold" style="color:#e65100;font-size:0.88rem;">🔴 P — Phosphorus kg/ha</label>
-                        <input type="number" id="fa_p" class="form-control form-control-sm" placeholder="e.g. 22" min="0" max="200">
-                        <div style="font-size:0.7rem;color:#888;margin-top:2px;">ICAR optimal: 10–25</div>
-                    </div>
-                    <div class="col-6 col-md-4">
-                        <label class="form-label fw-semibold" style="color:#1565c0;font-size:0.88rem;">🟡 K — Potassium kg/ha</label>
-                        <input type="number" id="fa_k" class="form-control form-control-sm" placeholder="e.g. 180" min="0" max="500">
-                        <div style="font-size:0.7rem;color:#888;margin-top:2px;">ICAR optimal: 108–280</div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label fw-semibold" style="color:#6a1b9a;font-size:0.88rem;">⚗️ Soil pH</label>
-                        <input type="number" id="fa_ph" class="form-control form-control-sm" placeholder="e.g. 6.8" step="0.1" min="3" max="10">
-                        <div style="font-size:0.7rem;color:#888;margin-top:2px;">Optimal: 6.5–7.5</div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label fw-semibold" style="color:#00695c;font-size:0.88rem;">⚡ EC dS/m</label>
-                        <input type="number" id="fa_ec" class="form-control form-control-sm" placeholder="e.g. 0.4" step="0.1" min="0" max="20">
-                        <div style="font-size:0.7rem;color:#888;margin-top:2px;">Safe: &lt;2.0 dS/m</div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label fw-semibold" style="color:#0277bd;font-size:0.88rem;">💧 Moisture %</label>
-                        <input type="number" id="fa_moisture" class="form-control form-control-sm" placeholder="e.g. 38" min="0" max="100">
-                        <div style="font-size:0.7rem;color:#888;margin-top:2px;">Good: 35–65%</div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label fw-semibold" style="color:#c62828;font-size:0.88rem;">🌡️ Soil Temp °C</label>
-                        <input type="number" id="fa_soil_temp" class="form-control form-control-sm" placeholder="e.g. 24" min="-5" max="60">
-                        <div style="font-size:0.7rem;color:#888;margin-top:2px;">From sensor or Open-Meteo</div>
-                    </div>
-                    <div class="col-6 col-md-4">
-                        <label class="form-label fw-semibold" style="color:#558b2f;font-size:0.88rem;">🍂 Organic Carbon %</label>
-                        <input type="number" id="fa_oc" class="form-control form-control-sm" placeholder="e.g. 0.65" step="0.01" min="0" max="10">
-                        <div style="font-size:0.7rem;color:#888;margin-top:2px;">Good: &gt;0.75%</div>
-                    </div>
-                    <div class="col-6 col-md-4">
-                        <label class="form-label fw-semibold" style="font-size:0.88rem;">🔄 पिछली फसल</label>
-                        <input type="text" id="fa_prev_crop" class="form-control form-control-sm" placeholder="wheat / rice / cotton…">
-                        <div style="font-size:0.7rem;color:#888;margin-top:2px;">Crop rotation bonus/penalty</div>
-                    </div>
-                    <div class="col-6 col-md-4">
-                        <label class="form-label fw-semibold" style="font-size:0.88rem;">🚿 सिंचाई प्रकार</label>
-                        <select id="fa_irrigation" class="form-select form-select-sm">
-                            <option value="unknown">-- चुनें --</option>
-                            <option value="drip">💧 ड्रिप इरिगेशन</option>
-                            <option value="sprinkler">🌧 स्प्रिंकलर</option>
-                            <option value="flood">🌊 बाढ़ सिंचाई</option>
-                            <option value="rainfed">🌦 वर्षा आधारित</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Quick-fill presets -->
-                <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f0f0f0;">
-                    <span style="font-size:0.78rem;color:#888;margin-right:8px;">Quick fill:</span>
-                    <button onclick="fillPreset('fertile')" class="btn btn-outline-success btn-sm me-2" style="font-size:0.75rem;">✅ उपजाऊ मिट्टी</button>
-                    <button onclick="fillPreset('deficient')" class="btn btn-outline-warning btn-sm me-2" style="font-size:0.75rem;">⚠️ पोषण-कमी मिट्टी</button>
-                    <button onclick="fillPreset('saline')" class="btn btn-outline-danger btn-sm me-2" style="font-size:0.75rem;">🧂 लवणीय मिट्टी</button>
-                    <button onclick="fillPreset('acidic')" class="btn btn-outline-secondary btn-sm" style="font-size:0.75rem;">⚗️ अम्लीय मिट्टी</button>
-                </div>
-
-                <div class="text-center mt-4">
-                    <button class="btn btn-lg px-5 py-2 rounded-pill text-white fw-bold"
-                            style="background:linear-gradient(135deg,#e65100,#ff8f00);border:none;box-shadow:0 4px 15px rgba(230,81,0,0.3);"
-                            onclick="loadFieldAdvisory()">
-                        🔬 फसल सलाह प्राप्त करें
-                    </button>
-                </div>
-            </div>
-
-            <!-- Results -->
-            <div id="fieldAdvisoryResults"></div>
+        <!-- Suggested chips -->
+        <div class="mb-3 d-flex flex-wrap gap-2">
+            <button class="chip" onclick="askSuggested('गेहूँ की बुवाई का सही समय और तरीका बताएं')">🌾 गेहूँ बुवाई कब?</button>
+            <button class="chip" onclick="askSuggested('PM-Kisan status कैसे देखें?')">💰 PM-Kisan?</button>
+            <button class="chip" onclick="askSuggested('धान में कीट लग रहा है क्या करें')">🐛 धान कीट?</button>
+            <button class="chip" onclick="askSuggested('सरसों का MSP क्या है और कहाँ बेचें?')">💸 सरसों भाव?</button>
+            <button class="chip" onclick="askSuggested('KCC के लिए कैसे आवेदन करें?')">💳 KCC?</button>
+            <button class="chip" onclick="askSuggested('टमाटर में पीली पत्ती और सफेद मक्खी का उपचार')">🍅 टमाटर रोग?</button>
+            <button class="chip" onclick="askSuggested('Soil Health Card कहाँ से मिलेगा?')">🧪 मिट्टी जांच?</button>
+            <button class="chip" onclick="askSuggested('मेरी जगह के हिसाब से कौन सी फसल उगाएं?')">🌱 फसल सुझाव?</button>
+            <button class="chip" onclick="askSuggested('PM-KUSUM सोलर पंप आवेदन कैसे करें?')">☀️ सोलर पंप?</button>
         </div>
-    </div>
 
-    <div class="content-section" id="ai-assistant-content">
-        <div class="container">
-            <h2 class="text-center mb-2">🤖 KrishiMitra AI सहायक</h2>
-            <p class="text-center text-muted mb-4">हिंदी, English या Hinglish में पूछें — 24/7 उपलब्ध</p>
-
-            <!-- Suggested Questions -->
-            <div id="suggestedQuestions" style="margin-bottom: 20px;">
-                <div style="font-weight: 600; color: #2d5016; margin-bottom: 12px; font-size: 0.95rem;">💡 अक्सर पूछे
-                    जाने वाले सवाल:</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                    <button onclick="askSuggested('गेहूँ की बुवाई का सही समय और तरीका बताएं')"
-                        style="background:#e8f5e8; border:1px solid #4a7c59; color:#2d5016; padding:6px 14px; border-radius:20px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;"
-                        onmouseover="this.style.background='#4a7c59';this.style.color='white'"
-                        onmouseout="this.style.background='#e8f5e8';this.style.color='#2d5016'">
-                        🌾 गेहूँ बुवाई कब?
-                    </button>
-                    <button onclick="askSuggested('PM-Kisan का पैसा कब आएगा और status कैसे देखें?')"
-                        style="background:#e8f5e8; border:1px solid #4a7c59; color:#2d5016; padding:6px 14px; border-radius:20px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;"
-                        onmouseover="this.style.background='#4a7c59';this.style.color='white'"
-                        onmouseout="this.style.background='#e8f5e8';this.style.color='#2d5016'">
-                        💰 PM-Kisan status?
-                    </button>
-                    <button onclick="askSuggested('धान की फसल में कीट लग रहा है, क्या करें?')"
-                        style="background:#e8f5e8; border:1px solid #4a7c59; color:#2d5016; padding:6px 14px; border-radius:20px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;"
-                        onmouseover="this.style.background='#4a7c59';this.style.color='white'"
-                        onmouseout="this.style.background='#e8f5e8';this.style.color='#2d5016'">
-                        🐛 धान में कीट?
-                    </button>
-                    <button onclick="askSuggested('सरसों का MSP क्या है और कहाँ बेचें?')"
-                        style="background:#e8f5e8; border:1px solid #4a7c59; color:#2d5016; padding:6px 14px; border-radius:20px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;"
-                        onmouseover="this.style.background='#4a7c59';this.style.color='white'"
-                        onmouseout="this.style.background='#e8f5e8';this.style.color='#2d5016'">
-                        💸 सरसों का भाव?
-                    </button>
-                    <button onclick="askSuggested('किसान क्रेडिट कार्ड KCC के लिए आवेदन कैसे करें?')"
-                        style="background:#e8f5e8; border:1px solid #4a7c59; color:#2d5016; padding:6px 14px; border-radius:20px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;"
-                        onmouseover="this.style.background='#4a7c59';this.style.color='white'"
-                        onmouseout="this.style.background='#e8f5e8';this.style.color='#2d5016'">
-                        💳 KCC कैसे लें?
-                    </button>
-                    <button onclick="askSuggested('टमाटर में पीली पत्ती और सफेद मक्खी का उपचार बताएं')"
-                        style="background:#e8f5e8; border:1px solid #4a7c59; color:#2d5016; padding:6px 14px; border-radius:20px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;"
-                        onmouseover="this.style.background='#4a7c59';this.style.color='white'"
-                        onmouseout="this.style.background='#e8f5e8';this.style.color='#2d5016'">
-                        🍅 टमाटर रोग?
-                    </button>
-                    <button onclick="askSuggested('मिट्टी जांच (Soil Health Card) कैसे करवाएं और कहाँ जाएं?')"
-                        style="background:#e8f5e8; border:1px solid #4a7c59; color:#2d5016; padding:6px 14px; border-radius:20px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;"
-                        onmouseover="this.style.background='#4a7c59';this.style.color='white'"
-                        onmouseout="this.style.background='#e8f5e8';this.style.color='#2d5016'">
-                        🧪 मिट्टी जांच?
-                    </button>
-                    <button onclick="askSuggested('मेरी जगह और मौसम के हिसाब से कौन सी फसल उगाएं?')"
-                        style="background:#e8f5e8; border:1px solid #4a7c59; color:#2d5016; padding:6px 14px; border-radius:20px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;"
-                        onmouseover="this.style.background='#4a7c59';this.style.color='white'"
-                        onmouseout="this.style.background='#e8f5e8';this.style.color='#2d5016'">
-                        🌾 फसल सुझाव?
-                    </button>
-                    <button onclick="askSuggested('सोलर पंप PM-KUSUM के लिए कहाँ आवेदन करें?')"
-                        style="background:#e8f5e8; border:1px solid #4a7c59; color:#2d5016; padding:6px 14px; border-radius:20px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;"
-                        onmouseover="this.style.background='#4a7c59';this.style.color='white'"
-                        onmouseout="this.style.background='#e8f5e8';this.style.color='#2d5016'">
-                        ☀️ सोलर पंप?
-                    </button>
-                </div>
-            </div>
-
-            <!-- Chat Window -->
-            <div class="chat-container" id="chatMessages"
-                style="max-height: 450px; background: #f8fffe; border: 1px solid #d4edda; border-radius: 15px;">
-                <div class="message bot-message"
-                    style="background: linear-gradient(135deg, #e8f5e8, #f0fff0); border-left: 4px solid #4a7c59; border-radius: 10px; padding: 15px;">
-                    <strong style="color: #2d5016;">🌾 KrishiMitra AI:</strong>
-                    <div style="margin-top: 8px; color: #333; line-height: 1.6;">
+        <!-- Chat window -->
+        <div id="chatMessages" style="height:380px;overflow-y:auto;padding:18px;background:#f8fffe;border-radius:16px 16px 0 0;border:1.5px solid #d4edda;border-bottom:none;">
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2d5016,#4a7c59);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">🌾</div>
+                <div class="chat-bubble-bot">
+                    <strong style="color:#2d5016;">KrishiMitra AI</strong>
+                    <div style="margin-top:6px;line-height:1.7;">
                         नमस्ते! मैं <strong>KrishiMitra AI</strong> हूँ — आपका कृषि विशेषज्ञ।<br><br>
                         मैं इन विषयों में मदद कर सकता हूँ:<br>
-                        🌾 <strong>फसल खेती</strong> — बुवाई, सिंचाई, उर्वरक<br>
-                        💰 <strong>मंडी भाव</strong> — MSP, Agmarknet, eNAM<br>
-                        🏛️ <strong>सरकारी योजनाएं</strong> — PM-Kisan, PMFBY, KCC<br>
-                        🐛 <strong>कीट-रोग</strong> — पहचान और उपचार<br>
-                        🌤️ <strong>मौसम सलाह</strong> — कब क्या करें<br><br>
-                        ऊपर दिए सवाल क्लिक करें या खुद पूछें! 👆
+                        🌾 फसल खेती — बुवाई, सिंचाई, उर्वरक<br>
+                        💰 मंडी भाव — MSP, Agmarknet, eNAM<br>
+                        🏛️ सरकारी योजनाएं — PM-Kisan, PMFBY, KCC<br>
+                        🐛 कीट-रोग पहचान व उपचार<br>
+                        🌤️ मौसम-आधारित सलाह<br><br>
+                        ऊपर के बटन क्लिक करें या कोई भी भाषा में पूछें! 👆
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Input Area -->
-            <div style="margin-top: 15px; display: flex; gap: 10px; align-items: flex-end;">
-                <div style="flex: 1; position: relative;">
-                    <input type="text" class="form-control" id="messageInput"
-                        placeholder="जैसे: 'गेहूँ में कितना Urea डालें?' या 'PM-Kisan list में naam कैसे add करें?'"
-                        style="padding: 14px 16px; border-radius: 12px; border: 2px solid #d4edda; font-size: 0.95rem; line-height: 1.4;"
-                        onkeypress="if(event.key==='Enter')handleChatUserMessage()">
-                </div>
-                <button id="chatSendBtn" class="btn btn-success" onclick="handleChatUserMessage()"
-                    style="padding: 14px 24px; border-radius: 12px; font-weight: 600; white-space: nowrap;">
-                    <i class="fas fa-paper-plane"></i> भेजें
-                </button>
-                <button onclick="clearChat()" class="btn btn-outline-secondary"
-                    style="padding: 14px 16px; border-radius: 12px;" title="चैट साफ करें">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>
+        <!-- Input -->
+        <div style="display:flex;gap:10px;border:1.5px solid #d4edda;border-top:none;border-radius:0 0 16px 16px;padding:12px 14px;background:white;">
+            <input type="text" class="form-control" id="messageInput"
+                placeholder="अपना सवाल यहाँ लिखें... (हिंदी, English, Hinglish या कोई भी भाषा)"
+                style="border-radius:999px;border:1.5px solid #e0e0e0;padding:10px 18px;font-size:0.9rem;"
+                onkeypress="if(event.key==='Enter')handleChatUserMessage()">
+            <button id="chatSendBtn" class="btn btn-success" onclick="handleChatUserMessage()"
+                style="border-radius:999px;padding:10px 20px;font-weight:700;white-space:nowrap;font-size:0.88rem;">
+                <i class="fas fa-paper-plane me-1"></i> भेजें
+            </button>
+            <button onclick="clearChat()" class="btn btn-outline-secondary"
+                style="border-radius:50%;width:42px;height:42px;padding:0;flex-shrink:0;" title="चैट साफ करें">
+                <i class="fas fa-trash-alt" style="font-size:0.85rem;"></i>
+            </button>
+        </div>
 
-            <div id="loading" style="display: none; text-align: center; margin-top: 10px; color: #4a7c59;">
-                <i class="fas fa-spinner fa-spin"></i> KrishiMitra AI सोच रहा है...
-            </div>
-
-            <!-- Quick Info Bar -->
-            <div
-                style="margin-top: 20px; background: #fff3cd; border-radius: 10px; padding: 12px 15px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <span style="font-size: 1rem;">💡</span>
-                <span style="font-size: 0.88rem; color: #856404;">
-                    <strong>Kisan Call Center:</strong> 1800-180-1551 (निःशुल्क, 24×7) |
-                    <strong>PM-Kisan:</strong> pmkisan.gov.in |
-                    <strong>eNAM:</strong> enam.gov.in |
-                    <strong>IMD:</strong> mausam.imd.gov.in
-                </span>
-            </div>
+        <!-- Quick info -->
+        <div style="margin-top:14px;background:#fff8e1;border-radius:10px;padding:10px 14px;font-size:0.82rem;color:#856404;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            💡
+            <strong>Kisan Call Center:</strong> 1800-180-1551 &nbsp;|&nbsp;
+            <strong>PM-Kisan:</strong> pmkisan.gov.in &nbsp;|&nbsp;
+            <strong>eNAM:</strong> enam.gov.in &nbsp;|&nbsp;
+            <strong>IMD:</strong> mausam.imd.gov.in
         </div>
     </div>
+</div>
 
-    <!-- Notification -->
-    <div id="notification" class="notification"></div>
+<!-- ══════════════════════════════════════════════════════════
+     NOTIFICATION + LEGACY COMPAT
+     ══════════════════════════════════════════════════════════ -->
+<div id="notification" class="notification"></div>
 
-    <div id="legacy-compat-layer" style="display: none;">
-        <form id="pestImageForm"></form>
-        <div id="pestData"></div>
-        <input id="cropImage" type="file">
-        <input id="cropName" type="text">
-        <textarea id="symptoms"></textarea>
-        <input id="mandiLocationSearch" type="text">
-        <input id="mandiCropSearch" type="text">
-        <div id="mandiSearchResults"></div>
-        <input id="chatInput" type="text">
-        <div id="typingIndicator"></div>
-        <textarea id="problemDescription"></textarea>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="/js/config.js"></script>
-    <!-- i18n must load before app.js so window.t() is available -->
-    <script src="/js/i18n.js"></script>
-    <script src="/js/app.js"></script>
-</body>
-</html>    <!-- Classic script in public/ — not transformed by Vite (avoids HTML-in-JS parse errors) -->
-    <script defer src="/js/app.js"></script>
-    <noscript>
-        <p style="text-align:center;padding:2rem;">JavaScript आवश्यक है — KrishiMitra UI चलाने के लिए JS चालू करें।</p>
-    </noscript>
+<!-- Scroll-to-top button -->
+<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="ऊपर जाएं">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+<!-- Legacy compat stubs (not visible) -->
+<div id="legacy-compat-layer" style="display:none;">
+    <form id="pestImageForm"></form>
+    <div id="pestData"></div>
+    <input id="cropImage" type="file">
+    <input id="cropName" type="text">
+    <textarea id="symptoms"></textarea>
+    <input id="mandiLocationSearch" type="text">
+    <input id="mandiCropSearch" type="text">
+    <div id="mandiSearchResults"></div>
+    <input id="chatInput" type="text">
+    <div id="typingIndicator"></div>
+    <textarea id="problemDescription"></textarea>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SCRIPTS
+     ══════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module" src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/app.js"></script>
+<script>
+    // Scroll-to-top button visibility
+    window.addEventListener('scroll', function() {
+        const btn = document.getElementById('scrollTopBtn');
+        if (btn) btn.classList.toggle('show', window.scrollY > 400);
+    });
+</script>
+
 </body>
 </html>
