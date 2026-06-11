@@ -1,0 +1,173 @@
+# ═══════════════════════════════════════════════════════════════
+# KrishiMitra AI — Docker Compose v2.1
+#
+# Profiles:
+#   (default)          API only    → web on :8001
+#   --profile full     API + Nginx → web on :8001, nginx on :8080
+#   --profile postgres API + PG    → web + postgres + redis
+#   --profile all      Everything  → web + nginx + postgres + redis
+#
+# Quick start:
+#   cp .env.example .env            # fill in SECRET_KEY at minimum
+#   docker compose up               # SQLite, no nginx
+#   docker compose --profile all up # Full stack with PostgreSQL + Redis + Nginx
+# ═══════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Django API (always runs) ────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: krishimitra-api:latest
+    container_name: krishimitra_api
+    ports:
+      - "${APP_PORT:-8001}:8000"
+    environment:
+      # ── Required ──────────────────────────────────────────
+      SECRET_KEY:          ${SECRET_KEY:-change-me-set-in-dotenv}
+      DEBUG:               ${DEBUG:-False}
+      ALLOWED_HOSTS:       ${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,web}
+      # ── Database (SQLite default; set DATABASE_URL for PostgreSQL) ─
+      DATABASE_URL:        ${DATABASE_URL:-sqlite:////app/data/db.sqlite3}
+      # ── Live mandi prices ─────────────────────────────────
+      DATA_GOV_IN_API_KEY: ${DATA_GOV_IN_API_KEY:-}
+      # ── Gemini AI (optional; rule-based fallback works without it) ──
+      GOOGLE_AI_API_KEY:   ${GOOGLE_AI_API_KEY:-}
+      GEMINI_MODEL:        ${GEMINI_MODEL:-gemini-1.5-pro}
+      GEMINI_FLASH_MODEL:  ${GEMINI_FLASH_MODEL:-gemini-1.5-flash}
+      # ── Weather (Open-Meteo is free; this adds OWM fallback) ────────
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+      # ── Redis / Celery (optional) ─────────────────────────
+      REDIS_URL:           ${REDIS_URL:-}
+      # ── CORS / CSRF ───────────────────────────────────────
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://127.0.0.1,http://localhost:8080}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:8001,http://localhost:8080}
+      # ── Security ──────────────────────────────────────────
+      RATE_LIMIT_ENABLED:  ${RATE_LIMIT_ENABLED:-false}
+      SECURE_SSL_REDIRECT: "False"     # nginx handles SSL termination
+      # ── Frontend ──────────────────────────────────────────
+      SERVE_FRONTEND: "true"
+      FRONTEND_AT_ROOT: "true"
+      # ── Gunicorn tuning ───────────────────────────────────
+      WEB_CONCURRENCY:          ${WEB_CONCURRENCY:-4}
+      GUNICORN_TIMEOUT:         ${GUNICORN_TIMEOUT:-120}
+      GUNICORN_MAX_REQUESTS:    ${GUNICORN_MAX_REQUESTS:-1000}
+      # ── Sentry (optional) ─────────────────────────────────
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    volumes:
+      # Persistent data: SQLite DB, uploads, IoT sensor readings
+      - app_data:/app/data
+      # ML models (mount from host if training locally)
+      - ml_models:/app/models
+      # Static files shared with nginx
+      - static_files:/app/backend/staticfiles
+      # Media uploads
+      - media_files:/app/backend/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false    # only required when --profile postgres is active
+      redis:
+        condition: service_healthy
+        required: false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Nginx reverse proxy (profile: full or all) ──────────────
+  nginx:
+    profiles: ["full", "all"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: nginx
+    image: krishimitra-nginx:latest
+    container_name: krishimitra_nginx
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    depends_on:
+      web:
+        condition: service_healthy
+    volumes:
+      - static_files:/app/staticfiles:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/api/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ── PostgreSQL (profile: postgres or all) ───────────────────
+  postgres:
+    profiles: ["postgres", "all"]
+    image: postgres:16-alpine
+    container_name: krishimitra_postgres
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-krishimitra}
+      POSTGRES_USER:     ${POSTGRES_USER:-krishimitra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-krishimitra_secret_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-krishimitra}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ── Redis (profile: postgres or all — used by Celery) ───────
+  redis:
+    profiles: ["postgres", "all"]
+    image: redis:7-alpine
+    container_name: krishimitra_redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly no
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+# ── Named volumes ────────────────────────────────────────────
+volumes:
+  app_data:
+    name: krishimitra_app_data
+  ml_models:
+    name: krishimitra_ml_models
+  static_files:
+    name: krishimitra_static_files
+  media_files:
+    name: krishimitra_media_files
+  postgres_data:
+    name: krishimitra_postgres_data

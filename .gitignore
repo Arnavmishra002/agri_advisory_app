@@ -185,7 +185,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Docker
-.dockerignore
+# docker-compose.override.yml is intentionally ignored (local dev only)
 docker-compose.override.yml
 
 # Render specific
@@ -198,11 +198,9 @@ docker-compose.override.yml
 *.hdf5
 models/
 
-# Data files
+# Data files — exclude large/generated data but not config YAML
 data/
 *.csv
-*.json
-*.xml
 *.xlsx
 *.xls
 
@@ -231,11 +229,9 @@ docs/
 LICENSE
 CHANGELOG.md
 
-# Deployment files
+# Deployment files — only exclude generated/secret variants
 deploy/
 deployment/
-*.yaml
-*.yml
 docker-compose.prod.yml
 
 # Monitoring

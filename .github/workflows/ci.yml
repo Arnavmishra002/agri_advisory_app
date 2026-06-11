@@ -1,0 +1,300 @@
+name: KrishiMitra CI
+
+on:
+  push:
+    branches: [main, master, develop, staging]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+# ── Environment available to every job ────────────────────────
+env:
+  DJANGO_SETTINGS_MODULE: core.settings
+  # CI-only values — never real secrets
+  SECRET_KEY: "ci-only-krishimitra-test-key-not-production"
+  DEBUG: "True"
+  DATABASE_URL: sqlite:///ci_test_db.sqlite3
+  # Public OGD demo key — limited but fine for CI
+  DATA_GOV_IN_API_KEY: ""
+  GOOGLE_AI_API_KEY: ""
+  OPENWEATHER_API_KEY: ""
+  ALLOWED_HOSTS: "localhost,127.0.0.1,testserver"
+  RATE_LIMIT_ENABLED: "false"
+
+jobs:
+
+  # ── Backend: Django check + smoke tests ─────────────────────
+  backend:
+    name: 🐍 Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Django system check (no errors)
+        run: python manage.py check
+
+      - name: Database migrations apply cleanly
+        run: python manage.py migrate --noinput
+
+      - name: Verify all 20 API routes are registered
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 -c "
+          import sys, os
+          sys.path.insert(0,'backend')
+          os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
+                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DATABASE_URL':'sqlite:///ci.db'})
+          import django; django.setup()
+          from advisory.api.urls import router
+          routes = sorted([r[0] for r in router.registry])
+          required = ['advisories','chatbot','crops','diagnostics',
+                      'field-advisory','languages','locations',
+                      'market-prices','schemes','weather']
+          missing = [r for r in required if r not in routes]
+          if missing:
+              print('MISSING routes:', missing); sys.exit(1)
+          print(f'✅ {len(routes)} routes registered: {routes}')
+          "
+
+      - name: Verify new services load cleanly
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 -c "
+          import sys, os
+          sys.path.insert(0,'backend')
+          os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
+                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DATABASE_URL':'sqlite:///ci.db'})
+          import django; django.setup()
+          from advisory.services.language_service import SUPPORTED_LANGUAGES
+          assert len(SUPPORTED_LANGUAGES) >= 22, 'Expected >=22 languages'
+          from advisory.services.comprehensive_crop_database import ALL_CROP_DATA
+          assert len(ALL_CROP_DATA) >= 70, f'Expected >=70 crops, got {len(ALL_CROP_DATA)}'
+          from advisory.services.district_data import DISTRICT_PROFILES
+          assert len(DISTRICT_PROFILES) >= 100, f'Expected >=100 districts'
+          from advisory.services.crop_recommendation_engine import crop_recommendation_engine
+          from advisory.services.field_sensor_service import field_sensor_service
+          from advisory.services.unified_realtime_service import weather_service, market_service
+          print(f'✅ Languages: {len(SUPPORTED_LANGUAGES)}, Crops: {len(ALL_CROP_DATA)}, Districts: {len(DISTRICT_PROFILES)}')
+          "
+
+      - name: Crop engine smoke test (offline, no network)
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 -c "
+          import sys, os
+          sys.path.insert(0,'backend')
+          os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
+                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DATABASE_URL':'sqlite:///ci.db'})
+          import django; django.setup()
+          from advisory.services.crop_recommendation_engine import CropRecommendationEngine, _current_season
+          e = CropRecommendationEngine()
+          for loc, state in [('delhi','Delhi'),('nashik','Maharashtra'),('kochi','Kerala'),('jodhpur','Rajasthan')]:
+              p = e._resolve_location_profile(loc, state)
+              assert p.get('soil'), f'No soil for {loc}'
+              scored = e._score_all_crops(p, _current_season(), {'temperature':28,'humidity':65}, [], {})
+              assert len(scored) >= 20, f'{loc}: only {len(scored)} crops scored'
+              assert scored[0][0] > 40, f'{loc}: top score too low: {scored[0][0]}'
+              print(f'  ✅ {loc}: {len(scored)} crops, top={scored[0][1]}({int(scored[0][0])}%)')
+          "
+
+      - name: Field sensor pipeline smoke test
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 -c "
+          import sys, os
+          sys.path.insert(0,'backend')
+          os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
+                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DATABASE_URL':'sqlite:///ci.db'})
+          import django; django.setup()
+          from advisory.services.field_sensor_service import field_sensor_service
+          om = field_sensor_service._open_meteo_fallback(28.7, 77.1)
+          soil = field_sensor_service._merge_soil_data(om, {'is_live':False},
+              {'sensors':{'nitrogen_kg_ha':100,'phosphorus_kg_ha':15,'ph':6.5,'moisture_pct':35}})
+          wa = {'risk':'None','rain_7d_mm':10,'avg_max_temp_7d':28,'current_temp':26}
+          sc = field_sensor_service._score_crops_field_level(soil,wa,28.7,77.1,'Delhi')
+          assert len(sc) >= 20, f'Only {len(sc)} crops scored'
+          gaps = field_sensor_service._calculate_input_gaps(soil, sc[:3])
+          print(f'  ✅ Field sensor: {len(sc)} crops, {len(gaps)} gap plans')
+          "
+
+  # ── Frontend: Vite build ─────────────────────────────────────
+  frontend:
+    name: 🌐 Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package.json
+
+      - name: Install and build
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Verify dist output
+        run: |
+          test -f frontend/dist/index.html
+          test -f frontend/dist/js/app.js
+          test -f frontend/dist/js/i18n.js
+          echo "✅ Frontend dist verified"
+
+      - name: Check i18n completeness
+        run: |
+          node -e "
+          const i18n = require('fs').readFileSync('frontend/public/js/i18n.js','utf8');
+          const required = ['hi','en','ta','te','mr','gu','kn','ml','pa','bn','or','as','ur'];
+          const checks = ['hero_title','service_field','service_ai','loading','weather_temp'];
+          checks.forEach(k => {
+            if (!i18n.includes(k+':')) { console.error('Missing i18n key: '+k); process.exit(1); }
+          });
+          const langs = (i18n.match(/{ code:/g)||[]).length;
+          if (langs < 20) { console.error('Too few language entries: '+langs); process.exit(1); }
+          console.log('✅ i18n: '+langs+' languages, all required keys present');
+          "
+
+      - name: Check app.js key functions
+        run: |
+          node -e "
+          const code = require('fs').readFileSync('frontend/public/js/app.js','utf8');
+          const checks = [
+            ['loadFieldAdvisory', 'async function loadFieldAdvisory'],
+            ['fillPreset', 'function fillPreset'],
+            ['_renderMarketPrices', '_renderMarketPrices'],
+            ['mandi-prices endpoint', '/api/market-prices/mandi-prices/'],
+            ['auto-refresh', '_mandiRefreshTimer'],
+            ['getCurrentLang in buildLocationQuery', 'getCurrentLang'],
+          ];
+          let ok = true;
+          checks.forEach(([name, token]) => {
+            if (!code.includes(token)) { console.error('MISSING: '+name); ok=false; }
+            else console.log('  ✅ '+name);
+          });
+          if (!ok) process.exit(1);
+          "
+
+  # ── Docker Build (matrix: production + nginx targets) ────────
+  docker:
+    name: 🐳 Docker build
+    runs-on: ubuntu-latest
+    # Only run on push to main/master — not on every PR to save CI minutes
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: production
+          push: false
+          tags: krishimitra-ai:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke-test container
+        run: |
+          docker run --rm \
+            -e SECRET_KEY="ci-docker-test-key" \
+            -e DEBUG=True \
+            -e DATABASE_URL=sqlite:////tmp/ci.db \
+            -e ALLOWED_HOSTS="localhost,testserver" \
+            krishimitra-ai:ci-${{ github.sha }} \
+            python manage.py check
+          echo "✅ Docker container check passed"
+
+  # ── Code Quality ─────────────────────────────────────────────
+  lint:
+    name: 🔍 Code Quality
+    runs-on: ubuntu-latest
+    continue-on-error: true   # don't block merges on style issues
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Flake8 (core services)
+        run: |
+          pip install flake8 --quiet
+          flake8 backend/advisory/services/unified_realtime_service.py \
+                 backend/advisory/services/crop_recommendation_engine.py \
+                 backend/advisory/services/field_sensor_service.py \
+                 backend/advisory/api/viewsets/market.py \
+                 --max-line-length=130 \
+                 --ignore=E501,W503,E203,E402 \
+                 --count --statistics || true
+
+      - name: Verify monorepo structure
+        run: |
+          test -f backend/manage.py
+          test -f frontend/index.html
+          test -f frontend/package.json
+          test -f Dockerfile
+          test -f .dockerignore
+          test -f .env.example
+          test -f backend/advisory/services/language_service.py
+          test -f backend/advisory/services/comprehensive_crop_database.py
+          test -f backend/advisory/services/district_data.py
+          test -f backend/advisory/services/crop_recommendation_engine.py
+          test -f backend/advisory/services/field_sensor_service.py
+          test -f frontend/public/js/i18n.js
+          echo "✅ Monorepo structure verified"
+
+      - name: No legacy imports remain
+        run: |
+          # Make sure deleted legacy services are not imported anywhere
+          if grep -r "enhanced_crop_recommendations\|EnhancedCropRecommendations\|enhanced_location_service\|EnhancedLocationService" \
+             backend/ --include="*.py" --exclude-dir=__pycache__ 2>/dev/null | grep -v "^Binary"; then
+            echo "❌ Legacy service still imported — clean up before merging"
+            exit 1
+          fi
+          echo "✅ No legacy imports found"
+
+  # ── CI Gate ──────────────────────────────────────────────────
+  ci-complete:
+    name: ✅ CI Complete
+    needs: [backend, frontend, lint]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          echo "Backend:  ${{ needs.backend.result }}"
+          echo "Frontend: ${{ needs.frontend.result }}"
+          echo "Lint:     ${{ needs.lint.result }}"
+          if [ "${{ needs.backend.result }}"  != "success" ] || \
+             [ "${{ needs.frontend.result }}" != "success" ]; then
+            echo "❌ CI failed — backend or frontend job did not succeed"
+            exit 1
+          fi
+          echo "✅ All required jobs passed"

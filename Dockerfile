@@ -1,8 +1,8 @@
 # ═══════════════════════════════════════════════════════════════
-# KrishiMitra AI — Production Dockerfile v2.0
+# KrishiMitra AI — Production Dockerfile v2.1
 # Multi-stage: Vite frontend → Python deps → Django API → Nginx
 #
-# Quick start:
+# Quick start (API only):
 #   docker build -t krishimitra-ai .
 #   docker run -p 8000:8000 \
 #     -e SECRET_KEY=<your-secret-key> \
@@ -10,25 +10,36 @@
 #     -e DATA_GOV_IN_API_KEY=<your-key> \
 #     krishimitra-ai
 #
-# Full stack (recommended):
-#   docker compose up
+# Full stack with Nginx:
+#   docker compose up                  # API on :8001
+#   docker compose --profile full up   # API + Nginx on :8080
+#
+# Build specific target:
+#   docker build --target nginx -t krishimitra-nginx .
 # ═══════════════════════════════════════════════════════════════
 
-# ── Stage 1: Vite Frontend Build ────────────────────────────────
+# ─────────────────────────────────────────────────────────────────
+# Stage 1 — Vite Frontend Build
+#   Outputs: /build/frontend/dist/{index.html, js/app.js,
+#             js/i18n.js, assets/*, css/}
+# ─────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS frontend-builder
 
 WORKDIR /build/frontend
 
-# Cache node_modules layer
+# Cache npm deps separately from source changes
 COPY frontend/package*.json ./
 RUN npm ci --no-audit --no-fund --silent
 
-# Build (copies app.js, i18n.js, index.html, styles.css → dist/)
+# Copy source and build
 COPY frontend/ ./
-RUN npm run build && \
-    echo "✅ Frontend built: $(du -sh dist/ | cut -f1)"
+RUN npm run build 2>&1 | tail -5 && \
+    echo "✅ Frontend built: $(du -sh dist/)" && \
+    ls dist/
 
-# ── Stage 2: Python Dependency Cache ────────────────────────────
+# ─────────────────────────────────────────────────────────────────
+# Stage 2 — Python dependency wheel cache
+# ─────────────────────────────────────────────────────────────────
 FROM python:3.11-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -37,51 +48,67 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libpq-dev libmagic1 libmagic-dev pkg-config \
+        build-essential \
+        libpq-dev \
+        libmagic1 \
+        libmagic-dev \
+        pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt && \
-    echo "✅ Python deps installed"
+    echo "✅ $(pip list | wc -l) Python packages installed"
 
-# ── Stage 3: Production API Image ───────────────────────────────
+# ─────────────────────────────────────────────────────────────────
+# Stage 3 — Production API Image
+# ─────────────────────────────────────────────────────────────────
 FROM python:3.11-slim AS production
 
+# ── Labels ────────────────────────────────────────────────────
 LABEL org.opencontainers.image.title="KrishiMitra AI"
-LABEL org.opencontainers.image.description="Precision Agriculture Advisory for Indian Farmers — 80 crops, 22 languages, IoT sensors, real-time mandi prices"
-LABEL org.opencontainers.image.source="https://github.com/arnav-mishra/agri_advisory_app"
+LABEL org.opencontainers.image.description=\
+      "Precision Agriculture Advisory — 80 crops, 22 languages, IoT sensors, real-time mandi prices"
+LABEL org.opencontainers.image.source="https://github.com/Arnavmishra002/agri_advisory_app"
+LABEL org.opencontainers.image.version="2.1.0"
 
+# ── Runtime environment ────────────────────────────────────────
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=core.settings \
-    # Tunable at runtime
+    # Gunicorn — all tunable via docker run -e or docker-compose env:
     WEB_CONCURRENCY=4 \
     GUNICORN_TIMEOUT=120 \
     GUNICORN_KEEPALIVE=5 \
     GUNICORN_MAX_REQUESTS=1000
 
+# ── System runtime libs only (no build tools) ─────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 libmagic1 curl \
+        libpq5 \
+        libmagic1 \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Non-root security
+# ── Non-root user ─────────────────────────────────────────────
 RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
 
 WORKDIR /app/backend
 
-# Python packages from builder
+# ── Python packages from builder ──────────────────────────────
 COPY --from=builder /usr/local/lib/python3.11/site-packages \
                     /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Application source
+# ── Application code ──────────────────────────────────────────
 COPY backend/ /app/backend/
 
-# Frontend static assets
+# ── Frontend static files ─────────────────────────────────────
 COPY --from=frontend-builder /build/frontend/dist /app/frontend/dist
 
-# Runtime directories
+# Also copy public JS files so Django collectstatic can serve i18n.js & app.js
+COPY --from=frontend-builder /build/frontend/public /app/frontend/public
+
+# ── Persistent directories (mounted as volumes in production) ──
 RUN mkdir -p \
     /app/data \
     /app/models/crop_disease \
@@ -89,26 +116,36 @@ RUN mkdir -p \
     /app/backend/media \
     /app/backend/logs
 
-# Collect static files (dummy key — no secrets at build time)
-RUN SECRET_KEY=build-collectstatic-only \
+# ── Collect static assets ─────────────────────────────────────
+# Uses a throwaway SQLite so no DB connection is needed at build time
+RUN SECRET_KEY=build-collectstatic-key-not-production \
     DEBUG=False \
-    DATABASE_URL=sqlite:////tmp/build.db \
+    DATABASE_URL=sqlite:////tmp/build_collect.db \
     SERVE_FRONTEND=true \
-    python manage.py collectstatic --noinput --clear 2>&1 | tail -3
+    python manage.py collectstatic --noinput --clear 2>&1 | tail -4
 
+# ── Ownership ─────────────────────────────────────────────────
 RUN chown -R appuser:appuser /app
+
 USER appuser
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=15s --start-period=20s --retries=3 \
+# ── Health check ──────────────────────────────────────────────
+HEALTHCHECK \
+    --interval=30s \
+    --timeout=15s \
+    --start-period=30s \
+    --retries=3 \
     CMD curl -sf http://localhost:8000/api/health/ || exit 1
 
-# Startup: migrate → serve
+# ── Start command ─────────────────────────────────────────────
+# 1. Apply any pending migrations
+# 2. Start Gunicorn (all params are tunable via environment)
 CMD ["sh", "-c", "\
     python manage.py migrate --noinput && \
-    echo '✅ Migrations complete' && \
-    gunicorn \
+    echo '✅ Migrations applied' && \
+    exec gunicorn \
       --bind 0.0.0.0:8000 \
       --workers ${WEB_CONCURRENCY:-4} \
       --threads 4 \
@@ -122,12 +159,19 @@ CMD ["sh", "-c", "\
       --log-level info \
       core.wsgi:application"]
 
-# ── Stage 4: Nginx Reverse Proxy (optional full-stack target) ───
-# Build: docker build --target nginx -t krishimitra-nginx .
+# ─────────────────────────────────────────────────────────────────
+# Stage 4 — Nginx reverse proxy (optional full-stack target)
+#   Build: docker build --target nginx -t krishimitra-nginx .
+#   Serves: /  → frontend SPA  |  /api/ → web:8000  |  /static/ → staticfiles
+# ─────────────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine AS nginx
 
 COPY nginx.docker.conf /etc/nginx/conf.d/default.conf
+
+# Frontend SPA
 COPY --from=frontend-builder /build/frontend/dist /usr/share/nginx/html
+
+# Django static files (admin, DRF browsable API, etc.)
 COPY --from=production /app/backend/staticfiles /app/staticfiles
 
 EXPOSE 80 443
