@@ -1914,6 +1914,10 @@
     window.sendMessage = handleChatUserMessage;
     window.askSuggested = askSuggested;
     window.clearChat = clearChat;
+    // Field Advisory & Language exports
+    window.loadFieldAdvisory = loadFieldAdvisory;
+    window.loadFieldAdvisoryWithoutSensor = loadFieldAdvisoryWithoutSensor;
+    window.fillPreset = fillPreset;
 
     // ========================================
     // AUTO-INITIALIZE

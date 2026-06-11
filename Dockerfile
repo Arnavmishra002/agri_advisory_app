@@ -74,8 +74,7 @@ FROM python:3.11-slim AS production
 
 # ── Labels ────────────────────────────────────────────────────
 LABEL org.opencontainers.image.title="KrishiMitra AI"
-LABEL org.opencontainers.image.description=\
-      "Precision Agriculture Advisory — 80 crops, 22 languages, IoT sensors, real-time mandi prices"
+LABEL org.opencontainers.image.description="Precision Agriculture Advisory — 80 crops, 22 languages, IoT sensors, real-time mandi prices"
 LABEL org.opencontainers.image.source="https://github.com/Arnavmishra002/agri_advisory_app"
 LABEL org.opencontainers.image.version="2.1.0"
 
