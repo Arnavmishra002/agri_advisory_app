@@ -66,6 +66,25 @@
     let locationSearchTimeout;
     let cropSearchTimeout;
     let krCropSearchTimeout;
+
+    // Real-time GPS tracking globals
+    let _gpsWatchId = null;          // navigator.geolocation.watchPosition handle
+    let _lastReloadLat = null;       // lat at last service reload
+    let _lastReloadLon = null;       // lon at last service reload
+    let _gpsReloadDebounce = null;   // debounce timer for movement-triggered reload
+    const GPS_RELOAD_THRESHOLD_M = 50;  // reload services only if moved ≥50 m
+    const LS_LOC_KEY = 'km_location'; // localStorage key for persisted location
+
+    // Haversine distance (metres) between two lat/lon points
+    function _haversineM(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 +
+                  Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+                  Math.sin(dLon/2)**2;
+        return 2 * R * Math.asin(Math.sqrt(a));
+    }
     const sessionId = (() => {
         try {
             const key = 'krishi_session_id';
@@ -345,104 +364,173 @@
         }
     }
 
+    // ── Persist location to localStorage ──────────────────────────────────
+    function _saveLocationToStorage(name, lat, lon, acc, state) {
+        try {
+            localStorage.setItem(LS_LOC_KEY, JSON.stringify({
+                name, lat, lon, acc: acc || null, state: state || '', ts: Date.now()
+            }));
+        } catch (_) {}
+    }
+
+    function _restoreLocationFromStorage() {
+        try {
+            const raw = localStorage.getItem(LS_LOC_KEY);
+            if (!raw) return null;
+            const d = JSON.parse(raw);
+            // Ignore if older than 30 minutes (GPS data goes stale)
+            if (Date.now() - (d.ts || 0) > 30 * 60 * 1000) return null;
+            return d;
+        } catch (_) { return null; }
+    }
+
+    // ── Reverse geocode helper ────────────────────────────────────────────
+    async function _reverseGeocode(lat, lon, accuracy) {
+        const url = apiFetch(`/api/locations/reverse/?lat=${lat}&lon=${lon}&accuracy=${accuracy}&accuracy_meters=${accuracy}`);
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Reverse geocode HTTP ${resp.status}`);
+        const data = await resp.json();
+        const loc = data.location || {};
+        // Village → locality → sublocality → display_name → city (most-specific first)
+        const name = [
+            loc.sublocality, loc.village, loc.locality,
+            loc.display_name, loc.name, loc.city
+        ].find(Boolean) || 'Your location';
+        return { name, state: loc.state || '', loc };
+    }
+
+    // ── Live GPS pulse dot in location bar ───────────────────────────────
+    function _showGpsPulse(active) {
+        let dot = document.getElementById('gpsPulseDot');
+        if (!dot) {
+            dot = document.createElement('span');
+            dot.id = 'gpsPulseDot';
+            dot.title = 'Live GPS tracking active';
+            dot.style.cssText = [
+                'display:inline-block;width:9px;height:9px;border-radius:50%;',
+                'margin-left:6px;vertical-align:middle;transition:background .4s;',
+                'box-shadow:0 0 0 0 rgba(40,167,69,.7);'
+            ].join('');
+            const bar = document.getElementById('currentLocationDisplay');
+            if (bar && bar.parentNode) bar.parentNode.insertBefore(dot, bar.nextSibling);
+        }
+        if (active) {
+            dot.style.background = '#28a745';
+            dot.style.animation = 'gpsPulse 1.4s infinite';
+            // inject keyframe once
+            if (!document.getElementById('gpsPulseStyle')) {
+                const s = document.createElement('style');
+                s.id = 'gpsPulseStyle';
+                s.textContent = `@keyframes gpsPulse{
+                    0%{box-shadow:0 0 0 0 rgba(40,167,69,.7)}
+                    70%{box-shadow:0 0 0 8px rgba(40,167,69,0)}
+                    100%{box-shadow:0 0 0 0 rgba(40,167,69,0)}}`;
+                document.head.appendChild(s);
+            }
+        } else {
+            dot.style.background = '#adb5bd';
+            dot.style.animation = 'none';
+        }
+    }
+
+    // ── One-time detect (button press) — keeps watching permanently ──────
     function detectLocation() {
         if (!navigator.geolocation) {
             alert('Geolocation is not supported by your browser');
             return;
         }
+        startContinuousLocationWatch();
+    }
 
-        console.log('🌍 Detecting high-accuracy GPS location...');
+    // ── CONTINUOUS GPS TRACKING (runs for the whole session) ─────────────
+    function startContinuousLocationWatch() {
+        if (_gpsWatchId !== null) {
+            // Already watching — force a fresh fix
+            navigator.geolocation.clearWatch(_gpsWatchId);
+            _gpsWatchId = null;
+        }
+
         const locationDisplay = document.getElementById('currentLocationDisplay');
-        if (locationDisplay) locationDisplay.textContent = 'Locating… (GPS)';
+        if (locationDisplay) locationDisplay.textContent = 'GPS खोज रहा है… (±10m)';
+        _showGpsPulse(false);
         updateAccuracyBadge(null);
 
         const geoOptions = {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 25000
+            enableHighAccuracy: true,  // request fine GPS (satellite, not cell tower)
+            maximumAge: 0,             // never use cached position
+            timeout: 30000
         };
 
-        let watchId = null;
-        let bestPosition = null;
-        let gpsFinalized = false;
+        let _bestAccuracy = Infinity;  // track the best fix seen in this session
 
-        const applyPosition = async (position) => {
-            if (gpsFinalized) return;
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
-
-            if (locationDisplay) {
-                locationDisplay.textContent = `Locating… ±${Math.round(accuracy)}m`;
-            }
+        const onPosition = async (position) => {
+            const { latitude: lat, longitude: lon, accuracy } = position.coords;
+            _showGpsPulse(true);
             updateAccuracyBadge(accuracy);
 
-            if (!bestPosition || accuracy < bestPosition.coords.accuracy) {
-                bestPosition = position;
+            if (locationDisplay && accuracy > 15) {
+                locationDisplay.textContent = `GPS lock… ±${Math.round(accuracy)}m`;
             }
-            if (accuracy <= 12) {
-                if (watchId != null) {
-                    navigator.geolocation.clearWatch(watchId);
-                    watchId = null;
-                }
-                await finalizeGpsLocation(lat, lon, accuracy);
-            }
-        };
 
-        const finalizeGpsLocation = async (lat, lon, accuracy) => {
-            if (gpsFinalized) return;
-            gpsFinalized = true;
-            console.log(`📍 GPS: ${lat}, ${lon} (±${Math.round(accuracy)}m)`);
-            try {
-                const url = apiFetch(`/api/locations/reverse/?lat=${lat}&lon=${lon}&accuracy=${accuracy}&accuracy_meters=${accuracy}`);
-                const response = await fetch(url);
-                const data = await response.json();
-                const loc = data.location || {};
-                const parts = [
-                    loc.sublocality,
-                    loc.village,
-                    loc.locality,
-                    loc.display_name,
-                    loc.name,
-                    loc.city,
-                ].filter(Boolean);
-                const locationName = parts[0] || 'Your location';
-                updateLocation(locationName, lat, lon, accuracy, loc.state || '');
-            } catch (error) {
-                console.error('❌ Reverse geocode failed:', error);
-                updateLocation('Your location', lat, lon, accuracy);
+            // Keep improving accuracy — track best fix
+            if (accuracy < _bestAccuracy) {
+                _bestAccuracy = accuracy;
             }
-        };
 
-        const onError = (error) => {
-            if (watchId != null) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-            if (bestPosition) {
-                const { latitude, longitude, accuracy } = bestPosition.coords;
-                finalizeGpsLocation(latitude, longitude, accuracy);
+            // ── Reverse geocode only when accuracy is useful (≤50m) ──────
+            if (accuracy > 50) return; // wait for better fix
+
+            // ── Smart reload: only if moved ≥ GPS_RELOAD_THRESHOLD_M ────
+            const prevLat = _lastReloadLat ?? currentLatitude;
+            const prevLon = _lastReloadLon ?? currentLongitude;
+            const distMoved = _haversineM(prevLat, prevLon, lat, lon);
+
+            const isFirstFix = _lastReloadLat === null;
+            const movedEnough = distMoved >= GPS_RELOAD_THRESHOLD_M;
+
+            if (!isFirstFix && !movedEnough) {
+                // Just update accuracy badge — no full reload needed
+                currentLatitude = lat;
+                currentLongitude = lon;
+                currentLocationAccuracy = accuracy;
+                updateAccuracyBadge(accuracy);
                 return;
             }
-            console.error('Geolocation error:', error);
-            if (locationDisplay) locationDisplay.textContent = currentLocation;
-            alert('Unable to detect location. Allow GPS permission or search your village/city.');
+
+            // ── Debounce to avoid rapid-fire reloads during GPS drift ────
+            clearTimeout(_gpsReloadDebounce);
+            _gpsReloadDebounce = setTimeout(async () => {
+                console.log(`📍 GPS fix: ${lat.toFixed(6)}, ${lon.toFixed(6)} ±${Math.round(accuracy)}m | moved: ${Math.round(distMoved)}m`);
+
+                try {
+                    const { name, state } = await _reverseGeocode(lat, lon, accuracy);
+                    _lastReloadLat = lat;
+                    _lastReloadLon = lon;
+                    _saveLocationToStorage(name, lat, lon, accuracy, state);
+                    updateLocation(name, lat, lon, accuracy, state);
+                } catch (err) {
+                    console.warn('Reverse geocode failed, using coords:', err.message);
+                    _lastReloadLat = lat;
+                    _lastReloadLon = lon;
+                    const coordName = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                    updateLocation(coordName, lat, lon, accuracy, currentState);
+                }
+            }, isFirstFix ? 500 : 2000); // faster on first fix
         };
 
-        const finishWatch = () => {
-            if (watchId != null) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-            if (bestPosition) {
-                const { latitude, longitude, accuracy } = bestPosition.coords;
-                finalizeGpsLocation(latitude, longitude, accuracy);
+        const onError = (err) => {
+            console.warn('GPS error:', err.message);
+            _showGpsPulse(false);
+            const display = document.getElementById('currentLocationDisplay');
+            if (display) display.textContent = currentLocation;
+            if (_lastReloadLat === null) {
+                // Never got a fix — show helpful message
+                console.log('No GPS — using stored/default location');
             }
         };
 
-        watchId = navigator.geolocation.watchPosition(applyPosition, onError, geoOptions);
-        setTimeout(finishWatch, 12000);
-        navigator.geolocation.getCurrentPosition(applyPosition, () => {}, geoOptions);
+        _gpsWatchId = navigator.geolocation.watchPosition(onPosition, onError, geoOptions);
+        console.log('🛰️ Continuous GPS watch started (ID:', _gpsWatchId, ')');
     }
 
     // ========================================
@@ -1913,6 +2001,7 @@
     window.selectLocation = selectLocation;
     window.searchCurrentLocation = searchCurrentLocation;
     window.detectLocation = detectLocation;
+    window.startContinuousLocationWatch = startContinuousLocationWatch;
     window.selectMandi = selectMandi;
     window.onMandiSelected = onMandiSelected;
     window.populateMandiDropdown = populateMandiDropdown;
@@ -1960,6 +2049,11 @@
         loadWeatherData();
         loadGovernmentSchemes();
         loadCropRecommendations();
+        // Refresh field advisory too if its panel is currently visible
+        const faSection = document.getElementById('field-advisory-content');
+        if (faSection && faSection.style.display !== 'none') {
+            loadFieldAdvisoryWithoutSensor();
+        }
     }
 
     async function bootstrapApp() {
@@ -1975,13 +2069,35 @@
                 banner.style.cssText = 'background:#f8d7da;color:#721c24;padding:12px 16px;text-align:center;font-size:0.95rem;border-bottom:2px solid #f5c6cb;';
                 document.body.prepend(banner);
             }
-            banner.innerHTML = '⚠️ API सर्वर नहीं मिला — कुछ डेटा लोड नहीं हो सकता। चलाएं: <code>python manage.py runserver</code> (8000) और <code>cd frontend && npm run dev</code> (5173)';
+            banner.innerHTML = '⚠️ API सर्वर नहीं मिला — कुछ डेटा लोड नहीं हो सकता।';
         } else {
             const banner = document.getElementById('backendOfflineBanner');
             if (banner) banner.remove();
         }
 
+        // ── Restore last known location instantly from localStorage ──────
+        const saved = _restoreLocationFromStorage();
+        if (saved && saved.lat && saved.lon) {
+            console.log(`📦 Restored location from storage: ${saved.name} (±${Math.round(saved.acc || 0)}m)`);
+            currentLocation = saved.name;
+            currentLatitude  = saved.lat;
+            currentLongitude = saved.lon;
+            currentState     = saved.state || '';
+            currentLocationAccuracy = saved.acc || null;
+            const display = document.getElementById('currentLocationDisplay');
+            if (display) display.textContent = saved.state && saved.state !== saved.name
+                ? `${saved.name}, ${saved.state}` : saved.name;
+            updateAccuracyBadge(saved.acc);
+        }
+
+        // Load services with the best available location right away
         reloadAllServices();
+
+        // ── Auto-start continuous GPS (if browser supports it) ────────────
+        if (navigator.geolocation) {
+            // Small delay so initial data loads first, GPS refines afterwards
+            setTimeout(startContinuousLocationWatch, 1500);
+        }
     }
 
     if (document.readyState === 'loading') {
