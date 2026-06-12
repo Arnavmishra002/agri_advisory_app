@@ -206,7 +206,13 @@ class LocationResolver:
         results: List[Dict[str, Any]] = []
         seen = set()
 
-        for item in self._nominatim_search(query, limit=limit):
+        try:
+            hits = self._nominatim_search(query, limit=limit)
+        except Exception as exc:
+            logger.warning("Nominatim search rate limited or failed: %s", exc)
+            hits = []
+
+        for item in hits:
             key = (round(item["lat"], 5), round(item["lon"], 5), item["name"].lower())
             if key in seen:
                 continue
@@ -503,7 +509,11 @@ class LocationResolver:
         )
 
     def _resolve_text(self, query: str) -> Optional[LocationContext]:
-        hits = self._nominatim_search(query, limit=1)
+        try:
+            hits = self._nominatim_search(query, limit=1)
+        except Exception as exc:
+            logger.warning("Nominatim text geocode rate limited or failed: %s", exc)
+            hits = []
         if not hits:
             return None
         hit = hits[0]

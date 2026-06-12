@@ -107,11 +107,14 @@ class AccurateLocationAPI:
         }
         
         # 1. Try free geocoding service (Nominatim OpenStreetMap)
-        geocoding_result = self._detect_via_geocoding(query_lower)
-        if geocoding_result['confidence'] > 0.8:
-            result.update(geocoding_result)
-            result['source'] = 'geocoding_api'
-            return result
+        try:
+            geocoding_result = self._detect_via_geocoding(query_lower)
+            if geocoding_result['confidence'] > 0.8:
+                result.update(geocoding_result)
+                result['source'] = 'geocoding_api'
+                return result
+        except Exception as e:
+            logger.warning(f"Geocoding rate limited or failed: {e}")
         
         # 2. Enhanced database search
         db_result = self._detect_via_database(query_lower)
