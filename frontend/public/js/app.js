@@ -227,7 +227,10 @@
         if (searchInput) searchInput.value = locationName;
 
         console.log('🔄 Reloading all services for new location...');
-        reloadAllServices();
+        // Bug #5 fix: debounce service reloads to prevent parallel API floods
+        // when location is set rapidly (GPS fix stream, rapid city selection)
+        clearTimeout(updateLocation._debounceTimer);
+        updateLocation._debounceTimer = setTimeout(() => { reloadAllServices(); }, 150);
     }
 
     function searchLocations(event) {
@@ -860,16 +863,25 @@
             container.style.display = 'none';
             return;
         }
-        let html = '';
+        // Bug #3 fix: replace dangerous inline onclick (XSS via double-quotes/backticks)
+        // Use data-* attributes + addEventListener like other suggestion functions
+        container.innerHTML = '';
         results.forEach(c => {
-            const id = (c.id || c.name || '').replace(/'/g, '');
-            const label = (c.label || c.name || '').replace(/'/g, '');
-            html += `<div class="crop-suggestion" onclick="selectCropForDiagnostics('${id}', '${label}')">
-                <div class="crop-suggestion-name">${c.label || c.name}</div>
-                <div class="crop-suggestion-details">${c.category || 'crop'}</div>
-            </div>`;
+            const div = document.createElement('div');
+            div.className = 'crop-suggestion';
+            const nameEl = document.createElement('div');
+            nameEl.className = 'crop-suggestion-name';
+            nameEl.textContent = c.label || c.name || '';
+            const detailEl = document.createElement('div');
+            detailEl.className = 'crop-suggestion-details';
+            detailEl.textContent = c.category || 'crop';
+            div.appendChild(nameEl);
+            div.appendChild(detailEl);
+            const cropId    = c.id    || c.name || '';
+            const cropLabel = c.label || c.name || '';
+            div.addEventListener('click', () => selectCropForDiagnostics(cropId, cropLabel));
+            container.appendChild(div);
         });
-        container.innerHTML = html;
         container.style.display = 'block';
     }
 
@@ -904,6 +916,8 @@
     }
 
     function updateMarketLiveBanner(data) {
+        // Bug #8 fix: guard against null/undefined data (empty response, 204, timeout)
+        if (!data) return;
         const banner = document.getElementById('marketLiveBanner');
         if (!banner) return;
 
@@ -1824,7 +1838,8 @@
                             <div class="mb-3">
                                 <strong style="color: #2d5016;">Symptoms:</strong>
                                 <ul class="mb-0 mt-1" style="color: #333;">
-                                    ${d.symptoms.map(s => `<li>${s}</li>`).join('')}
+                                    <!-- Bug #1 fix: guard null symptoms (degraded ML response returns null fields) -->
+                                    ${(d.symptoms || []).map(s => `<li>${escapeHtml(s)}</li>`).join('')}
                                 </ul>
                             </div>
 
@@ -1832,7 +1847,8 @@
                             <div class="mb-2">
                                 <strong style="color: #2d5016;">Treatment:</strong>
                                 <ul class="mb-0 mt-1" style="color: #333;">
-                                    ${d.treatment.map(t => `<li>${t}</li>`).join('')}
+                                    <!-- Bug #1 fix: guard null treatment (degraded ML response returns null fields) -->
+                                    ${(d.treatment || []).map(t => `<li>${escapeHtml(t)}</li>`).join('')}
                                 </ul>
                             </div>
 
@@ -1903,11 +1919,14 @@
         if (!message) return;
 
         // Add user message to chat
+        // Bug #2 fix: use correct CSS class names (.chat-message-user, .chat-bubble-user)
+        const userRow = document.createElement('div');
+        userRow.className = 'chat-message-user';
         const userDiv = document.createElement('div');
-        userDiv.className = 'message user-message';
-        userDiv.style.cssText = 'background:#4a7c59;color:white;padding:12px 16px;border-radius:12px 12px 4px 12px;margin:8px 0 8px auto;max-width:80%;text-align:right;';
+        userDiv.className = 'chat-bubble-user';
         userDiv.textContent = message;
-        chatMessages.appendChild(userDiv);
+        userRow.appendChild(userDiv);
+        chatMessages.appendChild(userRow);
         input.value = '';
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -1935,7 +1954,9 @@
             const ld = document.getElementById('chatLoadingMsg');
             if (ld) ld.remove();
 
-            const escapeHtml = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            // Bug #4 fix: removed inner redeclaration of escapeHtml that shadowed the outer
+            // closure version (the inner version was missing '"' and "'" escapes, enabling
+            // attribute injection). The outer escapeHtml is used directly.
 
             let extra = '';
             const suggestions = data.crop_suggestions || [];
@@ -1956,12 +1977,14 @@
                 extra += '<div style="margin-top:8px;font-size:0.75rem;color:#666;">📡 स्रोत: ' + escapeHtml(sources.slice(0, 3).join(' • ')) + '</div>';
             }
 
-            // ── AI source badge (new) ─────────────────────────────────────
+            // ── AI source badge ────────────────────────────────────────────
             const dataSource = data.data_source || '';
+            // Bug #6 fix: backend returns lowercase 'gemini-1.5-flash' etc. — case-insensitive check
+            const dsLower = dataSource.toLowerCase();
             let aiSourceBadge = '';
-            if (dataSource.includes('Gemini')) {
+            if (dsLower.includes('gemini')) {
                 aiSourceBadge = '<span style="display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">✨ Gemini AI</span>';
-            } else if (dataSource.includes('Qwen') || dataSource.includes('RAG')) {
+            } else if (dsLower.includes('qwen') || dsLower.includes('rag')) {
                 aiSourceBadge = '<span style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">🧠 Qwen+RAG (Local)</span>';
             } else if (dataSource) {
                 aiSourceBadge = '<span style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">📚 Advisory Engine</span>';
@@ -1973,11 +1996,18 @@
                 extra += '<span style="display:inline-block;background:#fff3e0;color:#e65100;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;margin-left:4px;">💾 Memory Active</span>';
             }
 
+            // Bug #2 fix: use correct CSS class names for bot message
+            const botRow = document.createElement('div');
+            botRow.className = 'chat-message-bot';
+            const botAvatar = document.createElement('div');
+            botAvatar.style.cssText = 'width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2d5016,#4a7c59);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;';
+            botAvatar.textContent = '🌾';
             const botDiv = document.createElement('div');
-            botDiv.className = 'message bot-message';
-            botDiv.style.cssText = 'background:linear-gradient(135deg,#e8f5e8,#f0fff0);border-left:4px solid #4a7c59;border-radius:10px;padding:15px;margin:8px 0;';
-            botDiv.innerHTML = '<strong style="color:#2d5016;">🌾 KrishiMitra AI:</strong><div style="margin-top:8px;color:#333;line-height:1.6;white-space:pre-wrap;">' + escapeHtml(botReply) + '</div>' + extra;
-            chatMessages.appendChild(botDiv);
+            botDiv.className = 'chat-bubble-bot';
+            botDiv.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(botReply) + '</div>' + extra;
+            botRow.appendChild(botAvatar);
+            botRow.appendChild(botDiv);
+            chatMessages.appendChild(botRow);
 
             // Update AI status indicator in navbar
             _updateAIStatusBadge(dataSource);
@@ -1996,13 +2026,15 @@
     }
 
     // Update the AI status badge in the chat panel header
+    // Bug #6 fix: case-insensitive comparison for gemini/qwen/rag
     function _updateAIStatusBadge(dataSource) {
         let badge = document.getElementById('aiStatusBadge');
         if (!badge) return;
-        if (dataSource.includes('Gemini')) {
+        const dsL = (dataSource || '').toLowerCase();
+        if (dsL.includes('gemini')) {
             badge.textContent = '✨ Gemini AI';
             badge.style.cssText = 'display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
-        } else if (dataSource.includes('Qwen') || dataSource.includes('RAG')) {
+        } else if (dsL.includes('qwen') || dsL.includes('rag')) {
             badge.textContent = '🧠 Qwen+RAG';
             badge.style.cssText = 'display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
         } else {
@@ -2097,20 +2129,24 @@
         console.log('📊 Page loaded, initializing...');
         setupServiceCards();
 
-        const apiOk = await checkBackendHealth();
-        if (!apiOk) {
-            let banner = document.getElementById('backendOfflineBanner');
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.id = 'backendOfflineBanner';
-                banner.style.cssText = 'background:#f8d7da;color:#721c24;padding:12px 16px;text-align:center;font-size:0.95rem;border-bottom:2px solid #f5c6cb;';
-                document.body.prepend(banner);
+        // Bug #7 fix: don't await health check before loading services.
+        // Health check was blocking the entire app render during cold-start (Render free tier ~30s).
+        // Fire services immediately; show/hide offline banner in background.
+        checkBackendHealth().then(apiOk => {
+            if (!apiOk) {
+                let banner = document.getElementById('backendOfflineBanner');
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.id = 'backendOfflineBanner';
+                    banner.style.cssText = 'background:#f8d7da;color:#721c24;padding:12px 16px;text-align:center;font-size:0.95rem;border-bottom:2px solid #f5c6cb;';
+                    document.body.prepend(banner);
+                }
+                banner.innerHTML = '⚠️ API सर्वर नहीं मिला — कुछ डेटा लोड नहीं हो सकता।';
+            } else {
+                const banner = document.getElementById('backendOfflineBanner');
+                if (banner) banner.remove();
             }
-            banner.innerHTML = '⚠️ API सर्वर नहीं मिला — कुछ डेटा लोड नहीं हो सकता।';
-        } else {
-            const banner = document.getElementById('backendOfflineBanner');
-            if (banner) banner.remove();
-        }
+        }).catch(() => { /* health check itself failed — ignore, services will show individual errors */ });
 
         // ── Restore last known location instantly from localStorage ──────
         const saved = _restoreLocationFromStorage();

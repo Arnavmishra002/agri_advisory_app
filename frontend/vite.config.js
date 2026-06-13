@@ -20,12 +20,13 @@ function copyDirPlugin(src, dest) {
               copyFileSync(srcFile, destFile);
             }
           });
+          // Bug #9 fix: success log was OUTSIDE the try/catch, so it fired even
+          // when copyDir() failed (e.g., missing css/ dir on fresh clone), producing
+          // a misleading "✅ Copied" line immediately after a warning. Moved inside.
+          console.log(`✅ Copied ${from} → ${to}`);
         } catch (e) {
           console.warn(`copyDirPlugin: could not copy ${from} → ${to}: ${e.message}`);
         }
-      }
-      copyDir(src, dest);
-      console.log(`✅ Copied ${src} → ${dest}`);
     }
   };
 }

@@ -131,7 +131,9 @@
         service_field: {
             hi: 'खेत-स्तरीय सलाह', en: 'Field Advisory', bn: 'মাঠ-স্তরীয় পরামর্শ',
             te: 'పొలం స్థాయి సలహా', mr: 'शेत-स्तरीय सल्ला', ta: 'வயல் அளவிலான ஆலோசனை',
-            gu: 'ખેત-સ્તriy Slaah', kn: 'ಕ್ಷೇತ್ರ ಮಟ್ಟದ ಸಲಹೆ', ml: 'ഫീൽഡ് ഉപദേശം',
+            // Bug #8 fix: 'gu' value was corrupted: 'ખેત-સ્તriy Slaah' (mixed Gujarati/Latin gibberish)
+            // Correct Gujarati for 'Field Advisory' is 'ખેત-સ્તરીય સલાહ'
+            gu: 'ખેત-સ્તરીય સલાહ', kn: 'ಕ್ಷೇತ್ರ ಮಟ್ಟದ ಸಲಹೆ', ml: 'ഫീൽഡ് ഉപദേശം',
             pa: 'ਖੇਤ-ਪੱਧਰੀ ਸਲਾਹ', or: 'ଫିଲ୍ଡ ଆଡ଼ଭାଇଜ', as: 'পথাৰ-স্তৰীয় পৰামৰ্শ', ur: 'فیلڈ ایڈوائزری'
         },
         // AI Chat

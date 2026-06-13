@@ -127,9 +127,13 @@
      HERO
      ══════════════════════════════════════════════════════════ -->
 <div class="hero-section">
+    <!-- Animated depth orbs (pure CSS, no JS) -->
+    <div class="hero-orb-1"></div>
+    <div class="hero-orb-2"></div>
     <div class="container">
-        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:999px;padding:5px 16px;font-size:0.78rem;font-weight:600;margin-bottom:16px;backdrop-filter:blur(8px);">
-            <span class="live-dot"></span> Live • Open-Meteo + Agmarknet + Gemini AI
+        <!-- Glassmorphism live badge -->
+        <div class="live-badge-pill">
+            <span class="live-dot"></span> Live &bull; Open-Meteo + Agmarknet + Gemini AI
         </div>
         <h1 class="hero-title" data-i18n="hero_title">🌾 कृषिमित्र AI</h1>
         <p class="hero-subtitle" data-i18n="hero_subtitle">किसानों का सबसे अच्छा दोस्त — AI से स्मार्ट खेती करें</p>
@@ -176,30 +180,30 @@
             <p style="color:#666;font-size:0.92rem;margin-top:4px;">🌾 AI-Powered &nbsp;•&nbsp; Real-Time Data &nbsp;•&nbsp; Government APIs &nbsp;•&nbsp; 22 Languages</p>
         </div>
 
-        <!-- MSP Stats bar -->
-        <div class="stats-bar mb-4">
-            <div class="stat-item">
-                <div class="stat-value">₹2,275</div>
+        <!-- MSP Stats bar — animated counters via IntersectionObserver -->
+        <div class="stats-bar mb-4" id="statsBar">
+            <div class="stat-item" data-count="2275" data-prefix="₹" data-suffix="">
+                <div class="stat-value" id="stat-wheat">₹2,275</div>
                 <div class="stat-label">🌾 गेहूँ MSP 2024-25</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-value">₹2,300</div>
+            <div class="stat-item" data-count="2300" data-prefix="₹" data-suffix="">
+                <div class="stat-value" id="stat-rice">₹2,300</div>
                 <div class="stat-label">🍚 धान MSP 2024-25</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-value">₹6,000</div>
+            <div class="stat-item" data-count="6000" data-prefix="₹" data-suffix="">
+                <div class="stat-value" id="stat-pmkisan">₹6,000</div>
                 <div class="stat-label">🏛️ PM-Kisan वार्षिक</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-value">4%</div>
+            <div class="stat-item" data-count="4" data-prefix="" data-suffix="%">
+                <div class="stat-value" id="stat-kcc">4%</div>
                 <div class="stat-label">💳 KCC ब्याज दर</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-value">80</div>
+            <div class="stat-item" data-count="80" data-prefix="" data-suffix="">
+                <div class="stat-value" id="stat-crops">80</div>
                 <div class="stat-label">🌱 फसलें विश्लेषण DB</div>
             </div>
-            <div class="stat-item">
-                <div class="stat-value">22</div>
+            <div class="stat-item" data-count="22" data-prefix="" data-suffix="">
+                <div class="stat-value" id="stat-langs">22</div>
                 <div class="stat-label">🌐 भारतीय भाषाएं</div>
             </div>
         </div>
@@ -413,8 +417,17 @@
         <div class="section-header"><h2>🏛️ सरकारी योजनाएं</h2></div>
         <p class="text-muted mb-4">केंद्र सरकार की कृषि योजनाएं — official MoAFW catalog</p>
         <div id="schemesData" class="loading">
-            <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
-            <p class="mt-3">योजनाएं लोड हो रही हैं...</p>
+            <div class="skeleton-card mb-3">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-line wide"></div>
+                <div class="skeleton skeleton-line mid"></div>
+                <div class="skeleton skeleton-line short"></div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-line wide"></div>
+                <div class="skeleton skeleton-line mid"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -435,8 +448,17 @@
             <div id="cropSuggestions" class="crop-suggestions"></div>
         </div>
         <div id="cropsData" class="loading">
-            <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
-            <p class="mt-3">फसल सुझाव लोड हो रहे हैं...</p>
+            <div class="skeleton-card mb-3">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-line wide"></div>
+                <div class="skeleton skeleton-line mid"></div>
+                <div class="skeleton skeleton-line short"></div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-line wide"></div>
+                <div class="skeleton skeleton-line mid"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -447,8 +469,17 @@
         <div class="section-header"><h2>🌤️ मौसम पूर्वानुमान</h2><span class="live-dot ms-2"></span></div>
         <p class="text-muted mb-4">Open-Meteo · 16-दिन · ET₀ · मिट्टी नमी · कृषि चेतावनी</p>
         <div id="weatherData" class="loading">
-            <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
-            <p class="mt-3">मौसम की जानकारी लोड हो रही है...</p>
+            <div class="skeleton-card mb-3">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-line wide"></div>
+                <div class="skeleton skeleton-line mid"></div>
+                <div class="skeleton skeleton-line short"></div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-line wide"></div>
+                <div class="skeleton skeleton-line mid"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -497,8 +528,17 @@
         </div>
 
         <div id="pricesData" class="loading">
-            <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
-            <p class="mt-3">बाजार कीमतें लोड हो रही हैं...</p>
+            <div class="skeleton-card mb-3">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-line wide"></div>
+                <div class="skeleton skeleton-line mid"></div>
+                <div class="skeleton skeleton-line short"></div>
+            </div>
+            <div class="skeleton-card">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-line wide"></div>
+                <div class="skeleton skeleton-line mid"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -711,9 +751,9 @@
         </div>
 
         <!-- Chat window -->
-        <div id="chatMessages" style="height:380px;overflow-y:auto;padding:18px;background:#f8fffe;border-radius:16px 16px 0 0;border:1.5px solid #d4edda;border-bottom:none;">
-            <div style="display:flex;gap:10px;margin-bottom:16px;">
-                <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2d5016,#4a7c59);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">🌾</div>
+        <div id="chatMessages" style="height:480px;overflow-y:auto;padding:20px 16px;background:#fafffe;border-radius:18px 18px 0 0;border:1.5px solid #d4edda;border-bottom:none;scroll-behavior:smooth;">
+            <div class="chat-message-bot">
+                <div class="chat-avatar">🌾</div>
                 <div class="chat-bubble-bot">
                     <strong style="color:#2d5016;">KrishiMitra AI</strong>
                     <div style="margin-top:6px;line-height:1.7;">
@@ -731,7 +771,7 @@
         </div>
 
         <!-- Input -->
-        <div style="display:flex;gap:10px;border:1.5px solid #d4edda;border-top:none;border-radius:0 0 16px 16px;padding:12px 14px;background:white;">
+        <div style="display:flex;gap:10px;border:1.5px solid #d4edda;border-top:none;border-radius:0 0 18px 18px;padding:12px 14px;background:white;align-items:center;">
             <input type="text" class="form-control" id="messageInput"
                 placeholder="अपना सवाल यहाँ लिखें... (हिंदी, English, Hinglish या कोई भी भाषा)"
                 style="border-radius:999px;border:1.5px solid #e0e0e0;padding:10px 18px;font-size:0.9rem;"
@@ -767,6 +807,13 @@
     <i class="fas fa-chevron-up"></i>
 </button>
 
+<!-- Toast container (Feature #10) -->
+<div id="toastContainer" style="
+  position:fixed;bottom:80px;right:20px;
+  z-index:9999;display:flex;flex-direction:column;gap:10px;
+  pointer-events:none;
+"></div>
+
 <!-- Legacy compat stubs (not visible) -->
 <div id="legacy-compat-layer" style="display:none;">
     <form id="pestImageForm"></form>
@@ -782,19 +829,142 @@
     <textarea id="problemDescription"></textarea>
 </div>
 
+<!-- Footer (Feature #12) -->
+<footer style="
+  background:var(--green-900,#1a3a0a);color:rgba(255,255,255,0.75);
+  text-align:center;padding:24px 16px;
+  font-size:0.8rem;margin-top:48px;
+  border-top:1px solid rgba(255,255,255,0.08);
+">
+  <div style="max-width:800px;margin:0 auto;">
+    <p style="margin:0;font-weight:600;color:rgba(255,255,255,0.9);">
+      🌾 KrishiMitra AI — किसानों का डिजिटल सहायक
+    </p>
+    <p style="margin:6px 0 0;font-size:0.75rem;">
+      Kisan Helpline: <strong style="color:#b9f0c8;">1800-180-1551</strong>
+      &nbsp;&bull;&nbsp; PM-Kisan: <strong style="color:#b9f0c8;">155261</strong>
+      &nbsp;&bull;&nbsp; Data: Open-Meteo &middot; Agmarknet &middot; data.gov.in &middot; Gemini AI
+    </p>
+    <p style="margin:6px 0 0;font-size:0.72rem;opacity:0.5;">
+      &copy; 2025 KrishiMitra AI &middot; For farmers, by technology
+    </p>
+  </div>
+</footer>
+
 <!-- ══════════════════════════════════════════════════════════
      SCRIPTS
      ══════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script type="module" src="/js/config.js"></script>
+<!-- Bug #9 fix: config.js was type="module" (deferred, isolated scope) causing a race
+     condition where app.js could read window.API_BASE_URL before config.js finished.
+     Inlined here as a classic script to guarantee synchronous execution order. -->
+<script>
+    (function () {
+        var fromEnv = '';  /* VITE_API_BASE_URL is replaced at build time; empty string = same origin */
+        window.API_BASE_URL = (fromEnv || window.API_BASE_URL || '').replace(/\/$/, '');
+        window.apiUrl = function (path) {
+            var p = path.startsWith('/') ? path : '/' + path;
+            return (window.API_BASE_URL || '') + p;
+        };
+        window.apiFetch = window.apiUrl;
+    })();
+</script>
 <script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
+
+<!-- Feature #2: Navbar scroll-shrink -->
 <script>
-    // Scroll-to-top button visibility
-    window.addEventListener('scroll', function() {
-        const btn = document.getElementById('scrollTopBtn');
-        if (btn) btn.classList.toggle('show', window.scrollY > 400);
+window.addEventListener('scroll', function () {
+    document.querySelector('.navbar').classList.toggle('scrolled', window.scrollY > 40);
+    const btn = document.getElementById('scrollTopBtn');
+    if (btn) btn.classList.toggle('show', window.scrollY > 400);
+});
+</script>
+
+<!-- Feature #3: Stat counter animation on viewport entry -->
+<script>
+(function () {
+    var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            entry.target.querySelectorAll('.stat-item[data-count]').forEach(function (el) {
+                var target   = parseInt(el.dataset.count, 10);
+                var prefix   = el.dataset.prefix || '';
+                var suffix   = el.dataset.suffix || '';
+                var valEl    = el.querySelector('.stat-value');
+                var duration = 1400;
+                var startTime = null;
+                function step(now) {
+                    if (!startTime) startTime = now;
+                    var elapsed  = now - startTime;
+                    var progress = Math.min(elapsed / duration, 1);
+                    var eased    = 1 - Math.pow(1 - progress, 3);
+                    var current  = Math.round(target * eased);
+                    valEl.textContent = prefix + current.toLocaleString('en-IN') + suffix;
+                    if (progress < 1) requestAnimationFrame(step);
+                }
+                requestAnimationFrame(step);
+            });
+            observer.unobserve(entry.target);
+        });
+    }, { threshold: 0.3 });
+    var statsBar = document.getElementById('statsBar');
+    if (statsBar) observer.observe(statsBar);
+})();
+</script>
+
+<!-- Feature #10: Global toast notification system -->
+<script>
+window.showToast = function (message, type, duration) {
+    type     = type     || 'success';
+    duration = duration || 3500;
+    var colors = {
+        success: { bg: '#1a3a0a', border: '#4a7c59', icon: '✅' },
+        error:   { bg: '#7f1d1d', border: '#dc2626', icon: '❌' },
+        info:    { bg: '#0c4a6e', border: '#0277bd', icon: 'ℹ️' },
+        warning: { bg: '#78350f', border: '#d97706', icon: '⚠️' }
+    };
+    var c     = colors[type] || colors.info;
+    var toast = document.createElement('div');
+    toast.style.cssText = [
+        'background:' + c.bg,
+        'color:white',
+        'border-left:4px solid ' + c.border,
+        'border-radius:12px',
+        'padding:12px 18px',
+        'font-size:0.88rem',
+        'font-weight:600',
+        'box-shadow:0 8px 24px rgba(0,0,0,0.3)',
+        'pointer-events:all',
+        'cursor:pointer',
+        'display:flex',
+        'align-items:center',
+        'gap:10px',
+        'max-width:320px',
+        'word-break:break-word',
+        'opacity:0',
+        'transform:translateX(40px) scale(0.9)',
+        'transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1)'
+    ].join(';');
+    toast.innerHTML = '<span>' + c.icon + '</span><span>' + message + '</span>';
+    toast.onclick = function () { toast.remove(); };
+    var container = document.getElementById('toastContainer');
+    if (!container) return;
+    container.appendChild(toast);
+    /* Animate in */
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0) scale(1)';
+        });
     });
+    /* Animate out and remove */
+    setTimeout(function () {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(40px) scale(0.9)';
+        setTimeout(function () { toast.remove(); }, 350);
+    }, duration);
+};
 </script>
 
 </body>
