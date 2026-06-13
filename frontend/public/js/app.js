@@ -1965,14 +1965,17 @@
                 extra += '<strong style="color:#2d5016;font-size:0.9rem;">📌 सुझाव:</strong><ul style="margin:6px 0 0 18px;padding:0;font-size:0.88rem;">';
                 suggestions.forEach(s => {
                     if (s.type === 'crop_recommendation') {
-                        extra += '<li><b>' + escapeHtml(s.crop) + '</b> (' + escapeHtml(s.hindi) + ') — ' + escapeHtml(s.score) + '%: ' + escapeHtml(s.reason) + '</li>';
+                        // Bug-fix: only show Hindi name in () if it actually differs from English
+                        const hindiPart = (s.hindi && s.hindi !== s.crop) ? ' (' + escapeHtml(s.hindi) + ')' : '';
+                        extra += '<li><b>' + escapeHtml(s.crop) + '</b>' + hindiPart + ' — ' + escapeHtml(s.score) + '%: ' + escapeHtml(s.reason) + '</li>';
                     } else if (s.type === 'market_price') {
                         extra += '<li>' + escapeHtml(s.crop) + ': ₹' + escapeHtml(s.modal_price) + '/q (MSP ₹' + escapeHtml(s.msp) + ')</li>';
                     }
                 });
                 extra += '</ul></div>';
             }
-            const sources = data.sources || [];
+            // Bug-fix: filter out null/empty/"none" values before rendering source pills
+            const sources = (data.sources || []).filter(s => s && s.toLowerCase() !== 'none' && s.toLowerCase() !== 'null' && s.trim() !== '');
             if (sources.length) {
                 extra += '<div style="margin-top:8px;font-size:0.75rem;color:#666;">📡 स्रोत: ' + escapeHtml(sources.slice(0, 3).join(' • ')) + '</div>';
             }

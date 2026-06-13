@@ -827,7 +827,7 @@ class MarketPricesService:
             "api_key_registered": registered,
             "location": location,
             "state": state or "",
-            "data_source": "none",
+            "data_source": "Agmarknet (API key required for live data)",
             "timestamp": datetime.now().isoformat(),
             "top_crops": [],
             "total_records": 0,
