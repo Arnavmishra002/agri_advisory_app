@@ -741,11 +741,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         if not crops_mentioned and prior_crops:
                             crops_mentioned = prior_crops
 
-        # ── Named-location override for weather queries ────────────────────────
-        # E.g. "rampur ka mausam" → fetch weather for Rampur, not user's GPS.
-        # Only runs for INTENT_WEATHER so there's zero latency impact on other
-        # intents. Falls back silently to the GPS ctx if no city is found.
-        if intent == INTENT_WEATHER:
+        # ── Named-location override ───────────────────────────────────────────
+        # E.g. "rampur ka mausam" or "rampur crop suggestion"
+        # Overrides location context if a known city/district is mentioned in the query.
+        if intent in (INTENT_WEATHER, INTENT_CROP_RECOMMENDATION, INTENT_MARKET_PRICE, INTENT_GOVERNMENT_SCHEME):
             _named_ctx = self._extract_query_location(query)
             if _named_ctx is not None:
                 logger.info(
@@ -963,6 +962,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "language":        lang,
             "data_source":     data_source,
             "timestamp":       now.isoformat(),
+            "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
         }
 
     # ── Tier 2: Qwen 2.5 7B + RAG (local Phase 1 server) ────────
@@ -1765,7 +1765,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     )
                     if m:
                         crop_name  = m.group(1).strip()
-                        local_desc = f" ({m.group(2).strip()})" if m.group(2) else ""
+                        local_val  = m.group(2).strip() if m.group(2) else ""
+                        show_local = (
+                            local_val and
+                            local_val.lower().replace("_", " ").strip() != crop_name.lower().replace("_", " ").strip()
+                        )
+                        local_desc = f" ({local_val})" if show_local else ""
                         score      = m.group(3)
                         profit     = m.group(4)
                         msp        = m.group(5)

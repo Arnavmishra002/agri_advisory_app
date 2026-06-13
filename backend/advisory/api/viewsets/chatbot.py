@@ -196,6 +196,10 @@ class ChatbotViewSet(viewsets.ViewSet):
                 query, ctx, language=language, history=history,
                 farmer_profile=farmer_ctx if farmer_ctx else None,
             )
+            # Override local location context if chat service extracted a named location
+            if result.get("location_context"):
+                from ...services.location_context import LocationContext
+                ctx = LocationContext(**result["location_context"])
         except Exception as exc:
             return Response(
                 {"status": "error", "message": safe_error_message(exc, context="chatbot")},
