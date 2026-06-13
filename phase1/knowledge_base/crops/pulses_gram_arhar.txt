@@ -1,0 +1,116 @@
+ICAR Package of Practices — Pulses: Gram (Chickpea), Arhar (Pigeonpea), Moong, Urad
+Source: ICAR-Indian Institute of Pulses Research (IIPR), Kanpur
+
+══════════════════════════════════════
+CHICKPEA / GRAM (Cicer arietinum)
+Season: Rabi (October–March). Largest pulse crop of India.
+══════════════════════════════════════
+
+TYPES
+Desi (small, dark seed): Most common. JG-11, JG-14, Pusa-256, Vijay.
+Kabuli (large, cream seed): Higher price. JAKI-9218, Phule G-5.
+
+SOWING
+Optimal: October 20 – November 10. Avoid early sowing (Helicoverpa attack increases).
+Spacing: 30×10 cm.
+Seed rate: 60–80 kg/ha (Desi); 80–100 kg/ha (Kabuli).
+Seed treatment: Rhizobium + PSB inoculant @ 5g/kg seed. Saves N fertilizer.
+Fungicide seed treatment: Thiram 75WP @ 3g/kg (controls collar rot, dry root rot).
+
+SOIL AND WATER
+pH 6.0–8.5. Sandy loam to clay loam.
+Gram is drought tolerant — mostly rainfed.
+One irrigation at pre-flowering (45–50 DAS) increases yield by 25%.
+NEVER irrigate at pod formation in humid weather — causes disease.
+
+FERTILIZER
+Low N requirement (N-fixing legume).
+N:P:K = 20:60:20 kg/ha as basal.
+Rhizobium inoculation reduces N need further.
+Sulphur: 20 kg/ha on sandy soils.
+
+MAJOR PESTS
+
+Pod Borer (Helicoverpa armigera):
+Most serious pest — larvae eat pods and seeds.
+ETL: 1–2 larvae per meter row.
+Monitoring: Pheromone traps 10/ha.
+Control: Emamectin benzoate 5SG @ 0.4g/L OR Indoxacarb 14.5SC @ 0.5 mL/L.
+Spray in evening (larvae feed at night).
+Biological: Bt spray @ 2 kg/ha for young larvae.
+Nuclear Polyhedrosis Virus (HaNPV) @ 100 LE/ha is very effective.
+
+DISEASES
+
+Fusarium Wilt:
+Yellow wilting of plants. Death in patches.
+Use resistant varieties: JG-74, ICCC-32.
+Trichoderma soil application at sowing.
+
+Collar Rot (Sclerotium rolfsii):
+Water-soaked lesion at base, plant topples.
+Avoid waterlogging. Seed treatment with Trichoderma.
+
+YIELD: Rainfed 10–15 q/ha; Irrigated 20–25 q/ha.
+MSP 2024-25: Rs. 5,440 per quintal.
+
+══════════════════════════════════════
+ARHAR / PIGEONPEA (Cajanus cajan)
+Season: Kharif (June–January). Long duration 180–270 days.
+══════════════════════════════════════
+
+VARIETIES
+Short duration (120–150 days): ICPL-87119 (Asha), GT-1.
+Medium duration (150–180 days): Pusa 992, UPAS-120.
+Long duration (270 days): IPA-203, T-21 (traditional).
+
+SOWING
+Optimal: June 15 – July 15.
+Spacing: 90×20–30 cm (sole crop). Important: Wide spacing reduces disease.
+Seed rate: 15–20 kg/ha.
+
+FERTILIZER
+N:P:K = 20:50:20 kg/ha as basal.
+Rhizobium inoculation highly effective.
+
+MAJOR PESTS
+
+Pod Fly (Melanagromyza obtusa) and Pod Borer (Helicoverpa):
+Control: Chlorpyrifos 20EC @ 2.5 L/ha at pod initiation.
+Monitoring with pheromone traps.
+
+YIELD: 12–20 q/ha.
+MSP 2024-25: Rs. 7,000 per quintal.
+
+══════════════════════════════════════
+MOONG / GREEN GRAM (Vigna radiata)
+Season: Kharif + Zaid (short duration 60–65 days — fits between crops).
+══════════════════════════════════════
+
+VARIETIES
+Pusa Vishal, Samrat, IPM-02-3, Pusa-105 (Zaid), Pant Moong-5.
+
+SOWING
+Kharif: June–July. Zaid: February–March.
+Spacing: 30×10 cm. Seed rate: 20–25 kg/ha.
+
+FERTILIZER
+N:P:K = 20:40:20 kg/ha.
+
+MAJOR PEST: Yellow Mosaic Virus (YMV) — vector: whitefly.
+Use resistant variety Pusa Vishal. Control whitefly.
+
+YIELD: 8–12 q/ha.
+MSP 2024-25: Rs. 8,682 per quintal.
+
+══════════════════════════════════════
+URAD / BLACK GRAM (Vigna mungo)
+Season: Kharif. Sometimes summer crop.
+══════════════════════════════════════
+
+VARIETIES: T-9, Co-6, LBG-648.
+Seed rate: 20–25 kg/ha. Spacing: 30×10 cm.
+Fertilizer: N:P:K = 20:40:20 kg/ha.
+Major disease: Yellow Mosaic Virus (YMV) — same management as moong.
+YIELD: 8–12 q/ha.
+MSP 2024-25: Rs. 7,400 per quintal.

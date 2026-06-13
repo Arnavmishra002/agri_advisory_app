@@ -16,8 +16,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
-import tensorflow as tf
+# Lazy-loaded tensorflow and numpy to optimize worker startup latency
 
 from .config import (
     CONFIDENCE_THRESHOLD,
@@ -30,10 +29,8 @@ from .config import (
     UNKNOWN_DISPLAY,
     UNKNOWN_LABEL,
 )
-from .grad_cam import save_grad_cam_overlay
 from .image_validation import validate_plant_image
 from .labels import load_labels, parse_label
-from .model_builder import get_preprocess_fn
 from .preprocess import prepare_for_model
 
 logger = logging.getLogger(__name__)
@@ -47,7 +44,7 @@ class CropDiseasePredictor:
             model_dir
             or os.getenv("CROP_DISEASE_MODEL_DIR", str(DEFAULT_MODEL_DIR))
         )
-        self.model: Optional[tf.keras.Model] = None
+        self.model: Optional[Any] = None
         self.class_names: List[str] = []
         self._load()
 
@@ -61,6 +58,7 @@ class CropDiseasePredictor:
                 logger.warning("No trained model at %s — ML predictions disabled", self.model_dir)
                 return
 
+        import tensorflow as tf
         self.model = tf.keras.models.load_model(model_path)
         labels_file = self.model_dir / LABELS_FILENAME
         if labels_file.exists():
@@ -74,7 +72,7 @@ class CropDiseasePredictor:
 
     def predict(
         self,
-        image: Union[str, bytes, np.ndarray],
+        image: Union[str, bytes, Any],
         save_gradcam_to: Optional[Path] = None,
         skip_validation: bool = False,
     ) -> Dict[str, Any]:
@@ -112,8 +110,10 @@ class CropDiseasePredictor:
             }
 
         batch = prepare_for_model(image, remove_bg=True)
+        from .model_builder import get_preprocess_fn
         preprocess = get_preprocess_fn()
         batch_pp = preprocess(batch[0])
+        import numpy as np
         batch_pp = np.expand_dims(batch_pp, axis=0)
 
         probs = self.model.predict(batch_pp, verbose=0)[0]
@@ -154,6 +154,7 @@ class CropDiseasePredictor:
         if save_gradcam_to and self.model is not None:
             try:
                 if isinstance(image, str):
+                    from .grad_cam import save_grad_cam_overlay
                     path = save_grad_cam_overlay(
                         self.model,
                         image,

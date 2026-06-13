@@ -1956,11 +1956,32 @@
                 extra += '<div style="margin-top:8px;font-size:0.75rem;color:#666;">📡 स्रोत: ' + escapeHtml(sources.slice(0, 3).join(' • ')) + '</div>';
             }
 
+            // ── AI source badge (new) ─────────────────────────────────────
+            const dataSource = data.data_source || '';
+            let aiSourceBadge = '';
+            if (dataSource.includes('Gemini')) {
+                aiSourceBadge = '<span style="display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">✨ Gemini AI</span>';
+            } else if (dataSource.includes('Qwen') || dataSource.includes('RAG')) {
+                aiSourceBadge = '<span style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">🧠 Qwen+RAG (Local)</span>';
+            } else if (dataSource) {
+                aiSourceBadge = '<span style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">📚 Advisory Engine</span>';
+            }
+            if (aiSourceBadge) extra += aiSourceBadge;
+
+            // ── Memory indicator (new) ────────────────────────────────────
+            if (data.context && data.context.memory_active) {
+                extra += '<span style="display:inline-block;background:#fff3e0;color:#e65100;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;margin-left:4px;">💾 Memory Active</span>';
+            }
+
             const botDiv = document.createElement('div');
             botDiv.className = 'message bot-message';
             botDiv.style.cssText = 'background:linear-gradient(135deg,#e8f5e8,#f0fff0);border-left:4px solid #4a7c59;border-radius:10px;padding:15px;margin:8px 0;';
             botDiv.innerHTML = '<strong style="color:#2d5016;">🌾 KrishiMitra AI:</strong><div style="margin-top:8px;color:#333;line-height:1.6;white-space:pre-wrap;">' + escapeHtml(botReply) + '</div>' + extra;
             chatMessages.appendChild(botDiv);
+
+            // Update AI status indicator in navbar
+            _updateAIStatusBadge(dataSource);
+
         } catch (error) {
             const ld = document.getElementById('chatLoadingMsg');
             if (ld) ld.remove();
@@ -1971,6 +1992,22 @@
             chatMessages.appendChild(errDiv);
         } finally {
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
+    // Update the AI status badge in the chat panel header
+    function _updateAIStatusBadge(dataSource) {
+        let badge = document.getElementById('aiStatusBadge');
+        if (!badge) return;
+        if (dataSource.includes('Gemini')) {
+            badge.textContent = '✨ Gemini AI';
+            badge.style.cssText = 'display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
+        } else if (dataSource.includes('Qwen') || dataSource.includes('RAG')) {
+            badge.textContent = '🧠 Qwen+RAG';
+            badge.style.cssText = 'display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
+        } else {
+            badge.textContent = '📚 Advisory';
+            badge.style.cssText = 'display:inline-block;background:#f3e5f5;color:#4a148c;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
         }
     }
 

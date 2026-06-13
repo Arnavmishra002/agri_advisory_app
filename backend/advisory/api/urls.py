@@ -14,6 +14,7 @@ from .viewsets import (
     CropAdvisoryViewSet,
     CropViewSet,
     DiagnosticViewSet,
+    FarmerProfileViewSet,
     FieldAdvisoryViewSet,
     ForumPostViewSet,
     GovernmentSchemesViewSet,
@@ -51,6 +52,7 @@ router.register(r"monitoring", MonitoringViewSet, basename="monitoring")
 router.register(r"rate-limits", RateLimitViewSet, basename="rate-limits")
 router.register(r"diagnostics", DiagnosticViewSet, basename="diagnostics")
 router.register(r"iot-blockchain", IoTBlockchainViewSet, basename="iot-blockchain")
+router.register(r"farmer-profile", FarmerProfileViewSet, basename="farmer-profile")
 
 urlpatterns = [
     path("", include(router.urls)),

@@ -95,6 +95,43 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                         "field_area_ha":  _safe_float(data.get("field_area_ha")),
                     }
 
+            if not sensor_data:
+                try:
+                    from ...models import IoTSensorReading
+                    iot_reading = None
+                    if field_id:
+                        iot_reading = IoTSensorReading.objects.filter(field_id=field_id).first()
+                    if not iot_reading and ctx.latitude and ctx.longitude:
+                        iot_reading = IoTSensorReading.objects.filter(
+                            latitude__gte=ctx.latitude - 0.0005,
+                            latitude__lte=ctx.latitude + 0.0005,
+                            longitude__gte=ctx.longitude - 0.0005,
+                            longitude__lte=ctx.longitude + 0.0005,
+                        ).first()
+
+                    if iot_reading:
+                        sensors = {
+                            "nitrogen_kg_ha": iot_reading.nitrogen_kg_ha,
+                            "phosphorus_kg_ha": iot_reading.phosphorus_kg_ha,
+                            "potassium_kg_ha": iot_reading.potassium_kg_ha,
+                            "ph": iot_reading.ph,
+                            "ec_ds_m": iot_reading.ec_ds_m,
+                            "moisture_pct": iot_reading.moisture_pct,
+                            "soil_temp_c": iot_reading.soil_temp_c,
+                            "organic_carbon": iot_reading.organic_carbon,
+                            "bulk_density": iot_reading.bulk_density,
+                        }
+                        sensors = {k: v for k, v in sensors.items() if v is not None}
+                        sensor_data = {
+                            "sensors":        sensors,
+                            "crop_history":   data.get("crop_history") or [],
+                            "previous_crop":  data.get("previous_crop"),
+                            "irrigation_type": data.get("irrigation_type") or "unknown",
+                            "field_area_ha":  _safe_float(data.get("field_area_ha")),
+                        }
+                except Exception as iot_err:
+                    logger.warning("Database fallback for field sensor reading failed: %s", iot_err)
+
             result = field_sensor_service.get_field_recommendation(
                 latitude=ctx.latitude,
                 longitude=ctx.longitude,

@@ -1,0 +1,80 @@
+ICAR Package of Practices — Rice / Paddy (Oryza sativa)
+Source: ICAR, Directorate of Rice Research, Hyderabad
+Season: Kharif (June–November)
+
+VARIETIES
+Short-duration (105–115 days): MTU-1010, Swarna Sub1 (flood tolerant), DRR Dhan-44
+Medium-duration (120–130 days): IR-64, Swarna, BPT-5204 (Samba Masuri)
+Long-duration (140–150 days): Mahsuri, Lalat (Odisha)
+Hybrid: DRRH-2, KRH-2 (yield 20–25% higher than HYV)
+
+NURSERY PREPARATION
+Nursery area: 1/20th of main field (500 sq.m per hectare).
+Seed rate: 20–25 kg/ha for transplanting; 40 kg/ha for direct seeding.
+Seed treatment: Trichoderma viride @ 4g/kg + soak in water 24h + incubate 48h.
+Nursery period: 25–30 days (transplant at 4–5 leaf stage).
+
+TRANSPLANTING
+Spacing: 20×15 cm (plant × row) — gives 33 hills/sq.m.
+Transplant 2–3 seedlings per hill.
+Transplant within 2 days of nursery pulling to reduce transplanting shock.
+Avoid transplanting during rain or strong sun.
+
+SOIL AND WATER
+Best soil: Clay or clay-loam, water retention capacity > 80%.
+Puddling: 2–3 rounds of wet ploughing to destroy percolation.
+Water depth: Maintain 5 cm standing water during vegetative stage.
+Alternate Wetting and Drying (AWD): Allow soil to dry until cracks appear, then re-irrigate. Saves 25–30% water, same yield.
+Drain field 7–10 days before harvest for mechanical harvesting.
+
+FERTILIZER RECOMMENDATIONS
+General dose: N:P:K = 120:60:60 kg/ha (transplanted) — adjust based on soil test.
+Basal at transplanting: Full P + Full K + 30 kg N/ha.
+Top dressing 1: 45 kg N/ha at active tillering (15–20 DAT).
+Top dressing 2: 45 kg N/ha at panicle initiation (45–50 DAT).
+Zinc: ZnSO4 @ 25 kg/ha if Zn deficient (common in alkaline soils).
+Green manure: Sesbania aculeata (Dhaincha) incorporation 3 weeks before transplanting reduces N requirement by 30 kg/ha.
+
+PEST MANAGEMENT
+
+Stem Borer (Scirpophaga incertulas):
+Symptoms: Dead heart in vegetative stage; white ear at reproductive stage.
+Economic threshold: 5% dead hearts OR 2% white ears.
+Control: Chlorpyrifos 20EC @ 1.25 L/ha at early infestation OR Cartap hydrochloride 50SP @ 1 kg/ha.
+Pheromone traps: 5 traps/ha for monitoring.
+
+Brown Plant Hopper (BPH):
+Symptoms: Hopper burn — circular yellowing, then browning of plants.
+Threshold: 10 hoppers per hill.
+Control: Buprofezin 25SC @ 1 L/ha. Avoid Pyrethroids (cause BPH outbreaks).
+Resistant varieties: Ratna, Sasyasree.
+
+Blast (Pyricularia oryzae):
+Neck blast at flowering is most damaging.
+Control: Tricyclazole 75WP @ 500g/ha at booting + 10 days later.
+Preventive spray when humidity > 90% and temperature 22–28°C.
+
+Bacterial Leaf Blight (BLB):
+Symptoms: Water-soaked margins, yellowing from tip, kresek in seedlings.
+Control: No chemical cure. Use resistant varieties. Drain flooded fields. Spray Copper oxychloride 50WP @ 3g/L.
+Preventive: Seed treatment with Streptomycin 500ppm + 1% lime water.
+
+WEED MANAGEMENT
+Major weeds: Echinochloa colonum (jungle rice), Cyperus rotundus (nutsedge), Monochoria.
+Pretilachlor 50EC @ 1.5 L/ha at 3–5 DAS (puddled transplanted rice).
+Bispyribac sodium 10SC @ 200 mL/ha at 15–20 DAT.
+Manual weeding at 30 and 45 DAT if chemical not used.
+
+HARVESTING
+Harvest at 80–85% grain maturity (golden yellow).
+Grain moisture at harvest: 20–25% (adjust combine settings).
+Avoid delay — shattering loss and quality loss.
+Paddy drying: Reduce to 14% moisture for 3-month storage, 12% for 6+ months.
+
+YIELD
+Transplanted irrigated: 50–60 quintals/ha
+Direct seeded: 40–50 quintals/ha
+Rainfed: 25–35 quintals/ha
+
+MSP 2024-25 (Common grade): Rs. 2,300 per quintal
+MSP 2024-25 (Grade A): Rs. 2,320 per quintal

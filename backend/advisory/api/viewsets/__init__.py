@@ -3,6 +3,7 @@
 from .chatbot import ChatbotViewSet
 from .crop import CropAdvisoryViewSet, CropViewSet, TrendingCropsViewSet
 from .diagnostics import DiagnosticViewSet
+from .farmer_profile import FarmerProfileViewSet
 from .government import RealTimeGovernmentDataViewSet
 from .iot import IoTBlockchainViewSet
 from .field_advisory import FieldAdvisoryViewSet
@@ -19,6 +20,7 @@ __all__ = [
     "CropAdvisoryViewSet",
     "CropViewSet",
     "DiagnosticViewSet",
+    "FarmerProfileViewSet",
     "FieldAdvisoryViewSet",
     "ForumPostViewSet",
     "GovernmentSchemesViewSet",
@@ -31,25 +33,6 @@ __all__ = [
     "SMSIVRViewSet",
     "TextToSpeechViewSet",
     "TrendingCropsViewSet",
-    "UserViewSet",
-    "WeatherViewSet",
-]
-
-__all__ = [
-    "ChatbotViewSet",
-    "CropAdvisoryViewSet",
-    "CropViewSet",
-    "TrendingCropsViewSet",
-    "DiagnosticViewSet",
-    "ForumPostViewSet",
-    "GovernmentSchemesViewSet",
-    "IoTBlockchainViewSet",
-    "LocationRecommendationViewSet",
-    "MarketPricesViewSet",
-    "PestDetectionViewSet",
-    "RealTimeGovernmentDataViewSet",
-    "SMSIVRViewSet",
-    "TextToSpeechViewSet",
     "UserViewSet",
     "WeatherViewSet",
 ]

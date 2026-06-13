@@ -1,0 +1,90 @@
+ICAR Package of Practices — Cotton (Gossypium hirsutum / G. arboreum)
+Source: ICAR-Central Institute for Cotton Research (CICR), Nagpur
+Season: Kharif (April–November in South; May–June in North)
+
+VARIETIES AND HYBRIDS
+Bt Hybrids (most common, >90% area): NHH-44, RCH-2, Bunny Bt, MRC-7017 Bt, Nath Seeds 6155.
+Non-Bt varieties: MCU-5 (Tamil Nadu), LRK-516 (Rajasthan), Suraj (CG).
+Important: Bt cotton controls American bollworm, pink bollworm — NOT sucking pests. Sucking pest management still required.
+Refuge requirement: Plant 5% non-Bt seeds in refuge to delay resistance.
+
+SOWING
+Optimal: May 15 – June 30 (Kharif).
+Spacing: 90×60 cm (irrigated); 60×30 cm (rainfed short-duration varieties).
+Seed rate: 2.5–3 kg/ha (hybrid); 10–12 kg/ha (desi varieties).
+Seed treatment: Imidacloprid 70WS @ 7g/kg seed (protects against sucking pests for 3–4 weeks).
+
+SOIL
+Best soil: Deep black cotton soil (Vertisol) with good water retention.
+pH: 6.0–8.0. Tolerates slightly alkaline soils.
+Drainage: Must be good — waterlogging causes severe root rot.
+
+FERTILIZER
+General dose: N:P:K = 120:60:60 kg/ha (irrigated hybrids).
+Basal: Full P + Full K + 40 kg N/ha at sowing.
+Top dress 1: 40 kg N/ha at 30–35 DAS (square formation).
+Top dress 2: 40 kg N/ha at 60–65 DAS (boll development).
+Foliar spray: 2% DAP (dissolved) at boll formation improves lint quality.
+Boron: 0.2% borax spray at flowering to improve boll setting.
+
+IRRIGATION (Irrigated crop)
+Critical stages: Sowing (if dry), Square formation (40–45 DAS), Flowering (65–75 DAS), Boll development (85–100 DAS).
+Avoid irrigation during peak flowering — causes boll shedding if done wrong.
+Total: 6–8 irrigations for full season hybrid cotton.
+
+MAJOR PESTS — SUCKING COMPLEX (most damaging group)
+
+Whitefly (Bemisia tabaci):
+Most serious pest — vector for Cotton Leaf Curl Virus (CLCuD).
+Threshold: 6 whiteflies/leaf.
+Control: Diafenthiuron 50WP @ 1g/L OR Pyriproxyfen 10EC @ 1 mL/L.
+Avoid pyrethroids — cause resistance and BPH/mite flare-ups.
+
+Thrips (Thrips tabaci):
+Damage: Silvery appearance, leaf curling in early crop.
+Control: Spinosad 45SC @ 0.3 mL/L at ETL of 10 thrips/leaf.
+
+Jassid (Amrasca biguttula biguttula):
+V-shaped yellowing from leaf tip.
+Control: Dimethoate 30EC @ 2 mL/L OR Imidacloprid 17.8SL @ 0.3 mL/L.
+
+Mealybug (Phenacoccus solenopsis):
+White cottony masses on stems and leaves.
+Control: Profenofos 50EC @ 2 mL/L. Remove infested plant parts first.
+
+MAJOR PESTS — BOLLWORM COMPLEX
+
+American Bollworm (Helicoverpa armigera):
+Bt cotton provides ~90% control. Monitor for resistance.
+Non-Bt control: Chlorpyrifos 20EC + Cypermethrin 10EC (combo) @ 2 L/ha.
+Pheromone traps: 5/ha for monitoring.
+
+Pink Bollworm (Pectinophora gossypiella):
+Bt cotton effective. Check for internal boll damage.
+Monitoring: Delta traps with PBW lure, 5/ha.
+
+DISEASES
+
+Cotton Leaf Curl Virus (CLCuD):
+Vector: Whitefly. No curative treatment.
+Prevention: Control whitefly, use tolerant varieties, remove infected plants.
+
+Bacterial Blight (Xanthomonas campestris):
+Angular water-soaked spots on leaves.
+Control: Copper oxychloride 50WP @ 3g/L spray. Avoid overhead irrigation.
+
+Fusarium/Verticillium Wilt:
+Yellowing, wilting, death of plants.
+Control: Trichoderma viride soil treatment @ 2.5 kg/ha. No effective foliar spray.
+
+PICKING AND QUALITY
+3–4 pickings per season. First picking most important.
+Pick when bolls are fully open, dry mornings.
+Do not mix lower grades.
+Store in dry conditions — moisture causes mold.
+
+YIELD
+Irrigated Bt hybrid: 20–30 quintals (seed cotton) per ha = 8–12 quintals lint.
+Rainfed: 12–18 quintals seed cotton/ha.
+
+MSP 2024-25: Medium staple Rs. 6,620/q; Long staple Rs. 7,020/q.

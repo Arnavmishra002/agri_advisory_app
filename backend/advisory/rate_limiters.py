@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class RateLimiter:
-    """Simple rate limiter with token bucket algorithm"""
+    """Simple rate limiter with token bucket algorithm, cache-backed for multi-process safety."""
     
     def __init__(self, max_calls: int, time_window: int):
         """
@@ -23,33 +23,52 @@ class RateLimiter:
         self.time_window = time_window
         self._calls: Dict[str, list] = {}
     
+    def _get_history(self, key: str) -> list:
+        try:
+            from django.core.cache import cache
+            cache_key = f"rate_limit:{key}"
+            history = cache.get(cache_key)
+            if history is not None:
+                return history
+        except Exception:
+            pass
+        return self._calls.get(key, [])
+        
+    def _save_history(self, key: str, history: list) -> None:
+        try:
+            from django.core.cache import cache
+            cache_key = f"rate_limit:{key}"
+            cache.set(cache_key, history, timeout=self.time_window)
+        except Exception:
+            pass
+        self._calls[key] = history
+
     def is_allowed(self, key: str) -> bool:
         """Check if call is allowed for given key"""
         now = time.time()
-        
-        # Initialize if first call
-        if key not in self._calls:
-            self._calls[key] = []
+        history = self._get_history(key)
         
         # Remove old calls outside time window
-        self._calls[key] = [
-            call_time for call_time in self._calls[key]
+        history = [
+            call_time for call_time in history
             if now - call_time < self.time_window
         ]
         
         # Check if under limit
-        if len(self._calls[key]) < self.max_calls:
-            self._calls[key].append(now)
+        if len(history) < self.max_calls:
+            history.append(now)
+            self._save_history(key, history)
             return True
         
         return False
     
     def wait_time(self, key: str) -> float:
         """Get wait time in seconds before next call is allowed"""
-        if key not in self._calls or not self._calls[key]:
+        history = self._get_history(key)
+        if not history:
             return 0.0
         
-        oldest_call = min(self._calls[key])
+        oldest_call = min(history)
         wait = self.time_window - (time.time() - oldest_call)
         return max(0.0, wait)
 

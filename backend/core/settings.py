@@ -34,6 +34,13 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = BASE_DIR.parent
 
+# Load .env from repo root (parent of backend/) so all env vars are available.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(REPO_ROOT / '.env', override=False)
+except ImportError:
+    pass
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -333,43 +340,55 @@ if DEBUG:
         },
         'schema_cache': {
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+        # rate_limit alias required by RateLimitMiddleware — DummyCache in dev
+        'rate_limit': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        },
+    }
+elif _REDIS_URL:
+    # Production with Redis — rate counters shared across all Gunicorn workers
+    def _redis_cache(timeout=300, max_entries=1000):
+        return {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': _REDIS_URL,
+            'TIMEOUT': timeout,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'MAX_ENTRIES': max_entries,
+            },
         }
+    CACHES = {
+        'default':      _redis_cache(300,    1000),
+        'weather_cache': _redis_cache(3600,   500),
+        'market_cache': _redis_cache(86400,  1000),
+        'schema_cache': _redis_cache(86400,    10),
+        # rate_limit must be Redis in production — LocMem bypasses limits across workers
+        'rate_limit':   _redis_cache(86400,  5000),
     }
 else:
-    CACHES = {
-        'default': {
+    # Staging / preview without Redis — warn loudly and use LocMem
+    import warnings
+    warnings.warn(
+        "REDIS_URL is not set. Rate limiting will NOT be shared across "
+        "Gunicorn workers. Set REDIS_URL=redis://... in production.",
+        RuntimeWarning,
+        stacklevel=1,
+    )
+    def _locmem_cache(location, timeout=300, max_entries=1000):
+        return {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'unique-snowflake',
-            'TIMEOUT': 300, # Cache timeout in seconds (5 minutes)
-            'OPTIONS': {
-                'MAX_ENTRIES': 1000
-            }
-        },
-        'weather_cache': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'weather-cache',
-        'TIMEOUT': 60 * 60, # 1 hour
-        'OPTIONS': {
-            'MAX_ENTRIES': 500
+            'LOCATION': location,
+            'TIMEOUT': timeout,
+            'OPTIONS': {'MAX_ENTRIES': max_entries},
         }
-    },
-    'market_cache': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'market-cache',
-        'TIMEOUT': 60 * 60 * 24, # 24 hours
-        'OPTIONS': {
-            'MAX_ENTRIES': 1000
-        }
-    },
-    'schema_cache': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'schema-cache',
-        'TIMEOUT': 60 * 60 * 24, # 24 hours - cache schema for a day
-        'OPTIONS': {
-            'MAX_ENTRIES': 10
-        }
+    CACHES = {
+        'default':       _locmem_cache('default',   300,   1000),
+        'weather_cache': _locmem_cache('weather',  3600,    500),
+        'market_cache':  _locmem_cache('market',  86400,   1000),
+        'schema_cache':  _locmem_cache('schema',  86400,     10),
+        'rate_limit':    _locmem_cache('ratelimit', 86400, 5000),
     }
-}
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all in dev only
 _cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '')
@@ -391,14 +410,12 @@ FRONTEND_DIST = REPO_ROOT / 'frontend' / 'dist'
 SERVE_FRONTEND = os.environ.get('SERVE_FRONTEND', 'false').lower() == 'true'
 FRONTEND_AT_ROOT = os.environ.get('FRONTEND_AT_ROOT', 'false').lower() == 'true'
 
-_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
-if _csrf_origins:
-    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(',') if o.strip()]
-
+# BUG 2 FIX: Original file had CSRF_TRUSTED_ORIGINS written twice.
+# First assignment (incomplete — no else branch) was silently overwritten.
+# Now there is exactly ONE assignment built from env + auto-trusted platforms.
 # Default off in DEBUG so local frontend (many parallel API calls) is not throttled
-_rate_limit_default = 'False' if DEBUG else 'True'
 RATE_LIMIT_ENABLED = os.environ.get(
-    'RATE_LIMIT_ENABLED', _rate_limit_default
+    'RATE_LIMIT_ENABLED', 'false' if DEBUG else 'true'
 ).lower() == 'true'
 KRISHI_RAKSHA_MAX_UPLOAD_BYTES = int(
     os.environ.get('KRISHI_RAKSHA_MAX_UPLOAD_MB', '5')
@@ -441,9 +458,8 @@ if SENTRY_DSN and sentry_sdk and DjangoIntegration:
         integrations=[
             DjangoIntegration(),
         ],
-        # Set traces_sample_rate to 1.0 to capture 100% of transactions for performance monitoring.
-        # We recommend adjusting this value in production.
-        traces_sample_rate=1.0,
+        # 10% tracing in production — capturing 100% is expensive at scale
+        traces_sample_rate=0.1,
         # If you are using more than one Django project in a single Python process,
         # or if you are running your Django project as a sub-application of a larger Python application,
         # you may need to configure the following to avoid issues:

@@ -115,7 +115,9 @@ class CropCatalog:
                 return crop
             if any(q == a.lower() for a in crop["aliases"]):
                 return crop
-        # Partial match
+        # Partial match: filter out short queries and common stopwords to prevent false matches (e.g., Hindi 'का' matching 'मक्का')
+        if len(q) < 3 or q in {"में", "और", "लिए", "क्या", "बारे", "सब", "को", "से", "he", "she", "it", "they", "the", "and", "for", "with", "this", "that", "you", "your"}:
+            return None
         results = self.search(query, limit=1)
         return results[0] if results else None
 
@@ -145,6 +147,8 @@ class CropCatalog:
                 score = 75.0
             else:
                 for tok in q_tokens:
+                    if len(tok) < 3 or tok in {"का", "की", "के", "में", "और", "लिए", "क्या", "बारे", "सब", "को", "से", "he", "she", "it", "they", "the", "and", "for", "with", "this", "that", "you", "your"}:
+                        continue
                     if tok in name_l or tok in crop["id"]:
                         score += 25.0
                     if hindi_l and tok in hindi_l:

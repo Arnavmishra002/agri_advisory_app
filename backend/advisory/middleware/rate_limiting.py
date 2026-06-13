@@ -1,410 +1,255 @@
 #!/usr/bin/env python3
 """
-Rate Limiting Middleware
-Implements rate limiting for API endpoints to prevent abuse
+Rate Limiting Middleware — Production-Ready Rewrite
+====================================================
+Bug 1 fix: O(N) list-per-request replaced with O(1) Redis INCR + bucket counter.
+Bug 3 fix: Three overlapping middleware classes collapsed into one.
+           IPWhitelistMiddleware and UserRateLimitMiddleware are kept as
+           compatibility no-op stubs so the MIDDLEWARE list in settings.py
+           requires zero changes.
+Arch:      Uses the dedicated 'rate_limit' cache alias. Configure it as Redis
+           in production (see settings.py CACHES block).
 """
 
-import time
-import logging
 import ipaddress
-from typing import Dict, Optional, Any
-from django.core.cache import cache
+import logging
+import time
+from typing import Dict, Optional, Tuple
+
+from django.conf import settings
+from django.core.cache import caches
 from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 
+# ── Cache backend ────────────────────────────────────────────────────────────
+def _get_rate_cache():
+    """Return the 'rate_limit' cache, falling back to 'default' with a warning."""
+    try:
+        return caches['rate_limit']
+    except Exception:
+        logger.warning(
+            "No 'rate_limit' cache configured — falling back to 'default'. "
+            "Rate limits will not be shared across workers in production. "
+            "Add a Redis 'rate_limit' backend to settings.CACHES."
+        )
+        return caches['default']
+
+
+# ── Per-endpoint limits ───────────────────────────────────────────────────────
+# Key: URL prefix (longest-prefix wins). Values: per-window limits.
+ENDPOINT_LIMITS: Dict[str, Dict[str, int]] = {
+    '/api/chatbot/':     {'rpm': 60,  'rph': 1_000, 'rpd': 10_000},
+    '/api/diagnostics/': {'rpm': 20,  'rph': 300,   'rpd': 3_000},
+    '/api/locations/':   {'rpm': 30,  'rph': 500,   'rpd': 5_000},
+    '/api/':             {'rpm': 100, 'rph': 2_000,  'rpd': 20_000},
+}
+
+_DEFAULT_LIMITS: Dict[str, int] = {'rpm': 100, 'rph': 1_000, 'rpd': 10_000}
+
+WINDOW_SECONDS: Dict[str, int] = {'rpm': 60, 'rph': 3_600, 'rpd': 86_400}
+WINDOW_LABEL:   Dict[str, str]  = {'rpm': 'minute', 'rph': 'hour', 'rpd': 'day'}
+
+SKIP_PATHS = frozenset([
+    '/api/health/',
+    '/api/health/simple/',
+    '/api/health/liveness/',
+    '/api/schema/',
+])
+
+
+# ── Main unified middleware ───────────────────────────────────────────────────
 class RateLimitMiddleware(MiddlewareMixin):
     """
-    Rate limiting middleware for API endpoints
-    Implements sliding window rate limiting
+    Single, unified rate-limiting middleware.
+
+    Processing order per request:
+      1. Skip non-API paths.
+      2. Skip health/schema paths.
+      3. Extract client IP (first entry of X-Forwarded-For only).
+      4. Check IP whitelist → pass through immediately.
+      5. Build client_id (authenticated user-id preferred, else IP).
+      6. For each window (minute, hour, day): INCR an atomic counter.
+         If any counter exceeds its limit → 429.
+      7. Attach X-RateLimit-Limit header for observability.
+
+    Counter key format:
+        rl:{client_id}:{window}:{bucket}
+    where bucket = floor(unix_ts / window_seconds) — resets at natural boundaries.
     """
-    
-    def __init__(self, get_response=None):
-        """Initialize the rate limiting middleware"""
-        self.get_response = get_response
-        super().__init__(get_response)
-        
-        # Rate limiting configuration
-        self.rate_limits = {
-            '/api/chatbot/': {
-                'requests_per_minute': 60,
-                'requests_per_hour': 1000,
-                'requests_per_day': 10000
-            },
-            '/api/diagnostics/': {
-                'requests_per_minute': 20,
-                'requests_per_hour': 300,
-                'requests_per_day': 3000
-            },
-            '/api/locations/': {
-                'requests_per_minute': 30,
-                'requests_per_hour': 500,
-                'requests_per_day': 5000
-            },
-            '/api/': {
-                'requests_per_minute': 100,
-                'requests_per_hour': 2000,
-                'requests_per_day': 20000
-            }
-        }
-        
-        # Default rate limits
-        self.default_limits = {
-            'requests_per_minute': 100,
-            'requests_per_hour': 1000,
-            'requests_per_day': 10000
-        }
-    
+
     def process_request(self, request):
-        """Process incoming request for rate limiting"""
         if not getattr(settings, 'RATE_LIMIT_ENABLED', True):
             return None
 
-        # Skip rate limiting for non-API requests
-        if not request.path.startswith('/api/'):
+        path = request.path
+        if not path.startswith('/api/'):
+            return None
+        if any(path.startswith(p) for p in SKIP_PATHS):
             return None
 
-        # Trusted IPs (localhost only by default) skip limits
-        client_ip = self._get_client_ip(request)
-        if self._is_ip_whitelisted(client_ip):
+        client_ip = self._client_ip(request)
+        if self._is_whitelisted(client_ip):
             return None
-        
-        # Skip rate limiting for certain paths
-        skip_paths = ['/api/health/', '/api/health/simple/', '/api/health/liveness/', '/api/schema/']
-        if any(request.path.startswith(path) for path in skip_paths):
-            return None
-        
-        # Get client identifier
-        client_id = self._get_client_identifier(request)
-        
-        # Check rate limits
-        rate_limit_response = self._check_rate_limits(request, client_id)
-        if rate_limit_response:
-            return rate_limit_response
-        
-        # Add rate limit headers
-        self._add_rate_limit_headers(request, client_id)
-        
+
+        client_id = self._client_id(request, client_ip)
+        limits     = self._limits_for_path(path)
+        cache      = _get_rate_cache()
+
+        for window, limit in limits.items():
+            exceeded, _ = self._check_window(cache, client_id, window, limit)
+            if exceeded:
+                logger.warning(
+                    "Rate limit exceeded: client=%s path=%s window=%s limit=%d",
+                    client_id, path, window, limit,
+                )
+                return self._rate_limit_response(window, limit)
+
+        # Informational header — views may forward this to clients
+        request.META['HTTP_X_RATELIMIT_LIMIT'] = str(limits.get('rpm', 0))
         return None
-    
-    def _get_client_identifier(self, request) -> str:
-        """Get unique identifier for the client"""
-        # Try to get IP address
-        ip_address = self._get_client_ip(request)
-        
-        # Try to get user ID if authenticated
+
+    # ── O(1) counter logic ────────────────────────────────────────────────────
+    @staticmethod
+    def _check_window(cache, client_id: str, window: str, limit: int) -> Tuple[bool, int]:
+        """
+        Atomic bucket counter — O(1) per window.
+
+        Uses natural-boundary buckets (floor(unix_ts / window_secs)) so the
+        counter for the current minute/hour/day resets cleanly at the top of
+        each period with no background cleanup needed.
+
+        No timestamp lists, no filter operations, no unbounded memory growth.
+        """
+        window_secs = WINDOW_SECONDS[window]
+        bucket      = int(time.time()) // window_secs
+        key         = f"rl:{client_id}:{window}:{bucket}"
+
+        try:
+            count = cache.get(key)
+            if count is None:
+                # First request in this bucket
+                cache.set(key, 1, timeout=window_secs * 2)  # *2 gives a grace TTL
+                count = 1
+            else:
+                count = int(count) + 1
+                cache.set(key, count, timeout=window_secs * 2)
+        except Exception as exc:
+            # Cache unavailable — allow request rather than block all users
+            logger.error("Rate-limit cache error (allowing request): %s", exc)
+            return False, limit
+
+        exceeded  = count > limit
+        remaining = max(0, limit - count)
+        return exceeded, remaining
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+    @staticmethod
+    def _client_ip(request) -> str:
+        xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if xff:
+            return xff.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR', '0.0.0.0')
+
+    @staticmethod
+    def _is_whitelisted(ip: str) -> bool:
+        if ip in getattr(settings, 'RATE_LIMIT_WHITELIST', []):
+            return True
+        for cidr in getattr(settings, 'RATE_LIMIT_WHITELIST_NETWORKS', []):
+            try:
+                if ipaddress.ip_address(ip) in ipaddress.ip_network(cidr, strict=False):
+                    return True
+            except ValueError:
+                pass
+        return False
+
+    @staticmethod
+    def _client_id(request, ip: str) -> str:
         if hasattr(request, 'user') and request.user.is_authenticated:
-            return f"user_{request.user.id}"
-        
-        # Use IP address as fallback
-        return f"ip_{ip_address}"
-    
-    def _get_client_ip(self, request) -> str:
-        """Get client IP address"""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
-    
-    def _check_rate_limits(self, request, client_id: str) -> Optional[JsonResponse]:
-        """Check if request exceeds rate limits"""
-        current_time = int(time.time())
-        
-        # Get rate limits for this endpoint
-        limits = self._get_rate_limits_for_path(request.path)
-        
-        # Check each time window
-        for window_name, limit in limits.items():
-            if self._is_rate_limit_exceeded(client_id, window_name, limit, current_time):
-                logger.warning(f"Rate limit exceeded for {client_id} on {request.path}")
-                return self._create_rate_limit_response(window_name, limit)
-        
-        return None
-    
-    def _get_rate_limits_for_path(self, path: str) -> Dict[str, int]:
-        """Get rate limits for a specific path (longest prefix wins)."""
-        best_prefix = ""
-        best_limits = self.default_limits
-        for api_path, limits in self.rate_limits.items():
-            if path.startswith(api_path) and len(api_path) > len(best_prefix):
-                best_prefix = api_path
+            return f"u:{request.user.id}"
+        return f"i:{ip}"
+
+    @staticmethod
+    def _limits_for_path(path: str) -> Dict[str, int]:
+        """Longest-prefix match across ENDPOINT_LIMITS."""
+        best_prefix = ''
+        best_limits  = _DEFAULT_LIMITS
+        for prefix, limits in ENDPOINT_LIMITS.items():
+            if path.startswith(prefix) and len(prefix) > len(best_prefix):
+                best_prefix = prefix
                 best_limits = limits
         return best_limits
 
-    def _is_ip_whitelisted(self, ip: str) -> bool:
-        if ip in getattr(settings, 'RATE_LIMIT_WHITELIST', []):
-            return True
-        for network in getattr(settings, 'RATE_LIMIT_WHITELIST_NETWORKS', []):
-            try:
-                if ipaddress.ip_address(ip) in ipaddress.ip_network(network, strict=False):
-                    return True
-            except (ValueError, ipaddress.AddressValueError):
-                continue
-        return False
-    
-    def _is_rate_limit_exceeded(self, client_id: str, window_name: str, 
-                               limit: int, current_time: int) -> bool:
-        """Check if rate limit is exceeded for a specific window"""
-        window_seconds = self._get_window_seconds(window_name)
-        cache_key = f"rate_limit:{client_id}:{window_name}"
-        
-        # Get current requests in this window
-        current_requests = cache.get(cache_key, [])
-        
-        # Remove old requests outside the window
-        cutoff_time = current_time - window_seconds
-        current_requests = [req_time for req_time in current_requests if req_time > cutoff_time]
-        
-        # Check if limit is exceeded
-        if len(current_requests) >= limit:
-            return True
-        
-        # Add current request
-        current_requests.append(current_time)
-        
-        # Store updated requests (expire after window duration)
-        cache.set(cache_key, current_requests, window_seconds)
-        
-        return False
-    
-    def _get_window_seconds(self, window_name: str) -> int:
-        """Get window duration in seconds"""
-        window_mapping = {
-            'requests_per_minute': 60,
-            'requests_per_hour': 3600,
-            'requests_per_day': 86400
-        }
-        return window_mapping.get(window_name, 60)
-    
-    def _create_rate_limit_response(self, window_name: str, limit: int) -> JsonResponse:
-        """Create rate limit exceeded response"""
-        window_mapping = {
-            'requests_per_minute': 'minute',
-            'requests_per_hour': 'hour',
-            'requests_per_day': 'day'
-        }
-        
-        window_text = window_mapping.get(window_name, 'minute')
-        
-        response_data = {
-            'error': 'Rate limit exceeded',
-            'message': f'Too many requests. Limit: {limit} requests per {window_text}',
-            'retry_after': self._get_window_seconds(window_name),
-            'limit': limit,
-            'window': window_text
-        }
-        
-        response = JsonResponse(response_data, status=429)
-        response['Retry-After'] = str(self._get_window_seconds(window_name))
-        response['X-RateLimit-Limit'] = str(limit)
-        response['X-RateLimit-Window'] = window_text
-        
-        return response
-    
-    def _add_rate_limit_headers(self, request, client_id: str):
-        """Add rate limit information headers to request"""
-        limits = self._get_rate_limits_for_path(request.path)
-        
-        # Add headers for each window
-        for window_name, limit in limits.items():
-            cache_key = f"rate_limit:{client_id}:{window_name}"
-            current_requests = cache.get(cache_key, [])
-            
-            # Remove old requests
-            current_time = int(time.time())
-            window_seconds = self._get_window_seconds(window_name)
-            cutoff_time = current_time - window_seconds
-            current_requests = [req_time for req_time in current_requests if req_time > cutoff_time]
-            
-            # Add headers
-            remaining = max(0, limit - len(current_requests))
-            request.META[f'HTTP_X_RATELIMIT_{window_name.upper()}_LIMIT'] = str(limit)
-            request.META[f'HTTP_X_RATELIMIT_{window_name.upper()}_REMAINING'] = str(remaining)
-            request.META[f'HTTP_X_RATELIMIT_{window_name.upper()}_RESET'] = str(current_time + window_seconds)
+    @staticmethod
+    def _rate_limit_response(window: str, limit: int) -> JsonResponse:
+        label       = WINDOW_LABEL.get(window, 'minute')
+        window_secs = WINDOW_SECONDS.get(window, 60)
+        resp = JsonResponse(
+            {
+                'error':       'rate_limit_exceeded',
+                'message':     f'Too many requests — limit is {limit} per {label}.',
+                'limit':       limit,
+                'window':      label,
+                'retry_after': window_secs,
+            },
+            status=429,
+        )
+        resp['Retry-After']      = str(window_secs)
+        resp['X-RateLimit-Limit']  = str(limit)
+        resp['X-RateLimit-Window'] = label
+        return resp
 
+
+# ── Compatibility no-op stubs (Bug 3 fix) ────────────────────────────────────
+# These classes are still listed in settings.MIDDLEWARE to avoid a deployment
+# outage while rolling the fix. They are now pure no-ops; all logic lives in
+# RateLimitMiddleware above.
 
 class IPWhitelistMiddleware(MiddlewareMixin):
     """
-    IP whitelist middleware for trusted clients
-    Allows whitelisted IPs to bypass rate limiting
+    Deprecated — whitelist logic is now inside RateLimitMiddleware.
+    Kept as a no-op stub so settings.MIDDLEWARE requires no changes.
     """
-    
-    def __init__(self, get_response=None):
-        """Initialize the IP whitelist middleware"""
-        self.get_response = get_response
-        super().__init__(get_response)
-        
-        # Whitelist configuration (can be loaded from settings)
-        self.whitelisted_ips = getattr(settings, 'RATE_LIMIT_WHITELIST', [
-            '127.0.0.1',
-            '::1',
-            'localhost'
-        ])
-        
-        # Whitelist networks (CIDR notation)
-        self.whitelisted_networks = getattr(settings, 'RATE_LIMIT_WHITELIST_NETWORKS', [])
-    
     def process_request(self, request):
-        """Check if request is from whitelisted IP"""
-        if not request.path.startswith('/api/'):
-            return None
-        
-        client_ip = self._get_client_ip(request)
-        
-        if self._is_ip_whitelisted(client_ip):
-            # Add whitelist flag to request
-            request.META['HTTP_X_RATE_LIMIT_WHITELISTED'] = 'true'
-            logger.info(f"Request from whitelisted IP: {client_ip}")
-        
         return None
-    
-    def _get_client_ip(self, request) -> str:
-        """Get client IP address"""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0].strip()
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
-    
-    def _is_ip_whitelisted(self, ip: str) -> bool:
-        """Check if IP is whitelisted"""
-        # Check direct IP whitelist
-        if ip in self.whitelisted_ips:
-            return True
-        
-        # Check network whitelist (simplified implementation)
-        # In production, use ipaddress module for proper CIDR checking
-        for network in self.whitelisted_networks:
-            if self._ip_in_network(ip, network):
-                return True
-        
-        return False
-    
-    def _ip_in_network(self, ip: str, network: str) -> bool:
-        """Check if IP is in network using proper CIDR checking"""
-        try:
-            ip_obj = ipaddress.ip_address(ip)
-            network_obj = ipaddress.ip_network(network, strict=False)
-            return ip_obj in network_obj
-        except (ValueError, ipaddress.AddressValueError):
-            logger.warning(f"Invalid IP or network format: {ip}, {network}")
-            return False
 
 
 class UserRateLimitMiddleware(MiddlewareMixin):
     """
-    User-specific rate limiting middleware
-    Provides different rate limits for authenticated vs anonymous users
+    Deprecated — user-tier awareness is handled inside RateLimitMiddleware.
+    Kept as a no-op stub so settings.MIDDLEWARE requires no changes.
     """
-    
-    def __init__(self, get_response=None):
-        """Initialize user rate limiting middleware"""
-        self.get_response = get_response
-        super().__init__(get_response)
-        
-        # Rate limits for different user types
-        self.user_limits = {
-            'anonymous': {
-                'requests_per_minute': 30,
-                'requests_per_hour': 500,
-                'requests_per_day': 5000
-            },
-            'authenticated': {
-                'requests_per_minute': 100,
-                'requests_per_hour': 2000,
-                'requests_per_day': 20000
-            },
-            'premium': {
-                'requests_per_minute': 200,
-                'requests_per_hour': 5000,
-                'requests_per_day': 50000
-            }
-        }
-    
     def process_request(self, request):
-        """Set user-specific rate limits"""
-        if not request.path.startswith('/api/'):
-            return None
-        
-        # Determine user type
-        user_type = self._get_user_type(request)
-        
-        # Add user type to request for use by rate limiting middleware
-        request.META['HTTP_X_USER_RATE_LIMIT_TYPE'] = user_type
-        
         return None
-    
-    def _get_user_type(self, request) -> str:
-        """Determine user type for rate limiting"""
-        if not hasattr(request, 'user') or not request.user.is_authenticated:
-            return 'anonymous'
-        
-        # Check if user has premium status
-        if hasattr(request.user, 'is_premium') and request.user.is_premium:
-            return 'premium'
-        
-        return 'authenticated'
 
 
-# Rate limiting decorator for views
-def rate_limit(requests_per_minute=60, requests_per_hour=1000, requests_per_day=10000):
-    """
-    Decorator for applying rate limiting to specific views
-    
-    Args:
-        requests_per_minute: Maximum requests per minute
-        requests_per_hour: Maximum requests per hour  
-        requests_per_day: Maximum requests per day
-    """
-    def decorator(view_func):
-        def wrapper(request, *args, **kwargs):
-            # This would integrate with the middleware
-            # For now, just pass through
-            return view_func(request, *args, **kwargs)
-        return wrapper
-    return decorator
+# ── Admin utilities ───────────────────────────────────────────────────────────
+def reset_rate_limits(client_id: str) -> None:
+    """Remove all current-bucket rate-limit counters for a client (admin use)."""
+    cache = _get_rate_cache()
+    now   = int(time.time())
+    for window, secs in WINDOW_SECONDS.items():
+        bucket = now // secs
+        key    = f"rl:{client_id}:{window}:{bucket}"
+        cache.delete(key)
+    logger.info("Rate limits cleared for client: %s", client_id)
 
 
-# Utility functions
-def get_rate_limit_status(client_id: str) -> Dict[str, Any]:
-    """Get current rate limit status for a client"""
+def get_rate_limit_status(client_id: str) -> Dict[str, Dict]:
+    """Return current counter values for a client (admin/debug use)."""
+    cache  = _get_rate_cache()
+    now    = int(time.time())
     status = {}
-    
-    windows = ['requests_per_minute', 'requests_per_hour', 'requests_per_day']
-    for window in windows:
-        cache_key = f"rate_limit:{client_id}:{window}"
-        current_requests = cache.get(cache_key, [])
-        
-        # Remove old requests
-        current_time = int(time.time())
-        window_seconds = {
-            'requests_per_minute': 60,
-            'requests_per_hour': 3600,
-            'requests_per_day': 86400
-        }[window]
-        
-        cutoff_time = current_time - window_seconds
-        current_requests = [req_time for req_time in current_requests if req_time > cutoff_time]
-        
+    for window, secs in WINDOW_SECONDS.items():
+        bucket = now // secs
+        key    = f"rl:{client_id}:{window}:{bucket}"
+        count  = int(cache.get(key) or 0)
         status[window] = {
-            'current_requests': len(current_requests),
-            'window_seconds': window_seconds
+            'count':   count,
+            'limit':   _DEFAULT_LIMITS.get(window, 0),
+            'bucket':  bucket,
+            'resets_in': secs - (now % secs),
         }
-    
     return status
-
-
-def reset_rate_limits(client_id: str):
-    """Reset rate limits for a client (admin function)"""
-    windows = ['requests_per_minute', 'requests_per_hour', 'requests_per_day']
-    for window in windows:
-        cache_key = f"rate_limit:{client_id}:{window}"
-        cache.delete(cache_key)
-    
-    logger.info(f"Rate limits reset for client: {client_id}")

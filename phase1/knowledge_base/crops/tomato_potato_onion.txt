@@ -1,0 +1,150 @@
+ICAR Package of Practices — Tomato, Potato, Onion (Vegetable Crops)
+Source: ICAR-Indian Institute of Vegetable Research (IIVR), Varanasi; CPRI, Shimla
+
+══════════════════════════════════════
+TOMATO (Lycopersicon esculentum)
+Season: Year-round in South; Rabi (Sep–Feb) in North.
+══════════════════════════════════════
+
+VARIETIES
+Hybrid: Arka Samrat, Naveen, Pusa Hybrid-2, Syngenta Abhilash.
+Open-pollinated: Pusa Ruby, Arka Vikas, CO-3.
+Hybrid tomatoes yield 2–3× higher than OP varieties.
+
+NURSERY AND TRANSPLANTING
+Nursery: 100g seed/ha. Sow in raised beds 1m wide.
+Seedling age: 25–30 days old, 5–7 leaf stage.
+Spacing: 60×45 cm (irrigated field/hybrid).
+Transplant in evening or cloudy weather. Water immediately.
+
+FERTILIZER
+N:P:K = 120:60:60 kg/ha.
+Basal: Full P+K + 40 kg N.
+Top dress at 30 DAS: 40 kg N.
+Top dress at 60 DAS: 40 kg N.
+Calcium: 25 kg/ha as calcium nitrate prevents Blossom End Rot.
+
+MAJOR DISEASES
+
+Early Blight (Alternaria solani):
+Most common — circular dark spots with yellow halo, concentric rings.
+Control: Mancozeb 75WP @ 2.5g/L spray every 7–10 days at disease onset.
+Also: Azoxystrobin + Difenoconazole 18.3SC @ 1 mL/L.
+
+Late Blight (Phytophthora infestans):
+Water-soaked lesions in wet weather, white sporulation underneath.
+Control: Metalaxyl+Mancozeb 72WP @ 2.5g/L every 5–7 days.
+CRITICAL: Spray preventively during cloudy/rainy weather.
+
+Tomato Leaf Curl Virus (ToLCV):
+Transmitted by whitefly. Leaf curling, yellow mosaic.
+No cure. Remove infected plants. Control whitefly with Imidacloprid 17.8SL @ 0.3 mL/L.
+
+Fusarium Wilt:
+Yellowing from lower leaves, vascular browning.
+Trichoderma soil application @ 2.5 kg/ha before transplanting.
+
+INSECT PESTS
+
+Fruit Borer (Helicoverpa armigera):
+Most serious — larvae tunnel into fruits.
+ETL: 1 larva per plant.
+Control: Emamectin benzoate 5SG @ 0.4g/L OR Spinosad 45SC @ 0.3 mL/L.
+Pheromone traps: 10/ha.
+
+Leaf Miner (Liriomyza spp.):
+Serpentine mines in leaves.
+Control: Abamectin 1.9EC @ 0.5 mL/L.
+
+YIELD: 250–400 quintals/ha (hybrid); 150–200 q/ha (OP).
+
+══════════════════════════════════════
+POTATO (Solanum tuberosum)
+Season: Rabi (October–February). Major states: UP, WB, Bihar, Punjab, Gujarat.
+══════════════════════════════════════
+
+VARIETIES
+Kufri Jyoti: Most popular. 90 days. Late blight tolerant.
+Kufri Pukhraj: Early maturing 70 days. High yield.
+Kufri Bahar: Long storage. Good for chips.
+Kufri Chipsona-1/2/3: Processing/chips variety.
+Atlantic: Specifically for processing industry.
+
+SEED AND PLANTING
+Seed rate: 20–25 quintals/ha (25–40g whole tubers or cut pieces).
+Spacing: 60×20 cm (rows × plants) = 83,000 plants/ha.
+Seed treatment: Mancozeb 75WP @ 3g/L dip for 15 minutes to prevent fungal diseases.
+Planting depth: 5–7 cm.
+
+FERTILIZER
+N:P:K = 120–150:100:120 kg/ha.
+Basal: Full P+K + 60 kg N. Apply in furrow.
+Top dress: 60–90 kg N at earthing-up (30–35 DAS).
+Potato is a heavy feeder — do not skip potassium, it improves tuber quality and starch.
+
+MAJOR DISEASE — Late Blight (Phytophthora infestans):
+Most serious disease of potato worldwide.
+Symptoms: Water-soaked dark spots on leaves, white fungal growth at lesion border in humid conditions. Tuber infection causes brown rot.
+SPRAY CALENDAR (preventive approach):
+- First spray: 30–35 DAS (before disease appears).
+- Subsequent sprays: Every 7–10 days during cool (10–20°C), humid weather.
+Fungicides: Metalaxyl + Mancozeb 72WP @ 2.5g/L (systemic + contact).
+Alternate with Cymoxanil + Mancozeb 72WP @ 2g/L to prevent resistance.
+Stop spraying 10 days before harvest.
+
+HARVESTING
+Harvest when haulm (top) turns yellow.
+Cut haulm 10 days before digging to harden skin.
+Avoid harvesting in wet soil — increases bruising and rot.
+Store in cool (4°C), dark, ventilated conditions.
+
+YIELD: 200–300 quintals/ha.
+
+══════════════════════════════════════
+ONION (Allium cepa)
+Season: Kharif (May–Sept), Late Kharif (Jul–Nov), Rabi (Oct–May).
+Major states: Maharashtra, Karnataka, MP, Bihar.
+══════════════════════════════════════
+
+VARIETIES
+Rabi: Nasik Red (N-2-4-1), Agrifound Light Red, Bhima Kiran.
+Kharif: Bhima Red, Agrifound Dark Red.
+White onion: Bhima Shweta (for export).
+
+TRANSPLANTING
+Raise nursery for 6–8 weeks. Transplant 8–10 cm tall seedlings.
+Spacing: 15×10 cm. Plant vertically, do not over-plant deep.
+Irrigation immediately after transplanting.
+
+FERTILIZER
+N:P:K = 100:50:50 kg/ha.
+Basal: Full P+K + 30 kg N.
+Top dress: 35 kg N at 30 DAS + 35 kg N at 45 DAS.
+Sulphur: 20–30 kg/ha improves pungency and storage life.
+
+MAJOR DISEASES
+
+Purple Blotch (Alternaria porri):
+Purple lesions on leaves with water-soaked margin.
+Control: Mancozeb 75WP + Iprodione (combo) @ 2g/L.
+
+Stemphylium Blight:
+Yellow to orange irregular spots. Leaf tip dieback.
+Control: Chlorothalonil 75WP @ 2g/L.
+
+Basal Rot (Fusarium):
+Root and base rot, plant collapses.
+Control: Trichoderma viride soil application @ 5 kg/ha.
+
+THRIPS MANAGEMENT (Critical — vector for IYSV virus):
+Thrips (Thrips tabaci): Most serious pest.
+Control: Spinosad 45SC @ 0.3 mL/L OR Dimethoate 30EC @ 1 mL/L. Spray directed to leaf axils.
+Monitor: Sticky blue traps 10–15/ha.
+
+HARVESTING AND CURING
+Harvest when 50–60% tops fall.
+Cure in field for 3–5 days (sun drying).
+Store in well-ventilated crates at cool temperature.
+Rabi onion stores 4–6 months; Kharif onion stores 2–3 months only.
+
+YIELD: 200–300 quintals/ha (Rabi); 150–200 q/ha (Kharif).

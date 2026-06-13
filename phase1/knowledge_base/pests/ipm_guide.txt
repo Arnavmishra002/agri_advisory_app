@@ -1,0 +1,80 @@
+ICAR Integrated Pest Management (IPM) Guide for Indian Crops
+Source: National Centre for Integrated Pest Management (NCIPM), ICAR, New Delhi
+
+PRINCIPLES OF IPM
+IPM combines multiple pest control tactics to keep pest populations below economic injury levels while minimizing risks to human health, beneficial organisms, and the environment.
+
+HIERARCHY OF CONTROL METHODS (use in order):
+1. Cultural control (crop rotation, resistant varieties, proper spacing)
+2. Mechanical control (traps, hand picking, barriers)
+3. Biological control (natural enemies, biopesticides)
+4. Chemical control (last resort — use approved doses)
+
+COMMON BIOPESTICIDES AND DOSES
+Trichoderma viride: 4 g/kg for seed treatment; 2.5 kg/ha soil application in 250L water. Controls soil-borne pathogens (Fusarium, Rhizoctonia, Sclerotinia).
+Beauveria bassiana: 1×10^8 cfu/mL @ 5 mL/L. Controls stem borer, leaf folder, aphids, whitefly.
+Bacillus thuringiensis (Bt): 1 kg/ha. Controls caterpillars — bollworm, armyworm, diamond-back moth. Does NOT work on sucking pests.
+Neem-based products (Azadirachtin 1500 ppm): 3–5 mL/L. Controls aphids, whitefly, thrips, mites. Also repels and disrupts feeding.
+Verticillium lecanii: 1×10^6 cfu/mL @ 5 mL/L. Controls aphids, whitefly.
+
+MONITORING AND ECONOMIC THRESHOLDS
+Always scout fields before spraying. Chemical sprays should only be applied when pest populations cross the Economic Threshold Level (ETL).
+
+Crops and ETLs:
+- Rice stem borer: 5% dead hearts (vegetative) OR 2% white ears (reproductive)
+- Rice BPH: 10 hoppers/hill
+- Wheat aphid: 50 aphids/tiller
+- Mustard aphid: 40–50 aphids/plant
+- Cotton bollworm: 10 larvae/100 plants OR 8% boll damage
+- Tomato fruitworm: 1 larva/plant OR 3% fruit damage
+
+SUCKING PESTS — GENERAL APPROACH
+Aphids, Whitefly, Thrips, Mites:
+Step 1: Sticky traps (yellow for whitefly/aphids, blue for thrips) — 10–15 traps/ha for monitoring.
+Step 2: Neem oil 5 mL/L + spreader at first appearance.
+Step 3: Biopesticide (Verticillium, Beauveria) if infestation persists.
+Step 4 (Chemical — only if Step 3 fails): Imidacloprid 70WG @ 35g/ha OR Thiamethoxam 25WG @ 80g/ha. Do NOT spray during flowering (kills bees).
+
+LEAF-EATING CATERPILLARS
+Includes: armyworm, semilooper, gram caterpillar, cabbage worm.
+Step 1: Hand pick egg masses.
+Step 2: Bt (Bacillus thuringiensis) @ 1 kg/ha spray.
+Step 3: Chlorpyrifos 20EC @ 2.5 L/ha (only if Bt fails AND crop is not near harvest).
+Waiting period: Do not use organophosphates within 14–21 days of harvest.
+
+FUNGAL DISEASES — GENERAL APPROACH
+Powdery mildew: Sulphur 80WP @ 3g/L OR Hexaconazole 5SC @ 1 mL/L.
+Downy mildew: Metalaxyl-Mancozeb 72WP @ 2.5g/L.
+Rust (all crops): Propiconazole 25EC @ 1 mL/L OR Tebuconazole 25EC @ 1 mL/L.
+Wilt: No effective foliar spray. Use Trichoderma viride soil application 2.5 kg/ha.
+Blight (early/late): Mancozeb 75WP @ 2.5g/L + Chlorothalonil 75WP @ 2g/L.
+
+RESISTANCE MANAGEMENT
+Never spray the same chemical class more than 2 consecutive applications.
+Rotate between FRAC groups:
+- DMI fungicides (propiconazole, tebuconazole) → Strobilurin → Carboxamide → back to DMI.
+If one pesticide is not controlling the pest after 2 applications, switch to a different mode of action.
+
+PESTICIDE SAFETY RULES (INDIA)
+Only use pesticides registered under Insecticides Act 1968 and approved by CIB&RC.
+Always read label before mixing — use correct dose.
+Wear PPE: gloves, mask, goggles, rubber boots during spraying.
+Re-entry period: Typically 24–48 hours after spraying.
+Pre-harvest interval (PHI): Do not harvest crops within the specified days after last spray (label requirement).
+Dispose empty containers by triple-rinsing, puncturing, returning to dealer.
+Do NOT wash spray equipment near water bodies.
+
+BENEFICIAL INSECTS TO PROTECT
+Honey bees: Never spray insecticides during flowering.
+Lady beetles (Coccinella septempunctata): Natural predators of aphids. Present in fields — do not spray if seen in abundance.
+Lacewings (Chrysoperla): Larvae eat aphids, mites, whitefly eggs.
+Parasitic wasps: Control caterpillar pests. Visible as small wasps.
+
+COMMON MISTAKES FARMERS MAKE
+1. Spraying on cloudy/rainy days — chemical washes off.
+2. Using wrong nozzle — use flat-fan for broad coverage, hollow cone for dense canopy.
+3. Spraying against wind — causes drift, human exposure.
+4. Under-diluting (using less water) — uneven coverage.
+5. Mixing incompatible chemicals.
+6. Spraying during noon heat — chemical degrades fast.
+Best spray time: Early morning (before 9 AM) or late afternoon (after 4 PM).

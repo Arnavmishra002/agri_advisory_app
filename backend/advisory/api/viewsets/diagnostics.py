@@ -2,6 +2,7 @@ import logging
 import uuid
 from datetime import datetime
 
+from django.db import IntegrityError, OperationalError, ProgrammingError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -16,6 +17,7 @@ from ..validation import (
 from ...models import DiagnosticSession
 from ...services.crop_catalog import crop_catalog
 from ...services.crop_disease_ml_service import crop_disease_ml_service
+from ...services.disease_chat_bridge import disease_chat_bridge
 from ...services.krishi_raksha_pest_service import KrishiRakshaPestService
 
 logger = logging.getLogger(__name__)
@@ -83,21 +85,32 @@ class DiagnosticViewSet(viewsets.ViewSet):
                 state=ctx.state,
             )
             
-            # Persist Session (if models available)
+            # Persist Session — audit trail for active learning and analytics
+            # Bug 5 fix: infrastructure failures (DB down, connection error) are
+            # re-raised so the caller gets a 500 instead of a silent data loss.
+            # Only IntegrityError (duplicate session_id) is safe to swallow.
             try:
                 if result['status'] == 'success':
-                     DiagnosticSession.objects.create(
-                         session_id=session_id or str(uuid.uuid4()),
-                         user_id=str(request.user.id) if request.user.is_authenticated else 'anonymous',
-                         crop_detected=result['crop_detected'],
-                         final_diagnosis=result['diagnosis'][0]['name'] if result['diagnosis'] else 'Unknown',
-                         confidence_score=result['diagnosis'][0].get('confidence', 0.0) if result['diagnosis'] else 0.0,
-                         severity_level=result['diagnosis'][0].get('severity_label', 'Low') if result['diagnosis'] else 'Low'
-                     )
-            except Exception as db_err:
-                logger.warning(f"Failed to save diagnostic session: {db_err}")
+                    DiagnosticSession.objects.create(
+                        session_id=session_id or str(uuid.uuid4()),
+                        user_id=str(request.user.id) if request.user.is_authenticated else 'anonymous',
+                        crop_detected=result['crop_detected'],
+                        final_diagnosis=result['diagnosis'][0]['name'] if result['diagnosis'] else 'Unknown',
+                        confidence_score=result['diagnosis'][0].get('confidence', 0.0) if result['diagnosis'] else 0.0,
+                        severity_level=result['diagnosis'][0].get('severity_label', 'Low') if result['diagnosis'] else 'Low'
+                    )
+            except IntegrityError:
+                # Duplicate session_id — safe to ignore (idempotent re-submit)
+                logger.info("DiagnosticSession already exists for session_id=%s — skipping", session_id)
+            except (OperationalError, ProgrammingError) as db_err:
+                # Infrastructure failure — surface it so on-call is alerted
+                logger.error("CRITICAL: DiagnosticSession.create failed for session_id=%s: %s", session_id, db_err)
+                raise   # will be caught by outer except → 500 response
             
-            return Response(attach_location_metadata(result, ctx))
+            return Response(attach_location_metadata({
+                **result,
+                "treatment_advice": disease_chat_bridge.format_for_api(result, ctx, language=request.data.get("language", "hi")),
+            }, ctx))
             
         except Exception as e:
             return Response(

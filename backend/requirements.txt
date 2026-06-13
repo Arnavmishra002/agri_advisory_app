@@ -21,6 +21,7 @@ dj-database-url>=2.2.0          # DATABASE_URL → Django DATABASES dict
 
 # ── Environment / Config ───────────────────────────────────────
 python-decouple>=3.8
+python-dotenv>=1.0.0            # .env auto-loading in manage.py / wsgi.py
 
 # ── HTTP & External APIs ───────────────────────────────────────
 requests>=2.32.0
@@ -37,6 +38,9 @@ pytz>=2024.1
 
 # ── Geospatial / Location ──────────────────────────────────────
 geopy>=2.4.0                    # Haversine, geocoding helpers
+
+# ── IoT Sensor Integration (Phase 2) ───────────────────────────
+paho-mqtt==1.6.1
 
 # ── Web scraping (mandi data fallbacks) ────────────────────────
 beautifulsoup4>=4.12.0

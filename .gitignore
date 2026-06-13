@@ -342,3 +342,7 @@ market_prices_cache/
 scheme_data_cache/
 location_cache/
 reverse_geocoding_cache/
+
+# Local environments and scratch scripts
+phase1_env/
+test_data_gov_key.py

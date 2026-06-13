@@ -171,24 +171,60 @@ def simple_health_check(request):
 
 @csrf_exempt
 def readiness_check(request):
-    """Readiness probe — checks DB + cache connectivity."""
+    """Readiness probe — checks DB, cache, Phase 1 AI server, and Ollama."""
+    checks: Dict[str, str] = {}
+    overall_ok = True
+
+    # ── Database ──────────────────────────────────────────────────────────────
     try:
         from django.db import connection
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {e}"
+        overall_ok = False
 
+    # ── Cache ─────────────────────────────────────────────────────────────────
+    try:
         from django.core.cache import cache
         cache.set("readiness_probe", "ok", 10)
-        cache.get("readiness_probe")
-
-        return JsonResponse({
-            "status": "ready",
-            "checks": {"database": "ok", "cache": "ok"},
-            "timestamp": _now(),
-        })
+        checks["cache"] = "ok" if cache.get("readiness_probe") == "ok" else "miss"
     except Exception as e:
-        logger.error("Readiness check failed: %s", e)
-        return JsonResponse({"status": "not_ready", "error": str(e)}, status=503)
+        checks["cache"] = f"error: {e}"
+
+    # ── Phase 1 AI server (Qwen + RAG) ────────────────────────────────────────
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://127.0.0.1:8001/health")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            import json
+            h = json.loads(resp.read())
+            if h.get("status") == "healthy":
+                checks["phase1_ai"] = f"ok (rag={h.get('rag')}, ollama={h.get('ollama')})"
+            else:
+                checks["phase1_ai"] = f"degraded: {h.get('status')}"
+    except Exception:
+        checks["phase1_ai"] = "offline (Qwen+RAG unavailable — rule-based fallback active)"
+
+    # ── Ollama ────────────────────────────────────────────────────────────────
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://127.0.0.1:11434/api/tags")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            import json
+            models = [m["name"] for m in json.loads(resp.read()).get("models", [])]
+            qwen_present = any("qwen2.5" in m for m in models)
+            checks["ollama"] = f"ok (qwen={'present' if qwen_present else 'missing'})"
+    except Exception:
+        checks["ollama"] = "offline (local LLM unavailable)"
+
+    status_code = 200 if overall_ok else 503
+    return JsonResponse({
+        "status":    "ready" if overall_ok else "not_ready",
+        "checks":    checks,
+        "timestamp": _now(),
+    }, status=status_code)
 
 
 @csrf_exempt

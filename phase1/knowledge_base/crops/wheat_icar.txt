@@ -1,0 +1,84 @@
+ICAR Package of Practices — Wheat (Triticum aestivum)
+Source: Indian Council of Agricultural Research (ICAR), New Delhi
+Season: Rabi (October–March)
+
+VARIETIES
+HD-3086 (Pusa Wheat 2085): High yielding, rust resistant. Suitable for Indo-Gangetic plains.
+PBW-343: Widely grown in Punjab, Haryana. Tolerant to yellow rust.
+GW-322: Suitable for Gujarat, Rajasthan. Short duration 110 days.
+GW-496: Drought tolerant for rainfed areas.
+K-9107: Suitable for Uttar Pradesh and Bihar.
+
+SOWING TIME
+Optimal sowing: 1–15 November (North India)
+Late sowing (after 25 Nov): Use late-sown varieties like HI-977, NW-1014. Reduce seed rate 20%.
+Delay beyond December: Significant yield reduction — 1-1.5% per day delay.
+
+SEED RATE AND TREATMENT
+Seed rate: 100–125 kg/hectare for timely sowing; 125–150 kg/ha for late sowing.
+Seed treatment: Carboxin 75WP @ 2.5g/kg seed OR Thiram @ 2.5g/kg seed before sowing.
+Bio-seed treatment: Trichoderma viride @ 4g/kg + Pseudomonas fluorescens @ 10g/kg.
+
+SOIL REQUIREMENT
+Best soil: Well-drained loamy or clay-loam soil, pH 6.0–7.5.
+Avoid: Waterlogged soils, highly sandy soils, strongly alkaline pH >8.5.
+Land preparation: 1 deep ploughing + 2 harrowing + levelling.
+
+FERTILIZER RECOMMENDATIONS (ICAR 2024-25)
+General dose: N:P:K = 120:60:40 kg/hectare
+Apply all P and K at sowing as basal dose.
+Split nitrogen: 50% at sowing + 25% at first irrigation (CRI stage, ~21 days) + 25% at tillering.
+Zinc deficiency: Apply ZnSO4 @ 25 kg/ha if soil Zn < 0.6 ppm.
+Use neem-coated urea (NCU) to reduce N loss by 10–15%.
+Organic: FYM 10 tonnes/ha incorporated 3–4 weeks before sowing reduces chemical fertilizer requirement by 25%.
+
+IRRIGATION SCHEDULE (Critical stages — do NOT miss)
+Total water requirement: 35–40 cm (6 irrigations optimal)
+1. CRI (Crown Root Initiation) — 20–21 days after sowing (MOST CRITICAL)
+2. Tillering stage — 40–45 DAS
+3. Jointing stage — 60–65 DAS
+4. Flowering/Heading — 80–85 DAS
+5. Milk stage — 100–105 DAS
+6. Dough stage — 115–120 DAS
+Skip irrigation 3 if rainfall > 40mm during that week.
+Avoid irrigation at time of dusting fertilizer.
+
+PEST AND DISEASE MANAGEMENT
+
+Yellow Rust (Puccinia striiformis):
+Symptoms: Yellow-orange pustules in rows on leaves.
+Control: Propiconazole 25EC @ 0.1% spray. Repeat after 15 days if needed.
+Preventive: Use resistant varieties HD-3086, HD-2967.
+
+Brown Rust (Puccinia recondita):
+Symptoms: Circular orange-brown pustules scattered on leaves.
+Control: Mancozeb 75WP @ 2.5g/L + Tebuconazole 25EC @ 1ml/L.
+
+Loose Smut:
+Control: Seed treatment with Carboxin 75WP @ 2g/kg seed.
+
+Aphids (Sitobion avenae):
+Economic threshold: 50 aphids per tiller.
+Control: Dimethoate 30EC @ 1 L/ha OR Imidacloprid 70WG @ 35g/ha.
+Biological: Preserve natural enemies — lady beetles, lacewings.
+
+Termites: Chlorpyrifos 20EC @ 2.5 L/ha soil drench at planting.
+
+WEED MANAGEMENT
+Narrow-leaf weeds: Clodinafop-propargyl 15WP @ 400g/ha at 30–35 DAS.
+Broad-leaf weeds: Metsulfuron 20WP @ 20g/ha at 30–35 DAS.
+Mixed weeds: Carfentrazone + Metsulfuron (Ready-mix) @ 20g/ha.
+Apply post-emergence herbicides with flat-fan nozzle, 300 L water/ha.
+
+HARVESTING
+Harvest when grain moisture reaches 12–14%.
+Mechanical harvesting: Use combine harvester at 8–10% moisture.
+Threshing losses should be < 1%.
+Store at < 12% moisture in ventilated godowns.
+
+YIELD
+Irrigated timely sowing: 45–55 quintals/hectare
+Irrigated late sowing: 35–40 quintals/hectare
+Rainfed: 20–25 quintals/hectare
+
+MSP 2024-25: Rs. 2,275 per quintal (Cabinet approved)

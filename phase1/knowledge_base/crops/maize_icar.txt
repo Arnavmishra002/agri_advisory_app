@@ -1,0 +1,86 @@
+ICAR Package of Practices — Maize (Zea mays)
+Source: ICAR-Indian Institute of Maize Research (IIMR), Ludhiana
+Season: Kharif (June–October); Rabi (November–March in South India)
+
+VARIETIES
+Hybrids (most productive):
+DKC-9144: High yield, drought tolerant, popular in Karnataka, AP.
+NK-6240: Disease resistant. Suitable for heavy rainfall zones.
+Pioneer 30V92: Early maturing 95 days. Good for multiple cropping.
+Composite varieties (open-pollinated, seed can be saved):
+Vivek QPM-9 (Quality Protein Maize): High lysine+tryptophan. Better for human consumption and livestock.
+African Tall: Fodder purpose.
+
+SOWING
+Kharif: June 15 – July 15 (sow with onset of monsoon).
+Rabi (South India): October 15 – November 15.
+Spacing: 60×25 cm (row×plant). For hybrids: 60×20 cm.
+Seed rate: 20–25 kg/ha (hybrids); 18–20 kg/ha (composites).
+Depth: 3–5 cm. Do not sow deeper — germination affected.
+
+SOIL
+Well-drained loam or sandy loam, pH 6.0–7.5.
+Cannot tolerate waterlogging — ensure drainage channels in field.
+Maize is the 3rd most important cereal in India.
+
+FERTILIZER (MOST CRITICAL CROP FOR N RESPONSE)
+General dose: N:P:K = 120:60:40 kg/ha (Kharif hybrids).
+Basal: Full P + Full K + 30 kg N/ha.
+Top dress 1: 45 kg N/ha at knee-height stage (V4–V5, 25–30 DAS).
+Top dress 2: 45 kg N/ha at tasseling (50–55 DAS).
+Zinc: 25 kg ZnSO4/ha if soil Zn < 0.5 ppm. Zinc deficiency very common in maize.
+Symptoms of Zn deficiency: White to yellow stripes parallel to leaf midrib in young leaves.
+Boron: 1 kg/ha if deficient (silk development affected).
+
+IRRIGATION
+Critical stages: Germination, Knee-height (V5), Tasseling/Silking (most critical — do NOT miss), Grain filling.
+Total: 5–6 irrigations for full season.
+Waterlogging for even 24 hours at silking causes 15–20% yield loss.
+
+MAJOR PESTS
+
+Fall Armyworm (Spodoptera frugiperda) — NEW INVASIVE PEST (arrived India 2018):
+Most serious pest now.
+Symptoms: Window pane damage on leaves; frass in whorl; C-shaped larvae.
+Economic threshold: 5% plants showing fresh whorl damage.
+Control: Spinetoram 11.7SC @ 0.5 mL/L (best); Emamectin benzoate 5SG @ 0.4g/L.
+Early morning spray into whorl.
+Pheromone traps: 10/ha for monitoring.
+Biological: Trichogramma releases (1 lakh cards/ha) for egg parasitization.
+
+Shoot Fly (Atherigona nubica):
+Affects early-season seedlings.
+Dead heart at 2–3 leaf stage.
+Control: Carbofuran 3G @ 20 kg/ha in soil at sowing.
+
+Stem Borer (Chilo partellus):
+Damage similar to shoot fly but at later stages.
+Control: Granules (Carbofuran 3G) in whorl at 15 and 30 DAS.
+
+DISEASES
+
+Turcicum Blight (Exserohilum turcicum):
+Long elliptical, tan lesions with dark border on leaves.
+Control: Mancozeb 75WP @ 2.5g/L at disease appearance.
+Use resistant hybrids.
+
+Downy Mildew (Peronosclerospora sorghi):
+Systematic infection — stunted plants, white downy growth on leaves.
+Control: Metalaxyl seed treatment @ 6g/kg seed.
+
+Gibberella Stalk Rot:
+Pink/red discoloration inside stalk near base.
+Caused by excess N and poor drainage.
+No curative spray — improve drainage and balanced nutrition.
+
+HARVESTING
+Harvest when grain moisture is 25–30% (fresh) or 15% (for storage).
+Mechanical harvesting at 18–20% moisture.
+Dry to 12–14% for storage — critical to prevent aflatoxin contamination.
+
+YIELD
+Kharif hybrids: 50–60 quintals/ha
+Rabi hybrids: 60–70 quintals/ha (better conditions)
+Composites: 35–45 quintals/ha
+
+MSP 2024-25: Rs. 2,090 per quintal

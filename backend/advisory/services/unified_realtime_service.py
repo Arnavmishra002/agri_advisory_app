@@ -17,7 +17,6 @@ import logging
 import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
-from functools import lru_cache
 
 from .location_context import _haversine_km
 from .language_service import (
@@ -39,11 +38,34 @@ GOOGLE_AI_KEY     = os.getenv("GOOGLE_AI_API_KEY", "")
 DATA_GOV_KEY      = os.getenv("DATA_GOV_IN_API_KEY", "").strip()
 # OGD public demo key (limited to 10 rows/request); register your own for production
 DATA_GOV_DEMO_KEY = "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b"
+# ↑ Kept as a tombstone constant only — no longer used in production code paths.
+# _effective_data_gov_key() now returns None instead of falling back to this key.
+
+# ─── Geocode cache TTL ─────────────────────────────────────────────────────────
+# Bug 4 fix: location → lat/lon lookups are cached with a TTL rather than forever.
+# The in-process dict (_coord_cache on WeatherService) acts as L1; Django's
+# weather_cache is L2 (shared across workers, 7-day TTL).
+# This prevents stale coordinates surviving a process restart when a village
+# is renamed or a farmer enters a slightly different spelling.
+_GEOCODE_CACHE_TTL = 60 * 60 * 24 * 7   # 7 days — location→coords is stable
 DATA_GOV_TIMEOUT  = (5, 25)  # connect, read seconds
 OPENWEATHER_KEY   = os.getenv("OPENWEATHER_API_KEY", "")
 GEMINI_MODEL      = os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
 GEMINI_FLASH      = os.getenv("GEMINI_FLASH_MODEL", "gemini-1.5-flash")
 GEMINI_MODELS_CHAIN = [GEMINI_MODEL, GEMINI_FLASH, "gemini-pro"]  # Fallback chain
+
+# ─── Gemini key validation ────────────────────────────────────────────────────
+_PLACEHOLDER_FRAGMENTS = frozenset({
+    "your", "replace", "insert", "changeme", "xxx", "demo", "test", "example",
+    "api_key", "apikey", "placeholder",
+})
+
+def _is_valid_gemini_key(key: str) -> bool:
+    """Return True only if the key looks like a real Gemini API key."""
+    if not key or len(key) < 20:
+        return False
+    lower = key.lower()
+    return not any(frag in lower for frag in _PLACEHOLDER_FRAGMENTS)
 
 # ─── Correct data.gov.in Resource IDs ────────────────────────────────────────
 DATA_GOV_RESOURCES = {
@@ -151,7 +173,28 @@ MSP_2024_25 = {
     "gram":       5440, "lentil":   6425, "groundnut":6783,
     "sunflower":  7280, "jowar":    3371, "bajra":    2625,
     "ragi":       3846, "barley":   1735,
+    # Pulses added from seed_msp command
+    "arhar":      7000, "moong":    8682, "urad":     7400,
 }
+
+# ── DB-backed MSP lookup (falls back to dict above) ─────────────────────────
+# Run `python manage.py seed_msp` once to populate the Crop table.
+# After that, updates only require `manage.py seed_msp --season 2025-26` —
+# no code deploy needed for annual CACP price announcements.
+
+def get_msp(crop_id: str, fallback: int = 0) -> int:
+    """
+    Return MSP ₹/quintal for a crop. Tries DB first, then in-memory dict.
+    Safe to call at any time — never raises.
+    """
+    try:
+        from advisory.models import Crop
+        crop = Crop.objects.filter(name=crop_id).only("msp_per_quintal").first()
+        if crop and crop.msp_per_quintal:
+            return crop.msp_per_quintal
+    except Exception:
+        pass
+    return MSP_2024_25.get(crop_id, fallback)
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  WEATHER SERVICE
@@ -196,11 +239,35 @@ class WeatherService:
             return self._static_fallback(location, lang=lang)
 
     def _geocode(self, location: str) -> Tuple[float, float]:
-        """Convert location name to coordinates"""
-        if location in self._coord_cache:
-            return self._coord_cache[location]
+        """Convert location name to coordinates.
 
-        # Known Indian city coordinates (fast path)
+        Bug 4 fix: replaced unbounded in-process dict with a two-tier cache:
+          L1 — self._coord_cache (per-process dict, zero-latency within one worker)
+          L2 — Django weather_cache (shared across workers, 7-day TTL)
+
+        Both tiers have a TTL so stale coordinates are eventually evicted.
+        The old code cached forever in the process — yesterday's geocode for a
+        misspelled village survived until a dyno restart.
+        """
+        key_norm  = location.lower().strip()
+        cache_key = f"geocode:{key_norm}"
+
+        # L1: in-process dict (fast path)
+        if key_norm in self._coord_cache:
+            return self._coord_cache[key_norm]
+
+        # L2: shared Django cache
+        try:
+            from django.core.cache import caches
+            _cache = caches['weather_cache']
+            cached = _cache.get(cache_key)
+            if cached is not None:
+                self._coord_cache[key_norm] = cached   # promote to L1
+                return cached
+        except Exception:
+            _cache = None
+
+        # Known Indian city coordinates (fast path — no network call needed)
         known = {
             "delhi": (28.6139, 77.2090), "mumbai": (19.0760, 72.8777),
             "kolkata": (22.5726, 88.3639), "chennai": (13.0827, 80.2707),
@@ -209,29 +276,41 @@ class WeatherService:
             "lucknow": (26.8467, 80.9462), "jaipur": (26.9124, 75.7873),
             "greater noida": (28.4745, 77.5040), "noida": (28.5355, 77.3910),
         }
-        loc_lower = location.lower().strip()
         for key, coords in known.items():
-            if key in loc_lower:
-                self._coord_cache[location] = coords
+            if key in key_norm:
+                self._write_geocode_cache(key_norm, coords, cache_key)
                 return coords
 
-        # Nominatim geocoding
+        # Nominatim geocoding (network call — last resort)
         try:
             resp = self.session.get(
                 self.GEOCODING_URL,
                 params={"q": f"{location}, India", "format": "json", "limit": 1},
-                timeout=5
+                timeout=5,
             )
             if resp.status_code == 200 and resp.json():
                 result = resp.json()[0]
                 coords = (float(result["lat"]), float(result["lon"]))
-                self._coord_cache[location] = coords
+                self._write_geocode_cache(key_norm, coords, cache_key)
                 return coords
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Nominatim geocoding failed for %r: %s", location, exc)
 
         # Default: New Delhi
-        return (28.6139, 77.2090)
+        default = (28.6139, 77.2090)
+        logger.warning("Geocoding failed for %r — defaulting to New Delhi", location)
+        return default
+
+    def _write_geocode_cache(
+        self, key_norm: str, coords: Tuple[float, float], cache_key: str
+    ) -> None:
+        """Write coords to both L1 (in-process) and L2 (shared) caches."""
+        self._coord_cache[key_norm] = coords
+        try:
+            from django.core.cache import caches
+            caches['weather_cache'].set(cache_key, coords, timeout=_GEOCODE_CACHE_TTL)
+        except Exception:
+            pass   # L2 write failure is non-fatal — L1 still works
 
     def _fetch_open_meteo(self, lat: float, lon: float, location: str,
                           lang: str = "hi") -> Optional[Dict]:
@@ -571,6 +650,41 @@ class MarketPricesService:
 
         data = None
 
+        # Priority 0: Agmarknet Direct API (api.agmarknet.gov.in — no key needed)
+        # Returns national commodity prices, updated daily, zero registration required.
+        # Falls back to Priority 1 if the API is down or returns no matching crop.
+        try:
+            from .agmarknet_direct_client import agmarknet_direct
+            direct_data = agmarknet_direct.get_national_prices()
+            if direct_data and direct_data.get("top_crops"):
+                # If a specific crop is requested, filter to that crop first
+                if crop:
+                    from .crop_catalog import crop_catalog
+                    norm = crop_catalog.normalize(crop)
+                    crop_id = norm["id"] if norm else crop.lower()
+                    matched = [
+                        r for r in direct_data["top_crops"]
+                        if r.get("crop_id") == crop_id or
+                           crop.lower() in r.get("crop_name", "").lower()
+                    ]
+                    if matched:
+                        direct_data = dict(direct_data)
+                        direct_data["top_crops"] = matched
+                        data = direct_data
+                        logger.info(
+                            "Agmarknet Direct: matched %d rows for crop=%s", len(matched), crop
+                        )
+                    # If no match for this specific crop, fall through to Priority 1
+                else:
+                    # No crop filter — return all 25 national commodities
+                    data = direct_data
+                    logger.info(
+                        "Agmarknet Direct: %d national prices loaded",
+                        len(direct_data["top_crops"]),
+                    )
+        except Exception as exc:
+            logger.warning("Agmarknet Direct API error: %s", exc)
+
         # Priority 1: Agmarknet 2.0 official API (same source as agmarknet.gov.in portal)
         try:
             from .agmarknet_client import agmarknet_client
@@ -698,12 +812,12 @@ class MarketPricesService:
         }
 
     def _finalize_market_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        data = dict(data)
+        data       = dict(data)
         registered = self._has_registered_data_gov_key()
-        using_demo = (
-            self._effective_data_gov_key() == DATA_GOV_DEMO_KEY and not registered
-        )
-        data["using_demo_key"] = data.get("using_demo_key", using_demo)
+        # Bug 6 fix: _effective_data_gov_key() returns None (not the shared demo key)
+        # when no registered key is configured.
+        using_demo = self._effective_data_gov_key() is None
+        data["using_demo_key"]     = data.get("using_demo_key", using_demo)
         data["api_key_registered"] = registered
 
         top = list(data.get("top_crops") or [])
@@ -811,7 +925,7 @@ class MarketPricesService:
 
         registered_key = self._has_registered_data_gov_key()
         api_key = self._effective_data_gov_key()
-        using_demo = api_key == DATA_GOV_DEMO_KEY
+        using_demo = api_key is None   # None = no registered key → degrade gracefully
         mandis_map: Dict[str, Dict[str, Any]] = {}
         resolved_state = state or self._infer_state(location, state=state)
 
@@ -1060,9 +1174,12 @@ class MarketPricesService:
         api_key: str,
         max_records: int = 2500,
     ) -> List[dict]:
-        """Fetch all pages from data.gov.in (demo key: single page of 10)."""
-        page_size = 100 if api_key != DATA_GOV_DEMO_KEY else 10
-        max_pages = 25 if api_key != DATA_GOV_DEMO_KEY else 1
+        """Fetch all pages from data.gov.in (no key: refuse rather than use shared demo)."""
+        if not api_key:
+            logger.warning("DATA_GOV_IN_API_KEY not configured — skipping paginated fetch")
+            return []
+        page_size = 100
+        max_pages = 25
         all_records: List[dict] = []
         offset = 0
 
@@ -1181,13 +1298,18 @@ class MarketPricesService:
         return ("agmarknet_mandi", "enam_market")
 
     @staticmethod
-    def _effective_data_gov_key() -> str:
+    def _effective_data_gov_key() -> Optional[str]:
+        """Return the configured data.gov.in API key, or None if not set.
+
+        Bug 6 fix: no longer falls back to the hardcoded shared demo key.
+        The demo key is rate-limited to 10 rows/request and is shared across
+        all users of the demo, causing unpredictable failures at scale.
+        Callers must handle None and surface a clear unavailability message.
+        """
         key = DATA_GOV_KEY.strip()
-        if key.lower() in DATA_GOV_PLACEHOLDER_KEYS:
-            key = ""
-        if not key:
-            key = DATA_GOV_DEMO_KEY
-        return key
+        if key and key.lower() not in DATA_GOV_PLACEHOLDER_KEYS:
+            return key
+        return None
 
     def _state_filter_candidates(self, location: str, state: str = None) -> List[str]:
         names: List[str] = []
@@ -1224,14 +1346,16 @@ class MarketPricesService:
         url = f"{DATA_GOV_BASE}/{resource_id}"
 
         state_candidates = self._state_filter_candidates(location, state=state)
-        # Demo key is capped at ~10 rows; one state filter attempt is enough
-        max_state_tries = 1 if api_key == DATA_GOV_DEMO_KEY else len(state_candidates)
+        # Without a registered key there's nothing to fetch
+        if not api_key:
+            return None
+        max_state_tries = len(state_candidates)
 
         for state_name in state_candidates[:max_state_tries]:
             params: Dict[str, Any] = {
                 "api-key": api_key,
                 "format": "json",
-                "limit": 50 if api_key != DATA_GOV_DEMO_KEY else 10,
+                "limit": 50,
                 "filters[state]": state_name,
             }
             if crop:
@@ -1249,7 +1373,7 @@ class MarketPricesService:
                 if mandi and records:
                     records = self._filter_records_by_mandi(records, mandi)
 
-            if records is None and api_key == DATA_GOV_DEMO_KEY:
+            if records is None:
                 break
             if records:
                 formatted = self._format_data_gov_response(
@@ -1264,12 +1388,12 @@ class MarketPricesService:
             {
                 "api-key": api_key,
                 "format": "json",
-                "limit": 100 if api_key != DATA_GOV_DEMO_KEY else 10,
+                "limit": 100,
             },
             resource_key,
             api_key,
         )
-        if records is None and api_key == DATA_GOV_DEMO_KEY:
+        if records is None:
             return None
         if records:
             state_names = {
@@ -1300,13 +1424,11 @@ class MarketPricesService:
             try:
                 resp = self.session.get(url, params=params, timeout=DATA_GOV_TIMEOUT)
                 if resp.status_code == 403:
-                    if api_key == DATA_GOV_DEMO_KEY:
-                        logger.warning(
-                            "data.gov.in 403: register your own DATA_GOV_IN_API_KEY at "
-                            "https://data.gov.in/user/register"
-                        )
-                    else:
-                        logger.warning("data.gov.in 403: invalid or revoked API key")
+                    logger.warning(
+                        "data.gov.in 403 for %s — check your DATA_GOV_IN_API_KEY. "
+                        "Register at https://data.gov.in/user/register",
+                        resource_key,
+                    )
                     return None
                 if resp.status_code == 429:
                     logger.warning(
@@ -1486,7 +1608,16 @@ class MarketPricesService:
         }
 
         for crop_name in target_crops:
-            msp = MSP_2024_25.get(crop_name, 2000)
+            msp = 0
+            try:
+                from advisory.models import Crop
+                crop_obj = Crop.objects.filter(name=crop_name).first()
+                if crop_obj and crop_obj.msp_per_quintal:
+                    msp = crop_obj.msp_per_quintal
+            except Exception:
+                pass
+            if not msp:
+                msp = MSP_2024_25.get(crop_name, 2000)
             premiums = SEASONAL_PREMIUM.get(crop_name, [1.10]*12)
             seasonal_premium = premiums[month - 1]
 
@@ -1568,7 +1699,7 @@ class GeminiService:
         temperature: float = 0.7,
     ) -> str:
         """Generate response with pro → flash fallback"""
-        if not self.api_key or self.api_key == "YOUR_GEMINI_API_KEY_HERE":
+        if not _is_valid_gemini_key(self.api_key):
             return self._rule_based_response(user_query or prompt)
 
         for model in [GEMINI_MODEL, GEMINI_FLASH]:
@@ -1592,31 +1723,97 @@ class GeminiService:
         temperature: float = 0.7,
     ) -> Optional[str]:
         url = f"{self.BASE_URL}/models/{model}:generateContent?key={self.api_key}"
-        contents = []
-        if system_prompt:
-            contents.append({"role": "user", "parts": [{"text": system_prompt}]})
-            contents.append({"role": "model", "parts": [{"text": "समझ गया। मैं KrishiMitra AI हूँ, भारतीय किसानों का डिजिटल सहायक।"}]})
-        contents.append({"role": "user", "parts": [{"text": prompt}]})
+
+        # Truncate prompt to avoid token-limit rejections (~30k char ≈ ~7k tokens)
+        _MAX_PROMPT_CHARS = 30_000
+        if len(prompt) > _MAX_PROMPT_CHARS:
+            logger.warning(
+                "Gemini prompt truncated from %d to %d chars", len(prompt), _MAX_PROMPT_CHARS
+            )
+            prompt = prompt[:_MAX_PROMPT_CHARS]
 
         payload = {
-            "contents": contents,
+            "contents": [
+                {"role": "user", "parts": [{"text": prompt}]}
+            ],
             "generationConfig": {
                 "maxOutputTokens": max_tokens,
                 "temperature": temperature,
                 "topP": 0.9,
             },
             "safetySettings": [
-                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-            ]
+                {"category": "HARM_CATEGORY_HARASSMENT",    "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH",   "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+            ],
         }
+
+        # Use the proper systemInstruction field (Gemini v1beta) instead of
+        # injecting system context as fake conversation turns, which wastes
+        # tokens and can confuse non-Hindi queries.
+        if system_prompt:
+            payload["systemInstruction"] = {
+                "parts": [{"text": system_prompt}]
+            }
 
         resp = self.session.post(url, json=payload, timeout=30)
         if resp.status_code == 200:
             data = resp.json()
+
+            # Check if the prompt itself was blocked before any candidates were generated
+            prompt_feedback = data.get("promptFeedback", {})
+            block_reason = prompt_feedback.get("blockReason")
+            if block_reason:
+                logger.warning(
+                    "Gemini %s blocked prompt — blockReason: %s", model, block_reason
+                )
+                return None
+
             candidates = data.get("candidates", [])
-            if candidates:
-                return candidates[0]["content"]["parts"][0]["text"]
+            if not candidates:
+                logger.warning("Gemini %s returned 200 but no candidates", model)
+                return None
+
+            candidate = candidates[0]
+
+            # Respect finishReason — STOP and MAX_TOKENS are the only valid ones
+            finish_reason = candidate.get("finishReason", "STOP")
+            if finish_reason not in ("STOP", "MAX_TOKENS", ""):
+                logger.warning(
+                    "Gemini %s finishReason=%s — treating as empty", model, finish_reason
+                )
+                return None
+
+            # Safe deep-access to content → parts → text
+            content = candidate.get("content")
+            if not content:
+                logger.warning(
+                    "Gemini %s candidate has no 'content' (likely safety block)", model
+                )
+                return None
+
+            parts = content.get("parts", [])
+            if not parts:
+                logger.warning("Gemini %s content has empty parts list", model)
+                return None
+
+            text = parts[0].get("text", "")
+            if not text or not text.strip():
+                logger.warning("Gemini %s returned blank text", model)
+                return None
+
+            return text.strip()
+
+        elif resp.status_code in (429, 503):
+            logger.warning("Gemini %s rate-limited/unavailable: %s", model, resp.status_code)
+        elif resp.status_code == 400:
+            # 400 can mean invalid API key format or bad request payload
+            logger.error(
+                "Gemini %s 400 Bad Request: %.300s", model, resp.text
+            )
+        else:
+            logger.error("Gemini %s error %s: %.200s", model, resp.status_code, resp.text)
         return None
 
     def _rule_based_response(self, prompt: str) -> str:

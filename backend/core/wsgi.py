@@ -8,6 +8,16 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 """
 
 import os
+from pathlib import Path
+
+# Load .env from repo root BEFORE Django settings are read.
+# Gunicorn starts the app via this file, so env vars must be loaded here.
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).resolve().parent.parent.parent / '.env'
+    load_dotenv(env_path, override=False)
+except ImportError:
+    pass  # python-dotenv not installed — rely on shell environment
 
 from django.core.wsgi import get_wsgi_application
 

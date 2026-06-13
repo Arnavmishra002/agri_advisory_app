@@ -21,7 +21,34 @@ class Crop(models.Model):
     min_rainfall_mm_per_month = models.FloatField()
     max_rainfall_mm_per_month = models.FloatField()
     duration_days = models.IntegerField(help_text="Approximate duration of crop cycle in days")
-    # Add more fields as needed, e.g., water requirements, sunlight, etc.
+    
+    # MSP 2024-25 (₹/quintal, 0 = no MSP for this crop)
+    msp_per_quintal = models.PositiveIntegerField(
+        default=0,
+        help_text="Minimum Support Price ₹/quintal (0 = no government MSP). "
+                  "Update annually after CACP Cabinet approval.",
+    )
+    # Season for quick filtering
+    season = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="rabi | kharif | zaid | year_round",
+    )
+    # Hindi name for multilingual UI
+    name_hindi = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Crop name in Hindi script",
+    )
+    # MSP year label so we know which announcement is in the DB
+    msp_season = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        help_text="Season the MSP applies to e.g. '2024-25'",
+    )
 
     def __str__(self):
         return self.name
@@ -161,13 +188,13 @@ class ChatHistory(models.Model):
     message_content = models.TextField(help_text="The actual message content")
     
     # Language and processing info
-    detected_language = models.CharField(max_length=10, help_text="Detected language")
-    response_language = models.CharField(max_length=10, help_text="Response language")
+    detected_language = models.CharField(max_length=10, default="", blank=True, help_text="Detected language")
+    response_language = models.CharField(max_length=10, default="", blank=True, help_text="Response language")
     
     # Response metadata
     confidence_score = models.FloatField(null=True, blank=True, help_text="Confidence score of response")
-    response_source = models.CharField(max_length=50, help_text="Source of response (advanced_chatbot, fallback, etc.)")
-    response_type = models.CharField(max_length=50, help_text="Type of response (greeting, agricultural, etc.)")
+    response_source = models.CharField(max_length=50, default="", blank=True, help_text="Source of response (advanced_chatbot, fallback, etc.)")
+    response_type = models.CharField(max_length=50, default="", blank=True, help_text="Type of response (greeting, agricultural, etc.)")
     
     # Context information
     has_location = models.BooleanField(default=False, help_text="Whether location was detected")
@@ -351,3 +378,102 @@ class ExpertVerification(models.Model):
 
     def __str__(self):
         return f"Verification for {self.diagnostic_session.session_id}"
+
+
+class FarmerProfile(models.Model):
+    """
+    Persistent farmer profile — turns the chatbot into a personal advisor.
+    Keyed by phone_number (WhatsApp/SMS identifier) or session_id.
+
+    With this data the AI can say:
+      "Last Rabi you grew wheat and had aphid issues. This year with soil
+       pH 6.8 and current rainfall forecast, mustard is a 15% better choice."
+    """
+    # Identity — one of these must be set
+    phone_number  = models.CharField(
+        max_length=20, blank=True, db_index=True,
+        help_text="WhatsApp/SMS number in E.164 format e.g. +919876543210",
+    )
+    session_id    = models.CharField(
+        max_length=100, blank=True, db_index=True,
+        help_text="Web/app session ID for non-WhatsApp users",
+    )
+
+    # Location
+    location_name = models.CharField(max_length=200, blank=True)
+    state         = models.CharField(max_length=100, blank=True)
+    district      = models.CharField(max_length=100, blank=True)
+    latitude      = models.FloatField(null=True, blank=True)
+    longitude     = models.FloatField(null=True, blank=True)
+
+    # Farm details
+    farm_size_bigha   = models.FloatField(null=True, blank=True, help_text="Farm size in bigha")
+    farm_size_hectare = models.FloatField(null=True, blank=True, help_text="Farm size in hectare (1 bigha ≈ 0.2 ha)")
+    irrigation_type   = models.CharField(
+        max_length=30, blank=True,
+        help_text="drip | sprinkler | flood | rainfed",
+    )
+    soil_type         = models.CharField(max_length=50, blank=True, help_text="loamy | clay | sandy | black | red")
+    soil_ph           = models.FloatField(null=True, blank=True)
+
+    # Crop history — last 3 seasons (JSON list of {season, crop, issue})
+    crop_history      = models.JSONField(
+        default=list,
+        help_text='e.g. [{"season":"Rabi 2023-24","crop":"wheat","issue":"aphid"}]',
+    )
+    current_crop      = models.CharField(max_length=100, blank=True)
+    current_season    = models.CharField(max_length=20, blank=True, help_text="Kharif 2025 | Rabi 2025-26")
+
+    # Government enrollments
+    has_pm_kisan    = models.BooleanField(default=False)
+    has_kcc         = models.BooleanField(default=False)
+    has_pmfby       = models.BooleanField(default=False)
+    pm_kisan_status = models.CharField(max_length=20, blank=True, help_text="active | pending | none")
+
+    # Preferences
+    preferred_language = models.CharField(max_length=10, default="hi")
+    whatsapp_opt_in    = models.BooleanField(default=True)
+
+    # Metadata
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+    last_seen_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "farmer_profiles"
+        indexes  = [
+            models.Index(fields=["phone_number"]),
+            models.Index(fields=["session_id"]),
+            models.Index(fields=["state", "district"]),
+        ]
+
+    def __str__(self):
+        return f"Farmer {self.phone_number or self.session_id} — {self.location_name or 'unknown'}"
+
+    def crop_history_summary(self) -> str:
+        """Return a compact string for injection into the AI prompt."""
+        if not self.crop_history:
+            return "No crop history recorded."
+        parts = []
+        for entry in self.crop_history[-3:]:
+            season = entry.get("season", "?")
+            crop   = entry.get("crop",   "?")
+            issue  = entry.get("issue",  "")
+            parts.append(f"{season}: {crop}" + (f" (issue: {issue})" if issue else ""))
+        return " | ".join(parts)
+
+    def to_context_dict(self) -> dict:
+        """Return a dict suitable for injecting into the AI prompt context."""
+        return {
+            "location":        self.location_name or self.district or self.state,
+            "state":           self.state,
+            "farm_size_bigha": self.farm_size_bigha,
+            "current_crop":    self.current_crop,
+            "current_season":  self.current_season,
+            "soil_ph":         self.soil_ph,
+            "irrigation_type": self.irrigation_type,
+            "crop_history":    self.crop_history_summary(),
+            "has_pm_kisan":    self.has_pm_kisan,
+            "has_kcc":         self.has_kcc,
+            "language":        self.preferred_language,
+        }

@@ -1,0 +1,93 @@
+ICAR Package of Practices — Soybean (Glycine max)
+Source: ICAR-Indian Institute of Soybean Research (IISR), Indore
+Season: Kharif (June–October). Major states: MP, Maharashtra, Rajasthan, Karnataka.
+
+VARIETIES
+JS-335: Most popular. 90–95 days. High yield, good seed quality.
+JS-9305: Resistant to Yellow Mosaic Virus (YMV). 90 days.
+NRC-37: Early maturing 85 days. Good for late sowing.
+MACS-450: Suitable for Vidarbha and Marathwada.
+Phule Kalyani: Maharashtra specific. Disease resistant.
+
+SOWING
+Optimal: June 20 – July 10 (wait for good monsoon). Sowing in dry soil = poor germination.
+Spacing: 45×5 cm (row×plant) for short-duration; 45×10 cm for long-duration.
+Seed rate: 70–80 kg/ha.
+Seed treatment: Rhizobium inoculant + PSB @ 5g/kg seed. Saves 25–30 kg N/ha.
+Also treat with Thiram 75WP @ 3g/kg for fungal diseases.
+Inoculant and fungicide must be applied separately — never mix Thiram with Rhizobium.
+
+SOIL
+Black cotton soil or loamy soil, pH 6.0–7.5.
+Good drainage essential — soybean is very sensitive to waterlogging.
+
+FERTILIZER
+Soybean fixes its own N through Rhizobium — only starter dose needed.
+Dose: N:P:K = 20:80:40 kg/ha.
+Full dose as basal.
+Rhizobium inoculation can replace N fertilizer entirely if soil is inoculated.
+Sulphur: 20 kg/ha as gypsum improves protein and oil content.
+Micronutrients: Boron 1 kg/ha and Molybdenum 0.5 kg/ha if deficient.
+
+IRRIGATION
+Soybean is largely rainfed in India.
+Critical stages needing irrigation: Flowering (R1), Pod filling (R5).
+Light irrigation of 25–30 mm at these stages if rainfall gap > 15 days.
+
+MAJOR PESTS
+
+Girdle Beetle (Oberea brevis):
+Most serious pest of soybean in India.
+Damage: Female girdles stem, lays egg. Upper portion wilts and breaks.
+Economic threshold: 2–5 eggs/girdled stems per plant.
+Control: Chlorpyrifos 20EC @ 2.5 L/ha. Collect and destroy fallen plant parts.
+
+Stem Fly (Melanagromyza sojae):
+Damage: Maggots tunnel inside stem. Plant wilts suddenly at 3–4 weeks.
+Control: Dimethoate 30EC @ 1 L/ha or Thiamethoxam 25WG @ 100g/ha at 15 and 30 DAS.
+
+Tobacco Caterpillar (Spodoptera litura):
+Defoliator — serious in August-September.
+Control: Chlorpyrifos 20EC @ 2.5 L/ha OR Bt @ 2 kg/ha (early infestation only).
+Pheromone traps: 10/ha.
+
+Whitefly (Bemisia tabaci) — YMV vector:
+Control whitefly to prevent Yellow Mosaic Virus.
+Imidacloprid 70WG @ 35g/ha.
+
+DISEASES
+
+Yellow Mosaic Virus (YMV):
+Most damaging disease. Transmitted by whitefly.
+Symptoms: Bright yellow patches on leaves, stunted plant.
+No cure. Remove infected plants immediately. Control whitefly.
+Preventive: Use resistant varieties JS-9305.
+
+Bacterial Pustule:
+Brown-red pustules on underside of leaves.
+Control: Copper oxychloride 50WP @ 3g/L.
+
+Charcoal Rot / Stem Canker:
+Late season. Affects yield.
+Control: Proper drainage, crop rotation.
+
+Pod Borer (Maruca vitrata):
+Damages pods in August–September.
+Control: Chlorpyrifos 20EC @ 2.5 L/ha at pod formation.
+
+WEED MANAGEMENT
+Imazethapyr 10SL @ 1 L/ha at 15–20 DAS (post-emergence).
+Pendimethalin 30EC @ 3 L/ha pre-emergence (within 3 days of sowing).
+One hand weeding at 30 DAS.
+
+HARVESTING
+Harvest when 80–90% pods turn brown-yellow.
+Moisture: 12–15% for storage.
+Avoid delay — pods shatter and cause losses.
+
+YIELD
+Rainfed: 15–25 quintals/ha
+Irrigated: 25–35 quintals/ha
+
+MSP 2024-25: Rs. 4,892 per quintal
+Oil content: 18–22%. Protein content: 38–42%.
