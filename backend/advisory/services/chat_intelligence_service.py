@@ -16,6 +16,7 @@ Features:
 
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import re
@@ -46,6 +47,13 @@ from .unified_realtime_service import (
 )
 
 logger = logging.getLogger(__name__)
+
+# FIX 4: Module-level pool — created once, reused for all requests.
+# Per-request ThreadPoolExecutor spawned 3 threads per chat call; at 100
+# concurrent users that’s 300 threads being created+destroyed simultaneously,
+# risking OOM and OS ulimit breaches.
+_DATA_FETCH_POOL = ThreadPoolExecutor(max_workers=6, thread_name_prefix="km-fetch")
+atexit.register(_DATA_FETCH_POOL.shutdown, wait=False)
 
 # ── Module-level Hindi→English term map (used by _qwen_rag_answer) ───────────
 # Built once at import time instead of on every request.
@@ -478,46 +486,43 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 ctx.display_name,
             )
         else:
-            with ThreadPoolExecutor(max_workers=3) as pool:
-                futures = {
-                    pool.submit(_fetch_weather): "weather",
-                    pool.submit(_fetch_prices):  "prices",
-                    pool.submit(_fetch_iot):     "iot",
-                }
-                # Bug 1 fix: as_completed raises FuturesTimeout when the 6s window
-                # expires before all futures complete. Catch it and collect whatever
-                # results arrived; leave the rest as default empty values.
-                try:
-                    for fut in as_completed(futures, timeout=6):
-                        key = futures[fut]
+            # FIX 4: use the module-level pool (no thread create/destroy overhead)
+            futures = {
+                _DATA_FETCH_POOL.submit(_fetch_weather): "weather",
+                _DATA_FETCH_POOL.submit(_fetch_prices):  "prices",
+                _DATA_FETCH_POOL.submit(_fetch_iot):     "iot",
+            }
+            try:
+                for fut in as_completed(futures, timeout=6):
+                    key = futures[fut]
+                    try:
+                        result = fut.result()
+                        if key == "weather":
+                            weather_data = result or {}
+                        elif key == "prices":
+                            prices_data = result or {}
+                        elif key == "iot":
+                            sc = result
+                    except Exception as exc:
+                        logger.warning("Fetch failed for %s: %s", key, exc)
+            except FuturesTimeout:
+                # Collect any already-completed futures before the timeout hit
+                for fut, key in futures.items():
+                    if fut.done():
                         try:
                             result = fut.result()
-                            if key == "weather":
+                            if key == "weather" and not weather_data:
                                 weather_data = result or {}
-                            elif key == "prices":
+                            elif key == "prices" and not prices_data:
                                 prices_data = result or {}
-                            elif key == "iot":
+                            elif key == "iot" and sc.source == "none":
                                 sc = result
-                        except Exception as exc:
-                            logger.warning("Fetch failed for %s: %s", key, exc)
-                except FuturesTimeout:
-                    # Collect any already-completed futures before the timeout hit
-                    for fut, key in futures.items():
-                        if fut.done():
-                            try:
-                                result = fut.result()
-                                if key == "weather" and not weather_data:
-                                    weather_data = result or {}
-                                elif key == "prices" and not prices_data:
-                                    prices_data = result or {}
-                                elif key == "iot" and sc.source == "none":
-                                    sc = result
-                            except Exception:
-                                pass
-                    logger.warning(
-                        "Concurrent fetch timed out after 6s for %s — using partial data",
-                        ctx.display_name,
-                    )
+                        except Exception:
+                            pass
+                logger.warning(
+                    "Concurrent fetch timed out after 6s for %s — using partial data",
+                    ctx.display_name,
+                )
 
         # Merge ambient readings from weather into sensor context
         cur = weather_data.get("current") or {}

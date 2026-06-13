@@ -12,7 +12,7 @@ import base64
 import json
 import logging
 import os
-from functools import lru_cache
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -174,9 +174,24 @@ class CropDiseasePredictor:
         return self.predict(raw, **kwargs)
 
 
-@lru_cache(maxsize=1)
+# FIX 5: Thread-safe singleton using double-checked locking.
+# lru_cache is NOT thread-safe on the FIRST call — two threads can both see a
+# cache miss and construct CropDiseasePredictor() simultaneously, causing TF to
+# load the model twice: 2× GPU/RAM usage, potential CUDA deadlock, OOM kill.
+_PREDICTOR_LOCK: threading.Lock = threading.Lock()
+_predictor_instance: Optional[CropDiseasePredictor] = None
+
+
 def get_predictor() -> CropDiseasePredictor:
-    return CropDiseasePredictor()
+    """Return a singleton CropDiseasePredictor, initialised exactly once
+    even under concurrent first-request load (double-checked locking)."""
+    global _predictor_instance
+    if _predictor_instance is not None:   # fast path — no lock after first load
+        return _predictor_instance
+    with _PREDICTOR_LOCK:
+        if _predictor_instance is None:   # re-check inside lock
+            _predictor_instance = CropDiseasePredictor()
+    return _predictor_instance
 
 
 def main():

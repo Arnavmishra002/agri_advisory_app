@@ -104,14 +104,10 @@ class SessionMemoryService:
         """
         try:
             from ..models import ChatHistory, ChatSession
-            now = datetime.now()
+            from django.db import transaction  # FIX 3a
 
-            # Save user message
-            ChatHistory.objects.create(
-                user_id=user_id,         # actual farmer identifier (phone / anonymous / session)
+            common_fields = dict(
                 session_id=session_id,
-                message_type="user",
-                message_content=user_query,
                 detected_language=language,
                 response_language=language,
                 response_source=data_source or "",
@@ -121,41 +117,42 @@ class SessionMemoryService:
                 longitude=longitude,
             )
 
-            # Save assistant response
-            ChatHistory.objects.create(
-                user_id=user_id,         # same actual farmer identifier
-                session_id=session_id,
-                message_type="assistant",
-                message_content=ai_response,
-                detected_language=language,
-                response_language=language,
-                response_source=data_source or "",
-                response_type=intent or "",   # ← allows follow-up intent resolution
-                has_location=bool(latitude and longitude),
-                latitude=latitude,
-                longitude=longitude,
-            )
-
-            # Update or create session record
-            ChatSession.objects.update_or_create(
-                session_id=session_id,
-                defaults={
-                    "preferred_language":  language,
-                    "latitude":            latitude,
-                    "longitude":           longitude,
-                    "is_active":           True,
-                },
-            )
-
-            # Trim old history beyond MAX_HISTORY_TURNS to keep DB lean
-            old_ids = list(
-                ChatHistory.objects
-                .filter(session_id=session_id)
-                .order_by("-created_at")
-                .values_list("id", flat=True)[MAX_HISTORY_TURNS:]
-            )
-            if old_ids:
-                ChatHistory.objects.filter(id__in=old_ids).delete()
+            # FIX 3b: all four DB ops in one atomic block so concurrent Meta
+            # webhook retries can't race on insertion + deletion.
+            with transaction.atomic():
+                ChatHistory.objects.create(
+                    user_id=user_id,
+                    message_type="user",
+                    message_content=user_query,
+                    **common_fields,
+                )
+                ChatHistory.objects.create(
+                    user_id=user_id,
+                    message_type="assistant",
+                    message_content=ai_response,
+                    **common_fields,
+                )
+                # FIX 3c: pass real user_id (not session_id) to ChatSession
+                ChatSession.objects.update_or_create(
+                    session_id=session_id,
+                    defaults={
+                        "user_id":           user_id,
+                        "preferred_language": language,
+                        "latitude":           latitude,
+                        "longitude":          longitude,
+                        "is_active":          True,
+                    },
+                )
+                # FIX 3d: trim inside the same transaction — concurrent
+                # threads can’t race on deletion this way.
+                old_ids = list(
+                    ChatHistory.objects
+                    .filter(session_id=session_id)
+                    .order_by("-created_at")
+                    .values_list("id", flat=True)[MAX_HISTORY_TURNS:]
+                )
+                if old_ids:
+                    ChatHistory.objects.filter(id__in=old_ids).delete()
 
         except Exception as exc:
             logger.warning("SessionMemory.save_turn failed (non-fatal): %s", exc)
@@ -164,6 +161,8 @@ class SessionMemoryService:
         self,
         session_id: str,
         context: Dict[str, Any],
+        user_id: Optional[str] = None,  # FIX 3e: explicit user_id so ChatSession
+                                         #         is never seeded with session_id
     ) -> None:
         """
         Merge `context` dict into ChatSession.conversation_context.
@@ -173,7 +172,7 @@ class SessionMemoryService:
             from ..models import ChatSession
             sess, _ = ChatSession.objects.get_or_create(
                 session_id=session_id,
-                defaults={"user_id": session_id},
+                defaults={"user_id": user_id or session_id},
             )
             existing = sess.conversation_context or {}
             existing.update(context)

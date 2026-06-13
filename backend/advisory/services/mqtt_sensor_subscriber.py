@@ -224,7 +224,7 @@ class MQTTSensorSubscriber:
         self._thread: Optional[threading.Thread] = None
         self._flusher_thread: Optional[threading.Thread] = None
         self._connected       = False
-        self._reconnect_delay = 5   # seconds
+        self._reconnect_delay = 5   # seconds — base for exponential backoff
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -285,14 +285,24 @@ class MQTTSensorSubscriber:
     # ── Internal ──────────────────────────────────────────────────────────────
 
     def _run_loop(self, mqtt_lib) -> None:
-        """Main loop with auto-reconnect."""
+        """Main loop with auto-reconnect using exponential backoff + jitter."""
+        import random
+        _MQTT_MAX_DELAY = 60  # seconds cap
+        delay = self._reconnect_delay
         while self._running:
             try:
                 self._connect(mqtt_lib)
                 self._client.loop_forever()
+                # loop_forever() returns only on disconnect() — reset backoff
+                delay = self._reconnect_delay
             except Exception as exc:
-                logger.error("MQTT loop error: %s — reconnecting in %ds", exc, self._reconnect_delay)
-                time.sleep(self._reconnect_delay)
+                logger.error(
+                    "MQTT loop error: %s — reconnecting in %.1fs", exc, delay
+                )
+                time.sleep(delay)
+                # Exponential backoff with ±20% jitter, capped at 60 s
+                delay = min(_MQTT_MAX_DELAY, delay * 2)
+                delay = delay * (0.8 + 0.4 * random.random())
 
     def _periodic_flush_worker(self) -> None:
         """Checks every second if the buffer flush timer has expired."""

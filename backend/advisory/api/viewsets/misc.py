@@ -23,6 +23,7 @@ For Twilio SMS (alternative):
 
 import hashlib
 import hmac
+import html
 import io
 import json
 import logging
@@ -93,14 +94,16 @@ class SMSIVRViewSet(viewsets.ViewSet):
         try:
             # Optional signature verification
             if WHATSAPP_APP_SECRET:
-                sig = request.headers.get("X-Hub-Signature-256", "")
+                # FIX 2a: guard against None header (some load balancers omit it)
+                sig = request.headers.get("X-Hub-Signature-256") or ""
                 expected = "sha256=" + hmac.new(
                     WHATSAPP_APP_SECRET.encode(),
                     request.body,
                     hashlib.sha256,
                 ).hexdigest()
-                if not hmac.compare_digest(sig, expected):
-                    logger.warning("WhatsApp webhook signature mismatch")
+                # FIX 2b: zero-byte body = Meta health-check ping → accept silently
+                if request.body and not hmac.compare_digest(sig, expected):
+                    logger.warning("WhatsApp webhook signature mismatch — rejecting")
                     return Response({"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
 
             body = request.data
@@ -383,11 +386,14 @@ class SMSIVRViewSet(viewsets.ViewSet):
         language = self._get_or_create_profile_language(from_number)
         reply    = self._get_ai_reply(body, from_number, language)
 
-        # Twilio TwiML response
-        twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Message>{reply[:1600]}</Message>
-</Response>"""
+        # FIX 1: escape reply before XML injection — bare & breaks TwiML parser
+        safe_reply = html.escape(reply[:1600])
+        twiml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            "<Response>"
+            f"<Message>{safe_reply}</Message>"
+            "</Response>"
+        )
         from django.http import HttpResponse
         return HttpResponse(twiml, content_type="text/xml")
 
@@ -471,19 +477,26 @@ class SMSIVRViewSet(viewsets.ViewSet):
         locale = twilio_locale_map.get(lang_code, "hi-IN")
         
         if not speech_result:
-            twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say language="{locale}">माफ़ करें, हम आपकी आवाज़ नहीं सुन पाए। कृपया दोबारा कोशिश करें।</Say>
-</Response>"""
+            twiml = (
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                "<Response>"
+                f'<Say language="{locale}">माफ़ करें, हम आपकी आवाज़ नहीं सुन पाए। कृपया दोबारा कोशिश करें।</Say>'
+                "</Response>"
+            )
             return HttpResponse(twiml, content_type="text/xml")
-            
+
         reply = self._get_ai_reply(speech_result, from_number, lang_code)
-        
-        twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say language="{locale}">{reply[:800]}</Say>
-    <Say language="{locale}">कृषिमित्रा एआई सहायता केंद्र में कॉल करने के लिए धन्यवाद।</Say>
-</Response>"""
+
+        # FIX 1: escape AI reply & static strings before injecting into XML
+        safe_reply     = html.escape(reply[:800])
+        safe_thank_you = html.escape("कृषिमित्रा एआई सहायता केंद्र में कॉल करने के लिए धन्यवाद।")
+        twiml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            "<Response>"
+            f'<Say language="{locale}">{safe_reply}</Say>'
+            f'<Say language="{locale}">{safe_thank_you}</Say>'
+            "</Response>"
+        )
         return HttpResponse(twiml, content_type="text/xml")
 
 

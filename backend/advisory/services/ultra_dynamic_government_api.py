@@ -128,6 +128,56 @@ class UltraDynamicGovernmentAPI:
         # Performance tracking
         self.response_times = {}
         self.success_rates = {}
+
+        # Common Indian city coordinates fallback (used when geopy is unavailable)
+        self._city_coords = {
+            'delhi': (28.6139, 77.2090), 'mumbai': (19.0760, 72.8777),
+            'kolkata': (22.5726, 88.3639), 'chennai': (13.0827, 80.2707),
+            'bangalore': (12.9716, 77.5946), 'bengaluru': (12.9716, 77.5946),
+            'hyderabad': (17.3850, 78.4867), 'pune': (18.5204, 73.8567),
+            'ahmedabad': (23.0225, 72.5714), 'jaipur': (26.9124, 75.7873),
+            'lucknow': (26.8467, 80.9462), 'kanpur': (26.4499, 80.3319),
+            'nagpur': (21.1458, 79.0882), 'patna': (25.5941, 85.1376),
+            'bhopal': (23.2599, 77.4126), 'indore': (22.7196, 75.8577),
+            'chandigarh': (30.7333, 76.7794), 'amritsar': (31.6340, 74.8723),
+            'ludhiana': (30.9010, 75.8573), 'agra': (27.1767, 78.0081),
+            'varanasi': (25.3176, 82.9739), 'allahabad': (25.4358, 81.8463),
+            'prayagraj': (25.4358, 81.8463), 'nashik': (19.9975, 73.7898),
+            'aurangabad': (19.8762, 75.3433), 'surat': (21.1702, 72.8311),
+            'coimbatore': (11.0168, 76.9558), 'madurai': (9.9252, 78.1198),
+        }
+
+    def _get_location_coordinates(self, location: str) -> Optional[Dict[str, float]]:
+        """Geocode a location name to lat/lon coordinates.
+
+        Priority:
+        1. Exact match in built-in city lookup table (fast, no network).
+        2. geopy Nominatim reverse-geocode (network, 1 s timeout).
+        Returns None on failure so callers can gracefully fall back.
+        """
+        if not location:
+            return None
+
+        key = location.strip().lower().split(',')[0].strip()
+
+        # 1. Built-in lookup (zero network cost)
+        if key in self._city_coords:
+            lat, lon = self._city_coords[key]
+            return {'lat': lat, 'lon': lon}
+
+        # 2. geopy Nominatim
+        try:
+            from geopy.geocoders import Nominatim
+            from geopy.exc import GeocoderTimedOut, GeocoderServiceError
+            geolocator = Nominatim(user_agent="krishimitra-api/2.1", timeout=2)
+            result = geolocator.geocode(f"{location}, India")
+            if result:
+                return {'lat': result.latitude, 'lon': result.longitude}
+        except Exception as exc:  # network failure, import error, etc.
+            logger.debug("Geocoding failed for %s: %s", location, exc)
+
+        return None
+
         
     def get_market_prices(self, location: str, latitude: float = None, longitude: float = None, language: str = 'hi', mandi: str = None) -> Dict[str, Any]:
         """Get real-time market prices with fallback"""
