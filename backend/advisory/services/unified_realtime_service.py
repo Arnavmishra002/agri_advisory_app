@@ -616,15 +616,6 @@ class MarketPricesService:
     """Real-time mandi prices: Agmarknet 2.0 API → data.gov.in → MSP estimate (labeled)."""
 
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            ),
-            "Accept": "application/json",
-            "Referer": "https://www.data.gov.in/",
-        })
         # BUG 4 FIX: bounded FIFO cache — prevents unbounded RAM growth in
         # long-running Gunicorn workers (every unique lat/lon/crop key was
         # kept forever; 5k farmers × 3k responses ≈ 15 MB+ leak per worker).
