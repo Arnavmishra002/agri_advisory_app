@@ -471,7 +471,10 @@
             _showGpsPulse(true);
             updateAccuracyBadge(accuracy);
 
-            if (locationDisplay && accuracy > 15) {
+            const isFirstFix = _lastReloadLat === null;
+
+            // Only display the temporary GPS lock status on first load before we have resolved a city name
+            if (locationDisplay && isFirstFix && accuracy > 15) {
                 locationDisplay.textContent = `GPS lock… ±${Math.round(accuracy)}m`;
             }
 
@@ -480,19 +483,19 @@
                 _bestAccuracy = accuracy;
             }
 
-            // ── Reverse geocode only when accuracy is useful (≤50m) ──────
-            if (accuracy > 50) return; // wait for better fix
+            // ── Reverse geocode only when accuracy is useful (≤1000m) or if first fix ──────
+            if (accuracy > 1000 && !isFirstFix) return; // wait for better fix
 
-            // ── Smart reload: only if moved ≥ GPS_RELOAD_THRESHOLD_M ────
+            // ── Smart reload: only if moved ≥ GPS_RELOAD_THRESHOLD_M or accuracy improved ────
             const prevLat = _lastReloadLat ?? currentLatitude;
             const prevLon = _lastReloadLon ?? currentLongitude;
             const distMoved = _haversineM(prevLat, prevLon, lat, lon);
 
-            const isFirstFix = _lastReloadLat === null;
             const movedEnough = distMoved >= GPS_RELOAD_THRESHOLD_M;
+            const accuracyImprovedSignificantly = (currentLocationAccuracy === null || currentLocationAccuracy > 50) && accuracy <= 15;
 
-            if (!isFirstFix && !movedEnough) {
-                // Just update accuracy badge — no full reload needed
+            if (!isFirstFix && !movedEnough && !accuracyImprovedSignificantly) {
+                // Just update coordinates and accuracy badge — no full reload/geocode needed
                 currentLatitude = lat;
                 currentLongitude = lon;
                 currentLocationAccuracy = accuracy;
