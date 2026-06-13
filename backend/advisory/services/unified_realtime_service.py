@@ -14,6 +14,7 @@ Fixed bugs:
 import os
 import json
 import logging
+import threading
 import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
@@ -624,9 +625,34 @@ class MarketPricesService:
             "Accept": "application/json",
             "Referer": "https://www.data.gov.in/",
         })
-        self._cache: Dict[str, Any] = {}
+        # BUG 4 FIX: bounded FIFO cache — prevents unbounded RAM growth in
+        # long-running Gunicorn workers (every unique lat/lon/crop key was
+        # kept forever; 5k farmers × 3k responses ≈ 15 MB+ leak per worker).
+        from collections import OrderedDict
+        self._MAX_CACHE_ENTRIES = 200
+        self._cache: OrderedDict = OrderedDict()
         self._cache_ts: Dict[str, datetime] = {}
-        self.CACHE_TTL = 180  # 3 min — mandi arrivals update every ~15 min, but we refresh more often
+        self.CACHE_TTL = 180  # 3 min — mandi arrivals update every ~15 min
+        # BUG 5 FIX: use per-thread session to prevent urllib3 connection pool
+        # corruption when the module-level ThreadPoolExecutor calls get_prices()
+        # concurrently from multiple threads sharing the same Session object.
+        self._local = threading.local()
+
+    @property
+    def session(self) -> requests.Session:
+        """Per-thread requests.Session — thread-safe, reuses connection pools within thread."""
+        if not hasattr(self._local, "session"):
+            s = requests.Session()
+            s.headers.update({
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "application/json",
+                "Referer": "https://www.data.gov.in/",
+            })
+            self._local.session = s
+        return self._local.session
 
     def get_prices(
         self,
@@ -732,7 +758,13 @@ class MarketPricesService:
 
         data = self._finalize_market_response(data)
 
+        # BUG 4 FIX: evict oldest entry when at capacity
+        if len(self._cache) >= self._MAX_CACHE_ENTRIES:
+            oldest = next(iter(self._cache))
+            self._cache.pop(oldest, None)
+            self._cache_ts.pop(oldest, None)
         self._cache[cache_key] = data
+        self._cache[cache_key]  # move to end (mark as recently used)
         self._cache_ts[cache_key] = datetime.now()
         return data
 
@@ -1688,7 +1720,15 @@ class GeminiService:
 
     def __init__(self):
         self.api_key = GOOGLE_AI_KEY
-        self.session = requests.Session()
+        # BUG 5 FIX: per-thread session — see MarketPricesService for rationale
+        self._local = threading.local()
+
+    @property
+    def session(self) -> requests.Session:
+        """Per-thread requests.Session — thread-safe connection pool reuse."""
+        if not hasattr(self._local, "session"):
+            self._local.session = requests.Session()
+        return self._local.session
 
     def generate(
         self,

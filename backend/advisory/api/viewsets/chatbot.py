@@ -10,8 +10,12 @@ v2.0 — Server-side farmer memory:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any
+
+from django.db.models import Q
+
+from ...models import FarmerProfile, IoTSensorReading
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +112,15 @@ class ChatbotViewSet(viewsets.ViewSet):
         elif session_id and clean_client:
             # Client sent some history — use DB for older turns, client for recent
             db_history   = session_memory.load_history(session_id, limit=10)
-            client_ids   = {m["content"] for m in clean_client}
-            base_history = [m for m in db_history if m["content"] not in client_ids]
+            client_fingerprints = {
+                (m.get("role", ""), (m.get("content") or "")[:80])
+                for m in clean_client
+            }
+            base_history = [
+                m for m in db_history
+                if (m.get("role", ""), (m.get("content") or "")[:80])
+                not in client_fingerprints
+            ]
             history      = (base_history + clean_client)[-10:]
         else:
             history = clean_client
@@ -121,13 +132,14 @@ class ChatbotViewSet(viewsets.ViewSet):
         farmer_ctx: dict = {}
         if session_id or request.data.get("phone"):
             try:
-                from ...models import FarmerProfile
-                from django.db.models import Q
                 phone  = request.data.get("phone", "")
                 q_filter = Q()
                 if phone:      q_filter |= Q(phone_number=phone)
                 if session_id: q_filter |= Q(session_id=session_id)
-                profile = FarmerProfile.objects.filter(q_filter).first() if q_filter else None
+                # BUG 3 FIX: Q() with no conditions is truthy in Django but
+                # .filter(Q()) returns ALL rows — returns wrong farmer's profile
+                # to anonymous users (DPDP data-privacy risk).  Explicit guard:
+                profile = FarmerProfile.objects.filter(q_filter).first() if (phone or session_id) else None
                 if profile:
                     farmer_ctx = profile.to_context_dict()
                     # Inject into session context so chatbot history carries it
@@ -136,17 +148,29 @@ class ChatbotViewSet(viewsets.ViewSet):
 
                     # Retrieve latest IoT sensor reading for context enrichment
                     try:
-                        from ...models import IoTSensorReading
+                        # IoTSensorReading imported at module top
                         iot_reading = None
                         if profile.session_id:
-                            iot_reading = IoTSensorReading.objects.filter(field_id=profile.session_id).first()
+                            iot_reading = IoTSensorReading.objects.filter(field_id=profile.session_id).order_by("-created_at").first()
                         if not iot_reading and profile.latitude and profile.longitude:
-                            iot_reading = IoTSensorReading.objects.filter(
-                                latitude__gte=profile.latitude - 0.001,
-                                latitude__lte=profile.latitude + 0.001,
-                                longitude__gte=profile.longitude - 0.001,
-                                longitude__lte=profile.longitude + 0.001,
-                            ).first()
+                            iot_reading = (
+                                IoTSensorReading.objects
+                                .filter(
+                                    latitude__gte=profile.latitude - 0.001,
+                                    latitude__lte=profile.latitude + 0.001,
+                                    longitude__gte=profile.longitude - 0.001,
+                                    longitude__lte=profile.longitude + 0.001,
+                                )
+                                # BUG 7 FIX: explicit ordering so .first() returns
+                                # the newest reading, not oldest insert by OID.
+                                .order_by("-created_at")
+                                .only(
+                                    "nitrogen_kg_ha", "phosphorus_kg_ha",
+                                    "potassium_kg_ha", "ph", "ec_ds_m",
+                                    "moisture_pct", "soil_temp_c", "organic_carbon",
+                                )
+                                .first()
+                            )
                         if iot_reading:
                             farmer_ctx["sensor_reading"] = {
                                 "nitrogen_kg_ha": iot_reading.nitrogen_kg_ha,
@@ -160,8 +184,8 @@ class ChatbotViewSet(viewsets.ViewSet):
                             }
                     except Exception as iot_exc:
                         logger.warning("Failed to fetch IoT sensor readings for chatbot context: %s", iot_exc)
-            except Exception:
-                pass
+            except Exception as profile_exc:
+                logger.warning("Failed to load farmer profile context: %s", profile_exc)
 
         # Language fallback: prefer request > session > default
         if language in ("auto", "") and session_ctx.get("language"):
@@ -185,7 +209,7 @@ class ChatbotViewSet(viewsets.ViewSet):
                 session_id=session_id,
                 user_id=str(user.id) if (user and user.is_authenticated) else "anonymous",
                 user_query=query,
-                ai_response=result["response"],
+                ai_response=result.get("response", ""),  # BUG FIX: .get() not [] to avoid KeyError
                 intent=result.get("intent", "general"),
                 language=result.get("language", language),
                 data_source=result.get("data_source", ""),
@@ -216,7 +240,7 @@ class ChatbotViewSet(viewsets.ViewSet):
             "crops_detected":  result.get("crops_detected", []),
             "crop_suggestions": result.get("crop_suggestions", []),
             "data_source":     result.get("data_source"),
-            "timestamp":       result.get("timestamp", datetime.now().isoformat()),
+            "timestamp":       result.get("timestamp", datetime.now(tz=timezone.utc).isoformat()),  # BUG FIX: timezone-aware
             "session_id":      session_id,   # echo back so client can store it
             "context": {
                 "intent":         result.get("intent"),

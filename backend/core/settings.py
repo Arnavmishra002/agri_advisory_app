@@ -141,7 +141,11 @@ import dj_database_url
 
 DATABASES = {
     'default': dj_database_url.parse(
-        os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3')
+        os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3'),
+        # PERF FIX: reuse DB connections for up to 10 minutes per Gunicorn worker.
+        # Without this, Django opens a new PostgreSQL connection for EVERY request,
+        # exhausting the pg connection pool under load.
+        conn_max_age=int(os.environ.get('DB_CONN_MAX_AGE', '600')),
     )
 }
 
@@ -281,8 +285,11 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,
-    'UPDATE_LAST_LOGIN': False,
+    # CRITICAL SECURITY FIX: BLACKLIST_AFTER_ROTATION=False with ROTATE_REFRESH_TOKENS=True
+    # means old tokens are NEVER invalidated — stolen tokens grant indefinite access.
+    # Requires 'rest_framework_simplejwt.token_blacklist' in INSTALLED_APPS (already present).
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,  # track last login for security audit
 
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,

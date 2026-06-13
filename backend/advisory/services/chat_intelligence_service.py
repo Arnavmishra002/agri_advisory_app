@@ -918,11 +918,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         top = [c for c in (prices.get("top_crops") or []) if c.get("is_live")]
         if crops:
             crop_ids = {c["id"] for c in crops}
-            matched = [
-                c for c in top
-                if crop_catalog.normalize(str(c.get("crop_name", "")))
-                and crop_catalog.normalize(str(c.get("crop_name", "")))["id"] in crop_ids
-            ]
+            # BUG 1 FIX: normalize() returns None for regional-language crop names
+            # (e.g. Agmarknet "गेहूँ"). Double call + subscript on None → TypeError.
+            # Single call + .get() is safe and avoids re-evaluating the catalog lookup.
+            matched = []
+            for c in top:
+                norm = crop_catalog.normalize(str(c.get("crop_name", "")))
+                if norm and norm.get("id") in crop_ids:
+                    matched.append(c)
             top = matched + [c for c in top if c not in matched]
 
         lines = []

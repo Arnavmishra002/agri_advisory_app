@@ -44,7 +44,13 @@ WATER_IRRIGATION_MIN = {
 
 def _current_season() -> str:
     m = datetime.now().month
-    if m in (6, 7, 8, 9, 10, 11):
+    # AGRONOMIC BUG FIX: Oct (10) and Nov (11) were in BOTH kharif and rabi sets.
+    # Kharif is checked first, so Oct/Nov incorrectly returned "kharif" even though
+    # this is the peak Rabi sowing window. Fix aligns with ICAR calendar:
+    #   Kharif: sown Jun-Jul, harvested Sep-Oct  → Jun-Sep (months 6-9)
+    #   Rabi:   sown Oct-Nov, harvested Mar-Apr  → Oct-Mar (months 10-12, 1-3)
+    #   Zaid:   Apr-May (months 4-5)
+    if m in (6, 7, 8, 9):
         return "kharif"
     if m in (10, 11, 12, 1, 2, 3):
         return "rabi"

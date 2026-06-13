@@ -209,6 +209,10 @@ class ChatHistory(models.Model):
         db_table = 'chat_history'
         ordering = ['session_id', 'created_at']
         indexes = [
+            # BUG 6 FIX: explicit single-column index so PostgreSQL can satisfy
+            # plain `WHERE session_id = ?` without needing ORDER BY created_at.
+            # Without this, load_history() causes full table scans at scale.
+            models.Index(fields=['session_id']),
             models.Index(fields=['user_id', 'session_id']),
             models.Index(fields=['session_id', 'created_at']),
             models.Index(fields=['user_id', 'created_at']),
