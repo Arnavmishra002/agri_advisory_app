@@ -27,7 +27,9 @@ function copyDirPlugin(src, dest) {
         } catch (e) {
           console.warn(`copyDirPlugin: could not copy ${from} → ${to}: ${e.message}`);
         }
-    }
+      }
+      copyDir(src, dest);
+    },
   };
 }
 
