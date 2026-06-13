@@ -69,7 +69,18 @@ else:
         '.onrender.com',
         '.railway.app',
         '.herokuapp.com',
+        '127.0.0.1',   # Render internal health-check probe
+        'localhost',
     ]
+
+# Render automatically sets RENDER_EXTERNAL_HOSTNAME (e.g. krishmitra-zrk4.onrender.com)
+# Add it explicitly so Django never returns 400 on a wildcard miss
+_render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
+if _render_host and _render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_render_host)
+
+# Trust the X-Forwarded-Host header from Render's proxy
+USE_X_FORWARDED_HOST = True
 
 if (
     not DEBUG
@@ -488,12 +499,16 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    # CRITICAL: Tell Django that Render's proxy sends HTTPS
-    # Without this, Django sees plain HTTP and may reject requests
+    X_FRAME_OPTIONS = 'SAMEORIGIN'   # DENY breaks admin iframe previews
+    # HSTS: start at 0 so first-deploy can be verified over HTTPS before locking in.
+    # Ramp up to 31536000 once the service is confirmed stable on HTTPS.
+    SECURE_HSTS_SECONDS = 0          # ← safe default; increase after confirming HTTPS works
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+    # CRITICAL: Tell Django that Render/Railway/Heroku proxy sends HTTPS.
+    # Render always forwards X-Forwarded-Proto: https for external requests.
+    # Without this header trust, Django's SecurityMiddleware sees plain HTTP
+    # internally and can incorrectly reject or redirect requests → 400.
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_HTTPONLY = True
     CSRF_COOKIE_HTTPONLY = True
