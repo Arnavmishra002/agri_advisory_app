@@ -89,7 +89,64 @@ jobs:
           from advisory.services.crop_recommendation_engine import crop_recommendation_engine
           from advisory.services.field_sensor_service import field_sensor_service
           from advisory.services.unified_realtime_service import weather_service, market_service
+          from advisory.services.disease_chat_bridge import disease_chat_bridge
+          from advisory.services.chat_intelligence_service import (
+              chat_intelligence_service,
+              INTENT_IRRIGATION, INTENT_SOWING, INTENT_HARVEST,
+              INTENT_FERTILIZER, INTENT_PEST_DISEASE, INTENT_SOIL,
+              INTENT_STORAGE, INTENT_ORGANIC, INTENT_SEED,
+              INTENT_INSURANCE, INTENT_PROFIT_CALC,
+          )
           print(f'✅ Languages: {len(SUPPORTED_LANGUAGES)}, Crops: {len(ALL_CROP_DATA)}, Districts: {len(DISTRICT_PROFILES)}')
+          print('✅ All services imported successfully')
+          "
+
+      - name: Chatbot intent classification smoke test
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 -c "
+          import sys, os
+          sys.path.insert(0,'backend')
+          os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
+                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DATABASE_URL':'sqlite:///ci.db'})
+          import django; django.setup()
+          from advisory.services.chat_intelligence_service import (
+              ChatIntelligenceService,
+              INTENT_IRRIGATION, INTENT_SOWING, INTENT_HARVEST,
+              INTENT_FERTILIZER, INTENT_PEST_DISEASE, INTENT_SOIL,
+              INTENT_STORAGE, INTENT_ORGANIC, INTENT_SEED,
+              INTENT_INSURANCE, INTENT_PROFIT_CALC, INTENT_WEATHER,
+              INTENT_MARKET_PRICE, INTENT_GOVERNMENT_SCHEME,
+              INTENT_CROP_RECOMMENDATION,
+          )
+          svc = ChatIntelligenceService()
+          tests = [
+              ('gehu me kitten din baad pani de',        INTENT_IRRIGATION),
+              ('wheat pili pad rahi hai',                INTENT_PEST_DISEASE),
+              ('gehu ki buwai kab karein',               INTENT_SOWING),
+              ('gehu ki katai kab hogi',                 INTENT_HARVEST),
+              ('gehu me 40 din baad khad daalein',       INTENT_FERTILIZER),
+              ('mitti ki janch kaise karein',            INTENT_SOIL),
+              ('gehu ka bhandaran kaise karein',         INTENT_STORAGE),
+              ('organic kheti kaise karein',             INTENT_ORGANIC),
+              ('wheat seed treatment kaise karein',      INTENT_SEED),
+              ('fasal bima claim kaise karein',          INTENT_INSURANCE),
+              ('gehu ka profit per bigha kitna hai',     INTENT_PROFIT_CALC),
+              ('aaj ka mausam',                          INTENT_WEATHER),
+              ('aaj ka gehu ka rate kya hai',            INTENT_MARKET_PRICE),
+              ('pm kisan status check',                  INTENT_GOVERNMENT_SCHEME),
+              ('kaunsi fasal lagaun',                    INTENT_CROP_RECOMMENDATION),
+          ]
+          failed = []
+          for q, exp in tests:
+              got, _ = svc.classify_query(q)
+              if got != exp:
+                  failed.append(f'FAIL: expected={exp} got={got} q={q!r}')
+          if failed:
+              for f in failed: print(f)
+              import sys; sys.exit(1)
+          print(f'✅ All {len(tests)} intent tests passed')
           "
 
       - name: Crop engine smoke test (offline, no network)

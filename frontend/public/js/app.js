@@ -226,11 +226,60 @@
         const searchInput = document.getElementById('locationSearchInput');
         if (searchInput) searchInput.value = locationName;
 
+        // Auto-upsert farmer profile on every location change — stores location
+        // for personalised AI advisory ("Last Rabi you grew wheat in Jaipur...")
+        _upsertFarmerProfile({ location_name: locationName, state: stateName || '' });
+
         console.log('🔄 Reloading all services for new location...');
         // Bug #5 fix: debounce service reloads to prevent parallel API floods
-        // when location is set rapidly (GPS fix stream, rapid city selection)
         clearTimeout(updateLocation._debounceTimer);
         updateLocation._debounceTimer = setTimeout(() => { reloadAllServices(); }, 150);
+    }
+
+    // ── Farmer profile helpers ────────────────────────────────────────────────
+    function _upsertFarmerProfile(extraData = {}) {
+        try {
+            const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
+            const payload = {
+                session_id:        sessionId,
+                preferred_language: lang,
+                ...extraData,
+            };
+            if (currentLatitude)  payload.latitude  = currentLatitude;
+            if (currentLongitude) payload.longitude = currentLongitude;
+            if (currentLocation)  payload.location_name = currentLocation;
+            if (currentState)     payload.state = currentState;
+            // Fire-and-forget — never blocks the UI
+            fetch(apiFetch('/api/farmer-profile/'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            }).then(() => {
+                // Show save indicator briefly
+                const ind = document.getElementById('profileSaveIndicator');
+                if (ind) {
+                    ind.textContent = '✓ Saved';
+                    setTimeout(() => { ind.textContent = ''; }, 2000);
+                }
+            }).catch(() => {}); // silent failure
+        } catch (e) {}
+    }
+
+    function saveFarmerCropHistory(crop, season, issue = '') {
+        try {
+            fetch(apiFetch('/api/farmer-profile/add-crop/'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sessionId, crop, season, issue }),
+            }).catch(() => {});
+        } catch (e) {}
+    }
+
+    // Save current crop when user asks a crop-specific question (best-effort)
+    function _maybeUpdateCurrentCrop(cropsDetected) {
+        if (cropsDetected && cropsDetected.length > 0) {
+            _upsertFarmerProfile({ current_crop: cropsDetected[0] });
+        }
     }
 
     function searchLocations(event) {
@@ -624,21 +673,49 @@
         const sel = document.getElementById('mandiSelector');
         if (!sel) return;
         const slice = mandis.slice(0, visibleCount);
-        sel.innerHTML = '<option value="">-- सभी मंडियां (All Mandis) --</option>';
-        slice.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.name;
-            const parts = [m.name];
-            if (m.district) parts.push(m.district);
-            const distLabel = m.distance
-                || (m.distance_km != null ? `${m.distance_km} km` : '');
-            if (distLabel) parts.push(distLabel);
-            if (m.live) parts.unshift('● live');
-            else if (m.live === false) parts.push('ref');
-            opt.textContent = parts.join(' — ');
-            if (currentMandi && currentMandi === m.name) opt.selected = true;
-            sel.appendChild(opt);
-        });
+
+        // Group: "📍 Nearby (< 50 km)" | "🗺️ Regional (50–150 km)" | "📋 Others"
+        const veryNear = slice.filter(m => m.proximity === 'very_near');
+        const near     = slice.filter(m => m.proximity === 'near');
+        const regional = slice.filter(m => m.proximity === 'regional' || m.proximity === 'unknown' || !m.proximity);
+
+        sel.innerHTML = '<option value="">-- नज़दीकी मंडी चुनें (Select Nearby Mandi) --</option>';
+
+        function addGroup(label, items) {
+            if (!items.length) return;
+            const grp = document.createElement('optgroup');
+            grp.label = label;
+            items.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.name;
+                const live  = m.live ? '🟢 ' : '';
+                const dist  = m.distance_km != null ? ` · ${m.distance_km} km` : '';
+                const dist2 = m.district ? ` · ${m.district}` : '';
+                opt.textContent = `${live}${m.name}${dist2}${dist}`;
+                if (currentMandi && currentMandi === m.name) opt.selected = true;
+                grp.appendChild(opt);
+            });
+            sel.appendChild(grp);
+        }
+
+        // If no proximity data (no GPS), fall back to flat list
+        const hasProximity = slice.some(m => m.proximity && m.proximity !== 'unknown');
+        if (hasProximity) {
+            addGroup('📍 बहुत नज़दीक (< 30 km)', veryNear);
+            addGroup('🗺️ नज़दीक (30–150 km)',     near);
+            addGroup('📋 क्षेत्रीय मंडियां',       regional);
+        } else {
+            slice.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.name;
+                const live = m.live ? '🟢 ' : '';
+                const dist = m.distance_km != null ? ` · ${m.distance_km} km` : '';
+                const dist2 = m.district ? ` · ${m.district}` : '';
+                opt.textContent = `${live}${m.name}${dist2}${dist}`;
+                if (currentMandi && currentMandi === m.name) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
     }
 
     function loadMoreMandis() {
@@ -656,36 +733,54 @@
         const loadMoreBtn = document.getElementById('mandiLoadMoreBtn');
         if (!sel) return;
 
-        sel.innerHTML = '<option value="">-- मंडियां लोड हो रही हैं... --</option>';
-        if (badge) badge.textContent = '⏳ Live mandi list…';
+        sel.innerHTML = '<option value="">-- नज़दीकी मंडियां लोड हो रही हैं... --</option>';
+        if (badge) badge.textContent = '⏳ आपकी नज़दीकी मंडियां...';
         if (loadMoreBtn) loadMoreBtn.style.display = 'none';
 
         try {
-            const data = await apiGetJson(`/api/market-prices/mandis/?${buildLocationQuery()}`);
+            // Pass GPS + radius so backend returns location-specific mandis only
+            const locQ = buildLocationQuery();
+            const radiusKm = 150;  // show mandis within 150 km by default
+            const data = await apiGetJson(
+                `/api/market-prices/mandis/?${locQ}&radius_km=${radiusKm}`
+            );
             allMandisCache = data.mandis || [];
             mandiDropdownVisibleCount = 100;
 
             renderMandiOptions(allMandisCache, mandiDropdownVisibleCount);
 
+            // Show "load more" only if list exceeds visible count
             if (loadMoreBtn && allMandisCache.length > mandiDropdownVisibleCount) {
                 loadMoreBtn.style.display = 'inline-block';
                 loadMoreBtn.textContent =
                     `और मंडियां (+${allMandisCache.length - mandiDropdownVisibleCount})`;
             }
 
+            // Status badge — show nearest mandi prominently
             if (badge) {
                 if (!allMandisCache.length) {
-                    badge.textContent = '⚠️ Register DATA_GOV_IN_API_KEY in .env for mandi list';
-                } else if (data.using_demo_key) {
-                    badge.textContent =
-                        `🏪 ${allMandisCache.length} mandis (${data.live_count || 0} live) — add DATA_GOV_IN_API_KEY for full coverage`;
+                    badge.textContent = '⚠️ नज़दीकी मंडी नहीं मिली — GPS चालू करें';
                 } else {
-                    const nearest = allMandisCache[0];
-                    const nearHint = nearest && nearest.distance_km != null
-                        ? ` · nearest ${nearest.name} (${nearest.distance_km} km)`
+                    const nearest = data.nearest_mandi || allMandisCache[0];
+                    const distHint = nearest && nearest.distance_km != null
+                        ? ` · नज़दीकी: ${nearest.name} (${nearest.distance_km} km)`
+                        : ` · ${nearest ? nearest.name : ''}`;
+                    const liveHint = data.live_count
+                        ? ` · ${data.live_count} live`
                         : '';
                     badge.textContent =
-                        `🏪 ${allMandisCache.length} mandis (${data.live_count || 0} live) · ${data.coverage || 'full'}${nearHint}`;
+                        `🏪 ${allMandisCache.length} मंडियां${distHint}${liveHint}`;
+                }
+            }
+
+            // Auto-select nearest mandi if none is currently selected
+            if (!currentMandi && data.nearest_mandi) {
+                const nearestName = data.nearest_mandi.name;
+                if (nearestName) {
+                    currentMandi = nearestName;
+                    sel.value = nearestName;
+                    if (badge) badge.textContent =
+                        `📍 ${nearestName} (${data.nearest_mandi.distance_km || '?'} km) — आपकी नज़दीकी मंडी`;
                 }
             }
         } catch (err) {
@@ -1997,9 +2092,16 @@
             }
             if (aiSourceBadge) extra += aiSourceBadge;
 
-            // ── Memory indicator (new) ────────────────────────────────────
+            // ── Memory indicator ──────────────────────────────────────────
             if (data.context && data.context.memory_active) {
                 extra += '<span style="display:inline-block;background:#fff3e0;color:#e65100;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;margin-left:4px;">💾 Memory Active</span>';
+            }
+
+            // ── Persist detected crops to farmer profile (Fix 5) ─────────
+            // Every crop mentioned in the AI response is stored so the AI
+            // can say "Last time you asked about wheat aphids..." next session.
+            if (data.crops_detected && data.crops_detected.length > 0) {
+                _maybeUpdateCurrentCrop(data.crops_detected);
             }
 
             // Bug #2 fix: use correct CSS class names for bot message
@@ -2078,6 +2180,9 @@
     window.detectLocation = detectLocation;
     window.startContinuousLocationWatch = startContinuousLocationWatch;
     window.selectMandi = selectMandi;
+    // Farmer profile helpers — exposed for inline HTML onchange handlers
+    window._upsertFarmerProfile  = _upsertFarmerProfile;
+    window.saveFarmerCropHistory = saveFarmerCropHistory;
     window.onMandiSelected = onMandiSelected;
     window.populateMandiDropdown = populateMandiDropdown;
     window.loadMoreMandis = loadMoreMandis;

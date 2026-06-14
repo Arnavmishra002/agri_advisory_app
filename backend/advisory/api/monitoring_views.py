@@ -3,6 +3,7 @@ KrishiMitra — Monitoring & Health Check API Views
 Self-contained: no dependency on the deleted advisory.monitoring package.
 """
 
+from typing import Any, Dict
 import logging
 import time
 from datetime import datetime

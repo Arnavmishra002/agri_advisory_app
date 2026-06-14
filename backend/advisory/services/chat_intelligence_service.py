@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """
-KrishiMitra Chat Intelligence Service v3.0
+KrishiMitra Chat Intelligence Service v5.0
 ==========================================
-Intelligent, context-aware, multi-turn agricultural chatbot.
+Super-intelligent, fully-interconnected agricultural chatbot.
 
 Features:
 - Multi-turn conversation with full history context
-- 22-language NLP intent detection (Hindi, English + all Indian languages)
+- 22-language NLP intent detection + Hinglish normalisation
+- 19 intent categories: irrigation, sowing, harvest, storage, organic, seed,
+  insurance, profit, pest/disease, soil, fertilizer, weather, market, schemes,
+  crop info, crop recommendation, greeting, follow-up, general
 - Live data grounding: weather, mandi prices, crop recommendations, schemes
-- Gemini AI primary + rich rule-based fallback (no API key needed)
-- Farmer-location-aware: personalises every answer with GPS data
-- Entity extraction: crops, locations, quantities, dates
-- Follow-up detection: understands "uska", "iske baad", "yahi", pronouns
+- Field-level IoT sensor integration (NPK, pH, moisture, soil temp)
+- District-level soil/climate profile for location-specific advice
+- Comprehensive crop database (150+ crops, full agronomic profiles)
+- Disease→Chat bridge: ML photo diagnosis feeds directly into chatbot
+- Gemini AI primary + Qwen2.5+RAG (local) + Rule-based fallback
+- Farmer profile personalisation: crop history, farm size, soil health card
 """
 
 from __future__ import annotations
@@ -34,6 +39,8 @@ from .language_service import (
     normalise_language_code,
     get_gemini_language_instruction,
     get_language_for_state,
+    get_ui_string,
+    translate_farming_advice,
 )
 from .location_context import LocationContext
 from .unified_realtime_service import (
@@ -45,6 +52,22 @@ from .unified_realtime_service import (
     schemes_service,
     weather_service,
 )
+
+# ── Additional service imports for full interconnection ──────────────────────
+# These are imported lazily in methods to avoid circular imports at startup,
+# but we reference the module here for IDE type-checking.
+try:
+    from .comprehensive_crop_database import ALL_CROP_DATA as _ALL_CROP_DATA
+    from .field_sensor_service import (
+        field_sensor_service,
+        CROP_SOIL_REQUIREMENTS as _CROP_SOIL_REQ,
+    )
+    from .district_data import DISTRICT_PROFILES as _DISTRICT_PROFILES
+except ImportError:
+    _ALL_CROP_DATA = {}
+    field_sensor_service = None          # type: ignore[assignment]
+    _CROP_SOIL_REQ = {}
+    _DISTRICT_PROFILES = {}
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +154,14 @@ INTENT_CROP_INFO           = "crop_info"
 INTENT_GREETING            = "greeting"
 INTENT_GENERAL             = "general"
 INTENT_FOLLOWUP            = "followup"
+# New high-value intents
+INTENT_HARVEST             = "harvest"          # When to harvest, signs of maturity
+INTENT_SOWING              = "sowing"           # When/how to sow, seed rate, spacing
+INTENT_STORAGE             = "storage"          # Post-harvest storage, mandi timing
+INTENT_ORGANIC             = "organic_farming"  # Organic methods, vermicompost, bio-inputs
+INTENT_PROFIT_CALC         = "profit_calc"      # Cost-benefit, profit per bigha/hectare
+INTENT_SEED                = "seed"             # Seed variety, certified seed, seed treatment
+INTENT_INSURANCE           = "insurance"        # PMFBY claim, crop loss, compensation
 
 STAPLE_FOR_CHAT = ["wheat", "rice", "maize", "mustard", "tomato", "onion", "potato"]
 
@@ -484,29 +515,117 @@ def _current_season(month: int = None) -> str:
     return "Zaid (Apr-May)"
 
 
-# ── NLP intent patterns (multi-language) ────────────────────────
+# ── NLP intent patterns (multi-language, v5.0) ──────────────────
+# Priority order: first match wins. More specific patterns come first.
+# Covers: English, Hindi, Hinglish, all 22 scheduled Indian languages.
 _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
+
+    # ── GREETING ────────────────────────────────────────────────
     (INTENT_GREETING, [
-        r"\b(hi|hello|namaste|namaskar|hey|नमस्ते|नमस्कार|vanakkam|namaskaram|salam|adaab|pranam)\b",
-        r"^(helo|hii|kya\s*hal|kaisa\s*hai|kaise\s*hain|good\s*(morning|evening|afternoon))$",
+        r"\b(hi|hello|namaste|namaskar|hey|नमस्ते|नमस्कार|vanakkam|namaskaram|salam|adaab|pranam|jai\s*kisan)\b",
+        r"^(helo|hii|kya\s*hal|kaisa\s*hai|kaise\s*hain|good\s*(morning|evening|afternoon|night))$",
+        r"^(start|शुरू|shuru|help|madad|सहायता)\s*$",
     ]),
+
+    # ── FOLLOW-UP ────────────────────────────────────────────────
     (INTENT_FOLLOWUP, [
         r"\b(uska|uski|iske|isi|yahi|wahi|उसका|उसकी|इसका|इसकी|यही|वही)\b",
         r"\b(aur|phir|फिर|और\s*क्या|next|then|also|more|aage)\b\s*(batao|bataiye|tell|kya|kab|kitna|batao)?",
         r"\b(iske\s*baad|इसके\s*बाद|उसके\s*बाद|uske\s*baad|और\s*बताइए|more\s*about)\b",
+        r"^(okay|ok|theek\s*hai|accha|acha|hmm|haan|ha)\s*$",
     ]),
+
+    # ── SOWING (must come before CROP_RECOMMENDATION to catch timing queries) ──
+    (INTENT_SOWING, [
+        # Hindi/Hinglish timing — explicitly "buwai kab" or "kab boun"
+        r"\b(buwai|buai|बुवाई|बुआई)\s*(kab|कब|ka\s*samay|when|kaise|कैसे)",
+        r"\b(kab|कब|when)\s*(bouwe|boun|lagaun|ugaun|daalen|लगाएं|बोएं|dalein)",
+        r"\b(kab|कब|when)\s*(se|से)?\s*(buwai|buai|बुवाई|sowing|planting|रोपाई)\s*(karein|karo|shuru|start)?",
+        # Seed rate — but NOT seed treatment (that goes to SEED)
+        r"\b(beej|बीज|seed)\s*(rate|matra|मात्रा|amount|kitna|कितना|how\s*much|per\s*(acre|hectare|bigha|hec))\b",
+        r"\b(spacing|doori|दूरी|plant\s*to\s*plant|row\s*to\s*row|katar)\s*(kitni|कितनी|how\s*much)",
+        r"\b(sowing\s*(depth|time|date|month|season)|बुवाई\s*(गहराई|समय|तारीख|महीना))\b",
+        r"\b(kab\s*lagaye|kab\s*boye|kab\s*daalen|kab\s*ugaye)\b",
+        r"\b(rabi|kharif|zaid)\s*(mein|में)\s*(kab|when)\s*(boun|lagaun|sow|plant)\b",
+        r"\b(is\s*mahine|इस\s*महीने|this\s*month)\s*(mein|में|me)\s*(kya|kaun|konsi)\s*(lagaun|ugaun|boun)",
+    ]),
+
+    # ── HARVEST ─────────────────────────────────────────────────
+    (INTENT_HARVEST, [
+        r"\b(harvest|katai|कटाई|katnaa|fasal\s*kat|पकना|pakna|pakne|ready\s*to\s*harvest)\b",
+        r"\b(kab\s*kat|कब\s*काट|when\s*to\s*(cut|harvest|pick|reap))\b",
+        r"\b(fasal|crop|पकी|paki)\s*(kab|when|pakti|पकती|ready|तैयार)\b",
+        # "fasal katne ka [sahi] waqt/samay" — katna/katne (infinitive forms)
+        r"\b(kat|kaatna|kaaten|katne|काटना|काटें|काटे)\s*ka\s*(sahi\s*)?(samay|waqt|time|tarika)\b",
+        r"\b(kat|katne|harvest)\s*(ka\s*)?(sahi\s*)?(waqt|samay|time|kab)\b",
+        r"\b(threshing|gathai|गहाई|cleaning|grading|post\s*harvest)\b",
+        r"\b(yield|paidawar|उपज|production|फसल\s*की\s*उपज)\s*(kitni|कितनी|how\s*much|expected|aanee)\b",
+        r"\b(maturity|परिपक्वता|pakne\s*ka\s*samay|ripening|grain\s*fill)\b",
+    ]),
+
+    # ── STORAGE / POST-HARVEST ────────────────────────────────────
+    (INTENT_STORAGE, [
+        r"\b(storage|bhandaran|भंडारण|store|godown|silo|sirf|cold\s*storage|warehouse)\b",
+        r"\b(kitne\s*din|how\s*long|कितने\s*दिन)\s*(rakh\s*sakte|store|रख\s*सकते|preserve)\b",
+        r"\b(post\s*harvest|fasal\s*ke\s*baad|कटाई\s*के\s*बाद)\s*(kya|kyaa|treatment|handling)\b",
+        r"\b(namami|naami|moisture|nami)\s*(content|level)\s*(grain|storage|before)\b",
+        r"\b(weevil|ghun|घुन|storage\s*pest|anaj\s*keet|grain\s*borer)\b",
+        r"\b(mandi\s*kab|bechna\s*kab|sell\s*when|कब\s*बेचें|best\s*time\s*to\s*sell)\b",
+        r"\b(drying|sukhaana|सुखाना|sun\s*drying|mechanical\s*dryer)\b",
+    ]),
+
+    # ── SEED ─────────────────────────────────────────────────────
+    (INTENT_SEED, [
+        r"\b(variety|kism|किस्म|cultivar|hybrid|HYV|improved\s*seed)\b",
+        r"\b(certified\s*seed|प्रमाणित\s*बीज|NSC|foundation\s*seed|breeder\s*seed)\b",
+        r"\b(konsi\s*kism|कौन\s*सी\s*किस्म|which\s*variety|best\s*variety|konsa\s*variety)\b",
+        r"\b(HD\s*\d+|PBW\s*\d+|WH\s*\d+|GW\s*\d+|DBW\s*\d+|Pusa|BPT|Swarna|HDCSW)\b",  # named varieties
+        r"\b(beej|बीज)\s*(kahan|कहाँ|where|kaise|milega|मिलेगा|buy|purchase|खरीदें)\b",
+        # seed treatment — BEFORE sowing patterns to take priority
+        r"\b(seed\s*treatment|beej\s*upchar|बीज\s*उपचार|imidacloprid|thiram|captan|carbendazim)\b",
+        r"\b(beej|seed)\s*(upchar|treatment|ट्रीटमेंट|dressing|dawai|fungicide)\b",
+    ]),
+
+    # ── INSURANCE ────────────────────────────────────────────────
+    (INTENT_INSURANCE, [
+        r"\b(pmfby|pradhan\s*mantri\s*fasal\s*bima|fasal\s*bima|crop\s*insurance)\b",
+        r"\b(insurance|bima|बीमा)\s*(claim|dawa|दावा|apply|kaise|milega|status)\b",
+        r"\b(crop\s*loss|fasal\s*nuksan|फसल\s*नुकसान|natural\s*calamity)\s*(report|claim|muawaza|मुआवजा)",
+        r"\b(praakritik\s*aapda|flood\s*damage|hail\s*damage|drought\s*compensation)\b",
+        r"\b(muawaza|मुआवजा|compensation|fasal\s*loss|नुकसान\s*bharpai)\b",
+    ]),
+
+    # ── ORGANIC FARMING ──────────────────────────────────────────
+    (INTENT_ORGANIC, [
+        r"\b(organic|jaivik|जैविक)\s*(farming|kheti|krishi|khad|fertilizer)\b",
+        r"\b(vermicompost|vermiculture|केंचुआ\s*खाद|kenchua\s*khad)\b",
+        r"\b(jeevamrit|jivamrit|जीवामृत|panchagavya|पंचगव्य|biochar|bio\s*inputs)\b",
+        r"\b(compost|FYM|farm\s*yard\s*manure|gobar\s*khad|गोबर\s*खाद)\s*(kaise|how|banaye|बनाएं)\b",
+        r"\b(bio\s*pesticide|neem\s*spray|neem\s*oil|botanical\s*pesticide)\b",
+        r"\b(natural\s*farming|kudrat|prakriti|zerotillage|zero\s*budget)\b",
+        r"\b(Trichoderma|Pseudomonas|Rhizobium|PSB|azotobacter|VAM)\b",
+    ]),
+
+    # ── PROFIT / COST CALCULATION ────────────────────────────────
+    (INTENT_PROFIT_CALC, [
+        r"\b(profit|labh|लाभ|fayda|kitna\s*kamaun|income|aamdani|आमदनी)\s*(per|per\s*bigha|per\s*hectare|per\s*acre)\b",
+        r"\b(lagat|lागत|input\s*cost|cost\s*of\s*cultivation|kheti\s*ki\s*lagat)\b",
+        r"\b(kitna\s*kamaunga|kitni\s*kamayi|kamayi\s*kitni|return\s*on|ROI)\b",
+        r"\b(comparison|tulna|तुलना)\s*(fasal|crop|of)\s*(wheat|rice|mustard|any\s*crop)\b",
+    ]),
+
+    # ── CROP RECOMMENDATION ──────────────────────────────────────
     (INTENT_CROP_RECOMMENDATION, [
-        # English patterns
         r"\bwhich\s+crop",
         r"\bbest\s+crop",
         r"\bwhat\s+(crop|to\s+grow|to\s+sow|to\s+plant)",
         r"\bcrop\s*(suggest|recommend|advice|choice|select)",
         r"\bwhat\s+should\s+i\s+(grow|plant|sow|cultivate)",
         r"\b(crop|crops|fasal|fasalein|phasal)\s+(for|in|ke\s+liye)\s+(this|is|current|season|mausam)\b",
-        # Hindi/Hinglish patterns
-        r"\b(kya|kaun\s*si|kaunsi|konsi)\s+(fasal|crop|phasal|kheti)",
+        r"\b(kya|kaun\s*si|kaunsi|konsi)\s+(fasal|crop|phasal|kheti)\s*(lagaun|ugaun|booun|sow|plant|grow|karein)?",
         r"\b(fasal|phasal|crop)\s+(suggest|recommend|batao|bataiye|kaun|kya|kaunsi|konsi|सुझाव|बताओ|चुनें)",
         r"\b(kya|kaun)\s*(lagaun|ugaun|boun|lagaye|ugaye|boye|lagana|ugana|bona)\b",
+        r"\b(kya|kaun)\s+\w+\s*(lagaun|ugaun|boun|lagaye|lagana|bona|ugaun)\b",
         r"\b(kharif|rabi|zaid|खरीफ|रबी|जायद)\s*(mein|में|ke\s+liye|के\s+लिए)?\s*(kya|क्या|kaun|konsi|kaunsi)\s*(lagaun|ugaun|boun|lagaye|fasal|crop)?",
         r"\b(is\s*season|is\s*mausam|iss\s*saal)\s*(kya|kaun|konsi|क्या|कौन)",
         r"\b(इस\s*मौसम|इस\s*सीजन)\s*(में|मे)\s*(क्या|कौन)",
@@ -514,56 +633,125 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
         r"\b(फसल|fasal)\s*(का|के|की)\s*(सुझाव|चुनाव|select|suggest|recommend)",
         r"\bkaunsi\s+fasal\b",
         r"\bkonsi\s+fasal\b",
-        # Regional languages
+        r"\b(mere\s*khet|meri\s*zameen|apni\s*kheti)\s*(ke\s*liye|mein)\s*(kya|konsi)\b",
+        # Regional
         r"\b(ফসল|పంట|பயிர்|ਫ਼ਸਲ|ক্ষেত)\b.*\b(পরামর্শ|సూచన|பரிந்துரை|ਸੁਝਾਅ)\b",
-        r"\b(kontha|entha|yavanu)\s+(bele|bethanu|balu)\b",  # Kannada
-        r"\b(ethu|enna)\s+(paya|payan|vithaykuka)\b",  # Malayalam/Tamil
+        r"\b(kontha|entha|yavanu)\s+(bele|bethanu|balu)\b",
+        r"\b(ethu|enna)\s+(paya|payan|vithaykuka)\b",
     ]),
+
+    # ── MARKET PRICE ─────────────────────────────────────────────
     (INTENT_MARKET_PRICE, [
-        r"\b(msp|mandi|market\s*price|bhav|भाव|मंडी|rate|daam|aaj\s*ka\s*bhav|today.*price)\b",
-        r"\b(price|कीमत|दाम|भाव|rate)\s*(of|का|की|ke)",
-        r"\b(गेहूँ|धान|सरसों|प्याज|आलू|टमाटर|कपास|मक्का|सोयाबीन|wheat|rice|mustard|onion|potato|tomato|cotton|maize|soybean)\s*(ka\s*bhav|ka\s*rate|ka\s*daam|price|भाव|दाम|rate|मूल्य|कीमत)",
-        r"\b(today|aaj|आज|kal|कल)\s*(ka|का|ki|की)\s*(bhav|भाव|price|rate|दाम)",
-        r"\b(bechna|sell|bikri|बेचना|बिक्री)\s*(kahan|kahaan|कहाँ|kab|कब|kitne\s*mein)",
-        r"\b(enam|agmarknet|apmc|मंडी\s*भाव)\b",
-        r"\b(minimum\s*support|न्यूनतम\s*समर्थन|msp\s*kya\s*hai|msp\s*kitna)\b",
+        r"\b(msp|mandi|market\s*price|bhav|भाव|मंडी|daam|aaj\s*ka\s*bhav|today.*price)\b",
+        r"\b(price|कीमत|दाम|भाव|rate)\s*(of|का|की|ke|for)\b",
+        # Standalone rate/daam/bhav/price as final word or followed by question
+        r"\b(rate|daam|भाव|bhav|price|keemat)\s*(kya|kitna|batao|bataiye|hai|hain)?\s*\??$",
+        r"\b(गेहूँ|गेहु|धान|सरसों|प्याज|आलू|टमाटर|कपास|मक्का|सोयाबीन|wheat|rice|mustard|onion|potato|tomato|cotton|maize|soybean|garlic|chana|arhar|moong)\s*(ka\s*bhav|ka\s*rate|ka\s*daam|price|भाव|दाम|rate|मूल्य|कीमत)",
+        r"\b(today|aaj|आज|kal|कल|abhi)\s*(ka|का|ki|की)\s*(bhav|भाव|price|rate|दाम)",
+        r"\b(bechna|sell|bikri|बेचना|बिक्री)\s*(kahan|kahaan|कहाँ|kab|कब|kitne\s*mein|kahan\s*bechun)",
+        r"\b(enam|agmarknet|apmc|नाफेड|nafed|मंडी\s*भाव)\b",
+        r"\b(minimum\s*support|न्यूनतम\s*समर्थन|msp\s*kya\s*hai|msp\s*kitna|msp\s*2024|msp\s*2025|msp\s*2026)\b",
+        r"\b(trend|badhega|बढ़ेगा|girega|गिरेगा|market\s*outlook|price\s*forecast)\b",
+        r"\b(fasal\s*bechne|sell\s*crop|mandi\s*mein|apmc\s*mein)\s*(kab|kaise)\b",
     ]),
+
+    # ── WEATHER ──────────────────────────────────────────────────
     (INTENT_WEATHER, [
-        r"\b(weather|mausam|मौसम|barish|बारिश|rain|forecast|flood|baad|बाढ़|drought|sukha|सूखा|temperature|tapman|तापमान|imd|meghdoot)\b",
-        r"(हवामान|पाऊस|आবহাওয়া|বৃষ্টি|వాతావరణం|వర్షం|வானிலை|மழை|વરસાદ|ಹವಾಮಾನ|ಮಳೆ|കാലാവസ്ഥ|മഴ|ਮੌਸਮ|ਮੀਂਹ|ਪਾਣਿਪਾਗ|ବର୍ଷା|বতৰ|বৰষুণ)",
-        r"\b(aaj|kal|आज|कल|is\s*hafte|next\s*week)\s*(ka\s*)?(mausam|weather|barish|बारिश)",
-        r"\b(बुवाई|सिंचाई|sinchai|buwai|kheti)\s*(kab|कब|ka\s*samay|when)",
-        r"\b(garmi|sardi|baarish|तूफान|ओलावृष्टि|olavrishti|hail|storm)\b",
+        # Core weather terms — 'baad' REMOVED (it means "after" not flood)
+        r"\b(weather|mausam|मौसम|barish|बारिश|rain|forecast|flood|बाढ़|drought|sukha|सूखा|temperature|tapman|तापमान|imd|meghdoot)\b",
+        # Regional weather terms
+        r"(हवामान|পাউস|আবহাওয়া|বৃষ্টি|వాతావరణం|వర్షం|வானிலை|மழை|વરસાદ|ಹವಾಮಾನ|ಮಳೆ|കാലാവസ്ഥ|മഴ|ਮੌਸਮ|ਮੀਂਹ|ਪਾਣਿਪਾਗ|ବର୍ଷା|বতৰ|বৰষুণ)",
+        r"\b(aaj|kal|आज|कल|is\s*hafte|next\s*week|parson)\s*(ka\s*)?(mausam|weather|barish|बारिश)",
+        r"\b(garmi|sardi|baarish|तूफान|ओलावृष्टि|olavrishti|hail|storm|cyclone|andhi)\b",
+        r"\b(monsoon|mansoon|मानसून)\s*(kab|आएगा|aayega|this\s*year|2024|2025|2026)\b",
+        # Seasonal / agricultural weather
+        r"\b(is\s*saal|this\s*year)\s*(barish|rain|monsoon|weather|मौसम)\s*(kaisa|kaisi|kaisa\s*rahega)\b",
+        r"\b(barish\s*kab\s*hogi|rain\s*forecast|varsha\s*poorvaanuman)\b",
     ]),
+
+    # ── GOVERNMENT SCHEMES ───────────────────────────────────────
     (INTENT_GOVERNMENT_SCHEME, [
-        r"\b(pm[- ]?kisan|pmfby|kcc|kusum|enam|yojana|योजना|subsidy|सब्सिडी|अनुदान|fasal\s*bima|kisan\s*credit|soil\s*health\s*card)\b",
-        r"\b(sarkaar|sarkaari|government|सरकार|सरकारी)\s*(yojana|योजना|scheme|help|sahayata|paisa)",
-        r"\b(paise|पैसे|rupaye|amount)\s*(kab\s*aayega|kab\s*milega|कब\s*आएगा|status|check)",
-        r"\b(apply|avedan|आवेदन|register|पंजीयन)\s*(kaise|कैसे|how|karna|karein)",
-        r"\b(loan|rin|ऋण|karz|कर्ज|nabard|mudra)\s*(kaise|कैसे|milega|lena)",
+        r"\b(pm[- ]?kisan|pmfby|kcc|kusum|enam|yojana|योजना|subsidy|सब्सिडी|अनुदान|fasal\s*bima|kisan\s*credit|soil\s*health\s*card|pm\s*kusum)\b",
+        r"\b(sarkaar|sarkaari|government|सरकार|सरकारी|kendriya|rajya)\s*(yojana|योजना|scheme|help|sahayata|paisa|madad)\b",
+        r"\b(paise|पैसे|rupaye|amount|installment|kist)\s*(kab\s*aayega|kab\s*milega|कब\s*आएगा|status|check|track)\b",
+        r"\b(apply|avedan|आवेदन|register|पंजीयन|form|फॉर्म)\s*(kaise|कैसे|how|karna|karein|bharna)\b",
+        r"\b(loan|rin|ऋण|karz|कर्ज|nabard|mudra|kcc\s*limit|kisan\s*credit)\s*(kaise|कैसे|milega|lena|interest)",
+        r"\b(kisan\s*samman|pm\s*kisan\s*status|installment\s*check|6000|2000)\b",
+        r"\b(rajya\s*sarkar|state\s*govt)\s*(yojana|scheme)\s*(UP|MP|Rajasthan|Punjab|Haryana|Maharashtra|Bihar)\b",
     ]),
+
+    # ── PEST / DISEASE ───────────────────────────────────────────
     (INTENT_PEST_DISEASE, [
+        # Core
         r"\b(pest|keet|कीट|rog|रोग|blight|blast|disease|worm|caterpillar|sundi|सुंडी|wilting|fungus|fungal|spray|davai|दवाई|pesticide|insecticide|fungicide|neem)\b",
-        r"\b(patti|पत्ती|leaf|fruit|फल|root|जड़|fasal|crop)\s*(mein|में|pe|पर)\s*(problem|kuch|नुकसान|damage|pili|पीली|sukh|सूख|kala|काला|safed|सफेद)",
-        r"\b(kyon|क्यों|why)\s*(sukh|mur|pil|gir|सूख|मुरझा|पीली|झड|curl|fall)",
-        r"\b(sundi|afid|aphid|mite|thrips|whitefly|सफेद\s*मक्खी|माहू|टिड्डा|locust)\b",
+        # Symptom-based
+        r"\b(patti|पत्ती|leaf|leaves|fruit|फल|root|जड़|fasal|crop|stem|tana|तना)\s*(mein|में|pe|पर|ki|का|की)\s*(problem|kuch|नुकसान|damage|pili|पीली|sukh|सूख|kala|काला|safed|सफेद|laal|red|curl|mur|hole)\b",
+        r"\b(kyon|क्यों|why)\s*(sukh|mur|pil|gir|सूख|मुरझा|पीली|झड|curl|fall|rot|sada)\b",
+        # Named pests
+        r"\b(sundi|afid|aphid|mite|thrips|whitefly|सफेद\s*मक्खी|माहू|टिड्डा|locust|stem\s*borer|bollworm|armyworm|jassid|planthopper)\b",
+        # Yellow leaf / yellowing (very common Hinglish symptom query) — broadened
+        r"\b(pattian|patti|leaf|पत्तियां|पत्ती)\s*(pili|peli|पीली|yellow|pale|lal|red|kali|brown|safed|white)\b",
+        r"\b(fasal|crop|plant|paudha)\s*(pili|peli|pilI|पीली|yellow|sukh|wilt|mar|gal|rot)\s*(rahi|raha|gayi|gaya|ho\s*rahi|pad\s*rahi)?\b",
+        r"\b(pila\s*pad|pili\s*ho|yellow\s*ho|peela\s*ho|pattiyaan\s*pili)\b",
+        # "wheat/crop pili" without explicit verb — catch direct colour + crop combos
+        r"\b(wheat|gehu|rice|dhan|maize|makka|cotton|kapas|mustard|sarson|soybean)\s*(pili|yellow|sukh|wilt|kali|red|lal)\b",
+        r"\b(pili|yellow|pale|sukh|wilt)\s*(ho\s*rahi|pad\s*rahi|ja\s*rahi|ho\s*gai)\b",
+        # Spray timing
+        r"\b(spray|davai|kab|kitni|which)\s*(karo|karein|maro|lagao|डालें|छिड़काव)\b",
+        r"\b(fungicide|insecticide|herbicide|khardavai|weedicide|dawaai)\s*(konsi|kaunsi|which|best)\b",
+        # Crop-specific diseases
+        r"\b(wheat\s*(rust|karwa|blast|bunt|aphid|yellow)|gehu\s*(keet|rog))\b",
+        r"\b(paddy\s*(blast|sheath|bug|BPH|BLB)|dhan\s*(rog|jhonka))\b",
+        r"\b(cotton\s*(bollworm|pink\s*worm|mealybug|white\s*fly)|kapas\s*(keet|rog))\b",
     ]),
+
+    # ── SOIL ─────────────────────────────────────────────────────
     (INTENT_SOIL, [
         r"\b(soil|mitti|मिट्टी|ph|organic\s*carbon|soil\s*health|soil\s*card|urvarak|fertility|nitrogen|phosphorus|potassium|vermicompost|compost)\b",
-        r"\b(mitti|माटी|जमीन)\s*(ki\s*janch|test|जांच|health|ph|ka\s*ph)",
-        r"\b(mrida|मृदा)\s*(swasthya|health|परीक्षण)",
-        r"\b(sankhyam|NPK|n\.p\.k)\b",
+        r"\b(mitti|माटी|जमीन|bhumi|भूमि)\s*(ki\s*janch|test|जांच|health|ph|ka\s*ph|type|prakar|badlao)\b",
+        r"\b(mrida|मृदा)\s*(swasthya|health|परीक्षण|card|testing)\b",
+        r"\b(sankhyam|NPK|n\.p\.k|macronutrient|micronutrient)\b",
+        r"\b(soil\s*testing|mitti\s*janch|SHC|Soil\s*Health\s*Card)\s*(kahan|kaise|centre)\b",
+        r"\b(kali\s*mitti|red\s*soil|sandy\s*soil|clay|domat|alluvial|black\s*soil|lal\s*mitti)\b",
+        r"\b(pH|acidity|alkalinity|saline|khara|क्षारीय|अम्लीय|tizaab|lime|chuna)\b",
     ]),
+
+    # ── IRRIGATION ───────────────────────────────────────────────
+    # NOTE: 'sinchai' intentionally NOT in WEATHER patterns
+    # NOTE: irrigation patterns appear BEFORE weather in the list so
+    #       "barish ke baad sinchai" routes correctly
     (INTENT_IRRIGATION, [
         r"\b(irrigation|sinchai|सिंचाई|drip|sprinkler|borewell|tubewell|pump|AWD|solar\s*pump|kusum)\b",
-        r"\b(pani|पानी|water)\s*(kab|kitna|कब|कितना|when|how\s*much|dene\s*ka\s*samay|schedule)",
-        r"\b(sinchai|सिंचाई|irrigat)\s*(kab|kaise|कब|कैसे|when|schedule|time)",
+        r"\b(pani|पानी|water)\s*(kab|kitna|कब|कितना|when|how\s*much|dene\s*ka\s*samay|schedule|de|dene|lagao)\b",
+        r"\b(sinchai|सिंचाई|irrigat)\s*(kab|kaise|कब|कैसे|when|schedule|time|kitni|times)\b",
+        # "kitne din baad pani de" patterns
+        r"\b(kitten|kitne|kitna|how\s*many)\s*(din|days|dino|hafte)\s*(baad|mein|after|me|pehle)?\s*(pani|water|sinchai|irrigation|de|dene)\b",
+        r"\b(pani\s*(kab|kitna)\s*(dun|dena|dete|denge|de)|when\s*to\s*(irrigate|water))\b",
+        # Sowing/irrigation timing — belongs here not weather
+        r"\b(बुवाई|सिंचाई|sinchai|buwai|kheti)\s*(kab|कब|ka\s*samay|when)",
+        # Water saving, drought tolerance
+        r"\b(pani\s*bachao|water\s*saving|moisture\s*conservation|mulching|mulch)\b",
+        r"\b(flood\s*irrigation|furrow|drip\s*tape|micro\s*irrigation|NWDPRA)\b",
+        # "barish ke baad sinchai" — after rain, should I irrigate?
+        r"\b(barish|baarish|rain|varsha)\s*(ke\s*baad|after|ke\s*bad)\s*(sinchai|pani|irrigat|water)\b",
+        r"\b(sinchai|pani|irrigat)\s*(barish|baarish|rain)\s*(ke\s*baad|after)\b",
     ]),
+
+    # ── FERTILIZER ───────────────────────────────────────────────
     (INTENT_FERTILIZER, [
-        r"\b(urea|dap|npk|mkp|mop|fertilizer|khad|खाद|urvarak|उर्वरक|zinc|sulfur|vermicompost|FYM)\b",
-        r"\b(kitni|कितनी|how\s*much|kitna)\s*(khad|urea|dap|fertilizer|nitrogen)",
-        r"\b(khad|उर्वरक|fertilizer)\s*(kab|कब|when|apply|daalein|डालें|kitni|schedule)",
+        r"\b(urea|dap|npk|mkp|mop|fertilizer|khad|खाद|urvarak|उर्वरक|zinc|sulfur|boron|magnesium|vermicompost|FYM|neem\s*coated)\b",
+        # "kitni khad" or "khad kitni" — quantity question
+        r"\b(kitni|कितनी|how\s*much|kitna)\s*(khad|urea|dap|fertilizer|nitrogen|npk|potash)\b",
+        # Schedule-only patterns WITHOUT "kab" alone (to avoid grabbing das-based queries)
+        r"\b(khad|उर्वरक|fertilizer)\s*(ka\s*schedule|schedule|split|dose|apply|daalein|डालें)\b",
+        r"\b(top\s*dress|side\s*dress|basal\s*dose|split\s*dose|foliar\s*spray|पत्तियों\s*पर\s*छिड़काव)\b",
+        r"\b(N|P|K|nitrogen|phosphorus|potassium)\s*(deficiency|kami|कमी|excess|symptom|ki\s*kami)\b",
+        r"\b(soil\s*health|NPK\s*ratio|recommended\s*dose|package\s*of\s*practices|POP)\b",
+        r"\b(nacl|sulphur|zinc\s*sulphate|gypsum|lime|chuna|ammonium)\s*(kitna|kitni|apply|dalo)\b",
+        # "X din baad khad" — DAS-based fertilizer query
+        r"\b\d+\s*(din|days)\s*(baad|after|mein)?\s*(khad|urea|dap|fertilizer|उर्वरक|top\s*dress)\b",
     ]),
+
 ]
 
 
@@ -1373,22 +1561,145 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
     # ── NLP: Intent classification ────────────────────────────────
 
+    # ── Hinglish / colloquial normaliser ─────────────────────────
+    # Maps common Hinglish typos / shortenings → canonical words so the
+    # intent regex can match them without needing hundreds of variants.
+    # Also covers common Marathi/Bengali/Punjabi farming words.
+    _HINGLISH_NORM: Dict[str, str] = {
+        # Irrigation variants
+        "kitten": "kitne", "kittan": "kitne", "kitan": "kitne",
+        "pani de": "pani dena", "paani": "pani",
+        # Sowing variants
+        "buwai": "buwai", "buayi": "buwai", "bunai": "buwai",
+        "lagenga": "lagaun", "lagaunga": "lagaun", "lagana": "lagaun",
+        "ugana": "ugaun", "bona": "boun",
+        # Disease / pest variants
+        "keede": "keet", "keeda": "keet", "kida": "keet",
+        "pattiyaan": "patti", "patiyan": "patti",
+        "peeli": "pili", "peli": "pili",
+        "sukh rahi": "sukh raha",
+        # Market variants
+        "bhaw": "bhav", "bhaav": "bhav",
+        "dam": "daam", "daaam": "daam",
+        # Weather variants
+        "baarish": "barish", "varsha": "barish",
+        "taapmaan": "tapman",
+        # Fertiliser variants
+        "khaad": "khad", "urvarak": "urvarak",
+        "diaap": "dap",
+        # General farming
+        "kheiti": "kheti", "fashal": "fasal", "phasal": "fasal",
+        # Numbers/quantities
+        "beegha": "bigha", "bheega": "bigha",
+        "kuntal": "quintal",
+        # ── Marathi farming terms → Hindi equivalents ──────────────
+        "bharipak": "katai harvest",       # full maturity / harvest time
+        "pivna": "pani dena irrigation",   # to irrigate (Marathi)
+        "keva": "kab when",                # when (Marathi)
+        "dyave": "dena give",              # to give (Marathi)
+        "gahu": "gehu wheat",              # wheat (Marathi)
+        "bhuimug": "moongfali groundnut",  # groundnut (Marathi)
+        "kanda": "pyaz onion",             # onion (Marathi)
+        "batata": "aloo potato",           # potato (Marathi)
+        "kapus": "kapas cotton",           # cotton (Marathi)
+        "soyabin": "soybean",
+        "tur": "arhar pigeonpea",
+        "harbhara": "chana gram",
+        "paus": "barish rain",             # rain (Marathi)
+        "havaman": "mausam weather",       # weather (Marathi)
+        # ── Bengali farming terms ───────────────────────────────────
+        "dhaan": "dhan rice",
+        "aloo": "aloo potato",
+        "borsha": "barish rain",
+        "jomin": "zameen land soil",
+        # ── Punjabi farming terms ───────────────────────────────────
+        "gehun": "gehu wheat",
+        "sarson": "sarson mustard",
+        "makki": "makka maize",
+        "mausam": "mausam weather",
+        "paani": "pani water",
+        # ── Tamil/Telugu farming terms ──────────────────────────────
+        "neer": "pani water",              # water (Tamil)
+        "mazhai": "barish rain",           # rain (Tamil)
+        "nilam": "mitti soil",             # soil (Tamil)
+    }
+
+    def _normalise_hinglish(self, text: str) -> str:
+        """Replace common Hinglish variations with canonical forms so regexes match."""
+        t = text.lower()
+        for wrong, right in self._HINGLISH_NORM.items():
+            t = t.replace(wrong, right)
+        return t
+
     def classify_query(self, query: str) -> Tuple[str, List[Dict[str, Any]]]:
-        """Multi-language intent classification with entity extraction."""
-        q = query.lower().strip()
+        """
+        Multi-language intent classification with entity extraction.
+
+        Steps:
+        1. Normalise Hinglish typos/variations
+        2. Pre-check high-specificity composite patterns (avoid ordering conflicts)
+        3. Run pattern matching (first match wins, ordered by specificity)
+        4. Context-aware overrides (e.g. crop mention → CROP_INFO fallback)
+        """
+        raw_q = query.lower().strip()
+        q = self._normalise_hinglish(raw_q)
         crops_mentioned = self._detect_crops(query)
+
+        # ── Step 2: High-specificity pre-checks ──────────────────
+        # These prevent intent misrouting when two keywords from different
+        # intents appear in the same sentence.
+
+        # "barish ke baad [X me] sinchai" → IRRIGATION (not WEATHER)
+        # Allow up to ~5 words between "barish ke baad" and "sinchai/pani"
+        if re.search(
+            r"\b(barish|baarish|rain|varsha)\s*(ke\s*baad|after|ke\s*bad)\b.{0,40}\b(sinchai|pani|irrigat|water)\b",
+            q, re.IGNORECASE
+        ) or re.search(
+            r"\b(sinchai|pani|irrigat)\b.{0,30}\b(barish|rain)\s*(ke\s*baad|after)\b",
+            q, re.IGNORECASE
+        ):
+            return INTENT_IRRIGATION, crops_mentioned
+
+        # "drip/sprinkler + subsidy/scheme" → IRRIGATION (not GOVT SCHEME)
+        # But NOT if it's asking about applying for a specific named scheme like PM-KUSUM
+        if re.search(r"\b(drip|sprinkler|micro\s*irrigation|borewell)\b", q, re.IGNORECASE) and \
+           re.search(r"\b(subsidy|scheme|yojana|milegi)\b", q, re.IGNORECASE) and \
+           not re.search(r"\b(apply|avedan|register|pm[- ]?kusum|kusum|form)\b", q, re.IGNORECASE):
+            return INTENT_IRRIGATION, crops_mentioned
+
+        # "X din baad khad/urea/fertilizer" → FERTILIZER (not SOWING)
+        if re.search(r"\b\d+\s*(din|days)\s*(baad|after)?\s*(khad|urea|dap|fertilizer|उर्वरक)", q, re.IGNORECASE):
+            return INTENT_FERTILIZER, crops_mentioned
+
+        # "aaj ka <crop> ka rate/bhav/daam" → MARKET_PRICE
+        if re.search(
+            r"\b(aaj|today|abhi)\s*ka\s*\w+\s*ka\s*(rate|bhav|daam|price)\b",
+            q, re.IGNORECASE
+        ):
+            return INTENT_MARKET_PRICE, crops_mentioned
 
         for intent, patterns in _INTENT_PATTERNS:
             for pat in patterns:
                 try:
-                    if re.search(pat, q, re.IGNORECASE):
+                    if re.search(pat, q, re.IGNORECASE | re.UNICODE):
+                        # Don't fire GREETING for long messages
                         if intent == INTENT_GREETING and len(q) > 50:
                             continue
                         return intent, crops_mentioned
                 except re.error:
                     continue
 
+        # Context-aware fallbacks ─────────────────────────────────
         if crops_mentioned:
+            q_words = set(q.split())
+            if q_words & {"kab", "when", "time", "samay", "date", "mahina", "month"}:
+                return INTENT_SOWING, crops_mentioned
+            if q_words & {"kat", "katai", "harvest", "ready", "pak", "paka"}:
+                return INTENT_HARVEST, crops_mentioned
+            if q_words & {"rakh", "store", "storage", "bhandar", "godown"}:
+                return INTENT_STORAGE, crops_mentioned
+            if q_words & {"labh", "profit", "kamayi", "lagat", "cost", "income"}:
+                return INTENT_PROFIT_CALC, crops_mentioned
             return INTENT_CROP_INFO, crops_mentioned
 
         return INTENT_GENERAL, crops_mentioned
@@ -1413,6 +1724,84 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     seen.add(r["id"])
                     found.append(r)
         return found[:5]
+
+    def _extract_query_entities(self, query: str) -> Dict[str, Any]:
+        """
+        Extract structured entities from free-form farming queries.
+
+        Returns dict with:
+          das       – days after sowing (int), e.g. "40 din baad" → 40
+          quantity  – numeric quantity mentioned, e.g. "50 kg" → (50, 'kg')
+          area      – land area mentioned, e.g. "2 bigha" → (2, 'bigha')
+          stage     – crop growth stage keywords detected
+          time_ref  – temporal reference ('morning', 'evening', 'now', 'next_week')
+          action    – primary verb/action detected
+        """
+        q = query.lower()
+        entities: Dict[str, Any] = {}
+
+        # Days after sowing / emergence
+        das_match = re.search(
+            r"(\d+)\s*(?:din|days?|dino)\s*(?:baad|after|mein|me|pehle|before)",
+            q
+        )
+        if das_match:
+            entities["das"] = int(das_match.group(1))
+
+        # Quantity with unit
+        qty_match = re.search(
+            r"(\d+(?:\.\d+)?)\s*(kg|gram|gm|ml|litre|liter|quintal|kuntal|ton|tonne|bag|bora)",
+            q
+        )
+        if qty_match:
+            entities["quantity"] = (float(qty_match.group(1)), qty_match.group(2))
+
+        # Land area
+        area_match = re.search(
+            r"(\d+(?:\.\d+)?)\s*(bigha|beegha|hectare|hec|ha|acre|katta|biswa)",
+            q
+        )
+        if area_match:
+            entities["area"] = (float(area_match.group(1)), area_match.group(2))
+
+        # Growth stage keywords
+        stage_keywords = {
+            "germination": ["germination", "ankur", "अंकुर", "jamav", "ug"],
+            "vegetative":  ["vegetative", "jad", "patti", "growth", "tillering", "tiller"],
+            "flowering":   ["flower", "phool", "फूल", "booting", "heading"],
+            "grain_fill":  ["grain", "dana", "दाना", "fill", "maturity", "pak"],
+            "harvest":     ["harvest", "katai", "कटाई", "ready", "taiyar"],
+        }
+        for stage, kws in stage_keywords.items():
+            if any(kw in q for kw in kws):
+                entities["stage"] = stage
+                break
+
+        # Time reference
+        if any(w in q for w in ("subah", "morning", "sveere", "6 baje", "7 baje")):
+            entities["time_ref"] = "morning"
+        elif any(w in q for w in ("shaam", "evening", "4 baje", "5 baje")):
+            entities["time_ref"] = "evening"
+        elif any(w in q for w in ("abhi", "now", "turant", "immediately")):
+            entities["time_ref"] = "now"
+        elif any(w in q for w in ("kal", "tomorrow", "parson", "next week", "agle hafte")):
+            entities["time_ref"] = "soon"
+
+        # Primary action
+        action_map = {
+            "irrigate": ["pani de", "sinchai", "irrigat", "water"],
+            "spray":    ["spray", "chidkav", "chidakav", "chidkaav"],
+            "apply":    ["daalein", "daalo", "apply", "dena", "lagao"],
+            "sow":      ["boun", "lagaun", "buwai", "sow", "plant"],
+            "harvest":  ["kat", "harvest", "katai"],
+            "sell":     ["becho", "sell", "bechna"],
+        }
+        for action, kws in action_map.items():
+            if any(kw in q for kw in kws):
+                entities["action"] = action
+                break
+
+        return entities
 
     # ── Live data context builder ─────────────────────────────────
 
@@ -1612,6 +2001,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         loc = ctx.display_name
         if ctx.state and ctx.state not in loc:
             loc = f"{ctx.display_name}, {ctx.state}"
+
+        # ── Extract structured entities from the query ───────────
+        qe = self._extract_query_entities(query)
 
         # Parse live values from context_block
         def _extract(pattern: str, default: str = "—") -> str:
@@ -1886,105 +2278,1054 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # ── PEST / DISEASE ────────────────────────────────────────
         if intent == INTENT_PEST_DISEASE:
             crop_hint = f" ({crops[0]['name']})" if crops else ""
-            body = {
-                "hi": (
-                    f"🐛 **फसल रोग/कीट उपचार{crop_hint}**\n\n"
-                    f"📸 **Step 1:** KrishiRaksha में फोटो अपलोड करें (App में 🐛 वाला बटन)\n"
-                    f"   → EfficientNet-B3 AI से 150+ रोगों की पहचान होगी\n\n"
-                    f"🌿 **तुरंत जैविक उपाय:**\n"
-                    f"• नीम तेल 5ml/L पानी — माहू, सफेद मक्खी, थ्रिप्स\n"
-                    f"• Trichoderma viride — मिट्टी जनित रोग\n"
-                    f"• पीला/नीला sticky trap — कीट निगरानी\n\n"
-                    f"💊 **रासायनिक (ICAR package of practices के अनुसार):**\n"
-                    f"• Imidacloprid 70WG — माहू, सफेद मक्खी\n"
-                    f"• Mancozeb+Metalaxyl — झुलसा, डाउनी mildew\n"
-                    f"• Propiconazole — फफूंदी रोग\n\n"
-                    f"📞 **KVK/ICAR सलाह:** 1800-180-1551"
-                ),
-                "en": (
-                    f"🐛 **Pest/Disease Treatment{crop_hint}**\n\n"
-                    f"📸 **Step 1:** Upload photo in KrishiRaksha (🐛 button in app)\n"
-                    f"   → EfficientNet-B3 AI identifies 150+ diseases\n\n"
-                    f"🌿 **Immediate organic remedies:**\n"
-                    f"• Neem oil 5ml/L — aphids, whitefly, thrips\n"
-                    f"• Trichoderma viride — soil-borne diseases\n"
-                    f"• Yellow/blue sticky traps — pest monitoring\n\n"
-                    f"💊 **Chemical (ICAR recommended dosage):**\n"
-                    f"• Imidacloprid 70WG — aphids, whitefly\n"
-                    f"• Mancozeb+Metalaxyl — blight, downy mildew\n"
-                    f"• Propiconazole — fungal diseases\n\n"
-                    f"📞 **KVK/ICAR advice:** 1800-180-1551"
-                ),
-            }.get(lang, f"Upload leaf photo in KrishiRaksha for disease ID. Use neem oil first. Call 1800-180-1551.")
+            crop_id   = crops[0].get("id", "").lower() if crops else ""
+
+            # Crop-specific common diseases & treatment (ICAR POP)
+            _DISEASE_DB: Dict[str, List[Tuple[str, str, str]]] = {
+                # crop → [(disease_hindi, symptom, treatment)]
+                "wheat": [
+                    ("पीला रतुआ (Yellow Rust)", "पत्तियों पर पीली धारियां — ठंड में फैलता है",
+                     "Propiconazole 25EC 0.1% spray | Tebuconazole 250EC 0.1%"),
+                    ("भूरा रतुआ (Brown Rust)", "पत्तियों पर भूरे-नारंगी धब्बे",
+                     "Mancozeb 0.25% | Propiconazole 0.1% at first sign"),
+                    ("करनाल बंट (Karnal Bunt)", "दाने काले-बदबूदार", "Certified seed + Carboxin 75WP seed treatment"),
+                    ("माहू (Aphid)", "पत्तियां मुड़ी, चिपचिपी — रस चूसता है",
+                     "Imidacloprid 17.8SL 0.5ml/L या Dimethoate 30EC 1.5ml/L"),
+                ],
+                "rice": [
+                    ("ब्लास्ट (Blast)", "पत्तियों पर हीरे के आकार के धब्बे — नेक ब्लास्ट में गर्दन टूटती है",
+                     "Tricyclazole 75WP 0.6g/L या Isoprothiolane 40EC 1.5ml/L"),
+                    ("शीथ ब्लाइट", "निचली पत्तियों पर हरे-भूरे धब्बे",
+                     "Hexaconazole 5SC 2ml/L | Propiconazole 0.1%"),
+                    ("BPH (Brown Planthopper)", "पौध पीला-सूख जाना (Hopper Burn)",
+                     "Buprofezin 25SC 1ml/L | Clothianidin 50WDG 0.3g/L"),
+                    ("तना छेदक (Stem Borer)", "Dead heart/White ear — तने में छेद",
+                     "Chlorpyriphos 20EC 2.5ml/L | Cartap 50SP 1g/L"),
+                ],
+                "maize": [
+                    ("Fall Armyworm (FAW)", "पत्तियों में छेद, केंद्र में देखो — नया खतरा",
+                     "Emamectin Benzoate 5SG 0.4g/L या Chlorantraniliprole 0.4ml/L"),
+                    ("तना सड़न (Stalk Rot)", "पके समय पौध गिर जाना",
+                     "Potassium fertilizer balance | avoid waterlogging"),
+                    ("मेड़ तुड़ाई (Downy Mildew)", "पत्तियां हरी-पीली धारियां",
+                     "Metalaxyl 35SD seed treatment + Mancozeb 0.25% spray"),
+                ],
+                "mustard": [
+                    ("सफेद रतुआ (White Rust)", "पत्तियों पर सफेद धब्बे, पुष्पक्रम विकृत",
+                     "Mancozeb 0.25% या Metalaxyl+Mancozeb 0.25% 2-3 बार"),
+                    ("तुलसीता (Downy Mildew)", "पत्तियां नीचे से सफेद-भूरे धब्बे",
+                     "Ridomil MZ 0.2% spray at first sign"),
+                    ("माहू (Aphid)", "फूलने के समय पुष्पों पर — उपज 30% कम",
+                     "Oxydemeton methyl 25EC 1ml/L या Dimethoate 30EC 1.5ml/L"),
+                ],
+                "soybean": [
+                    ("पर्ण धब्बा (Leaf Spot)", "भूरे-पीले गोल धब्बे",
+                     "Mancozeb+Carbendazim 0.2% spray"),
+                    ("तना सड़न (Stem Rot)", "जड़ के पास सफेद फफूंदी",
+                     "Soil drenching with Carbendazim 0.1%"),
+                    ("गर्डल बीटल", "तने पर गोल निशान — जड़ टूट जाती है",
+                     "Chlorpyriphos 20EC 2ml/L foliar"),
+                ],
+                "cotton": [
+                    ("गुलाबी सुंडी (Pink Bollworm)", "फूल-फल में छेद — डोडे काटे",
+                     "Spinosad 45SC 0.3ml/L | Emamectin 0.4g/L | Pheromone traps 5/ha"),
+                    ("सफेद मक्खी (Whitefly)", "पत्तियां पीली-मुड़ी — Virus वाहक",
+                     "Imidacloprid 0.3ml/L (seed treatment preferred) | Neem oil 5ml/L"),
+                    ("अमेरिकन सुंडी (Bollworm)", "डोडे में छेद",
+                     "Chlorantraniliprole 18.5SC 0.3ml/L | Bt spray"),
+                ],
+                "tomato": [
+                    ("झुलसा (Early Blight)", "पत्तियों पर भूरे-काले गोल छल्लेदार धब्बे",
+                     "Mancozeb 0.25% + Copper Oxychloride 0.3% spray 10 दिन में"),
+                    ("late Blight", "पत्तियां काली पड़ जाती हैं — ठंड+नमी में फैलता है",
+                     "Metalaxyl+Mancozeb (Ridomil) 0.2% spray immediately"),
+                    ("फल छेदक (Fruitborer)", "फलों में छेद",
+                     "Spinosad 0.3ml/L | Pheromone trap 15/ha"),
+                ],
+                "potato": [
+                    ("पिछेता झुलसा (Late Blight)", "पत्तियां भूरी-काली, सड़ाँव गंध",
+                     "Cymoxanil+Mancozeb 0.3% या Chlorothalonil 0.2% हर 5-7 दिन"),
+                    ("आगेता झुलसा (Early Blight)", "पत्तियों पर गोल भूरे धब्बे",
+                     "Mancozeb 0.25% spray preventively"),
+                ],
+            }
+
+            # Try to identify which disease/pest is being asked about
+            q_lower = query.lower()
+            pest_keywords = {
+                "yellow": "पीली पत्तियां — Yellow Rust/Chlorosis",
+                "pili":   "पीली पत्तियां — Yellow Rust/Chlorosis",
+                "blast":  "Blast disease",
+                "rust":   "Rust disease",
+                "aphid":  "Aphid/Mahu",
+                "mahu":   "Aphid/Mahu",
+                "maahu":  "Aphid/Mahu",
+                "sundi":  "Bollworm/Caterpillar",
+                "boll":   "Bollworm",
+                "whitefly":"Whitefly",
+                "mite":   "Spider mite",
+                "stem borer": "Stem borer",
+                "tana":   "Stem borer",
+                "jad":    "Root rot",
+                "rot":    "Root/Stem rot",
+                "wilt":   "Wilting disease",
+                "mur":    "Wilting",
+            }
+            detected_pest = next(
+                (label for kw, label in pest_keywords.items() if kw in q_lower), None
+            )
+
+            if crop_id and crop_id in _DISEASE_DB:
+                diseases = _DISEASE_DB[crop_id]
+                crop_name_display = crops[0]["name"] if crops else crop_id.title()
+
+                # If specific pest detected, show that one first
+                if detected_pest:
+                    relevant = [d for d in diseases if any(
+                        kw in d[0].lower() or kw in d[1].lower()
+                        for kw in q_lower.split()
+                    )] or diseases[:2]
+                else:
+                    relevant = diseases[:3]
+
+                body = {
+                    "hi": (
+                        f"🐛 **{crop_name_display} — कीट/रोग उपचार ({loc})**\n\n"
+                        + "".join(
+                            f"**{i+1}. {dis}**\n"
+                            f"   🔍 लक्षण: {sym}\n"
+                            f"   💊 उपचार: {trt}\n\n"
+                            for i, (dis, sym, trt) in enumerate(relevant)
+                        )
+                        + f"📸 **फोटो पहचान:** KrishiRaksha में तस्वीर अपलोड करें → AI से 150+ रोग पहचान\n"
+                        + f"🌿 **जैविक विकल्प:** नीम तेल 5ml/L पानी | Trichoderma viride 2.5 kg/ha\n\n"
+                        + (f"⚠️ **स्प्रे रोकें** — अगले 48 घंटे बारिश संभावित\n" if wc.spray_blocked else
+                           f"✅ **स्प्रे के लिए उचित समय:** सुबह 7-10 बजे या शाम 4-6 बजे\n")
+                        + f"\n📞 KVK/ICAR: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"🐛 **{crop_name_display} — Pest/Disease Treatment ({loc})**\n\n"
+                        + "".join(
+                            f"**{i+1}. {dis}**\n"
+                            f"   🔍 Symptoms: {sym}\n"
+                            f"   💊 Treatment: {trt}\n\n"
+                            for i, (dis, sym, trt) in enumerate(relevant)
+                        )
+                        + f"📸 **Photo ID:** Upload photo in KrishiRaksha → AI identifies 150+ diseases\n"
+                        + f"🌿 **Organic:** Neem oil 5ml/L | Trichoderma viride 2.5 kg/ha\n\n"
+                        + (f"⚠️ **Hold spray** — rain in 48h\n" if wc.spray_blocked else
+                           f"✅ **Best spray time:** 7-10 AM or 4-6 PM\n")
+                        + f"\n📞 KVK/ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, f"{crop_name_display} diseases: {'; '.join(d[0] for d in relevant[:2])}. Spray {relevant[0][2] if relevant else 'Mancozeb 0.25%'}.")
+            else:
+                # Generic pest/disease response
+                body = {
+                    "hi": (
+                        f"🐛 **फसल रोग/कीट उपचार{crop_hint} — {loc}**\n\n"
+                        f"📸 **Step 1:** KrishiRaksha में फोटो अपलोड करें (🐛 बटन)\n"
+                        f"   → EfficientNet-B3 AI से 150+ रोगों की पहचान\n\n"
+                        f"🌿 **तुरंत जैविक उपाय:**\n"
+                        f"• नीम तेल 5ml/L — माहू, सफेद मक्खी, थ्रिप्स\n"
+                        f"• Trichoderma viride 2.5 kg/ha — जड़ सड़न\n"
+                        f"• पीला/नीला sticky trap — कीट निगरानी\n\n"
+                        f"💊 **रासायनिक (ICAR अनुशंसित):**\n"
+                        f"• Imidacloprid 17.8SL 0.5ml/L — माहू, सफेद मक्खी\n"
+                        f"• Mancozeb 0.25% — फफूंद रोग\n"
+                        f"• Propiconazole 0.1% — रतुआ, ब्लाइट\n"
+                        f"• Chlorpyriphos 20EC 2ml/L — तना छेदक\n\n"
+                        + (f"⚠️ **स्प्रे न करें** — 48 घंटे बारिश संभावित\n" if wc.spray_blocked else "")
+                        + f"📞 KVK/ICAR: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"🐛 **Pest/Disease Treatment{crop_hint} — {loc}**\n\n"
+                        f"📸 **Step 1:** Upload photo in KrishiRaksha (🐛 button)\n"
+                        f"   → EfficientNet-B3 AI identifies 150+ diseases\n\n"
+                        f"🌿 **Immediate organic remedies:**\n"
+                        f"• Neem oil 5ml/L — aphids, whitefly, thrips\n"
+                        f"• Trichoderma viride 2.5 kg/ha — root rot\n"
+                        f"• Yellow/blue sticky traps — pest monitoring\n\n"
+                        f"💊 **Chemical (ICAR recommended):**\n"
+                        f"• Imidacloprid 17.8SL 0.5ml/L — aphids, whitefly\n"
+                        f"• Mancozeb 0.25% — fungal diseases\n"
+                        f"• Propiconazole 0.1% — rust, blight\n"
+                        f"• Chlorpyriphos 20EC 2ml/L — stem borers\n\n"
+                        + (f"⚠️ **Hold spray** — rain forecast in 48h\n" if wc.spray_blocked else "")
+                        + f"📞 KVK/ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, "Upload leaf photo in KrishiRaksha for disease ID. Use neem oil first. Call 1800-180-1551.")
             return alert_prefix + spray_warning + body
 
         # ── FERTILIZER ────────────────────────────────────────────
         if intent == INTENT_FERTILIZER:
             crop_hint = f" for {crops[0]['name']}" if crops else ""
-            body = {
-                "hi": (
-                    f"🌱 **खाद/उर्वरक सुझाव{crop_hint}**\n\n"
-                    f"**ICAR अनुशंसित:**\n"
-                    f"• **Urea (46% N):** 217 kg/ha → 100 kg N\n"
-                    f"• **DAP (18-46-0):** 220 kg/ha → 100 kg P + 40 kg N\n"
-                    f"• **MOP (60% K):** 167 kg/ha → 100 kg K\n\n"
-                    f"**⚡ Tips:**\n"
-                    f"• पहले मिट्टी जांच करवाएं — soilhealth.dac.gov.in\n"
-                    f"• Neem-coated urea (NCU) — 10% बचत\n"
-                    f"• Split doses: 50% बुवाई पर, 25%-25% बाद में\n"
-                    f"• जैविक+रासायनिक: 50-50 मिश्रण से लागत घटाएं\n\n"
-                    f"📞 ICAR: 1800-180-1551"
-                ),
-                "en": (
-                    f"🌱 **Fertiliser Recommendations{crop_hint}**\n\n"
-                    f"**ICAR recommended:**\n"
-                    f"• **Urea (46% N):** 217 kg/ha → 100 kg N\n"
-                    f"• **DAP (18-46-0):** 220 kg/ha → 100 kg P + 40 kg N\n"
-                    f"• **MOP (60% K):** 167 kg/ha → 100 kg K\n\n"
-                    f"**Tips:**\n"
-                    f"• Get soil tested first — soilhealth.dac.gov.in\n"
-                    f"• Neem-coated urea (NCU) — saves 10% nitrogen\n"
-                    f"• Split doses: 50% at sowing, 25%+25% later\n"
-                    f"• Mix organic+chemical 50:50 to cut input cost\n\n"
-                    f"📞 ICAR: 1800-180-1551"
-                ),
-            }.get(lang, f"Fertiliser guide: Use neem-coated urea. Get soil tested first. Call 1800-180-1551.")
+            crop_id   = crops[0].get("id", "").lower() if crops else ""
+
+            # Stage-specific fertilizer schedule (ICAR package of practices)
+            _FERT_SCHEDULE: Dict[str, List[Tuple[str, str, str]]] = {
+                # crop_id → list of (timing, dose, notes)
+                "wheat": [
+                    ("बुवाई पर (Basal)", "120 kg DAP + 25 kg MOP/ha", "सारा P+K + आधा N"),
+                    ("21 DAS — CRI (पहला पानी)", "65 kg Urea/ha top-dress", "बाकी 50% N"),
+                    ("40 DAS — Tillering", "30 kg Urea/ha (foliar या top-dress)", "यदि पत्तियां पीली हों"),
+                    ("60 DAS — Jointing", "Zinc Sulphate 25 kg/ha (यदि कमी हो)", "optional"),
+                ],
+                "rice": [
+                    ("Transplanting Basal", "100 kg DAP + 50 kg MOP/ha", "पूरा P+K"),
+                    ("10-12 DAS (establishment)", "65 kg Urea/ha", "33% N"),
+                    ("25-30 DAS (active tillering)", "65 kg Urea/ha", "33% N"),
+                    ("45-50 DAS (panicle initiation)", "65 kg Urea/ha", "33% N"),
+                    ("60 DAS (optional foliar)", "Urea 1% spray if pale", "optional"),
+                ],
+                "maize": [
+                    ("Basal (Sowing)", "150 kg DAP/ha", "पूरा P + 33% N"),
+                    ("25-30 DAS (V6 stage)", "87 kg Urea/ha", "33% N top-dress"),
+                    ("45-50 DAS (VT/Tasseling)", "87 kg Urea/ha", "33% N — critical stage"),
+                ],
+                "mustard": [
+                    ("Basal (Sowing)", "75 kg DAP + 37 kg MOP/ha", "पूरा P+K + 50% N"),
+                    ("25-30 DAS (Branching)", "43 kg Urea/ha top-dress", "50% N"),
+                    ("55-60 DAS (Pre-flowering)", "Boron 1g/L foliar spray", "pod set improvement"),
+                ],
+                "gram": [
+                    ("Basal", "50 kg DAP + Rhizobium + PSB culture", "P + biofert"),
+                    ("25-30 DAS (Branching)", "20 kg Urea (only if poor growth)", "minimal N"),
+                    ("55-60 DAS (Pre-flowering)", "Borax 1.5 kg/ha foliar", "pod set"),
+                ],
+                "soybean": [
+                    ("Basal", "125 kg DAP + 50 kg MOP + Rhizobium", "पूरा P+K + biofert"),
+                    ("20-25 DAS", "Micronutrient: Zinc 25 kg/ha (if deficient)", "optional"),
+                    ("45 DAS (Flowering)", "Potash foliar 1% if lodging", "optional"),
+                ],
+                "cotton": [
+                    ("Basal", "75 kg DAP + 25 kg MOP/ha", "P+K base"),
+                    ("30 DAS (Squaring)", "65 kg Urea/ha", "N for vegetative"),
+                    ("60 DAS (Boll development)", "65 kg Urea + 25 kg MOP/ha", "N+K for bolls"),
+                    ("90 DAS (Boll opening)", "Potash 1% foliar", "quality improvement"),
+                ],
+                "potato": [
+                    ("Planting", "200 kg DAP + 120 kg MOP/ha", "full P+K"),
+                    ("25-30 DAS (earthing up)", "100 kg Urea/ha", "50% N"),
+                    ("50-55 DAS (tuber init)", "50 kg Urea/ha", "remaining N"),
+                    ("75 DAS (bulking)", "SOP 100 kg/ha foliar or soil", "quality K"),
+                ],
+            }
+
+            # Use DAS entity to give stage-specific advice
+            das = qe.get("das")
+            stage = qe.get("stage")
+
+            if crop_id and crop_id in _FERT_SCHEDULE:
+                schedule = _FERT_SCHEDULE[crop_id]
+                crop_name_display = crops[0]["name"] if crops else crop_id.title()
+
+                # If DAS mentioned, give targeted advice for that stage
+                if das is not None:
+                    # Find closest schedule entry
+                    best_entry = schedule[-1]  # default last
+                    for entry in schedule:
+                        # Extract DAS number from timing string if present
+                        das_m = re.search(r"(\d+)\s*DAS", entry[0])
+                        if das_m and int(das_m.group(1)) <= das:
+                            best_entry = entry
+                    timing, dose, notes = best_entry
+                    body = {
+                        "hi": (
+                            f"🌱 **{crop_name_display} — {das} DAS पर खाद ({loc})**\n\n"
+                            f"📅 **अभी का चरण:** {timing}\n"
+                            f"💊 **अनुशंसित खाद:** {dose}\n"
+                            f"📝 **नोट:** {notes}\n\n"
+                            f"**ICAR पूरा कार्यक्रम:**\n"
+                            + "\n".join(f"• {t}: {d} — {n}" for t, d, n in schedule)
+                            + f"\n\n⚠️ खाद डालने से पहले: नमी जरूरी — सूखे में न डालें\n"
+                            + (f"⛔ अगले {wc.forecast_3day} में बारिश — खाद डालना ठीक है" if not wc.spray_blocked else "⚠️ बारिश की संभावना — 48 घंटे रुकें")
+                            + f"\n\n📞 ICAR: 1800-180-1551"
+                        ),
+                        "en": (
+                            f"🌱 **{crop_name_display} — Fertiliser at {das} DAS ({loc})**\n\n"
+                            f"📅 **Current stage:** {timing}\n"
+                            f"💊 **Recommended dose:** {dose}\n"
+                            f"📝 **Note:** {notes}\n\n"
+                            f"**Full ICAR schedule:**\n"
+                            + "\n".join(f"• {t}: {d} — {n}" for t, d, n in schedule)
+                            + f"\n\n⚠️ Apply only when soil is moist\n"
+                            + (f"⛔ Rain forecast: good time for fertiliser" if not wc.spray_blocked else "⚠️ Rain in 48h — wait before applying urea")
+                            + f"\n\n📞 ICAR: 1800-180-1551"
+                        ),
+                    }.get(lang, f"{crop_name_display} at {das} DAS: apply {dose}.")
+                else:
+                    # No DAS — give full schedule
+                    body = {
+                        "hi": (
+                            f"🌱 **{crop_name_display} खाद कार्यक्रम (ICAR) — {loc}**\n\n"
+                            + "\n".join(f"**{i+1}. {t}**\n   • {d}\n   • {n}" for i, (t, d, n) in enumerate(schedule))
+                            + f"\n\n💡 **सामान्य नियम:**\n"
+                            f"• Neem Coated Urea (NCU) — 8-10% N बचत\n"
+                            f"• मिट्टी जांच के बाद ही खाद डालें\n"
+                            f"• सिंचाई के बाद top-dress करें\n"
+                            + (f"\n⚠️ बारिश संभावित — 48 घंटे रुकें" if wc.spray_blocked else "")
+                            + f"\n\n📞 ICAR: 1800-180-1551"
+                        ),
+                        "en": (
+                            f"🌱 **{crop_name_display} Fertiliser Schedule (ICAR) — {loc}**\n\n"
+                            + "\n".join(f"**{i+1}. {t}**\n   • {d}\n   • {n}" for i, (t, d, n) in enumerate(schedule))
+                            + f"\n\n💡 **General rules:**\n"
+                            f"• Use neem-coated urea (NCU) — saves 8-10% N\n"
+                            f"• Always get soil tested first\n"
+                            f"• Apply after irrigation, not before\n"
+                            + (f"\n⚠️ Rain forecast — wait 48h" if wc.spray_blocked else "")
+                            + f"\n\n📞 ICAR: 1800-180-1551"
+                        ),
+                    }.get(lang, f"Full {crop_name_display} fertiliser schedule: " + "; ".join(f"{t}:{d}" for t,d,n in schedule))
+            else:
+                # Generic fertiliser response
+                body = {
+                    "hi": (
+                        f"🌱 **खाद/उर्वरक सुझाव{crop_hint} — {loc}**\n\n"
+                        f"**ICAR अनुशंसित मात्रा:**\n"
+                        f"• **Urea (46% N):** 217 kg/ha → 100 kg N देने के लिए\n"
+                        f"• **DAP (18-46-0):** 220 kg/ha → 100 kg P + 40 kg N\n"
+                        f"• **MOP (60% K):** 167 kg/ha → 100 kg K\n"
+                        f"• **Zinc Sulphate:** 25 kg/ha (यदि कमी हो)\n\n"
+                        f"**Split Dose नियम:**\n"
+                        f"• 50% N बुवाई पर + 25% N 25 DAS + 25% N 45 DAS\n"
+                        f"• पूरा P और K — बुवाई पर ही\n\n"
+                        f"💡 मिट्टी जांच: soilhealth.dac.gov.in\n"
+                        + (f"⚠️ अगले 48 घंटे में बारिश — Urea top-dress रोकें\n" if wc.spray_blocked else "")
+                        + f"📞 ICAR: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"🌱 **Fertiliser Recommendations{crop_hint} — {loc}**\n\n"
+                        f"**ICAR standard doses:**\n"
+                        f"• **Urea (46% N):** 217 kg/ha → 100 kg N\n"
+                        f"• **DAP (18-46-0):** 220 kg/ha → 100 kg P + 40 kg N\n"
+                        f"• **MOP (60% K):** 167 kg/ha → 100 kg K\n"
+                        f"• **Zinc Sulphate:** 25 kg/ha (if Zn deficient)\n\n"
+                        f"**Split dose rule:**\n"
+                        f"• 50% N at sowing + 25% at 25 DAS + 25% at 45 DAS\n"
+                        f"• All P and K — basal at sowing\n\n"
+                        f"💡 Soil test: soilhealth.dac.gov.in\n"
+                        + (f"⚠️ Rain in 48h — delay Urea top-dress\n" if wc.spray_blocked else "")
+                        + f"📞 ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, f"Fertiliser: Urea 217 kg/ha, DAP 220 kg/ha, MOP 167 kg/ha. Split 50%+25%+25% N.")
             return alert_prefix + spray_warning + body
 
         # ── IRRIGATION ────────────────────────────────────────────
         if intent == INTENT_IRRIGATION:
-            et0      = _extract(r"ET0 ([\d.]+)mm/day")
+            et0       = _extract(r"ET0 ([\d.]+)mm/day")
             irr_lines = [l for l in context_block.splitlines() if "IRRIGATE" in l]
+
+            # ── Crop-specific irrigation schedule (ICAR data) ──────────────
+            # Maps crop id → (interval_days, quantity_mm, critical_stages)
+            _CROP_IRR_SCHEDULE = {
+                "wheat":     (21, "50-60", "CRI (21 DAS), tillering (40 DAS), jointing (60 DAS), flowering (80 DAS), grain fill (100 DAS)"),
+                "gehu":      (21, "50-60", "बुवाई के 21, 40, 60, 80, 100 दिन बाद — 5-6 सिंचाई"),
+                "rice":      (3,  "50-70", "निरंतर 5cm जलस्तर या AWD (3-4 दिन सूखने पर)"),
+                "paddy":     (3,  "50-70", "Continuous flooding or AWD every 3-4 days"),
+                "maize":     (10, "50-60", "तस्सल निकलने (V6), फूल (VT), दाना भरना (R2-R3) — 3 महत्वपूर्ण"),
+                "sugarcane": (10, "50-75", "germination (7-15 DAS), tillering, grand growth, maturity"),
+                "mustard":   (25, "40-50", "बुवाई के 25-30 दिन बाद (branching), 55-60 दिन (flowering) — 2 सिंचाई"),
+                "cotton":    (14, "50-60", "squaring, boll formation, boll opening — avoid excess"),
+                "soybean":   (14, "40-50", "vegetative (V3), flowering (R1), pod fill (R3) — 3 critical"),
+                "potato":    (7,  "40-50", "planting to emergence, tuber initiation, bulking — every 7-10 days"),
+                "tomato":    (7,  "35-50", "transplanting, flowering, fruiting — every 5-7 days"),
+                "gram":      (30, "40",    "बुवाई के 30-35 दिन (branching), 60-65 दिन (flowering) — 2 सिंचाई"),
+                "chana":     (30, "40",    "शाखाएं निकलने (30 DAS) + फूल (60 DAS) — 2 सिंचाई"),
+            }
+
+            # Detect which crop is asked about
+            crop_id = None
+            if crops:
+                crop_id = crops[0].get("id", "").lower()
+            else:
+                q_lower = query.lower()
+                for k in _CROP_IRR_SCHEDULE:
+                    if k in q_lower:
+                        crop_id = k
+                        break
+                # Aliases
+                if not crop_id:
+                    if any(w in q_lower for w in ("gehu", "gehun", "गेहूँ", "गेहू", "wheat")):
+                        crop_id = "wheat"
+                    elif any(w in q_lower for w in ("dhan", "chawal", "dhaan", "धान", "rice", "paddy")):
+                        crop_id = "rice"
+                    elif any(w in q_lower for w in ("makka", "maize", "मक्का", "corn")):
+                        crop_id = "maize"
+
+            if crop_id and crop_id in _CROP_IRR_SCHEDULE:
+                interval, qty_mm, stages = _CROP_IRR_SCHEDULE[crop_id]
+                crop_name_display = crops[0]["name"] if crops else crop_id.title()
+
+                # Rain check — reduce need if rain expected
+                rain_note = ""
+                if wc.rain_next_3d_mm and wc.rain_next_3d_mm > 20:
+                    rain_note = (
+                        f"\n\n⚠️ अगले 3 दिनों में **{wc.rain_next_3d_mm:.0f}mm** बारिश संभावित — "
+                        f"सिंचाई {interval//2} दिन और टालें।"
+                        if lang == "hi" else
+                        f"\n\n⚠️ Rain forecast {wc.rain_next_3d_mm:.0f}mm in 3 days — "
+                        f"delay irrigation by {interval//2} more days."
+                    )
+
+                body = {
+                    "hi": (
+                        f"💧 **{crop_name_display} की सिंचाई — {loc}**\n\n"
+                        f"🌡️ अभी: {temp}°C | ET₀: {et0} mm/दिन\n\n"
+                        f"**ICAR सिंचाई कार्यक्रम:**\n"
+                        f"• सिंचाई अंतर: **{interval} दिन**\n"
+                        f"• पानी की मात्रा: **{qty_mm} mm** प्रति सिंचाई\n"
+                        f"• महत्वपूर्ण अवस्थाएं: {stages}\n\n"
+                        f"**बचत के उपाय:**\n"
+                        f"• Drip/Sprinkler से 40% पानी बचाएं\n"
+                        f"• सुबह 6-9 बजे सिंचाई करें — वाष्पीकरण कम\n"
+                        f"• मल्चिंग से नमी बनाए रखें{rain_note}\n\n"
+                        f"📞 PM-KUSUM: 1800-180-3333 | ICAR: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"💧 **{crop_name_display} Irrigation — {loc}**\n\n"
+                        f"🌡️ Weather: {temp}°C | ET₀: {et0} mm/day\n\n"
+                        f"**ICAR Irrigation Schedule:**\n"
+                        f"• Interval: **every {interval} days**\n"
+                        f"• Quantity: **{qty_mm} mm** per irrigation\n"
+                        f"• Critical stages: {stages}\n\n"
+                        f"**Water-saving tips:**\n"
+                        f"• Drip/sprinkler saves 40% water\n"
+                        f"• Irrigate 6-9 AM to reduce evaporation\n"
+                        f"• Mulching retains soil moisture{rain_note}\n\n"
+                        f"📞 PM-KUSUM: 1800-180-3333 | ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, f"{crop_name_display}: irrigate every {interval} days, {qty_mm}mm. Stages: {stages}")
+            else:
+                # Generic irrigation response when no specific crop detected
+                body = {
+                    "hi": (
+                        f"💧 **सिंचाई सलाह — {loc}**\n\n"
+                        f"🌡️ मौसम: {temp}°C | ET₀: {et0} mm/दिन\n\n"
+                        f"**प्रमुख फसलों का सिंचाई अंतर (ICAR):**\n"
+                        f"• गेहूँ: **21 दिन** (5-6 सिंचाई पूरी फसल में)\n"
+                        f"• धान: **3-4 दिन** (AWD विधि) या निरंतर\n"
+                        f"• मक्का: **10 दिन**\n"
+                        f"• सरसों: **25-30 दिन** (केवल 2 सिंचाई)\n"
+                        f"• चना: **30 दिन** (केवल 2 सिंचाई)\n\n"
+                        f"**PM-KUSUM सोलर पंप:** 90% सब्सिडी — pmkusum.mnre.gov.in\n"
+                        + (f"⚠️ सिंचाई जरूरी: {', '.join(l.strip() for l in irr_lines[:3])}\n" if irr_lines else "")
+                        + "\n📞 PM-KUSUM: 1800-180-3333"
+                    ),
+                    "en": (
+                        f"💧 **Irrigation Advisory — {loc}**\n\n"
+                        f"🌡️ Weather: {temp}°C | ET₀: {et0} mm/day\n\n"
+                        f"**Crop irrigation intervals (ICAR):**\n"
+                        f"• Wheat: **every 21 days** (5-6 irrigations total)\n"
+                        f"• Rice/Paddy: **AWD every 3-4 days** or continuous\n"
+                        f"• Maize: **every 10 days**\n"
+                        f"• Mustard: **every 25-30 days** (only 2 irrigations)\n"
+                        f"• Gram: **every 30 days** (only 2 irrigations)\n\n"
+                        f"**PM-KUSUM Solar Pump:** 90% subsidy — pmkusum.mnre.gov.in\n"
+                        + (f"⚠️ Irrigate: {', '.join(l.strip() for l in irr_lines[:3])}\n" if irr_lines else "")
+                        + "\n📞 PM-KUSUM: 1800-180-3333"
+                    ),
+                }.get(lang, f"Irrigation: ET0={et0}mm/day. Use drip/sprinkler. PM-KUSUM 90% subsidy.")
+            return alert_prefix + body
+
+        # ── SOWING ───────────────────────────────────────────────
+        if intent == INTENT_SOWING:
+            # Comprehensive sowing calendar (ICAR + state KVK data)
+            # key → (sowing_window, seed_rate_kg_ha, spacing_cm, depth_cm, varieties)
+            _SOWING_CALENDAR = {
+                "wheat": {
+                    "window_hi": "नवंबर 1-30 (उत्तर भारत) | अक्टूबर (पहाड़ी क्षेत्र)",
+                    "window_en": "Nov 1-30 (North India) | Oct (hills) | Dec (late sowing)",
+                    "seed_rate": "100-125 kg/ha (irrigated) | 125-150 kg/ha (rainfed)",
+                    "spacing":   "20-22 cm row spacing",
+                    "depth":     "5-6 cm",
+                    "varieties_hi": "HD-2967, DBW-187, DBW-222 (उत्तर भारत) | GW-322 (गुजरात) | HI-8498 (मध्य भारत)",
+                    "varieties_en": "HD-2967, DBW-187, DBW-222 (North) | GW-322 (Gujarat) | HI-8498 (Central)",
+                    "treatment":  "Thiram 2.5g/kg + Carbendazim 2g/kg बीज उपचार",
+                },
+                "rice": {
+                    "window_hi": "जून-जुलाई (खरीफ) | नर्सरी: मई-जून",
+                    "window_en": "Jun-Jul transplanting | Nursery: May-Jun | Direct seeding: Jun",
+                    "seed_rate": "20-25 kg/ha (transplanting) | 80-100 kg/ha (direct)",
+                    "spacing":   "20×15 cm or 20×20 cm",
+                    "depth":     "2-3 cm (direct) | transplant 2-3 leaf seedlings",
+                    "varieties_hi": "Swarna (MTU-7029), Pusa-44, BPT-5204 | HYV: IR-36, Samba Mahsuri",
+                    "varieties_en": "Swarna (MTU-7029), Pusa-44, BPT-5204 | HYV: IR-36, Samba Mahsuri",
+                    "treatment":  "Carbendazim 2g/kg बीज उपचार",
+                },
+                "maize": {
+                    "window_hi": "जून-जुलाई (खरीफ) | रबी: अक्टूबर-नवंबर (दक्षिण भारत)",
+                    "window_en": "Jun-Jul (Kharif) | Oct-Nov Rabi (South India)",
+                    "seed_rate": "20-25 kg/ha (hybrid) | 15-20 kg/ha (composite)",
+                    "spacing":   "60×20 cm (irrigated) | 75×25 cm (rainfed)",
+                    "depth":     "4-5 cm",
+                    "varieties_hi": "DKC-9144, Pioneer-3401, Pusa HM-4 | देसी: Amber",
+                    "varieties_en": "DKC-9144, Pioneer-3401, Pusa HM-4 | Open pollinated: Amber",
+                    "treatment":  "Imidacloprid 600 FS @ 4ml/kg",
+                },
+                "mustard": {
+                    "window_hi": "अक्टूबर 1-30 (उत्तर भारत) | देर बुवाई: नवंबर 15 तक",
+                    "window_en": "Oct 1-30 (North India) | Late sowing: up to Nov 15",
+                    "seed_rate": "4-5 kg/ha (irrigated) | 5-6 kg/ha (rainfed)",
+                    "spacing":   "30-45 cm row spacing | 10-15 cm plant spacing",
+                    "depth":     "1-2 cm",
+                    "varieties_hi": "Pusa Bold (B-54), NRCDR-2, RH-749, Varuna",
+                    "varieties_en": "Pusa Bold (B-54), NRCDR-2, RH-749, Varuna",
+                    "treatment":  "Thiram 2.5g/kg",
+                },
+                "gram": {
+                    "window_hi": "अक्टूबर 25 - नवंबर 20",
+                    "window_en": "Oct 25 - Nov 20 (Rabi season)",
+                    "seed_rate": "75-80 kg/ha (desi) | 65-70 kg/ha (kabuli)",
+                    "spacing":   "30×10 cm",
+                    "depth":     "8-10 cm",
+                    "varieties_hi": "JG-11, GNG-1958, HC-5, Pusa-372",
+                    "varieties_en": "JG-11, GNG-1958, HC-5, Pusa-372",
+                    "treatment":  "Thiram + Carbendazim (3:1) @ 3g/kg + Rhizobium culture",
+                },
+                "soybean": {
+                    "window_hi": "जून 20 - जुलाई 15 (मध्य प्रदेश, महाराष्ट्र)",
+                    "window_en": "Jun 20 - Jul 15 | Delay >Jul 15 reduces yield 15-20%",
+                    "seed_rate": "70-80 kg/ha",
+                    "spacing":   "45×5 cm",
+                    "depth":     "3-4 cm",
+                    "varieties_hi": "JS-9752, JS-335, Pusa-16, NRC-7",
+                    "varieties_en": "JS-9752, JS-335, Pusa-16, NRC-7",
+                    "treatment":  "Thiram 2.5g/kg + Rhizobium + PSB culture",
+                },
+                "cotton": {
+                    "window_hi": "मई 1 - जून 30 (उत्तर भारत: अप्रैल-मई, दक्षिण: जुलाई तक)",
+                    "window_en": "May 1 - Jun 30 | North India: Apr-May | South: up to Jul",
+                    "seed_rate": "2.5-3 kg/ha (Bt hybrid)",
+                    "spacing":   "90×60 cm (irrigated) | 60×30 cm (rainfed) for Bt",
+                    "depth":     "3-4 cm",
+                    "varieties_hi": "Bt Hybrids: RCH-2, MRC-7301, Bunny, Jadoo",
+                    "varieties_en": "Bt Hybrids: RCH-2, MRC-7301 | Desi: MCU-5, LPS-141",
+                    "treatment":  "Imidacloprid 600 FS 4ml/kg (aphid/thrip protection)",
+                },
+                "potato": {
+                    "window_hi": "अक्टूबर 15 - नवंबर 30 (उत्तर भारत)",
+                    "window_en": "Oct 15 - Nov 30 (North India) | Feb-Mar (hills)",
+                    "seed_rate": "2000-2500 kg/ha (seed tubers, 40-50g each)",
+                    "spacing":   "60×20 cm or 60×25 cm",
+                    "depth":     "8-10 cm",
+                    "varieties_hi": "Kufri Jyoti, Kufri Sinduri, Kufri Chipsona-1",
+                    "varieties_en": "Kufri Jyoti, Kufri Sinduri, Kufri Chipsona-1",
+                    "treatment":  "Mancozeb 0.3% dip + Bavistin 0.1%",
+                },
+            }
+
+            crop_id = crops[0].get("id", "").lower() if crops else None
+            # Alias normalisation
+            if not crop_id:
+                q_l = query.lower()
+                if any(w in q_l for w in ("gehu","gehun","गेहूँ","गेहू","wheat")): crop_id = "wheat"
+                elif any(w in q_l for w in ("dhan","chawal","dhaan","धान","rice","paddy")): crop_id = "rice"
+                elif any(w in q_l for w in ("makka","maize","मक्का","corn")): crop_id = "maize"
+                elif any(w in q_l for w in ("sarson","सरसों","mustard","rapeseed")): crop_id = "mustard"
+                elif any(w in q_l for w in ("chana","gram","चना","chickpea")): crop_id = "gram"
+                elif any(w in q_l for w in ("soybean","soya","सोयाबीन")): crop_id = "soybean"
+                elif any(w in q_l for w in ("cotton","kapas","कपास")): crop_id = "cotton"
+                elif any(w in q_l for w in ("potato","aloo","आलू")): crop_id = "potato"
+
+            crop_name_display = crops[0]["name"] if crops else (crop_id.title() if crop_id else "")
+
+            if crop_id and crop_id in _SOWING_CALENDAR:
+                sc_data = _SOWING_CALENDAR[crop_id]
+                body = {
+                    "hi": (
+                        f"🌱 **{crop_name_display} की बुवाई — {loc}**\n\n"
+                        f"🗓️ **बुवाई का समय:** {sc_data['window_hi']}\n\n"
+                        f"**ICAR अनुशंसित:**\n"
+                        f"• बीज दर: **{sc_data['seed_rate']}**\n"
+                        f"• पंक्ति दूरी: **{sc_data['spacing']}**\n"
+                        f"• बुवाई गहराई: **{sc_data['depth']}**\n\n"
+                        f"**किस्में:** {sc_data['varieties_hi']}\n\n"
+                        f"**बीज उपचार:** {sc_data['treatment']}\n\n"
+                        f"💡 **अभी का मौसम ({loc}):** {temp}°C — "
+                        + ("बुवाई के लिए उपयुक्त" if temp and float(temp) < 30 else "तापमान अधिक है — बुवाई के लिए प्रतीक्षा करें")
+                        + f"\n\n📞 KVK/ICAR: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"🌱 **{crop_name_display} Sowing Guide — {loc}**\n\n"
+                        f"🗓️ **Sowing window:** {sc_data['window_en']}\n\n"
+                        f"**ICAR recommended:**\n"
+                        f"• Seed rate: **{sc_data['seed_rate']}**\n"
+                        f"• Spacing: **{sc_data['spacing']}**\n"
+                        f"• Sowing depth: **{sc_data['depth']}**\n\n"
+                        f"**Varieties:** {sc_data['varieties_en']}\n\n"
+                        f"**Seed treatment:** {sc_data['treatment']}\n\n"
+                        f"💡 **Current weather ({loc}):** {temp}°C — "
+                        + ("suitable for sowing" if temp and float(temp) < 30 else "too hot — wait for temperature to drop")
+                        + f"\n\n📞 KVK/ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, f"{crop_name_display}: sow {sc_data['window_en']}. Seed rate {sc_data['seed_rate']}.")
+            else:
+                # Season-based generic advice
+                s = _current_season()
+                body = {
+                    "hi": (
+                        f"🌱 **बुवाई कैलेंडर — {loc}** ({season})\n\n"
+                        f"**खरीफ (जून-जुलाई):**\n"
+                        f"• धान: 20-25 kg/ha | मक्का: 20-25 kg/ha\n"
+                        f"• सोयाबीन: 75-80 kg/ha | कपास: 2.5 kg/ha (Bt)\n"
+                        f"• मूँगफली: 100-120 kg/ha | उड़द/मूँग: 15-20 kg/ha\n\n"
+                        f"**रबी (अक्टूबर-नवंबर):**\n"
+                        f"• गेहूँ: 100-125 kg/ha | सरसों: 4-5 kg/ha\n"
+                        f"• चना: 75-80 kg/ha | मसूर: 35-40 kg/ha\n"
+                        f"• आलू: 2000-2500 kg/ha (कंद)\n\n"
+                        f"📞 KVK सलाह: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"🌱 **Sowing Calendar — {loc}** ({season})\n\n"
+                        f"**Kharif (Jun-Jul):**\n"
+                        f"• Rice: 20-25 kg/ha | Maize: 20-25 kg/ha\n"
+                        f"• Soybean: 75-80 kg/ha | Cotton (Bt): 2.5 kg/ha\n"
+                        f"• Groundnut: 100-120 kg/ha | Urad/Moong: 15-20 kg/ha\n\n"
+                        f"**Rabi (Oct-Nov):**\n"
+                        f"• Wheat: 100-125 kg/ha | Mustard: 4-5 kg/ha\n"
+                        f"• Gram: 75-80 kg/ha | Lentil: 35-40 kg/ha\n"
+                        f"• Potato: 2000-2500 kg/ha (tubers)\n\n"
+                        f"📞 KVK advice: 1800-180-1551"
+                    ),
+                }.get(lang, "Sowing calendar: Kharif(Jun-Jul) — Rice, Maize, Cotton. Rabi(Oct-Nov) — Wheat, Mustard, Gram.")
+            return alert_prefix + body
+
+        # ── HARVEST ──────────────────────────────────────────────
+        if intent == INTENT_HARVEST:
+            _HARVEST_DATA = {
+                "wheat":     ("Mar-Apr", "अप्रैल — जब दाना कड़ा हो, नमी 20% से कम", "45 q/ha", "Combine harvester"),
+                "rice":      ("Sep-Oct", "सितंबर-अक्टूबर — 80% दाने सुनहरे हों, नमी 18-20%", "40 q/ha", "Paddy thresher"),
+                "maize":     ("Sep-Oct", "अक्टूबर — भुट्टा सूखा, नमी 25% से कम", "35 q/ha", "Maize sheller"),
+                "mustard":   ("Feb-Mar", "फरवरी-मार्च — फलियां सुनहरी-भूरी हों, 80% पकी हों", "15 q/ha", "Combine/manual"),
+                "soybean":   ("Oct", "अक्टूबर — फलियां भूरी-पीली, पत्तियां झड़ चुकी हों", "20 q/ha", "Combine/thresher"),
+                "gram":      ("Mar-Apr", "मार्च-अप्रैल — फलियां सूखी, दाने मजबूत", "12 q/ha", "Manual/thresher"),
+                "cotton":    ("Oct-Jan", "अक्टूबर से जनवरी — 3-4 picking", "20 q/ha (lint)", "Manual picking"),
+                "potato":    ("Jan-Mar", "जनवरी-मार्च — पत्तियां पीली होने पर", "200-250 q/ha", "Manual/tractor"),
+                "sugarcane": ("Nov-Mar", "नवंबर-मार्च — 12 महीने बाद", "700-800 q/ha", "Manual/harvester"),
+            }
+            crop_id = crops[0].get("id", "").lower() if crops else None
+            if not crop_id:
+                q_l = query.lower()
+                for k in _HARVEST_DATA:
+                    if k in q_l: crop_id = k; break
+            crop_name_display = crops[0]["name"] if crops else (crop_id.title() if crop_id else "")
+
+            if crop_id and crop_id in _HARVEST_DATA:
+                hw, signs_hi, exp_yield, equipment = _HARVEST_DATA[crop_id]
+                body = {
+                    "hi": (
+                        f"🌾 **{crop_name_display} की कटाई — {loc}**\n\n"
+                        f"🗓️ **कटाई का समय:** {hw}\n"
+                        f"✅ **पकने के संकेत:** {signs_hi}\n"
+                        f"📦 **अनुमानित उपज:** {exp_yield}\n"
+                        f"🚜 **उपकरण:** {equipment}\n\n"
+                        f"**कटाई के बाद:**\n"
+                        f"• तुरंत सुखाएं — नमी 12-14% तक\n"
+                        f"• साफ सुथरे बोरे में भंडारण करें\n"
+                        f"• मंडी में बेचने से पहले भाव चेक करें — agmarknet.gov.in\n\n"
+                        f"💡 अभी का मौसम: {temp}°C — "
+                        + ("कटाई के लिए ठीक" if temp and float(temp) < 35 else "बारिश/तेज धूप से फसल बचाएं")
+                        + f"\n\n📞 ICAR: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"🌾 **{crop_name_display} Harvest — {loc}**\n\n"
+                        f"🗓️ **Harvest window:** {hw}\n"
+                        f"✅ **Maturity signs:** {signs_hi}\n"
+                        f"📦 **Expected yield:** {exp_yield}\n"
+                        f"🚜 **Equipment:** {equipment}\n\n"
+                        f"**Post-harvest:**\n"
+                        f"• Dry immediately to 12-14% moisture\n"
+                        f"• Store in clean gunny bags\n"
+                        f"• Check prices at agmarknet.gov.in before selling\n\n"
+                        f"Current weather: {temp}°C\n📞 ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, f"{crop_name_display}: harvest {hw}. Expected {exp_yield}. Equipment: {equipment}.")
+            else:
+                body = {
+                    "hi": (
+                        f"🌾 **फसल कटाई कैलेंडर — {loc}**\n\n"
+                        f"• गेहूँ: मार्च-अप्रैल | धान: सितंबर-अक्टूबर\n"
+                        f"• मक्का: अक्टूबर | सरसों: फरवरी-मार्च\n"
+                        f"• सोयाबीन: अक्टूबर | चना: मार्च-अप्रैल\n"
+                        f"• कपास: अक्टूबर-जनवरी (3-4 picking)\n"
+                        f"• आलू: जनवरी-मार्च | गन्ना: नवंबर-मार्च\n\n"
+                        f"📞 ICAR: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"🌾 **Harvest Calendar — {loc}**\n\n"
+                        f"• Wheat: Mar-Apr | Rice: Sep-Oct | Maize: Oct\n"
+                        f"• Mustard: Feb-Mar | Soybean: Oct | Gram: Mar-Apr\n"
+                        f"• Cotton: Oct-Jan (3-4 picks) | Potato: Jan-Mar\n"
+                        f"• Sugarcane: Nov-Mar\n\n📞 ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, "Harvest: Wheat(Mar-Apr), Rice(Sep-Oct), Maize(Oct), Mustard(Feb-Mar).")
+            return alert_prefix + body
+
+        # ── STORAGE ──────────────────────────────────────────────
+        if intent == INTENT_STORAGE:
+            _STORAGE_DATA = {
+                "wheat":  ("12-14%", "18-24 महीने", "Aluminum phosphide 3g/quintal — घुन नियंत्रण"),
+                "rice":   ("12-14%", "12-18 महीने", "Silica gel packets + Neem leaves layer"),
+                "maize":  ("12-13%", "6-12 महीने", "Cob को अच्छे से सुखाएं — aflatoxin से बचें"),
+                "mustard":("6-8%",  "12-18 महीने", "Dry cool place, avoid sunlight"),
+                "potato": ("85-90% RH, 3-5°C", "4-6 महीने (cold storage)", "CIPC sprout inhibitor"),
+                "gram":   ("8-10%", "18-24 महीने", "Neem oil 5ml/kg grain coating"),
+                "soybean":("11-13%","12 महीने",    "Metal bin / HDPE bag, avoid moisture"),
+            }
+            crop_id = crops[0].get("id", "").lower() if crops else None
+            if not crop_id:
+                q_l = query.lower()
+                for k in _STORAGE_DATA:
+                    if k in q_l: crop_id = k; break
+
+            crop_name_display = crops[0]["name"] if crops else (crop_id.title() if crop_id else "")
+            if crop_id and crop_id in _STORAGE_DATA:
+                moisture, shelf_life, pest_ctrl = _STORAGE_DATA[crop_id]
+                body = {
+                    "hi": (
+                        f"🏪 **{crop_name_display} भंडारण — {loc}**\n\n"
+                        f"💧 **भंडारण के लिए नमी:** {moisture}\n"
+                        f"⏰ **शेल्फ लाइफ:** {shelf_life}\n"
+                        f"🐛 **कीट नियंत्रण:** {pest_ctrl}\n\n"
+                        f"**सुरक्षित भंडारण टिप्स:**\n"
+                        f"• साफ, सूखी जगह — ज़मीन से 15cm ऊपर रखें\n"
+                        f"• HDPE बैग या धातु बिन का उपयोग करें\n"
+                        f"• नियमित जाँच — घुन, फफूंदी की निशानी\n"
+                        f"• eNAM पर भाव देखकर सही समय पर बेचें\n\n"
+                        f"📞 WDRA (भंडारण): 1800-425-9110 | eNAM: 1800-270-0224"
+                    ),
+                    "en": (
+                        f"🏪 **{crop_name_display} Storage — {loc}**\n\n"
+                        f"💧 **Safe moisture content:** {moisture}\n"
+                        f"⏰ **Shelf life:** {shelf_life}\n"
+                        f"🐛 **Pest control:** {pest_ctrl}\n\n"
+                        f"**Storage tips:**\n"
+                        f"• Clean dry place — keep 15cm off ground\n"
+                        f"• Use HDPE bags or metal bins (not jute)\n"
+                        f"• Check regularly for weevils/mold\n"
+                        f"• Track eNAM prices, sell at peak\n\n"
+                        f"📞 WDRA: 1800-425-9110 | eNAM: 1800-270-0224"
+                    ),
+                }.get(lang, f"{crop_name_display}: store at {moisture} moisture. Shelf life {shelf_life}.")
+            else:
+                body = {
+                    "hi": (
+                        f"🏪 **फसल भंडारण गाइड**\n\n"
+                        f"• अनाज: 12-14% नमी पर सुखाएं\n"
+                        f"• सब्जियां: 3-5°C cold storage\n"
+                        f"• घुन रोकें: Aluminium Phosphide 3g/quintal\n"
+                        f"• HDPE बैग सबसे सुरक्षित — जूट से बेहतर\n"
+                        f"• एग्री warehousing: NWR/eNAM\n\n"
+                        f"📞 WDRA: 1800-425-9110"
+                    ),
+                    "en": (
+                        f"🏪 **Crop Storage Guide**\n\n"
+                        f"• Grains: dry to 12-14% moisture\n"
+                        f"• Vegetables: 3-5°C cold storage\n"
+                        f"• Pest control: Aluminium Phosphide 3g/quintal\n"
+                        f"• HDPE bags > jute bags for safety\n"
+                        f"• NWR/eNAM for warehouse receipts\n\n"
+                        f"📞 WDRA: 1800-425-9110"
+                    ),
+                }.get(lang, "Storage: dry to 12-14% moisture. HDPE bags. Check for weevils regularly.")
+            return alert_prefix + body
+
+        # ── ORGANIC FARMING ──────────────────────────────────────
+        if intent == INTENT_ORGANIC:
+            crop_hint = f" for {crops[0]['name']}" if crops else ""
             body = {
                 "hi": (
-                    f"💧 **सिंचाई सलाह — {loc}**\n\n"
-                    f"🌡️ मौसम: {temp}°C | ET₀: {et0} mm/दिन\n\n"
-                    f"**PM-KUSUM सोलर पंप:**\n"
-                    f"• 90% सब्सिडी (30% केंद्र + 30% राज्य + 30% बैंक)\n"
-                    f"• Apply: pmkusum.mnre.gov.in | 1800-180-3333\n\n"
-                    f"**सिंचाई विधियां:**\n"
-                    f"• Drip: 40-50% पानी बचत, 90% सब्सिडी\n"
-                    f"• Sprinkler: 30-35% बचत\n"
-                    f"• AWD (धान): 25% पानी कम, उपज समान\n\n"
-                    + (f"⚠️ सिंचाई जरूरी: {', '.join(l.strip() for l in irr_lines[:3])}\n" if irr_lines else "")
-                    + "📞 PM-KUSUM: 1800-180-3333"
+                    f"🌿 **जैविक खेती{crop_hint} — {loc}**\n\n"
+                    f"**जैविक खाद (घर पर बनाएं):**\n"
+                    f"• **वर्मीकम्पोस्ट:** 30-40 दिन | 5-10 टन/हे. | ₹2000-3000/टन बचत\n"
+                    f"• **जीवामृत:** 200L पानी + 10kg गोबर + 2kg बेसन + 2kg गुड़ + 2L गोमूत्र — 48 घंटे\n"
+                    f"• **FYM (गोबर खाद):** 10-15 टन/हे. — बुवाई से 15-20 दिन पहले\n\n"
+                    f"**जैविक कीट नियंत्रण:**\n"
+                    f"• नीम तेल 5ml/L — माहू, सफेद मक्खी\n"
+                    f"• Trichoderma viride 2.5kg/ha — जड़ सड़न\n"
+                    f"• Beauveria bassiana — Stem borer, थ्रिप्स\n"
+                    f"• पीला sticky trap — सफेद मक्खी monitor\n\n"
+                    f"**प्रमाणन:**\n"
+                    f"• PGS India (Participatory Guarantee System) — free, 3 साल\n"
+                    f"• NPOP — export के लिए | APEDA: 1800-425-9111\n\n"
+                    f"💡 जैविक प्रीमियम: 20-50% अधिक दाम — Big Basket, Organic India\n"
+                    f"📞 ICAR-NIAP: 011-25843377"
                 ),
                 "en": (
-                    f"💧 **Irrigation Advisory — {loc}**\n\n"
-                    f"🌡️ Weather: {temp}°C | ET₀: {et0} mm/day\n\n"
-                    f"**PM-KUSUM Solar Pump:** 90% subsidy — pmkusum.mnre.gov.in\n\n"
-                    f"**Methods:**\n• Drip: 40-50% water saving, 90% subsidy\n"
-                    f"• Sprinkler: 30-35% saving\n• AWD for paddy: 25% less water\n\n"
-                    + (f"⚠️ Irrigate: {', '.join(l.strip() for l in irr_lines[:3])}\n" if irr_lines else "")
-                    + "📞 PM-KUSUM: 1800-180-3333"
+                    f"🌿 **Organic Farming{crop_hint} — {loc}**\n\n"
+                    f"**Organic inputs (make at home):**\n"
+                    f"• **Vermicompost:** 30-40 days | 5-10 t/ha | saves ₹2000-3000/t\n"
+                    f"• **Jeevamrit:** 200L water + 10kg dung + 2kg chickpea flour + 2kg jaggery + 2L cow urine — 48 hrs\n"
+                    f"• **FYM:** 10-15 t/ha — apply 15-20 days before sowing\n\n"
+                    f"**Biopesticides:**\n"
+                    f"• Neem oil 5ml/L — aphids, whitefly\n"
+                    f"• Trichoderma viride 2.5kg/ha — root rot\n"
+                    f"• Beauveria bassiana — stem borers, thrips\n"
+                    f"• Yellow sticky traps — whitefly monitoring\n\n"
+                    f"**Certification:**\n"
+                    f"• PGS India — free, 3-year process\n"
+                    f"• NPOP — for export | APEDA: 1800-425-9111\n\n"
+                    f"💡 Organic premium: 20-50% higher price\n📞 ICAR: 1800-180-1551"
                 ),
-            }.get(lang, f"Irrigation: ET0={et0}mm/day. Use drip/sprinkler. PM-KUSUM 90% subsidy.")
+            }.get(lang, "Organic farming: use vermicompost, jeevamrit, neem oil, Trichoderma. PGS certification free.")
+            return alert_prefix + body
+
+        # ── SEED ─────────────────────────────────────────────────
+        if intent == INTENT_SEED:
+            crop_hint = f" ({crops[0]['name']})" if crops else ""
+            crop_id   = crops[0].get("id", "").lower() if crops else ""
+            _VARIETY_DATA = {
+                "wheat":    "DBW-187, DBW-222 (latest high-yield) | HD-2967 (popular) | Pusa Wheat-1 (heat tolerant)",
+                "rice":     "Swarna MTU-7029 (high yield) | BPT-5204 (basmati quality) | Pusa Basmati-1121 | Pusa-44",
+                "maize":    "DKC-9144 (hybrid) | Pioneer-30V92 | NK-6240 (FAO-700)",
+                "mustard":  "Pusa Bold B-54 (early) | NRCDR-2 (high oil) | RH-749 (disease resistant)",
+                "soybean":  "JS-9752 (most popular MP/Maharashtra) | NRC-7 | JS-335",
+                "gram":     "JG-11 (widely adapted) | GNG-1958 (Rajasthan) | HC-5 (Haryana)",
+                "cotton":   "Bunny BG-II | Jadoo BG-II | RCH-2 BG-II (Bt hybrids)",
+                "tomato":   "Pusa Rohini | Arka Rakshak | Pusa Hybrid-1",
+                "onion":    "Pusa Red | Bhima Super | N-2-4-1 (Maharashtra)",
+                "potato":   "Kufri Jyoti | Kufri Sinduri | Kufri Chipsona-1",
+            }
+            varieties_text = _VARIETY_DATA.get(crop_id, "ICAR/KVK से अनुशंसित बीज उपयोग करें")
+            body = {
+                "hi": (
+                    f"🌾 **बीज किस्म{crop_hint} — {loc}**\n\n"
+                    f"**अनुशंसित किस्में (ICAR):**\n{varieties_text}\n\n"
+                    f"**प्रमाणित बीज कहाँ से लें:**\n"
+                    f"• NSC (National Seeds Corporation): seedsportal.nscindia.net\n"
+                    f"• IFFCO: iffco.in | KRIBHCO: kribhco.net\n"
+                    f"• ई-नाम/CSC केंद्र — नजदीकी KVK\n\n"
+                    f"**बीज उपचार जरूरी:**\n"
+                    f"• Thiram 2.5g/kg — फफूंद नाशक\n"
+                    f"• Imidacloprid 600FS 4ml/kg — कीट नाशक\n"
+                    f"• Rhizobium culture — दलहनी फसलें\n\n"
+                    f"📞 NSC Helpline: 1800-180-7515"
+                ),
+                "en": (
+                    f"🌾 **Seed Varieties{crop_hint} — {loc}**\n\n"
+                    f"**ICAR recommended varieties:**\n{varieties_text}\n\n"
+                    f"**Where to buy certified seed:**\n"
+                    f"• NSC: seedsportal.nscindia.net\n"
+                    f"• IFFCO: iffco.in | KRIBHCO: kribhco.net\n"
+                    f"• Nearest KVK or CSC centre\n\n"
+                    f"**Seed treatment (essential):**\n"
+                    f"• Thiram 2.5g/kg — fungal protection\n"
+                    f"• Imidacloprid 4ml/kg — insect protection\n"
+                    f"• Rhizobium culture — for all pulses\n\n"
+                    f"📞 NSC Helpline: 1800-180-7515"
+                ),
+            }.get(lang, f"Seeds: {varieties_text}. Buy from NSC/IFFCO. Treat with Thiram+Imidacloprid.")
+            return alert_prefix + body
+
+        # ── INSURANCE ────────────────────────────────────────────
+        if intent == INTENT_INSURANCE:
+            body = {
+                "hi": (
+                    f"🛡️ **फसल बीमा — PMFBY — {loc}**\n\n"
+                    f"**प्रीमियम दरें:**\n"
+                    f"• खरीफ: **2%** | रबी: **1.5%** | बागवानी: **5%**\n"
+                    f"• बाकी प्रीमियम: 50% केंद्र + 50% राज्य सरकार\n\n"
+                    f"**क्लेम कैसे करें:**\n"
+                    f"1. नुकसान के **72 घंटे** में बैंक/CSC को सूचित करें\n"
+                    f"2. Crop Insurance App पर फोटो अपलोड करें\n"
+                    f"3. Land Record/Khasra Number तैयार रखें\n"
+                    f"4. नुकसान का मुआवजा: 30-60 दिन में\n\n"
+                    f"**ऑनलाइन आवेदन:**\n"
+                    f"• pmfby.gov.in | Crop Insurance App (Google Play)\n"
+                    f"• CSC Centre | नजदीकी बैंक\n\n"
+                    f"📞 PMFBY Helpline: **14447** | Crop Insurance: **1800-200-7710**"
+                ),
+                "en": (
+                    f"🛡️ **Crop Insurance — PMFBY — {loc}**\n\n"
+                    f"**Premium rates:**\n"
+                    f"• Kharif: **2%** | Rabi: **1.5%** | Horticulture: **5%**\n"
+                    f"• Balance: 50% Central + 50% State govt\n\n"
+                    f"**How to claim:**\n"
+                    f"1. Notify bank/CSC within **72 hours** of crop loss\n"
+                    f"2. Upload photos on Crop Insurance App\n"
+                    f"3. Keep Land Record/Khasra Number ready\n"
+                    f"4. Compensation within 30-60 days\n\n"
+                    f"**Apply online:**\n"
+                    f"• pmfby.gov.in | Crop Insurance App (Play Store)\n"
+                    f"• CSC centre | Nearest bank\n\n"
+                    f"📞 PMFBY Helpline: **14447** | 1800-200-7710"
+                ),
+            }.get(lang, "PMFBY: 2% Kharif, 1.5% Rabi. Claim within 72 hrs at pmfby.gov.in or call 14447.")
+            return alert_prefix + body
+
+        # ── PROFIT CALCULATION ───────────────────────────────────
+        if intent == INTENT_PROFIT_CALC:
+            crop_id   = crops[0].get("id", "").lower() if crops else None
+            crop_name_display = crops[0]["name"] if crops else ""
+            # Use comprehensive DB data if available
+            _PROFIT_TABLE = {
+                "wheat":     (25000, 45, 2275, "Rs.77,000/ha"),
+                "rice":      (30000, 40, 2300, "Rs.62,000/ha"),
+                "maize":     (22000, 35, 2090, "Rs.51,000/ha"),
+                "mustard":   (18000, 15, 5650, "Rs.66,750/ha"),
+                "gram":      (20000, 12, 5440, "Rs.45,280/ha"),
+                "soybean":   (22000, 20, 4892, "Rs.75,840/ha"),
+                "cotton":    (35000, 20, 7121, "Rs.107,420/ha (lint+seed)"),
+                "tomato":    (80000, 400,0,    "Rs.3,20,000/ha (peak price)"),
+                "potato":    (55000, 250,0,    "Rs.1,20,000/ha"),
+                "sugarcane": (90000, 700,340,  "Rs.1,48,000/ha"),
+            }
+            if crop_id and crop_id in _PROFIT_TABLE:
+                cost, yld, msp_val, net = _PROFIT_TABLE[crop_id]
+                gross = yld * msp_val if msp_val else 0
+                body = {
+                    "hi": (
+                        f"💰 **{crop_name_display} लाभ-लागत विश्लेषण — {loc}**\n\n"
+                        f"**इनपुट लागत:** ₹{cost:,}/हे.\n"
+                        f"  • बीज + खाद + कीटनाशक + मजदूरी + सिंचाई\n\n"
+                        f"**उपज:** {yld} क्विंटल/हे.\n"
+                        f"**MSP 2024-25:** {'₹'+str(msp_val)+'/q' if msp_val else 'MSP नहीं'}\n"
+                        f"**Gross Revenue (MSP पर):** {'₹'+str(gross)+'/हे.' if gross else 'N/A'}\n"
+                        f"**शुद्ध लाभ:** {net}\n\n"
+                        f"💡 **B:C Ratio:** {(gross/cost):.1f}:1 — {'>2.5: उत्कृष्ट' if gross and gross/cost > 2.5 else '>1.5: अच्छा' if gross and gross/cost > 1.5 else 'मध्यम'}\n\n"
+                        f"📊 लाइव मंडी भाव: agmarknet.gov.in"
+                    ),
+                    "en": (
+                        f"💰 **{crop_name_display} Profit Analysis — {loc}**\n\n"
+                        f"**Input cost:** ₹{cost:,}/ha\n"
+                        f"  • Seed + fertiliser + pesticide + labour + irrigation\n\n"
+                        f"**Yield:** {yld} q/ha\n"
+                        f"**MSP 2024-25:** {'₹'+str(msp_val)+'/q' if msp_val else 'No MSP'}\n"
+                        f"**Gross revenue (at MSP):** {'₹'+str(gross)+'/ha' if gross else 'N/A'}\n"
+                        f"**Net profit:** {net}\n\n"
+                        f"💡 **B:C Ratio:** {(gross/cost):.1f}:1\n\n"
+                        f"📊 Live mandi prices: agmarknet.gov.in"
+                    ),
+                }.get(lang, f"{crop_name_display}: cost ₹{cost}/ha, yield {yld}q/ha, net profit {net}.")
+            else:
+                body = {
+                    "hi": (
+                        f"💰 **प्रमुख फसलों का लाभ (प्रति हेक्टेयर)**\n\n"
+                        f"| फसल     | लागत    | उपज   | MSP    | शुद्ध लाभ |\n"
+                        f"|----------|---------|-------|--------|----------|\n"
+                        f"| गेहूँ    | ₹25,000 | 45 q  | ₹2,275 | ₹77,000  |\n"
+                        f"| सरसों   | ₹18,000 | 15 q  | ₹5,650 | ₹67,000  |\n"
+                        f"| चना     | ₹20,000 | 12 q  | ₹5,440 | ₹45,000  |\n"
+                        f"| सोयाबीन | ₹22,000 | 20 q  | ₹4,892 | ₹76,000  |\n"
+                        f"| मक्का   | ₹22,000 | 35 q  | ₹2,090 | ₹51,000  |\n\n"
+                        f"*1 हेक्टेयर = 2.47 एकड़ = 6.17 बीघा (UP)*\n"
+                        f"📞 ICAR: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"💰 **Crop Profit Summary (per hectare)**\n\n"
+                        f"| Crop    | Cost    | Yield | MSP    | Net Profit |\n"
+                        f"|---------|---------|-------|--------|------------|\n"
+                        f"| Wheat   | ₹25,000 | 45 q  | ₹2,275 | ₹77,000    |\n"
+                        f"| Mustard | ₹18,000 | 15 q  | ₹5,650 | ₹67,000    |\n"
+                        f"| Gram    | ₹20,000 | 12 q  | ₹5,440 | ₹45,000    |\n"
+                        f"| Soybean | ₹22,000 | 20 q  | ₹4,892 | ₹76,000    |\n"
+                        f"| Maize   | ₹22,000 | 35 q  | ₹2,090 | ₹51,000    |\n\n"
+                        f"*1 ha = 2.47 acres = 6.17 bigha (UP standard)*\n"
+                        f"📞 ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, "Profit per ha: Wheat ₹77k, Mustard ₹67k, Gram ₹45k, Soybean ₹76k, Maize ₹51k.")
+            return alert_prefix + body
+
+        # ── SOIL ─────────────────────────────────────────────────
+        if intent == INTENT_SOIL:
+            # State → dominant soil type mapping
+            _STATE_SOIL = {
+                "Uttar Pradesh":    ("Alluvial (दोमट)", "उचित — अधिकांश फसलें", "NPK+Zinc की कमी आम"),
+                "Punjab":           ("Alluvial (दोमट)", "उत्कृष्ट — गेहूँ/धान", "Zinc+Iron कमी, pH 7.5-8.5"),
+                "Haryana":          ("Alluvial (दोमट)", "उत्कृष्ट — गेहूँ/सरसों", "Zinc+Sulfur कमी"),
+                "Madhya Pradesh":   ("Black/Red Mixed (काली+लाल)", "कपास/सोयाबीन के लिए उत्कृष्ट", "P+Zinc कमी आम"),
+                "Maharashtra":      ("Black (काली मिट्टी/Vertisol)", "कपास/गन्ना उत्कृष्ट", "P कमी, pH>8 में"),
+                "Rajasthan":        ("Sandy Loam (बलुई दोमट)", "Bajra/Mustard अनुकूल", "N+P+Zinc सब कम"),
+                "Bihar":            ("Alluvial (जलोढ़)", "धान/गेहूँ उत्कृष्ट", "Zinc+Boron कमी"),
+                "West Bengal":      ("Alluvial+Laterite", "धान के लिए अच्छा", "Iron toxicity, pH<5.5"),
+                "Karnataka":        ("Red (लाल मिट्टी)", "Ragi/Groundnut/Coffee", "N+P+K सब कम"),
+                "Andhra Pradesh":   ("Red+Black Mixed", "Cotton/Rice", "N+P+Zinc"),
+                "Tamil Nadu":       ("Red+Black", "Rice/Sugarcane", "Zinc+Boron"),
+                "Gujarat":          ("Black+Sandy Mixed", "Cotton/Groundnut", "P+Zinc, अम्लीयता"),
+                "Kerala":           ("Laterite (लेटराइट)", "Coconut/Spices", "अत्यधिक अम्लीय, P fixation"),
+            }
+            state = ctx.state or ""
+            soil_info = _STATE_SOIL.get(state)
+            if not soil_info:
+                # Try partial match
+                for st, info in _STATE_SOIL.items():
+                    if st.lower() in (state or "").lower():
+                        soil_info = info
+                        break
+
+            if soil_info:
+                soil_type, suitability, deficiency = soil_info
+                body = {
+                    "hi": (
+                        f"🌱 **मिट्टी जानकारी — {loc}**\n\n"
+                        f"🏔️ **मिट्टी का प्रकार:** {soil_type}\n"
+                        f"✅ **उपयुक्तता:** {suitability}\n"
+                        f"⚠️ **आम कमियाँ:** {deficiency}\n\n"
+                        f"**मिट्टी जांच कैसे करें:**\n"
+                        f"• Soil Health Card (SHC): soilhealth.dac.gov.in\n"
+                        f"• नजदीकी KVK या कृषि विभाग\n"
+                        f"• लागत: ₹0 (सरकारी) | ₹200-500 (प्राइवेट)\n\n"
+                        f"**pH सुधार:**\n"
+                        f"• अम्लीय (pH<6.5): चूना (Lime) 2-3 t/ha\n"
+                        f"• क्षारीय (pH>8): Gypsum 5-10 t/ha\n"
+                        f"• सामान्य (6.5-7.5): सर्वोत्तम — Zinc 25 kg/ha\n\n"
+                        f"📞 ICAR-NAAS: 011-25843377 | KVK: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"🌱 **Soil Information — {loc}**\n\n"
+                        f"🏔️ **Dominant soil type:** {soil_type}\n"
+                        f"✅ **Best suited for:** {suitability}\n"
+                        f"⚠️ **Common deficiencies:** {deficiency}\n\n"
+                        f"**How to get soil tested:**\n"
+                        f"• Soil Health Card: soilhealth.dac.gov.in\n"
+                        f"• Nearest KVK or Agriculture Dept\n"
+                        f"• Cost: Free (govt) | ₹200-500 (private)\n\n"
+                        f"**pH correction:**\n"
+                        f"• Acidic (pH<6.5): Lime 2-3 t/ha\n"
+                        f"• Alkaline (pH>8): Gypsum 5-10 t/ha\n"
+                        f"• Ideal (6.5-7.5): Add Zinc 25 kg/ha\n\n"
+                        f"📞 ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, f"Soil in {loc}: {soil_type}. Common deficiency: {deficiency}.")
+            else:
+                body = {
+                    "hi": (
+                        f"🌱 **मिट्टी जांच गाइड — {loc}**\n\n"
+                        f"**भारत की प्रमुख मिट्टियाँ:**\n"
+                        f"• जलोढ़ (Alluvial): UP/Punjab/Bihar — गेहूँ/धान\n"
+                        f"• काली मिट्टी (Black/Vertisol): MP/Maharashtra — कपास\n"
+                        f"• लाल मिट्टी (Red): Karnataka/AP — रागी/मूँगफली\n"
+                        f"• बलुई (Sandy): Rajasthan — बाजरा/मोठ\n"
+                        f"• लेटराइट: Kerala/WB — चाय/रबर\n\n"
+                        f"**Soil Health Card बनवाएं:**\n"
+                        f"• soilhealth.dac.gov.in\n"
+                        f"• 3 साल में एक बार जरूरी\n\n"
+                        f"📞 ICAR: 1800-180-1551"
+                    ),
+                    "en": (
+                        f"🌱 **Soil Testing Guide — {loc}**\n\n"
+                        f"**India's major soil types:**\n"
+                        f"• Alluvial: UP/Punjab/Bihar — Wheat/Rice\n"
+                        f"• Black (Vertisol): MP/Maharashtra — Cotton\n"
+                        f"• Red: Karnataka/AP — Finger millet/Groundnut\n"
+                        f"• Sandy: Rajasthan — Bajra/Moth bean\n"
+                        f"• Laterite: Kerala/WB — Tea/Rubber\n\n"
+                        f"**Get Soil Health Card:**\n"
+                        f"• soilhealth.dac.gov.in | Free every 3 years\n\n"
+                        f"📞 ICAR: 1800-180-1551"
+                    ),
+                }.get(lang, "Soil: get Soil Health Card free at soilhealth.dac.gov.in or nearest KVK.")
             return alert_prefix + body
 
         # ── GENERAL / FOLLOW-UP ──────────────────────────────────
+        # Smart general response: use available context (crops, weather, season)
+        # to give a useful answer rather than a blank "ask me anything" response
         lines_out: List[str] = []
+        season_now = _current_season()
 
         if temp != "—":
+            # Include farming advice in the right language
             fa_note = f" — {farming_advice}" if farming_advice else ""
             lines_out.append(
                 f"🌡️ **{loc}** मौसम: **{temp}°C**, {cond}{fa_note}"
@@ -1994,23 +3335,55 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         if crops:
             for crop in crops[:2]:
-                msp = crop.get("msp") or MSP_2024_25.get(crop["id"])
-                if msp:
-                    lines_out.append(f"• {crop['name']} MSP 2024-25: ₹{msp}/q")
+                msp_val = crop.get("msp") or MSP_2024_25.get(crop["id"], 0)
+                crop_name = crop.get("name", "")
+                crop_line = f"• **{crop_name}**"
+                if msp_val:
+                    crop_line += f" — MSP ₹{msp_val}/q"
+                lines_out.append(crop_line)
 
-        rec_lines = [l for l in context_block.splitlines() if "suitability" in l]
-        if rec_lines:
-            lines_out.append("🌾 **फसल सुझाव:**" if lang == "hi" else "🌾 **Crop Suggestions:**")
-            for l in rec_lines[:3]:
-                m_crop = re.match(r"\s+([^:]+):", l)
-                if m_crop:
-                    lines_out.append(f"  • {m_crop.group(1).strip()}")
+            # If crop was mentioned without a specific question, proactively
+            # suggest the most relevant follow-up intents
+            crop_name = crops[0].get("name", "")
+            lines_out.append(
+                f"\n**{crop_name} के बारे में क्या जानना है?**\n"
+                f"• सिंचाई — कब, कितना पानी?\n"
+                f"• खाद — कब और कितनी?\n"
+                f"• रोग — लक्षण और दवाई\n"
+                f"• बुवाई/कटाई — समय और किस्में\n"
+                f"• मंडी भाव — आज का भाव"
+                if lang == "hi" else
+                f"\n**What would you like to know about {crop_name}?**\n"
+                f"• Irrigation — when and how much?\n"
+                f"• Fertiliser — schedule and dose?\n"
+                f"• Disease — symptoms and treatment?\n"
+                f"• Sowing/Harvest — timing and varieties?\n"
+                f"• Mandi price — today's rate?"
+            )
+        else:
+            # No crop detected — give a season-appropriate suggestion
+            rec_lines = [l for l in context_block.splitlines() if "suitability" in l]
+            if rec_lines:
+                lines_out.append("🌾 **आपके क्षेत्र के लिए उपयुक्त फसलें:**"
+                                  if lang == "hi" else "🌾 **Suitable crops for your area:**")
+                for l in rec_lines[:3]:
+                    m_crop = re.match(r"\s+([^:]+):", l)
+                    if m_crop:
+                        lines_out.append(f"  • {m_crop.group(1).strip()}")
 
-        lines_out.append(
-            "\n💬 और पूछें: फसल भाव, मौसम, PM-Kisan, कीट-रोग\n📞 1800-180-1551"
-            if lang == "hi" else
-            "\n💬 Ask about: prices, weather, PM-Kisan, pest control\n📞 1800-180-1551"
-        )
+            lines_out.append(
+                f"\n💬 **मैं इन विषयों में मदद कर सकता हूँ ({season_now}):**\n"
+                f"🌱 बुवाई सलाह | 💧 सिंचाई | 🌱 खाद\n"
+                f"🐛 कीट-रोग | 💰 मंडी भाव | 🏛️ योजनाएं\n"
+                f"🌾 कटाई | 🏪 भंडारण | 📊 लाभ-लागत\n"
+                f"📞 1800-180-1551"
+                if lang == "hi" else
+                f"\n💬 **I can help with ({season_now}):**\n"
+                f"🌱 Sowing guide | 💧 Irrigation | 🌱 Fertiliser\n"
+                f"🐛 Pest/disease | 💰 Mandi prices | 🏛️ Schemes\n"
+                f"🌾 Harvest | 🏪 Storage | 📊 Profit-cost\n"
+                f"📞 1800-180-1551"
+            )
 
         return alert_prefix + "\n".join(lines_out)
 

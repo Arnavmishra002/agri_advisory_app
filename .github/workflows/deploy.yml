@@ -134,9 +134,12 @@ jobs:
           echo ""
           echo "  Services deployed:"
           echo "  ✅ 20 API routes"
-          echo "  ✅ 80 crops · 22 languages · 126 districts"
-          echo "  ✅ Real-time: Open-Meteo + Agmarknet + data.gov.in"
+          echo "  ✅ 150+ crops · 22 languages · 126 districts"
+          echo "  ✅ 19-intent NLP chatbot (irrigation/sowing/harvest/storage/organic/seed/insurance/profit)"
+          echo "  ✅ Real-time: Open-Meteo + Agmarknet Direct API"
           echo "  ✅ Field-level IoT sensor advisory"
+          echo "  ✅ Disease→Chat bridge (ML photo diagnosis)"
+          echo "  ✅ Hinglish + all 22 Indian language normalisation"
           echo "══════════════════════════════════════════════"
 
 # ─── Secret / Variable Setup ────────────────────────────────────

@@ -74,9 +74,9 @@ FROM python:3.11-slim AS production
 
 # ── Labels ────────────────────────────────────────────────────
 LABEL org.opencontainers.image.title="KrishiMitra AI"
-LABEL org.opencontainers.image.description="Precision Agriculture Advisory — 80 crops, 22 languages, IoT sensors, real-time mandi prices"
+LABEL org.opencontainers.image.description="Precision Agriculture Advisory — 150+ crops, 22 languages, IoT sensors, real-time mandi prices, 19-intent NLP chatbot"
 LABEL org.opencontainers.image.source="https://github.com/Arnavmishra002/agri_advisory_app"
-LABEL org.opencontainers.image.version="2.1.0"
+LABEL org.opencontainers.image.version="3.0.0"
 
 # ── Runtime environment ────────────────────────────────────────
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -150,6 +150,7 @@ HEALTHCHECK \
 CMD ["sh", "-c", "\
     python manage.py migrate --noinput && \
     echo '✅ Migrations applied' && \
+    python manage.py seed_msp 2>/dev/null || echo '⚠️  MSP seed skipped (already seeded)' && \
     exec gunicorn \
       --bind 0.0.0.0:8000 \
       --workers ${WEB_CONCURRENCY:-4} \

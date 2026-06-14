@@ -6,7 +6,7 @@
 #   Start Command: cd backend && gunicorn --bind 0.0.0.0:$PORT --workers 4 --threads 4 --worker-class gthread --timeout 120 core.wsgi:application
 #   Build Command: pip install -r requirements-production.txt && cd backend && python manage.py collectstatic --noinput
 
-release: cd backend && python manage.py migrate --noinput
+release: cd backend && python manage.py migrate --noinput && python manage.py seed_msp 2>/dev/null || true
 
 web: cd backend && gunicorn \
   --bind 0.0.0.0:$PORT \

@@ -750,6 +750,55 @@
             <button class="chip" onclick="askSuggested('PM-KUSUM सोलर पंप आवेदन कैसे करें?')">☀️ सोलर पंप?</button>
         </div>
 
+        <!-- Farmer Profile quick-save card (auto-persists for personalized AI) -->
+        <div id="farmerProfileCard" style="background:linear-gradient(135deg,#f0fff4,#e8f5e8);border:1.5px solid #a5d6a7;border-radius:14px;padding:14px 18px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <span style="font-size:1.1rem;">👤</span>
+                <strong style="color:#1a3a0a;font-size:0.92rem;">मेरी किसान प्रोफ़ाइल</strong>
+                <span style="font-size:0.72rem;color:#666;background:#fff;border-radius:999px;padding:2px 8px;border:1px solid #ddd;">AI को बेहतर सलाह देने में मदद करें</span>
+            </div>
+            <div class="row g-2">
+                <div class="col-6 col-md-3">
+                    <label style="font-size:0.78rem;color:#555;font-weight:600;">🌾 वर्तमान फसल</label>
+                    <input type="text" id="fp_crop" class="form-control form-control-sm"
+                        placeholder="गेहूँ, धान, सरसों..."
+                        onblur="_upsertFarmerProfile({current_crop: this.value.trim()})" style="font-size:0.82rem;">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label style="font-size:0.78rem;color:#555;font-weight:600;">📐 खेत (बीघा)</label>
+                    <input type="number" id="fp_size" class="form-control form-control-sm"
+                        placeholder="e.g. 5" min="0" max="1000"
+                        onblur="_upsertFarmerProfile({farm_size_bigha: parseFloat(this.value)||null})" style="font-size:0.82rem;">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label style="font-size:0.78rem;color:#555;font-weight:600;">⚗️ मिट्टी pH</label>
+                    <input type="number" id="fp_ph" class="form-control form-control-sm"
+                        placeholder="e.g. 6.8" step="0.1" min="3" max="10"
+                        onblur="_upsertFarmerProfile({soil_ph: parseFloat(this.value)||null})" style="font-size:0.82rem;">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label style="font-size:0.78rem;color:#555;font-weight:600;">💳 PM-Kisan</label>
+                    <select id="fp_pmkisan" class="form-select form-select-sm"
+                        onchange="_upsertFarmerProfile({has_pm_kisan: this.value==='yes', pm_kisan_status: this.value})" style="font-size:0.82rem;">
+                        <option value="">चुनें</option>
+                        <option value="active">✅ Enrolled (Active)</option>
+                        <option value="pending">⏳ Applied (Pending)</option>
+                        <option value="none">❌ Not enrolled</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top:8px;font-size:0.72rem;color:#666;">
+                💾 डेटा auto-save होता है — अगली बार AI आपको personally जानेगा
+                <span id="profileSaveIndicator" style="color:#2e7d32;font-weight:700;margin-left:6px;"></span>
+            </div>
+        </div>
+
+        <!-- AI Status badge -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:0.8rem;color:#666;">AI Engine:</span>
+            <span id="aiStatusBadge" style="display:inline-block;background:#f3e5f5;color:#4a148c;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;">📚 Loading...</span>
+        </div>
+
         <!-- Chat window -->
         <div id="chatMessages" style="height:480px;overflow-y:auto;padding:20px 16px;background:#fafffe;border-radius:18px 18px 0 0;border:1.5px solid #d4edda;border-bottom:none;scroll-behavior:smooth;">
             <div class="chat-message-bot">

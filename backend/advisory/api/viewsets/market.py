@@ -65,17 +65,23 @@ class MarketPricesViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"])
     def mandis(self, request):
         """
-        Live mandi list for user's GPS location / state.
-        Sources: Agmarknet 2.0 registry → data.gov.in → reference DB.
-        Sorted by distance from user's GPS when coordinates are available.
+        Nearby mandi list sorted by distance from user's GPS.
+        Returns the closest mandis first. Use ?radius_km=200 to expand range.
         """
         try:
             ctx = resolve_request_location(request)
+            try:
+                radius_km = float(request.GET.get("radius_km", 150))
+                radius_km = max(10, min(radius_km, 500))   # clamp 10–500 km
+            except (ValueError, TypeError):
+                radius_km = 150
+
             data = market_service.list_mandis(
                 ctx.query_label,
                 lat=ctx.latitude,
                 lon=ctx.longitude,
                 state=ctx.state or None,
+                radius_km=radius_km,
             )
             return Response(attach_location_metadata(data, ctx))
         except Exception as exc:

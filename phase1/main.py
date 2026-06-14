@@ -233,7 +233,12 @@ async def chat_stream_endpoint(req: ChatRequest):
         rag_chunks=rag_texts,
         weather_summary=weather_summary or None,
         sensor_data=req.sensor_context,
-        farmer_profile={"location": req.location, "crop": req.crop},
+        farmer_profile={
+            "location": req.location,
+            "crop":     req.crop,
+            "season":   req.season,
+            **(req.farmer_profile or {}),   # Fix 3: merge full profile, consistent with /chat
+        },
         conversation_history=req.history,
     )
 

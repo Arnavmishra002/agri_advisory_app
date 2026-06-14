@@ -7,22 +7,38 @@ v2.0 — Server-side farmer memory:
   - ChatHistory stores last N turns so farmers don't need to re-send history.
   - Clients MAY still send history in the request; if both are present,
     client-provided history is merged with DB history (client wins on conflict).
+v3.0 — ML data collection:
+  - Every Q&A logged to FarmerInteractionLog for future fine-tuning.
 """
 
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from django.db.models import Q
-
-from ...models import FarmerProfile, IoTSensorReading
-
-logger = logging.getLogger(__name__)
-
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+from ...models import FarmerProfile, IoTSensorReading
+from ..errors import safe_error_message
+from ..location_utils import attach_location_metadata, resolve_request_location
+from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
+from ...services.chat_intelligence_service import chat_intelligence_service
+from ...services.session_memory_service import session_memory
+
+logger = logging.getLogger(__name__)
+
+
+def _ai_tier_label(data_source: str) -> str:
+    """Map data_source string to a short tier label for analytics."""
+    ds = (data_source or "").lower()
+    if "gemini" in ds:
+        return "gemini"
+    if "qwen" in ds or "rag" in ds or "local" in ds:
+        return "qwen_rag"
+    return "rule_based"
 
 from ..errors import safe_error_message
 from ..location_utils import attach_location_metadata, resolve_request_location
@@ -213,14 +229,13 @@ class ChatbotViewSet(viewsets.ViewSet):
                 session_id=session_id,
                 user_id=str(user.id) if (user and user.is_authenticated) else "anonymous",
                 user_query=query,
-                ai_response=result.get("response", ""),  # BUG FIX: .get() not [] to avoid KeyError
+                ai_response=result.get("response", ""),
                 intent=result.get("intent", "general"),
                 language=result.get("language", language),
                 data_source=result.get("data_source", ""),
                 latitude=ctx.latitude,
                 longitude=ctx.longitude,
             )
-            # Update profile: persist current location and language
             context_update: Dict[str, Any] = {
                 "language": result.get("language", language),
             }
@@ -232,6 +247,30 @@ class ChatbotViewSet(viewsets.ViewSet):
             if crops:
                 context_update["last_crop"] = crops[0]
             session_memory.update_session_context(session_id, context_update)
+
+        # ── Log interaction for ML training dataset (fire-and-forget) ────────
+        # Every Q&A stored with full context for future fine-tuning & analytics.
+        # Never blocks the response — failures logged but silently swallowed.
+        try:
+            from ...models import FarmerInteractionLog
+            FarmerInteractionLog.objects.create(
+                session_id     = session_id or "anon",
+                phone_number   = request.data.get("phone", ""),
+                location_name  = ctx.display_name,
+                state          = ctx.state or "",
+                latitude       = ctx.latitude,
+                longitude      = ctx.longitude,
+                query          = query,
+                response       = result.get("response", ""),
+                intent         = result.get("intent", ""),
+                language       = result.get("language", language),
+                crops_detected = result.get("crops_detected", []),
+                ai_tier        = _ai_tier_label(result.get("data_source", "")),
+                data_source    = result.get("data_source", ""),
+                season         = result.get("season", ""),
+            )
+        except Exception as log_exc:
+            logger.debug("Interaction log write failed (non-fatal): %s", log_exc)
 
         return Response(attach_location_metadata({
             "status":          "success",

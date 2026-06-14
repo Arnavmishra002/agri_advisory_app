@@ -481,3 +481,78 @@ class FarmerProfile(models.Model):
             "has_kcc":         self.has_kcc,
             "language":        self.preferred_language,
         }
+
+
+class FarmerInteractionLog(models.Model):
+    """
+    Stores every farmer–AI interaction for future ML training and analytics.
+
+    This is the prediction dataset. Each row = one chat Q&A with full context:
+      - The question and answer
+      - Intent classification (irrigation, pest, market, etc.)
+      - Sensor data at the time of the question
+      - Weather conditions
+      - Crops mentioned
+      - AI tier used (Gemini / Qwen / rule-based)
+      - Whether the farmer gave positive/negative feedback
+
+    Use cases:
+      1. Fine-tune Qwen on real farmer queries → better Hindi/regional responses
+      2. Train intent classifier on labelled query data
+      3. Predict crop disease risk from seasonal interaction patterns
+      4. Personalise crop recommendations from historical chat context
+      5. Measure AI response quality (feedback_rating) for A/B testing
+    """
+    # Identity
+    session_id     = models.CharField(max_length=100, db_index=True)
+    phone_number   = models.CharField(max_length=20, blank=True, db_index=True)
+    location_name  = models.CharField(max_length=200, blank=True)
+    state          = models.CharField(max_length=100, blank=True)
+    latitude       = models.FloatField(null=True, blank=True)
+    longitude      = models.FloatField(null=True, blank=True)
+
+    # Interaction
+    query          = models.TextField(help_text="Farmer's question")
+    response       = models.TextField(help_text="AI response text")
+    intent         = models.CharField(max_length=50, blank=True,
+                                      help_text="Classified intent: irrigation, pest_disease, market_price, etc.")
+    language       = models.CharField(max_length=10, default="hi")
+    crops_detected = models.JSONField(default=list, help_text="Crop names extracted from the query")
+    ai_tier        = models.CharField(max_length=30, blank=True,
+                                      help_text="gemini | qwen_rag | rule_based")
+    data_source    = models.CharField(max_length=100, blank=True)
+
+    # Contextual data at query time (for ML feature engineering)
+    sensor_data    = models.JSONField(null=True, blank=True,
+                                      help_text="IoT sensor readings: moisture, NPK, pH at time of query")
+    weather_data   = models.JSONField(null=True, blank=True,
+                                      help_text="Weather conditions: temp, humidity, alerts at time of query")
+    market_prices  = models.JSONField(null=True, blank=True,
+                                      help_text="Top crop prices at time of query for market-related queries")
+    season         = models.CharField(max_length=30, blank=True)
+
+    # Feedback (for reinforcement learning / quality measurement)
+    feedback_score = models.IntegerField(null=True, blank=True,
+                                         help_text="1-5 farmer satisfaction rating (from feedback button)")
+    feedback_text  = models.TextField(blank=True, help_text="Optional feedback text")
+    is_helpful     = models.BooleanField(null=True, blank=True,
+                                         help_text="True/False from thumbs up/down")
+
+    # Metadata
+    response_time_ms = models.IntegerField(null=True, blank=True,
+                                            help_text="AI response generation time in milliseconds")
+    created_at       = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "farmer_interaction_logs"
+        ordering = ["-created_at"]
+        indexes  = [
+            models.Index(fields=["session_id", "created_at"]),
+            models.Index(fields=["intent", "created_at"]),
+            models.Index(fields=["state", "intent"]),
+            models.Index(fields=["ai_tier", "created_at"]),
+            models.Index(fields=["language", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"[{self.intent}] {self.query[:60]} — {self.created_at.date()}"

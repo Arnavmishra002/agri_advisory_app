@@ -935,12 +935,19 @@ class MarketPricesService:
         lat: float = None,
         lon: float = None,
         state: str = None,
+        radius_km: float = 150,     # NEW: only return mandis within this radius when GPS available
+        max_results: int = 50,       # NEW: cap the list for frontend usability
     ) -> Dict[str, Any]:
         """
-        Nearby + state-wide mandi list: Agmarknet filters → paginated data.gov.in →
-        reference database (always merged for demo-key / sparse live data).
+        Nearby mandi list, sorted by distance from user's GPS.
+
+        When GPS coordinates are provided (lat/lon), returns only mandis within
+        `radius_km` (default 150 km), sorted closest-first.  This makes the
+        dropdown immediately useful — the farmer's local mandis appear at the top.
+
+        Falls back to state-wide list when no GPS is available.
         """
-        cache_key = f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:{location}:{state}"
+        cache_key = f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:{location}:{state}:{radius_km}"
         if cache_key in self._cache:
             age = (datetime.now() - self._cache_ts[cache_key]).total_seconds()
             if age < self.CACHE_TTL:
@@ -1015,25 +1022,85 @@ class MarketPricesService:
 
         mandis = self._enrich_and_sort_mandis(list(mandis_map.values()), lat, lon)
 
+        # ── GPS-based nearby filtering ─────────────────────────────────────
+        # When the user has GPS, trim to the nearest mandis within radius_km.
+        # This is the key fix: instead of showing 400 mandis from across the
+        # state, we show the ~15-30 genuinely nearby ones first.
+        has_gps = lat is not None and lon is not None
+        if has_gps:
+            nearby = [m for m in mandis if m.get("distance_km") is not None and m["distance_km"] <= radius_km]
+            unknown_dist = [m for m in mandis if m.get("distance_km") is None]
+            # If very few nearby mandis known, include unknown-distance ones (fallback)
+            if len(nearby) < 5:
+                nearby = nearby + unknown_dist[:20]
+            mandis = (nearby + [m for m in mandis if m not in nearby and m not in unknown_dist])[:max_results]
+            # Tag each mandi with a human-readable proximity label
+            for m in mandis:
+                d = m.get("distance_km")
+                if d is not None:
+                    if d <= 30:
+                        m["proximity"] = "very_near"
+                        m["proximity_label"] = f"~{d:.0f} km — आपके पास"
+                    elif d <= 75:
+                        m["proximity"] = "near"
+                        m["proximity_label"] = f"~{d:.0f} km"
+                    else:
+                        m["proximity"] = "regional"
+                        m["proximity_label"] = f"~{d:.0f} km (क्षेत्रीय)"
+                else:
+                    m["proximity"] = "unknown"
+                    m["proximity_label"] = "दूरी अज्ञात"
+        else:
+            mandis = mandis[:max_results]
+
         if registered_key and not using_demo:
             coverage = "full"
             data_source = "Agmarknet + data.gov.in (live)"
-            message = f"{len(mandis)} mandis for {resolved_state or location} ({live_count} live today)"
+            if has_gps:
+                nearest_name = mandis[0]["name"] if mandis else location
+                nearest_dist = mandis[0].get("distance_km", "?") if mandis else "?"
+                message = (
+                    f"{len(mandis)} mandis near {location} "
+                    f"(nearest: {nearest_name}, {nearest_dist} km) · {live_count} live today"
+                )
+            else:
+                message = f"{len(mandis)} mandis for {resolved_state or location} ({live_count} live today)"
         elif live_count >= 15:
             coverage = "partial"
             data_source = "Agmarknet + data.gov.in (limited)"
             message = (
                 f"{len(mandis)} mandis shown ({live_count} live). "
-                "Register DATA_GOV_IN_API_KEY in .env for complete state coverage."
+                "Register DATA_GOV_IN_API_KEY in .env for complete coverage."
             )
         else:
             coverage = "reference+live"
-            data_source = "Live feed + nationwide reference mandis"
-            message = (
-                f"{len(mandis)} nearby mandis ({live_count} live, {ref_count} regional). "
-                "Register a free key at https://data.gov.in/user/register "
-                "and set DATA_GOV_IN_API_KEY in .env for full real-time mandi lists."
-            )
+            data_source = "Live feed + nearby reference mandis"
+            if has_gps and mandis:
+                nearest_name = mandis[0]["name"]
+                nearest_dist = mandis[0].get("distance_km", "?")
+                message = (
+                    f"{len(mandis)} nearby mandis ({live_count} live). "
+                    f"Nearest: {nearest_name} ({nearest_dist} km). "
+                    "Add DATA_GOV_IN_API_KEY for real-time prices."
+                )
+            else:
+                message = (
+                    f"{len(mandis)} mandis ({live_count} live, {ref_count} reference). "
+                    "Add DATA_GOV_IN_API_KEY for real-time coverage."
+                )
+
+        # Add nearest mandi info to the top-level response for quick frontend use
+        nearest_mandi = None
+        if mandis:
+            m0 = mandis[0]
+            nearest_mandi = {
+                "name":       m0["name"],
+                "district":   m0.get("district", ""),
+                "state":      m0.get("state", ""),
+                "distance_km": m0.get("distance_km"),
+                "distance":   m0.get("distance", ""),
+                "live":       m0.get("live", False),
+            }
 
         result = {
             "status": "success",
@@ -1049,6 +1116,9 @@ class MarketPricesService:
             "data_source": data_source,
             "timestamp": datetime.now().isoformat(),
             "message": message,
+            "nearest_mandi": nearest_mandi,
+            "radius_km": radius_km if has_gps else None,
+            "has_gps": has_gps,
         }
         self._cache[cache_key] = result
         self._cache_ts[cache_key] = datetime.now()
