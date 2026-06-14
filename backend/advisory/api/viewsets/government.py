@@ -1,7 +1,7 @@
 """
 Real-Time Government Data ViewSet
 Delegates to the canonical CropRecommendationEngine v3 and unified services.
-No longer depends on legacy EnhancedCropRecommendations.
+No longer depends on the legacy crop recommendation system.
 """
 import logging
 from datetime import datetime
