@@ -1,0 +1,87 @@
+name: krishimitra
+description: KrishiMitra AI — Smart Agriculture Advisory for Indian Farmers
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # HTTP
+  http: ^1.2.0
+  dio: ^5.4.0
+
+  # State management
+  provider: ^6.1.2
+  riverpod: ^2.5.1
+  flutter_riverpod: ^2.5.1
+
+  # Storage
+  shared_preferences: ^2.2.3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.2
+
+  # Location
+  geolocator: ^11.0.0
+  geocoding: ^3.0.0
+
+  # UI
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.0.10+1
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  lottie: ^3.1.0
+
+  # Camera / Image — for KrishiRaksha disease detection
+  image_picker: ^1.0.7
+  camera: ^0.10.5+9
+
+  # Charts — for mandi price trends
+  fl_chart: ^0.68.0
+
+  # Push notifications
+  firebase_core: ^2.30.1
+  firebase_messaging: ^14.9.2
+  flutter_local_notifications: ^17.1.2
+
+  # Speech / TTS — for voice input
+  speech_to_text: ^6.6.0
+  flutter_tts: ^4.0.2
+
+  # Maps — to show nearby mandis
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+
+  # Utils
+  intl: ^0.19.0
+  url_launcher: ^6.2.6
+  permission_handler: ^11.3.1
+  connectivity_plus: ^6.0.3
+  package_info_plus: ^8.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.9
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/lottie/
+
+  fonts:
+    - family: NotoSansDevanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+        - asset: assets/fonts/NotoSansDevanagari-Bold.ttf
+          weight: 700
