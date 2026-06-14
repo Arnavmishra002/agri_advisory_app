@@ -172,7 +172,9 @@ class SessionMemoryService:
             from ..models import ChatSession
             sess, _ = ChatSession.objects.get_or_create(
                 session_id=session_id,
-                defaults={"user_id": user_id or session_id},
+                # Bug 3e fix: NEVER seed user_id with session_id — use "anonymous"
+                # so the column always means a user identifier, not a session token.
+                defaults={"user_id": user_id or "anonymous"},
             )
             existing = sess.conversation_context or {}
             existing.update(context)

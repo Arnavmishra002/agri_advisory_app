@@ -153,10 +153,43 @@ class RateLimitMiddleware(MiddlewareMixin):
     # ── Helpers ───────────────────────────────────────────────────────────────
     @staticmethod
     def _client_ip(request) -> str:
+        """Bug 1 fix: read XFF right-to-left — left entries are attacker-controlled.
+        Render.com appends the real client IP at the rightmost position.
+        RATE_LIMIT_TRUSTED_PROXIES (default 1) controls how many rightmost
+        entries are infrastructure-added and therefore trustworthy.
+        Set to 0 in local dev (no proxy, REMOTE_ADDR is authoritative).
+        """
+        trusted = int(getattr(settings, 'RATE_LIMIT_TRUSTED_PROXIES', 1))
+
+        if trusted == 0:
+            return request.META.get('REMOTE_ADDR', '0.0.0.0')
+
         xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
-        if xff:
-            return xff.split(',')[0].strip()
-        return request.META.get('REMOTE_ADDR', '0.0.0.0')
+        if not xff:
+            return request.META.get('REMOTE_ADDR', '0.0.0.0')
+
+        ips = [ip.strip() for ip in xff.split(',') if ip.strip()]
+        if not ips:
+            return request.META.get('REMOTE_ADDR', '0.0.0.0')
+
+        # [attacker_controlled..., real_client, infra_proxy_1, ..., infra_proxy_N]
+        # The real client is at index: len(ips) - trusted - 1
+        real_idx = len(ips) - trusted - 1
+        if real_idx < 0:
+            # Fewer IPs than expected proxy hops — suspicious, fall back to REMOTE_ADDR
+            logger.debug(
+                "XFF has fewer entries (%d) than RATE_LIMIT_TRUSTED_PROXIES (%d); "
+                "using REMOTE_ADDR", len(ips), trusted
+            )
+            return request.META.get('REMOTE_ADDR', '0.0.0.0')
+
+        candidate = ips[real_idx]
+        try:
+            ipaddress.ip_address(candidate)
+            return candidate
+        except ValueError:
+            logger.warning("Unparseable IP in XFF position %d: %r", real_idx, candidate)
+            return request.META.get('REMOTE_ADDR', '0.0.0.0')
 
     @staticmethod
     def _is_whitelisted(ip: str) -> bool:

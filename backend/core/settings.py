@@ -458,6 +458,13 @@ RATE_LIMIT_WHITELIST_NETWORKS = (
     ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'] if DEBUG else []
 )
 
+# Bug 1 fix: number of infrastructure proxies between the internet and Django.
+# Render.com passes requests through exactly 1 proxy (its edge).
+# Set to 0 for local dev (no proxy), 1 for Render/Railway/Heroku.
+# The rate limiter reads the XFF header right-to-left, peeling this many
+# infra-appended entries to find the true client IP.
+RATE_LIMIT_TRUSTED_PROXIES = int(os.environ.get('RATE_LIMIT_TRUSTED_PROXIES', '1' if not DEBUG else '0'))
+
 # Performance Monitoring Configuration
 PERFORMANCE_MONITORING = {
     'ENABLED': True,

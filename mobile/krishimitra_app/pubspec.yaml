@@ -1,0 +1,46 @@
+name: krishimitra_app
+description: KrishiMitra AI — Smart Agriculture Advisory for Indian Farmers
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # HTTP — works on all platforms
+  http: ^1.2.0
+
+  # Persistent storage — all platforms
+  shared_preferences: ^2.2.3
+
+  # GPS location — Android/iOS/Web/macOS/Windows/Linux
+  geolocator: ^11.0.0
+
+  # Image picker — Android/iOS/macOS/Web
+  image_picker: ^1.0.7
+
+  # URL launcher — all platforms
+  url_launcher: ^6.2.6
+
+  # Google Fonts — all platforms (bundled, no network dependency)
+  google_fonts: ^6.2.1
+
+  # i18n numbers
+  intl: ^0.20.2
+
+  # Connectivity check — all platforms
+  connectivity_plus: ^6.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true

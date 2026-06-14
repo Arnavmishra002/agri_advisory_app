@@ -25,7 +25,7 @@ from ...models import FarmerProfile, IoTSensorReading
 from ..errors import safe_error_message
 from ..location_utils import attach_location_metadata, resolve_request_location
 from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
-from ...services.chat_intelligence_service import chat_intelligence_service
+from ...services.chat_intelligence_service import chat_intelligence_service, _current_season
 from ...services.session_memory_service import session_memory
 
 logger = logging.getLogger(__name__)
@@ -40,11 +40,8 @@ def _ai_tier_label(data_source: str) -> str:
         return "qwen_rag"
     return "rule_based"
 
-from ..errors import safe_error_message
-from ..location_utils import attach_location_metadata, resolve_request_location
-from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
-from ...services.chat_intelligence_service import chat_intelligence_service
-from ...services.session_memory_service import session_memory
+
+# Bug 2 fix: removed duplicate import block that was here (lines 43-47 in original).
 
 
 class ChatbotViewSet(viewsets.ViewSet):
@@ -250,8 +247,12 @@ class ChatbotViewSet(viewsets.ViewSet):
             session_memory.update_session_context(session_id, context_update)
 
         # ── Log interaction for ML training dataset (fire-and-forget) ────────
-        # Every Q&A stored with full context for future fine-tuning & analytics.
-        # Never blocks the response — failures logged but silently swallowed.
+        # Bug 8 fix: result.get("season") is always "" because answer() never
+        # puts "season" in its return dict. Call _current_season() directly.
+        # Bug 4 fix: use timezone-aware UTC timestamp throughout.
+        _now_utc    = datetime.now(tz=timezone.utc)
+        _season_now = result.get("season") or _current_season()
+
         try:
             from ...models import FarmerInteractionLog
             FarmerInteractionLog.objects.create(
@@ -268,7 +269,7 @@ class ChatbotViewSet(viewsets.ViewSet):
                 crops_detected = result.get("crops_detected", []),
                 ai_tier        = _ai_tier_label(result.get("data_source", "")),
                 data_source    = result.get("data_source", ""),
-                season         = result.get("season", ""),
+                season         = _season_now,   # Bug 8: always populated now
             )
         except Exception as log_exc:
             logger.debug("Interaction log write failed (non-fatal): %s", log_exc)
@@ -284,8 +285,8 @@ class ChatbotViewSet(viewsets.ViewSet):
             "crops_detected":  result.get("crops_detected", []),
             "crop_suggestions": result.get("crop_suggestions", []),
             "data_source":     result.get("data_source"),
-            "timestamp":       result.get("timestamp", datetime.now(tz=timezone.utc).isoformat()),  # BUG FIX: timezone-aware
-            "session_id":      session_id,   # echo back so client can store it
+            "timestamp":       _now_utc.isoformat(),  # Bug 4: always UTC-aware
+            "session_id":      session_id,
             "context": {
                 "intent":         result.get("intent"),
                 "crops_detected": result.get("crops_detected", []),

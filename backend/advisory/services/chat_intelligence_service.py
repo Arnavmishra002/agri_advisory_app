@@ -75,7 +75,13 @@ logger = logging.getLogger(__name__)
 # Per-request ThreadPoolExecutor spawned 3 threads per chat call; at 100
 # concurrent users that’s 300 threads being created+destroyed simultaneously,
 # risking OOM and OS ulimit breaches.
-_DATA_FETCH_POOL = ThreadPoolExecutor(max_workers=6, thread_name_prefix="km-fetch")
+_DATA_FETCH_POOL = ThreadPoolExecutor(
+    # Bug 6 fix: 3 fetches/request × 100 concurrent users = 300 needed.
+    # Raise to 20 to avoid silent queue stalls at peak load on Render.
+    # OS threads are cheap (2MB stack each); 20 is safe on a 512MB instance.
+    max_workers=20,
+    thread_name_prefix="km-fetch",
+)
 atexit.register(_DATA_FETCH_POOL.shutdown, wait=False)
 
 # ── Phase 1 (Qwen+RAG) circuit breaker ──────────────────────────────────────
