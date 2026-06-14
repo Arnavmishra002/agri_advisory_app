@@ -1,9 +1,11 @@
-"""Migration 0008 — FarmerInteractionLog for ML training data collection."""
+"""Migration 0010 — FarmerInteractionLog for ML training data collection."""
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [("advisory", "0007_farmer_profile")]
+    dependencies = [
+        ("advisory", "0009_chathistory_session_id_index"),
+    ]
 
     operations = [
         migrations.CreateModel(
