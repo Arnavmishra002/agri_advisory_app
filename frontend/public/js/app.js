@@ -1236,12 +1236,13 @@
 
         html += '</div>';
 
-        // Footer note for estimates
-        if (isEstimatesOnly || data._auto_estimates) {
+        // Footer note for estimates — only show when there are ZERO live rows (true fallback)
+        // Don't show when Agmarknet Direct provides real prices (even if some supplemented rows exist)
+        const hasAnyLive = crops.some(c => c.is_live && c.price_source !== 'msp_seasonal_estimate' && !c.supplemented);
+        if ((isEstimatesOnly || data._auto_estimates) && !hasAnyLive) {
             html += `<div style="margin-top:14px;background:#fff8e1;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#856404;">
                 ℹ️ ये MSP-आधारित अनुमान हैं, असली मंडी भाव नहीं।
-                Live prices के लिए: <a href="https://agmarknet.gov.in" target="_blank">agmarknet.gov.in</a> देखें
-                या <code>DATA_GOV_IN_API_KEY</code> .env में सेट करें।
+                Live prices के लिए: <a href="https://agmarknet.gov.in" target="_blank">agmarknet.gov.in</a> देखें।
             </div>`;
         }
 

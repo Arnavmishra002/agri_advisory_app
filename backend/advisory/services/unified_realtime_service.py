@@ -1024,16 +1024,31 @@ class MarketPricesService:
 
         # ── GPS-based nearby filtering ─────────────────────────────────────
         # When the user has GPS, trim to the nearest mandis within radius_km.
-        # This is the key fix: instead of showing 400 mandis from across the
-        # state, we show the ~15-30 genuinely nearby ones first.
+        # Key insight: reference DB mandis with no coordinate data are EXCLUDED
+        # when GPS is available — we only show mandis we can confirm are nearby.
+        # The fallback to unknown_dist only kicks in when we have < 3 confirmed
+        # nearby mandis (e.g. very rural area with sparse coordinate coverage).
         has_gps = lat is not None and lon is not None
         if has_gps:
-            nearby = [m for m in mandis if m.get("distance_km") is not None and m["distance_km"] <= radius_km]
+            # Mandis with known distance within radius
+            nearby = [
+                m for m in mandis
+                if m.get("distance_km") is not None and m["distance_km"] <= radius_km
+            ]
+            # Mandis with no coordinate data — only use as fallback if list is tiny
             unknown_dist = [m for m in mandis if m.get("distance_km") is None]
-            # If very few nearby mandis known, include unknown-distance ones (fallback)
-            if len(nearby) < 5:
-                nearby = nearby + unknown_dist[:20]
-            mandis = (nearby + [m for m in mandis if m not in nearby and m not in unknown_dist])[:max_results]
+
+            if len(nearby) >= 3:
+                # Good coverage — drop all unknown-distance mandis entirely
+                mandis = nearby[:max_results]
+            elif len(nearby) > 0:
+                # Sparse coverage — add a few unknown-distance to pad to 10
+                mandis = (nearby + unknown_dist[:max(0, 10 - len(nearby))])[:max_results]
+            else:
+                # No known-distance mandis at all — show limited unknown-dist ones
+                # This happens in very rural areas with no coordinate data
+                mandis = unknown_dist[:min(20, max_results)]
+
             # Tag each mandi with a human-readable proximity label
             for m in mandis:
                 d = m.get("distance_km")
@@ -1179,10 +1194,19 @@ class MarketPricesService:
             from .enhanced_market_prices import EnhancedMarketPricesService
 
             ref_svc = EnhancedMarketPricesService()
-            if state:
-                refs = ref_svc.get_mandis_in_state(state, lat, lon, limit=500)
+            has_gps = lat is not None and lon is not None
+
+            if has_gps:
+                # GPS available: get nearest mandis by distance (coordinates populated)
+                # This is key — get_nearest_mandis returns mandis WITH distance_km set,
+                # so the proximity filter in list_mandis can correctly exclude far ones.
+                refs = ref_svc.get_nearest_mandis(location, lat, lon, limit=60)
+            elif state:
+                # No GPS — fall back to state-wide list (no distance data)
+                refs = ref_svc.get_mandis_in_state(state, lat, lon, limit=100)
             else:
-                refs = ref_svc.get_nearest_mandis(location, lat, lon, limit=120)
+                refs = ref_svc.get_nearest_mandis(location, lat, lon, limit=60)
+
             for m in refs:
                 self._upsert_mandi(
                     mandis_map,

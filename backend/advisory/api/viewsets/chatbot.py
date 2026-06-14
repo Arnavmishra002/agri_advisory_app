@@ -146,16 +146,17 @@ class ChatbotViewSet(viewsets.ViewSet):
 
         # ── Load farmer profile context (for personalized advisory) ──────────
         farmer_ctx: dict = {}
-        if session_id or request.data.get("phone"):
+        # Bug A fix: strip and None-guard BOTH identifiers before any DB access.
+        # An empty string from a mobile client ("session_id": "") must not create
+        # an empty Q() that matches every row (DPDP / data-privacy violation).
+        phone      = (request.data.get("phone")      or "").strip() or None
+        # session_id was already normalised to None above; re-confirm here.
+        if phone or session_id:
             try:
-                phone  = request.data.get("phone", "")
                 q_filter = Q()
                 if phone:      q_filter |= Q(phone_number=phone)
                 if session_id: q_filter |= Q(session_id=session_id)
-                # BUG 3 FIX: Q() with no conditions is truthy in Django but
-                # .filter(Q()) returns ALL rows — returns wrong farmer's profile
-                # to anonymous users (DPDP data-privacy risk).  Explicit guard:
-                profile = FarmerProfile.objects.filter(q_filter).first() if (phone or session_id) else None
+                profile = FarmerProfile.objects.filter(q_filter).first()
                 if profile:
                     farmer_ctx = profile.to_context_dict()
                     # Inject into session context so chatbot history carries it

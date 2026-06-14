@@ -78,6 +78,17 @@ logger = logging.getLogger(__name__)
 _DATA_FETCH_POOL = ThreadPoolExecutor(max_workers=6, thread_name_prefix="km-fetch")
 atexit.register(_DATA_FETCH_POOL.shutdown, wait=False)
 
+# ── Phase 1 (Qwen+RAG) circuit breaker ──────────────────────────────────────
+# Bug E fix: env-configurable short timeout + circuit breaker so a slow/offline
+# Qwen server never stalls a request for 45 seconds.
+import os as _os
+import time as _time
+_PHASE1_TIMEOUT_S:       int   = int(_os.environ.get("PHASE1_TIMEOUT_S", "8"))
+_phase1_failure_count:   int   = 0
+_phase1_last_failure_ts: float = 0.0
+_PHASE1_CB_MAX_FAILS:    int   = 3   # open circuit after 3 consecutive failures
+_PHASE1_CB_RESET_S:      int   = 60  # retry after 60 s cooldown
+
 # ── Module-level Hindi→English term map (used by _qwen_rag_answer) ───────────
 # Built once at import time instead of on every request.
 _HINDI_ENGLISH_MAP: Dict[str, str] = {
@@ -197,7 +208,7 @@ _INDIAN_CITY_CATALOG: Dict[str, Tuple[str, str, float, float]] = {
     "panaji": ("Panaji", "Goa", 15.4909, 73.8278),
     "thiruvananthapuram": ("Thiruvananthapuram", "Kerala", 8.5241, 76.9366),
     "trivandrum": ("Thiruvananthapuram", "Kerala", 8.5241, 76.9366),
-    "bangalore": ("Bangalore", "Karnataka", 12.9716, 77.5946),
+    # Note: "bangalore" key already defined above — bengaluru is the alias
     "imphal": ("Imphal", "Manipur", 24.8170, 93.9368),
     "shillong": ("Shillong", "Meghalaya", 25.5788, 91.8933),
     "aizawl": ("Aizawl", "Mizoram", 23.7271, 92.7176),
@@ -279,7 +290,7 @@ _INDIAN_CITY_CATALOG: Dict[str, Tuple[str, str, float, float]] = {
     "kullu": ("Kullu", "Himachal Pradesh", 31.9579, 77.1095),
     "dharamsala": ("Dharamsala", "Himachal Pradesh", 32.2190, 76.3234),
     "una": ("Una", "Himachal Pradesh", 31.4686, 76.2701),
-    "bilaspur": ("Bilaspur", "Himachal Pradesh", 31.3311, 76.7603),
+    "bilaspur_hp": ("Bilaspur", "Himachal Pradesh", 31.3311, 76.7603),  # renamed to avoid conflict with Bilaspur CG
     # ── Rajasthan ──
     "jodhpur": ("Jodhpur", "Rajasthan", 26.2389, 73.0243),
     "kota": ("Kota", "Rajasthan", 25.2138, 75.8648),
@@ -484,12 +495,13 @@ class SensorContext:
 @dataclass
 class WeatherConstraints:
     """Gate flags derived from the weather forecast."""
-    alerts_text:        str  = "None"
-    forecast_3day:      str  = "N/A"
-    irrigation_blocked: bool = False   # soil adequate/high OR heavy rain forecast
-    spray_blocked:      bool = False   # rain >20mm or >70% prob within 48 h
-    frost_warning:      bool = False   # min_temp <2°C in 3 days
-    heavy_rain_48h:     bool = False
+    alerts_text:        str   = "None"
+    forecast_3day:      str   = "N/A"
+    irrigation_blocked: bool  = False   # soil adequate/high OR heavy rain forecast
+    spray_blocked:      bool  = False   # rain >20mm or >70% prob within 48 h
+    frost_warning:      bool  = False   # min_temp <2°C in 3 days
+    heavy_rain_48h:     bool  = False
+    rain_next_3d_mm:    float = 0.0     # Bug D fix: total rain forecast next 3 days
 
 def _classify_moisture(pct: Optional[float]) -> str:
     if pct is None:
@@ -1183,7 +1195,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
           This is the cleanest separation: Django enriches context, Phase 1
           enriches the embedding lookup.
         """
-        PHASE1_URL = "http://127.0.0.1:8001/chat"
+        PHASE1_URL     = "http://127.0.0.1:8001/chat"
 
         # Build sensor_context dict
         sensor_ctx: Optional[Dict[str, Any]] = None
@@ -1232,16 +1244,28 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         }, ensure_ascii=False).encode("utf-8")
 
         try:
+            # Bug E fix: circuit breaker — skip immediately if too many recent failures
+            global _phase1_failure_count, _phase1_last_failure_ts
+            if (_phase1_failure_count >= _PHASE1_CB_MAX_FAILS
+                    and (_time.time() - _phase1_last_failure_ts) < _PHASE1_CB_RESET_S):
+                logger.debug(
+                    "Phase 1 circuit breaker OPEN (%d failures, %.0fs ago) — skipping",
+                    _phase1_failure_count,
+                    _time.time() - _phase1_last_failure_ts,
+                )
+                return None
+
             req = urllib.request.Request(
                 PHASE1_URL,
                 data=payload,
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=45) as resp:
+            with urllib.request.urlopen(req, timeout=_PHASE1_TIMEOUT_S) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 text = (data.get("response") or "").strip()
                 if text:
+                    _phase1_failure_count = 0  # reset on success
                     logger.info(
                         "Qwen+RAG: '%s...' — %d chunks from %s",
                         query[:40],
@@ -1249,14 +1273,17 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         data.get("rag_sources", []),
                     )
                     return text
-                # Phase 1 returned 200 but empty response — treat as unavailable
                 logger.warning("Qwen+RAG returned empty response for: %s...", query[:40])
                 return None
         except urllib.error.URLError:
             # Server not running — expected when Phase 1 is offline
+            _phase1_failure_count += 1
+            _phase1_last_failure_ts = _time.time()
             logger.debug("Phase 1 server offline — using rule-based fallback")
             return None
         except Exception as exc:
+            _phase1_failure_count += 1
+            _phase1_last_failure_ts = _time.time()
             logger.warning("Qwen+RAG unexpected error: %s", exc)
             return None
 
@@ -1376,6 +1403,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 wc.spray_blocked   = True
                 wc.heavy_rain_48h  = True
                 break
+
+        # Bug D fix: sum next-3-day rainfall for irrigation delay calculation
+        wc.rain_next_3d_mm = sum(
+            (day.get("rainfall_mm") or 0) for day in forecast[:3]
+        )
 
         # Frost warning: min_temp <2°C in 3 days
         for day in forecast[:3]:
@@ -1897,11 +1929,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     top = [c for c in (prices.get("top_crops") or []) if c.get("is_live")]
                     if crops:
                         crop_ids = {c["id"] for c in crops}
-                        matched = [
-                            c for c in top
-                            if crop_catalog.normalize(str(c.get("crop_name", "")))
-                            and crop_catalog.normalize(str(c.get("crop_name", "")))["id"] in crop_ids
-                        ]
+                        # Bug B fix: single normalize() call — double call crashes on None["id"]
+                        matched = []
+                        for c in top:
+                            norm = crop_catalog.normalize(str(c.get("crop_name", "")))
+                            if norm and norm.get("id") in crop_ids:
+                                matched.append(c)
                         top = matched + [c for c in top if c not in matched]
                     lines.append(f"[LIVE MANDI PRICES near {ctx.display_name}] (Rs/quintal):")
                     for c in top[:8]:

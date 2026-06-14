@@ -128,14 +128,19 @@ class RateLimitMiddleware(MiddlewareMixin):
         key         = f"rl:{client_id}:{window}:{bucket}"
 
         try:
-            count = cache.get(key)
-            if count is None:
-                # First request in this bucket
-                cache.set(key, 1, timeout=window_secs * 2)  # *2 gives a grace TTL
-                count = 1
+            # Bug C fix: atomic add+incr — avoids TOCTOU race under multi-worker load.
+            # cache.add() atomically sets key=1 only if absent (returns True on first set).
+            # cache.incr() is atomic in both Redis and Memcached backends.
+            if not cache.add(key, 1, timeout=window_secs * 2):
+                # Key already exists — atomically increment it
+                try:
+                    count = cache.incr(key)
+                except ValueError:
+                    # Key expired between add() and incr() — treat as new bucket
+                    cache.set(key, 1, timeout=window_secs * 2)
+                    count = 1
             else:
-                count = int(count) + 1
-                cache.set(key, count, timeout=window_secs * 2)
+                count = 1
         except Exception as exc:
             # Cache unavailable — allow request rather than block all users
             logger.error("Rate-limit cache error (allowing request): %s", exc)
