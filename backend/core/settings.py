@@ -428,6 +428,12 @@ FRONTEND_DIST = REPO_ROOT / 'frontend' / 'dist'
 SERVE_FRONTEND = os.environ.get('SERVE_FRONTEND', 'false').lower() == 'true'
 FRONTEND_AT_ROOT = os.environ.get('FRONTEND_AT_ROOT', 'false').lower() == 'true'
 
+# WhiteNoise root — serve Vite dist directly at root URLs (/js/, /css/, /assets/)
+# This prevents WhiteNoise from 404-ing on /js/app.js before Django URL patterns run.
+# Only enabled when SERVE_FRONTEND=true (i.e. Render / production single-dyno).
+if SERVE_FRONTEND and FRONTEND_DIST.is_dir():
+    WHITENOISE_ROOT = str(FRONTEND_DIST)
+
 # BUG 2 FIX: Original file had CSRF_TRUSTED_ORIGINS written twice.
 # First assignment (incomplete — no else branch) was silently overwritten.
 # Now there is exactly ONE assignment built from env + auto-trusted platforms.

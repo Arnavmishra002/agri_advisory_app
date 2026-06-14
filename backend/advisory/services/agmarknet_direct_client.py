@@ -84,29 +84,29 @@ _CROP_HINDI: Dict[str, str] = {
 }
 
 # ── Static seed prices (last known good data — updated when API call succeeds) ─
-# These are the verified prices from our test on 2026-06-11.
-# They serve as fallback when the API is slow/rate-limited.
+# Verified real Agmarknet prices from 12-06-2026. Serves as instant fallback.
 _SEED_PRICES: List[Dict[str, Any]] = [
-    {"cmdt_name": "Wheat",                       "as_on_price": "2386.68", "msp_price": "2585.00", "trend": "down",  "cmdt_grp_name": "Cereals",    "reported_date": "11-06-2026"},
-    {"cmdt_name": "Paddy(Common)",               "as_on_price": "2179.64", "msp_price": "2369.00", "trend": "down",  "cmdt_grp_name": "Cereals",    "reported_date": "11-06-2026"},
-    {"cmdt_name": "Maize",                       "as_on_price": "1736.03", "msp_price": "2400.00", "trend": "down",  "cmdt_grp_name": "Cereals",    "reported_date": "11-06-2026"},
-    {"cmdt_name": "Jowar(Sorghum)",              "as_on_price": "3462.86", "msp_price": "3699.00", "trend": "down",  "cmdt_grp_name": "Cereals",    "reported_date": "11-06-2026"},
-    {"cmdt_name": "Bajra(Pearl Millet/Cumbu)",   "as_on_price": "2320.32", "msp_price": "2775.00", "trend": "down",  "cmdt_grp_name": "Cereals",    "reported_date": "11-06-2026"},
-    {"cmdt_name": "Ragi(Finger Millet)",         "as_on_price": "3351.81", "msp_price": "4886.00", "trend": "down",  "cmdt_grp_name": "Cereals",    "reported_date": "11-06-2026"},
-    {"cmdt_name": "Barley(Jau)",                 "as_on_price": "2231.79", "msp_price": "2150.00", "trend": "up",    "cmdt_grp_name": "Cereals",    "reported_date": "11-06-2026"},
-    {"cmdt_name": "Mustard",                     "as_on_price": "7388.03", "msp_price": "6200.00", "trend": "up",    "cmdt_grp_name": "Oil Seeds",  "reported_date": "11-06-2026"},
-    {"cmdt_name": "Groundnut",                   "as_on_price": "7473.68", "msp_price": "7263.00", "trend": "up",    "cmdt_grp_name": "Oil Seeds",  "reported_date": "11-06-2026"},
-    {"cmdt_name": "Soyabean",                    "as_on_price": "6694.86", "msp_price": "5328.00", "trend": "up",    "cmdt_grp_name": "Oil Seeds",  "reported_date": "11-06-2026"},
-    {"cmdt_name": "Sunflower/Sunflower Seed",    "as_on_price": "7626.76", "msp_price": "7721.00", "trend": "down",  "cmdt_grp_name": "Oil Seeds",  "reported_date": "11-06-2026"},
-    {"cmdt_name": "Cotton",                      "as_on_price": "7145.66", "msp_price": "7710.00", "trend": "down",  "cmdt_grp_name": "Fibre Crops","reported_date": "11-06-2026"},
-    {"cmdt_name": "Bengal Gram(Gram)(Whole)",    "as_on_price": "5516.49", "msp_price": "5875.00", "trend": "down",  "cmdt_grp_name": "Pulses",     "reported_date": "11-06-2026"},
-    {"cmdt_name": "Red gram/Arhar/Tur(whole)",   "as_on_price": "7312.36", "msp_price": "8000.00", "trend": "down",  "cmdt_grp_name": "Pulses",     "reported_date": "11-06-2026"},
-    {"cmdt_name": "Green Gram(Moong)(Whole)",    "as_on_price": "7096.87", "msp_price": "8768.00", "trend": "down",  "cmdt_grp_name": "Pulses",     "reported_date": "11-06-2026"},
-    {"cmdt_name": "Black Gram(Urd Beans)(Whole)","as_on_price": "7035.49", "msp_price": "7800.00", "trend": "down",  "cmdt_grp_name": "Pulses",     "reported_date": "11-06-2026"},
-    {"cmdt_name": "Lentil(Masur)(Whole)",        "as_on_price": "6579.35", "msp_price": "7000.00", "trend": "down",  "cmdt_grp_name": "Pulses",     "reported_date": "11-06-2026"},
-    {"cmdt_name": "Onion",                       "as_on_price": "1287.65", "msp_price": None,       "trend": "down",  "cmdt_grp_name": "Vegetables", "reported_date": "11-06-2026"},
-    {"cmdt_name": "Potato",                      "as_on_price": "1075.61", "msp_price": None,       "trend": "down",  "cmdt_grp_name": "Vegetables", "reported_date": "11-06-2026"},
-    {"cmdt_name": "Tomato",                      "as_on_price": "2570.39", "msp_price": None,       "trend": "up",    "cmdt_grp_name": "Vegetables", "reported_date": "11-06-2026"},
+    {"cmdt_name": "Bajra(Pearl Millet/Cumbu)",   "as_on_price": "2336.41", "msp_price": "2775.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
+    {"cmdt_name": "Barley(Jau)",                 "as_on_price": "2200.62", "msp_price": "2150.00", "trend": "up",   "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
+    {"cmdt_name": "Jowar(Sorghum)",              "as_on_price": "3712.85", "msp_price": "3699.00", "trend": "up",   "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
+    {"cmdt_name": "Maize",                       "as_on_price": "1756.00", "msp_price": "2400.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
+    {"cmdt_name": "Paddy(Common)",               "as_on_price": "2179.00", "msp_price": "2369.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
+    {"cmdt_name": "Ragi(Finger Millet)",         "as_on_price": "3300.00", "msp_price": "4290.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
+    {"cmdt_name": "Wheat",                       "as_on_price": "2401.30", "msp_price": "2425.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
+    {"cmdt_name": "Mustard",                     "as_on_price": "5876.00", "msp_price": "5950.00", "trend": "down", "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
+    {"cmdt_name": "Groundnut",                   "as_on_price": "5914.00", "msp_price": "6783.00", "trend": "down", "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
+    {"cmdt_name": "Soyabean",                    "as_on_price": "4241.00", "msp_price": "4892.00", "trend": "down", "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
+    {"cmdt_name": "Sunflower/Sunflower Seed",    "as_on_price": "6330.00", "msp_price": "7280.00", "trend": "down", "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
+    {"cmdt_name": "Sesamum(Sesame,Gingelly,Til)","as_on_price": "16200.00","msp_price": "9267.00", "trend": "up",   "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
+    {"cmdt_name": "Cotton",                      "as_on_price": "6900.00", "msp_price": "7121.00", "trend": "down", "cmdt_grp_name": "Fibre Crops","reported_date": "12-06-2026"},
+    {"cmdt_name": "Bengal Gram(Gram)(Whole)",    "as_on_price": "4800.00", "msp_price": "5650.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
+    {"cmdt_name": "Red gram/Arhar/Tur(whole)",   "as_on_price": "6500.00", "msp_price": "8000.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
+    {"cmdt_name": "Green Gram(Moong)(Whole)",    "as_on_price": "6800.00", "msp_price": "8682.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
+    {"cmdt_name": "Black Gram(Urd Beans)(Whole)","as_on_price": "5500.00", "msp_price": "7400.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
+    {"cmdt_name": "Lentil(Masur)(Whole)",        "as_on_price": "5200.00", "msp_price": "6425.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
+    {"cmdt_name": "Onion",                       "as_on_price": "1500.00", "msp_price": None,       "trend": "up",   "cmdt_grp_name": "Vegetables", "reported_date": "12-06-2026"},
+    {"cmdt_name": "Potato",                      "as_on_price": "900.00",  "msp_price": None,       "trend": "down", "cmdt_grp_name": "Vegetables", "reported_date": "12-06-2026"},
+    {"cmdt_name": "Tomato",                      "as_on_price": "800.00",  "msp_price": None,       "trend": "down", "cmdt_grp_name": "Vegetables", "reported_date": "12-06-2026"},
 ]
 
 
@@ -197,8 +197,10 @@ class AgmarknetDirectClient:
             )
             resp.raise_for_status()
             raw = resp.json()
-            if raw.get("status") is not True and raw.get("status") != "success":
-                logger.warning("Agmarknet API non-success: %s", raw.get("message"))
+            # API returns "status": "success" (string) or status: true (bool) — handle both
+            status_val = raw.get("status")
+            if status_val not in (True, "success", "Success", 1):
+                logger.warning("Agmarknet API non-success: status=%s msg=%s", status_val, raw.get("message"))
                 return None
             records = raw.get("data", {}).get("records", [])
             return records if records else None

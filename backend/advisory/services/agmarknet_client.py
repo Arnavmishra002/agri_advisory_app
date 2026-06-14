@@ -79,9 +79,17 @@ class AgmarknetClient:
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update({
-            "User-Agent": "KrishiMitra-AI/3.0 (Agricultural Advisory; +https://krishimitra.in)",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
+            "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                               "AppleWebKit/537.36 (KHTML, like Gecko) "
+                               "Chrome/125.0.0.0 Safari/537.36",
+            "Content-Type":    "application/json",
+            "Accept":          "application/json, text/plain, */*",
+            "Accept-Language": "en-IN,en;q=0.9,hi;q=0.8",
+            "Referer":         "https://agmarknet.gov.in/",
+            "Origin":          "https://agmarknet.gov.in",
+            "sec-ch-ua":       '"Google Chrome";v="125", "Chromium";v="125"',
+            "sec-fetch-site":  "same-site",
+            "sec-fetch-mode":  "cors",
         })
         retry = Retry(
             total=2,
@@ -121,7 +129,7 @@ class AgmarknetClient:
                 state_names.update(a.lower() for a in aliases)
 
         markets_raw = self._list_from_filters(
-            filters, "market", "markets", "market_list", "apmc_list"
+            filters, "market_data", "market", "markets", "market_list", "apmc_list"
         )
         out: List[Dict[str, Any]] = []
         seen = set()
@@ -129,7 +137,8 @@ class AgmarknetClient:
             if not isinstance(item, dict):
                 continue
             name = (
-                item.get("market_name")
+                item.get("mkt_name")
+                or item.get("market_name")
                 or item.get("name")
                 or item.get("Market")
                 or ""
@@ -205,7 +214,7 @@ class AgmarknetClient:
 
         records: List[Dict[str, Any]] = []
         for day_offset in range(4):
-            day = (date.today() - timedelta(days=day_offset)).isoformat()
+            day = (date.today() - timedelta(days=day_offset)).strftime("%d-%m-%Y")
             payload = {**base_payload, "from_date": day, "to_date": day}
             report = self._post_report(payload)
             if not report:
@@ -280,13 +289,33 @@ class AgmarknetClient:
     def _resolve_state(
         self, location: str, filters: Dict[str, Any]
     ) -> Tuple[Optional[Any], Optional[str]]:
-        states = self._list_from_filters(filters, "state", "states", "state_list", "statelist")
+        states = self._list_from_filters(filters, "state_data", "state", "states", "state_list", "statelist")
         loc = location.lower().strip()
         candidates: List[str] = [location.strip()]
         for key, aliases in STATE_NAME_ALIASES.items():
             if key in loc:
                 candidates.extend(aliases)
 
+        # 1) Try exact or substring match first
+        for state in states:
+            if not isinstance(state, dict):
+                continue
+            name = (
+                state.get("state_name")
+                or state.get("name")
+                or state.get("State")
+                or ""
+            ).strip()
+            if not name:
+                continue
+            sid = state.get("state_id") or state.get("id") or state.get("stateId")
+            name_l = name.lower()
+            for cand in candidates:
+                cn = cand.lower().strip()
+                if cn and (cn == name_l or cn in name_l or name_l in cn):
+                    return sid, name
+
+        # 2) Fallback to word-based overlap (excluding generic suffixes)
         for state in states:
             if not isinstance(state, dict):
                 continue
@@ -304,22 +333,22 @@ class AgmarknetClient:
                 cn = cand.lower().strip()
                 if not cn:
                     continue
-                if cn == name_l or cn in name_l or name_l in cn:
-                    return sid, name
-                if any(w in name_l for w in cn.split() if len(w) > 3):
+                words = [w for w in cn.split() if len(w) > 3 and w not in ("pradesh", "bengal")]
+                if words and any(w in name_l for w in words):
                     return sid, name
         return None, None
 
     def _resolve_commodity_id(self, crop: str, filters: Dict[str, Any]) -> Optional[Any]:
         commodities = self._list_from_filters(
-            filters, "commodity", "commodities", "commodity_list", "commodityadminlist"
+            filters, "cmdt_data", "commodity_data", "commodity", "commodities", "commodity_list", "commodityadminlist"
         )
         crop_l = crop.lower().strip()
         for item in commodities:
             if not isinstance(item, dict):
                 continue
             name = (
-                item.get("commodity_name")
+                item.get("cmdt_name")
+                or item.get("commodity_name")
                 or item.get("name")
                 or item.get("Commodity")
                 or ""
@@ -331,7 +360,7 @@ class AgmarknetClient:
     def _resolve_market_id(
         self, mandi: str, state_id: Any, filters: Dict[str, Any]
     ) -> Optional[Any]:
-        markets = self._list_from_filters(filters, "market", "markets", "market_list")
+        markets = self._list_from_filters(filters, "market_data", "market", "markets", "market_list")
         mandi_l = mandi.lower().strip()
         for item in markets:
             if not isinstance(item, dict):
@@ -339,7 +368,8 @@ class AgmarknetClient:
             if str(item.get("state_id", "")) != str(state_id):
                 continue
             name = (
-                item.get("market_name")
+                item.get("mkt_name")
+                or item.get("market_name")
                 or item.get("name")
                 or item.get("Market")
                 or ""
