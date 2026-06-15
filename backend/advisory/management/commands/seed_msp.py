@@ -89,7 +89,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(msg))
             else:
                 old_msp = crop.msp_per_quintal
-                if old_msp != msp or crop.msp_season != season:
+                if old_msp != msp or crop.msp_season != season or crop.name_hindi != hindi or crop.season != crop_season:
                     updated_count += 1
                     msg = f"  UPDATE  {crop_name:15s}  ₹{old_msp:,} → ₹{msp:,}  [{season}]"
                     self.stdout.write(self.style.WARNING(msg))

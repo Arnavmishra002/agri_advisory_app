@@ -32,6 +32,7 @@ os.environ["SECRET_KEY"] = os.environ.get("SECRET_KEY", "production-verify-local
 os.environ["DEBUG"] = "True"
 os.environ.setdefault("DATABASE_URL", "sqlite:///production_verify.sqlite3")
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+os.environ.setdefault("PHASE1_TIMEOUT_S", "25")
 
 import django
 

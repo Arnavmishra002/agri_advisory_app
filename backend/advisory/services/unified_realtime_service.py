@@ -702,18 +702,20 @@ class MarketPricesService:
         except Exception as exc:
             logger.warning("Agmarknet Direct API error: %s", exc)
 
-        # Priority 1: Agmarknet 2.0 official API (same source as agmarknet.gov.in portal)
-        try:
-            from .agmarknet_client import agmarknet_client
-            resolved_state = state or self._infer_state(location, state=state)
-            data = agmarknet_client.get_market_prices(
-                location, mandi, crop, state=resolved_state or state
-            )
-            if data:
-                logger.info("Market prices from Agmarknet API for %s", location)
-                data = self._tag_live_crop_rows(data)
-        except Exception as exc:
-            logger.warning("Agmarknet client error: %s", exc)
+        # Priority 1: Agmarknet 2.0 official API — only runs if Priority 0 found no data
+        # or if a specific mandi filter requires location-specific pricing.
+        if not data or mandi:
+            try:
+                from .agmarknet_client import agmarknet_client
+                resolved_state = state or self._infer_state(location, state=state)
+                p1_data = agmarknet_client.get_market_prices(
+                    location, mandi, crop, state=resolved_state or state
+                )
+                if p1_data and p1_data.get("top_crops"):
+                    logger.info("Market prices from Agmarknet API for %s", location)
+                    data = self._tag_live_crop_rows(p1_data)
+            except Exception as exc:
+                logger.warning("Agmarknet client error: %s", exc)
 
         # Priority 2: data.gov.in (Agmarknet OGD + eNAM datasets)
         if not data:

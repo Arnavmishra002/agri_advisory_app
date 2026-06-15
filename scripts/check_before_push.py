@@ -106,7 +106,7 @@ header("3/4 Frontend HTML Checks")
 
 with open(os.path.join(REPO_ROOT, "frontend/index.html"), "r", encoding="utf-8") as f:
     html = f.read()
-app_js_path = os.path.join(REPO_ROOT, "frontend/js/app.js")
+app_js_path = os.path.join(REPO_ROOT, "frontend/public/js/app.js")
 with open(app_js_path, "r", encoding="utf-8") as f:
     app_js = f.read()
 
@@ -114,13 +114,13 @@ results.append(check("No spaced HTML tags (< div >)",
     lambda: (_ for _ in ()).throw(AssertionError("Found spaced tags"))
     if "< div" in html or "< span" in html or "< strong" in html else None))
 
-results.append(check("Message class uses ${sender}-message",
+results.append(check("Message class uses chat-message-bot/user",
     lambda: (_ for _ in ()).throw(AssertionError("Broken message class"))
-    if "${sender}-message" not in html else None))
+    if "chat-message-bot" not in app_js and "chat-message-bot" not in html else None))
 
-results.append(check("apiUrl helper used in app.js",
-    lambda: (_ for _ in ()).throw(AssertionError("Missing apiUrl"))
-    if "apiUrl(" not in app_js else None))
+results.append(check("apiFetch helper used in app.js",
+    lambda: (_ for _ in ()).throw(AssertionError("Missing apiFetch"))
+    if "apiFetch(" not in app_js else None))
 
 results.append(check("Farming calendar present",
     lambda: (_ for _ in ()).throw(AssertionError("Missing farming calendar"))
@@ -132,7 +132,7 @@ results.append(check("MSP quick stats present (₹2,275)",
 
 results.append(check("8+ suggested questions present",
     lambda: (_ for _ in ()).throw(AssertionError("Missing suggested questions"))
-    if html.count("suggested-question") < 5 else None))
+    if html.count("askSuggested") < 5 else None))
 
 # ─── 4. Django system check ──────────────────────────────────────
 header("4/4 Django check")

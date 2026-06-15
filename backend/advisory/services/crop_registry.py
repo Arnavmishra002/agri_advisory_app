@@ -71,6 +71,9 @@ class CropEntry:
             "season":   self.season,
             "msp":      self.msp,
             "has_msp":  self.msp > 0,
+            "label":    f"{self.name} ({self.name_hindi})" if self.name_hindi else self.name,
+            "search_term": self.name,
+            "commodity_filter": self.name,
         }
 
 
