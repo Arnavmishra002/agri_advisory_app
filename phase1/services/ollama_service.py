@@ -15,7 +15,7 @@ from typing import Iterator, List, Optional
 logger = logging.getLogger(__name__)
 
 OLLAMA_BASE   = "http://localhost:11434"
-DEFAULT_MODEL = "qwen2.5:7b"
+DEFAULT_MODEL = "krishimitra-llm"
 
 # ── System prompt for farming advisor role ────────────────────────────────────
 AGRI_SYSTEM_PROMPT = """\
@@ -253,11 +253,14 @@ def get_model_info() -> dict:
         with urllib.request.urlopen(req, timeout=3) as resp:
             data = json.loads(resp.read())
             models = data.get("models", [])
-            qwen = next((m for m in models if "qwen2.5" in m["name"]), None)
+            # Prioritize matching DEFAULT_MODEL or general krishimitra/qwen names
+            active = next((m for m in models if DEFAULT_MODEL in m["name"]), None)
+            if not active:
+                active = next((m for m in models if "krishimitra" in m["name"] or "qwen2.5" in m["name"]), None)
             return {
                 "available": True,
-                "model": qwen["name"] if qwen else DEFAULT_MODEL,
-                "size_gb": round(qwen["size"] / 1e9, 1) if qwen else None,
+                "model": active["name"] if active else DEFAULT_MODEL,
+                "size_gb": round(active["size"] / 1e9, 1) if active else None,
             }
     except Exception:
         return {"available": False, "model": DEFAULT_MODEL}

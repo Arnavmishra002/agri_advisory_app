@@ -20,12 +20,12 @@ fi
 echo "✅  Ollama running"
 
 # Check model
-MODEL_CHECK=$(curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; d=json.load(sys.stdin); models=[m['name'] for m in d.get('models',[])]; print('ok' if any('qwen2.5' in m for m in models) else 'missing')" 2>/dev/null)
+MODEL_CHECK=$(curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; d=json.load(sys.stdin); models=[m['name'] for m in d.get('models',[])]; print('ok' if any('qwen2.5' in m or 'krishimitra' in m for m in models) else 'missing')" 2>/dev/null)
 if [ "$MODEL_CHECK" != "ok" ]; then
-  echo "⚠  qwen2.5:7b not found. Pulling now..."
+  echo "⚠  Model not found. Pulling qwen2.5:7b..."
   ollama pull qwen2.5:7b
 fi
-echo "✅  qwen2.5:7b ready"
+echo "✅  Ollama model ready"
 
 # Activate venv
 source "$VENV/bin/activate"

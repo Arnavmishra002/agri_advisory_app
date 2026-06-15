@@ -346,3 +346,10 @@ reverse_geocoding_cache/
 # Local environments and scratch scripts
 phase1_env/
 test_data_gov_key.py
+
+# Custom LLM model files (too large for git — download from Kaggle/HuggingFace)
+*.gguf
+*.bin
+*.safetensors
+custom_llm_trainer/krishimitra-model*/
+custom_llm_trainer/*.gguf

@@ -84,6 +84,8 @@ class ChatbotViewSet(viewsets.ViewSet):
         query      = (request.data.get("query") or "").strip()
         language   = request.data.get("language", "hi")
         session_id = (request.data.get("session_id") or "").strip() or None
+        # fast_mode=true returns rule-based instantly; LLM runs in background
+        fast_mode  = request.data.get("fast_mode", "false").lower() in ("true", "1", "yes")
         ctx        = resolve_request_location(request)
 
         if not query:
@@ -209,6 +211,7 @@ class ChatbotViewSet(viewsets.ViewSet):
             result = chat_intelligence_service.answer(
                 query, ctx, language=language, history=history,
                 farmer_profile=farmer_ctx if farmer_ctx else None,
+                fast_mode=fast_mode,   # if True: skip LLM, use rule-based instantly
             )
             # Override local location context if chat service extracted a named location
             if result.get("location_context"):

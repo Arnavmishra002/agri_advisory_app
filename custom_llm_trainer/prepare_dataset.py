@@ -10,8 +10,18 @@ Output:
 """
 
 import os
+import sys
 import json
 import csv
+
+# Increase CSV field size limit dynamically to handle large text columns
+max_int = sys.maxsize
+while True:
+    try:
+        csv.field_size_limit(max_int)
+        break
+    except OverflowError:
+        max_int = int(max_int / 10)
 
 # 1. High-quality seed Q&A data (Hindi & English) to bootstrap training immediately
 SEED_DATA = [

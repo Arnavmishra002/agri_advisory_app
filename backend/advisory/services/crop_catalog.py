@@ -102,7 +102,7 @@ class CropCatalog:
         return self._by_id.get((crop_id or "").lower().strip())
 
     def normalize(self, query: str) -> Optional[Dict[str, Any]]:
-        """Resolve free text to a catalog crop."""
+        """Resolve free text to a catalog crop — strict matching only, no fuzzy partial."""
         if not query or not str(query).strip():
             return None
         q = str(query).lower().strip()
@@ -115,11 +115,22 @@ class CropCatalog:
                 return crop
             if any(q == a.lower() for a in crop["aliases"]):
                 return crop
-        # Partial match: filter out short queries and common stopwords to prevent false matches (e.g., Hindi 'का' matching 'मक्का')
-        if len(q) < 3 or q in {"में", "और", "लिए", "क्या", "बारे", "सब", "को", "से", "he", "she", "it", "they", "the", "and", "for", "with", "this", "that", "you", "your"}:
+        # Minimum length guard + common Hindi/English stopwords → no partial match
+        _STOPWORDS = {
+            "में", "और", "लिए", "क्या", "बारे", "सब", "को", "से", "की", "के", "का",
+            "मेरी", "मेरे", "मेरा", "हमारी", "हमारे", "meri", "mera", "mere",
+            "he", "she", "it", "they", "the", "and", "for", "with", "this",
+            "that", "you", "your", "my", "our", "is", "are", "was", "has",
+            "ki", "ke", "ka", "se", "ko", "me", "kya", "kab", "kaise",
+        }
+        if len(q) < 3 or q in _STOPWORDS:
             return None
-        results = self.search(query, limit=1)
-        return results[0] if results else None
+        # Only search if query is at least 4 chars and looks like a crop name
+        if len(q) >= 4:
+            results = self.search(query, limit=1)
+            if results and results[0].get("_score", 0) >= 75:
+                return results[0]
+        return None
 
     def search(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Google-style ranked crop suggestions."""
@@ -140,11 +151,12 @@ class CropCatalog:
             if name_l == q_lower or crop["id"] == q_lower:
                 score = 100.0
             elif q_lower in name_l or name_l.startswith(q_lower):
-                score = 85.0
+                # Prevent false positives: "meri" in "turmeric" — require meaningful overlap
+                score = 85.0 if len(q_lower) >= 4 else 0.0
             elif hindi_l and (q_lower in hindi_l or hindi_l.startswith(q_lower)):
-                score = 80.0
+                score = 80.0 if len(q_lower) >= 3 else 0.0
             elif any(q_lower in a or a.startswith(q_lower) for a in aliases_l):
-                score = 75.0
+                score = 75.0 if len(q_lower) >= 3 else 0.0
             else:
                 for tok in q_tokens:
                     if len(tok) < 3 or tok in {"का", "की", "के", "में", "और", "लिए", "क्या", "बारे", "सब", "को", "से", "he", "she", "it", "they", "the", "and", "for", "with", "this", "that", "you", "your"}:
@@ -163,7 +175,7 @@ class CropCatalog:
 
         scored.sort(key=lambda x: (-x[0], x[1]["name"]))
         out = []
-        for _, crop in scored[:limit]:
+        for sc_score, crop in scored[:limit]:
             out.append({
                 "id": crop["id"],
                 "name": crop["name"],
@@ -173,6 +185,7 @@ class CropCatalog:
                 "label": f"{crop['name']} ({crop['hindi']})" if crop["hindi"] else crop["name"],
                 "search_term": crop["name"],
                 "commodity_filter": crop["name"],
+                "_score": sc_score,   # used by normalize() to reject low-confidence matches
             })
         return out
 

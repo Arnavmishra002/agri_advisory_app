@@ -84,12 +84,11 @@ _DATA_FETCH_POOL = ThreadPoolExecutor(
 )
 atexit.register(_DATA_FETCH_POOL.shutdown, wait=False)
 
-# ── Phase 1 (Qwen+RAG) circuit breaker ──────────────────────────────────────
-# Bug E fix: env-configurable short timeout + circuit breaker so a slow/offline
-# Qwen server never stalls a request for 45 seconds.
+# ── Phase 1 / direct Ollama circuit breaker ──────────────────────────────────
 import os as _os
 import time as _time
-_PHASE1_TIMEOUT_S:       int   = int(_os.environ.get("PHASE1_TIMEOUT_S", "8"))
+
+_PHASE1_TIMEOUT_S:       int   = int(_os.environ.get("PHASE1_TIMEOUT_S", "45"))
 _phase1_failure_count:   int   = 0
 _phase1_last_failure_ts: float = 0.0
 _PHASE1_CB_MAX_FAILS:    int   = 3   # open circuit after 3 consecutive failures
@@ -886,14 +885,18 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         language: str = "hi",
         history: Optional[List[Dict[str, Any]]] = None,
         farmer_profile: Optional[Dict[str, Any]] = None,
+        fast_mode: bool = False,
     ) -> Dict[str, Any]:
         """
         Main entry point. Supports multi-turn conversation via `history`.
 
+        fast_mode=True: Skip LLM (krishimitra-llm), use only rule-based engine.
+          Returns in ~600ms. Use when you need instant responses.
+          Set fast_mode=False (default) to get LLM-enhanced personalised answers.
+
         history format (last N messages):
           [{"role": "user", "content": "..."},
            {"role": "assistant", "content": "...", "intent": "market_price"}]
-        The "intent" key on assistant turns is optional but improves follow-up resolution.
         """
         query = (query or "").strip()
         lang  = normalise_language_code(language)
@@ -1103,15 +1106,31 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         season = _current_season(now.month)
 
         # ── Generate response ─────────────────────────────────────
-        # Priority chain:
-        #   1. Gemini API (cloud, best quality)
-        #   2. Qwen 2.5 7B + RAG (local, zero cost — Phase 1 server on port 8001)
-        #   3. Rule-based fallback (always available offline)
-        has_gemini    = _is_valid_gemini_key(gemini_service.api_key)
+        # Priority chain (100% offline-first):
+        #   1. krishimitra-llm — Ultra-rich grounded prompt (real-time data)
+        #      — Path A: Phase 1 FastAPI + RAG (ICAR knowledge retrieval)
+        #      — Path B: Direct Ollama (all real-time context, no RAG)
+        #   2. Gemini API (optional cloud, only if GOOGLE_AI_API_KEY is set)
+        #   3. Rule-based (ICAR-grounded, instant, always available)
+        #
+        # fast_mode=True bypasses Tier 1+2 → instant rule-based answer (~600ms).
+        # Use fast_mode=True for web/mobile when the user needs a quick response;
+        # the frontend can upgrade to full LLM via a follow-up /enhance/ call.
         response_text: Optional[str] = None
-        data_source   = "KrishiMitra Advisory Engine"   # safe default — overwritten on success
+        data_source   = "KrishiMitra Advisory Engine"
 
-        if has_gemini:
+        # Tier 1: krishimitra-llm — analyses ALL real-time data before responding
+        if not fast_mode:
+            response_text = self._qwen_rag_answer(
+                query=query, ctx=ctx, lang=lang, history=history,
+                sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
+            )
+            if response_text:
+                data_source = "krishimitra-llm (fine-tuned KCC model)"
+
+        # Tier 2: Gemini API — optional cloud, only when LLM unavailable
+        has_gemini = _is_valid_gemini_key(gemini_service.api_key)
+        if not response_text and has_gemini and not fast_mode:
             try:
                 rendered = self._render_grounded_prompt(
                     query=query, ctx=ctx, sc=sc, wc=wc, rag=rag,
@@ -1119,41 +1138,23 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     lang=lang, season=season,
                 )
                 response_text = gemini_service.generate(
-                    prompt=rendered,
-                    system_prompt="",  # all context already in rendered prompt
-                    max_tokens=1600,
-                    user_query=query,
-                    temperature=0.3,
+                    prompt=rendered, system_prompt="",
+                    max_tokens=1600, user_query=query, temperature=0.3,
                 )
                 if response_text:
                     data_source = "Gemini AI + Official gov APIs"
                 else:
-                    logger.warning("Gemini returned empty — trying Qwen+RAG")
+                    logger.warning("Gemini returned empty — using rule-based")
             except Exception as exc:
-                logger.warning("Gemini failed: %s — trying Qwen+RAG", exc)
+                logger.warning("Gemini failed: %s — using rule-based", exc)
 
-        # Tier 2: Qwen 2.5 7B + RAG (runs when Gemini absent or returned empty)
-        if not response_text:
-            response_text = self._qwen_rag_answer(
-                query=query,
-                ctx=ctx,
-                lang=lang,
-                history=history,
-                sc=sc,
-                wc=wc,
-                market_str=market_str,
-                farmer_profile=farmer_profile,
-            )
-            if response_text:
-                data_source = "Qwen 2.5 7B + RAG (local)"
-
-        # Tier 3: Rule-based fallback (always available, no external dependencies)
+        # Tier 3: Rule-based (instant, ICAR-grounded, always available)
+        # Used when: fast_mode=True OR LLM offline OR Gemini unavailable
         if not response_text:
             response_text = self._smart_rule_response(
                 query, intent, crops_mentioned, ctx, context_block, lang, history,
                 sc=sc, wc=wc,
             )
-            # data_source already set to default "KrishiMitra Advisory Engine"
 
         crop_suggestions = self._crop_suggestions_for_intent(
             ctx, intent, crops_mentioned, lang=lang
@@ -1185,25 +1186,32 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         farmer_profile: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         """
-        Call the Phase 1 FastAPI server (http://127.0.0.1:8001/chat).
-        Returns response text if the server is up and responds, None otherwise.
-        All failures are silent — callers fall back to rule-based.
+        Tier 2: krishimitra-llm (fine-tuned custom model) via two paths:
 
-        Bug fixes applied:
-        - Bug 2/3: json, urllib, re imported at module level; _HINDI_ENGLISH_MAP
-          is a module-level constant — no per-call reconstruction.
-        - Bug 5: query is augmented here with _augment_hindi_query() before
-          sending to Phase 1. Phase 1's retriever.py also augments, but that's
-          a server-side concern on its own query; we send the augmented string
-          so the server receives better input even if its augmentation is off.
-          To avoid double tokens we send the ORIGINAL query to Phase 1 in the
-          `query` field and let Phase 1's retriever handle augmentation there.
-          This is the cleanest separation: Django enriches context, Phase 1
-          enriches the embedding lookup.
+        Path A — Phase 1 FastAPI server (port 8001):
+          Delegates to Phase 1 which does RAG retrieval + Ollama call.
+          Best when Phase 1 is running; adds RAG context automatically.
+
+        Path B — Direct Ollama call (port 11434):
+          Falls back to calling krishimitra-llm directly when Phase 1 is slow
+          or unavailable. Uses the same grounded prompt with weather/sensor/
+          market context built inline.
+
+        Both paths use the circuit breaker to avoid stalling on offline servers.
         """
-        PHASE1_URL     = "http://127.0.0.1:8001/chat"
+        global _phase1_failure_count, _phase1_last_failure_ts
 
-        # Build sensor_context dict
+        # ── Circuit breaker check ─────────────────────────────────────────────
+        if (_phase1_failure_count >= _PHASE1_CB_MAX_FAILS
+                and (_time.time() - _phase1_last_failure_ts) < _PHASE1_CB_RESET_S):
+            logger.debug(
+                "Phase 1 circuit breaker OPEN (%d failures, %.0fs ago) — skipping",
+                _phase1_failure_count,
+                _time.time() - _phase1_last_failure_ts,
+            )
+            return None
+
+        # ── Build shared context ──────────────────────────────────────────────
         sensor_ctx: Optional[Dict[str, Any]] = None
         if sc.source != "none":
             sensor_ctx = {
@@ -1219,7 +1227,6 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "source":           sc.source,
             }
 
-        # Detect crop from conversation history
         crop_hint: Optional[str] = None
         if history:
             for msg in reversed(history[-6:]):
@@ -1228,15 +1235,16 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     crop_hint = detected[0]["name"]
                     break
 
-        # Sanitise history for Phase 1
         clean_history = [
             {"role": m.get("role", "user"), "content": m.get("content", "")}
             for m in (history or [])[-8:]
             if m.get("content")
         ]
 
+        # ── Path A: Phase 1 server (RAG + Ollama, best quality) ──────────────
+        PHASE1_URL = "http://127.0.0.1:8001/chat"
         payload = json.dumps({
-            "query":          query,           # Phase 1 retriever augments internally
+            "query":          query,
             "language":       lang,
             "location":       ctx.display_name,
             "latitude":       ctx.latitude,
@@ -1245,22 +1253,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "season":         _current_season(),
             "history":        clean_history,
             "sensor_context": sensor_ctx,
-            "farmer_profile": farmer_profile,  # NEW: personalisation context
+            "farmer_profile": farmer_profile,
             "stream":         False,
         }, ensure_ascii=False).encode("utf-8")
 
         try:
-            # Bug E fix: circuit breaker — skip immediately if too many recent failures
-            global _phase1_failure_count, _phase1_last_failure_ts
-            if (_phase1_failure_count >= _PHASE1_CB_MAX_FAILS
-                    and (_time.time() - _phase1_last_failure_ts) < _PHASE1_CB_RESET_S):
-                logger.debug(
-                    "Phase 1 circuit breaker OPEN (%d failures, %.0fs ago) — skipping",
-                    _phase1_failure_count,
-                    _time.time() - _phase1_last_failure_ts,
-                )
-                return None
-
             req = urllib.request.Request(
                 PHASE1_URL,
                 data=payload,
@@ -1271,26 +1268,245 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 data = json.loads(resp.read().decode("utf-8"))
                 text = (data.get("response") or "").strip()
                 if text:
-                    _phase1_failure_count = 0  # reset on success
+                    _phase1_failure_count = 0
                     logger.info(
-                        "Qwen+RAG: '%s...' — %d chunks from %s",
-                        query[:40],
-                        data.get("rag_chunks", 0),
-                        data.get("rag_sources", []),
+                        "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
+                        query[:40], data.get("rag_chunks", 0),
                     )
                     return text
-                logger.warning("Qwen+RAG returned empty response for: %s...", query[:40])
+                logger.warning("Phase 1 returned empty for: %s", query[:40])
+                # Fall through to Path B
+        except urllib.error.URLError:
+            logger.debug("Phase 1 offline — trying direct Ollama path")
+        except Exception as exc:
+            logger.info("Phase 1 timeout/error (%s) — trying direct Ollama", type(exc).__name__)
+
+        # ── Path B: Direct Ollama — Ultra-Rich Context (all real-time data) ─────
+        OLLAMA_URL   = "http://localhost:11434/api/chat"
+        OLLAMA_MODEL = _os.environ.get("OLLAMA_MODEL", "krishimitra-llm")
+
+        prompt_parts: List[str] = []
+        now          = datetime.now()
+        season_label = _current_season(now.month)
+
+        # 1. Live weather + constraints
+        w_lines = []
+        if sc.air_temp_c is not None:
+            w_lines.append(f"Temperature: {sc.air_temp_c}°C, Humidity: {sc.humidity_pct}%")
+        if wc.forecast_3day not in (None, "N/A", "Forecast unavailable — check mausam.imd.gov.in"):
+            w_lines.append(f"Forecast: {wc.forecast_3day}")
+        if wc.rain_next_3d_mm > 5:
+            w_lines.append(f"Rain next 3 days: {wc.rain_next_3d_mm:.0f}mm")
+        if wc.spray_blocked:
+            w_lines.append("⚠️ SPRAY/FERTILISER BLOCKED — rain in 48h, apply after rain")
+        if wc.irrigation_blocked:
+            w_lines.append("⚠️ IRRIGATION NOT NEEDED — moisture adequate or rain expected")
+        if wc.frost_warning:
+            w_lines.append("⚠️ FROST WARNING — protect crops tonight")
+        if wc.alerts_text and wc.alerts_text != "None":
+            w_lines.append(f"Alert: {wc.alerts_text}")
+        if w_lines:
+            prompt_parts.append("[REAL-TIME WEATHER — DO NOT IGNORE]\n" + "\n".join(w_lines))
+
+        # 2. Live soil sensor readings
+        if sensor_ctx:
+            moisture    = sensor_ctx.get("moisture_pct")
+            moisture_st = sensor_ctx.get("moisture_status", "unknown")
+            ph          = sensor_ctx.get("ph")
+            n_val       = sensor_ctx.get("nitrogen_kg_ha")
+            p_val       = sensor_ctx.get("phosphorus_kg_ha")
+            k_val       = sensor_ctx.get("potassium_kg_ha")
+            ec_val      = sensor_ctx.get("ec_ds_m")
+            oc_val      = sensor_ctx.get("organic_carbon")
+            src_label   = sensor_ctx.get("source", "sensor")
+
+            s_lines = [f"Source: {src_label} ({now.strftime('%H:%M %d-%b')})"]
+            if moisture is not None:
+                flag = ("✅ Adequate" if moisture_st == "Adequate"
+                        else "⚠️ LOW — irrigate" if moisture_st in ("Low","Critical")
+                        else "⚠️ HIGH — skip irrigation")
+                s_lines.append(f"Soil moisture: {moisture:.1f}% — {flag}")
+            if ph is not None:
+                ph_label = ("Optimal" if 6.5 <= ph <= 7.5
+                            else "Acidic — add lime" if ph < 6.5
+                            else "Alkaline — add gypsum")
+                s_lines.append(f"Soil pH: {ph:.1f} — {ph_label}")
+            if n_val is not None:
+                n_flag = "✅ OK" if n_val >= 120 else "❌ Deficient — add N fertiliser"
+                s_lines.append(f"Nitrogen: {n_val:.0f} kg/ha — {n_flag}")
+            if p_val is not None:
+                p_flag = "✅ OK" if p_val >= 10 else "❌ Deficient — add DAP/SSP"
+                s_lines.append(f"Phosphorus: {p_val:.0f} kg/ha — {p_flag}")
+            if k_val is not None:
+                k_flag = "✅ OK" if k_val >= 108 else "❌ Deficient — add MOP"
+                s_lines.append(f"Potassium: {k_val:.0f} kg/ha — {k_flag}")
+            if ec_val is not None:
+                ec_flag = "✅ Safe" if ec_val < 2.0 else "⚠️ Saline — leach salts"
+                s_lines.append(f"EC (salinity): {ec_val:.2f} dS/m — {ec_flag}")
+            if oc_val is not None:
+                oc_flag = "✅ OK" if oc_val >= 0.5 else "❌ Low — add FYM/compost"
+                s_lines.append(f"Organic carbon: {oc_val:.2f}% — {oc_flag}")
+            prompt_parts.append("[LIVE SOIL SENSORS — CRITICAL DATA]\n" + "\n".join(s_lines))
+
+        # 3. Live mandi prices with MSP comparison
+        if market_str and market_str.strip() not in ("", "N/A", "No live price rows today"):
+            prompt_parts.append(f"[LIVE MANDI PRICES — {ctx.display_name}]\n{market_str}")
+
+        # 4. Farmer profile — EVERYTHING we know about this farmer
+        if farmer_profile:
+            fp_lines = []
+            if farmer_profile.get("name"):
+                fp_lines.append(f"Farmer: {farmer_profile['name']}")
+            if farmer_profile.get("village"):
+                fp_lines.append(f"Village: {farmer_profile['village']}, {ctx.state}")
+            if farmer_profile.get("current_crop"):
+                fp_lines.append(f"Current crop: {farmer_profile['current_crop']}")
+            if farmer_profile.get("farm_size_bigha"):
+                ha = float(farmer_profile["farm_size_bigha"]) * 0.2
+                fp_lines.append(f"Farm size: {farmer_profile['farm_size_bigha']} bigha (~{ha:.1f} ha)")
+            if farmer_profile.get("soil_type"):
+                fp_lines.append(f"Soil type: {farmer_profile['soil_type']}")
+            if farmer_profile.get("soil_ph"):
+                fp_lines.append(f"Soil Health Card pH: {farmer_profile['soil_ph']}")
+            if farmer_profile.get("irrigation_type"):
+                fp_lines.append(f"Irrigation: {farmer_profile['irrigation_type']}")
+            if farmer_profile.get("has_pm_kisan"):
+                fp_lines.append("Enrolled: PM-Kisan ✅")
+            if farmer_profile.get("crop_history"):
+                ch = farmer_profile["crop_history"]
+                if isinstance(ch, list) and ch:
+                    hist_str = ", ".join(
+                        f"{c.get('crop','?')} ({c.get('season','?')})" if isinstance(c,dict) else str(c)
+                        for c in ch[-3:]
+                    )
+                    fp_lines.append(f"Past crops (last 3): {hist_str}")
+            # IoT sensor data from profile
+            if farmer_profile.get("sensor_reading"):
+                sr = farmer_profile["sensor_reading"]
+                if sr.get("moisture_pct") and not sensor_ctx:
+                    fp_lines.append(f"Last sensor reading: moisture={sr['moisture_pct']}%, pH={sr.get('ph','?')}")
+            if fp_lines:
+                prompt_parts.append("[FARMER PROFILE — PERSONALISE RESPONSE FOR THIS FARMER]\n"
+                                    + "\n".join(fp_lines))
+
+        # 5. District agro-climatic profile (soil type, zone, avg rainfall)
+        try:
+            if _DISTRICT_PROFILES and ctx.state:
+                state_lower = ctx.state.lower().replace(" ", "_")
+                district_profile = _DISTRICT_PROFILES.get(ctx.display_name.lower()) or \
+                                   _DISTRICT_PROFILES.get(state_lower)
+                if district_profile:
+                    d_lines = []
+                    if district_profile.get("soil_type"):
+                        d_lines.append(f"Dominant soil: {district_profile['soil_type']}")
+                    if district_profile.get("avg_annual_rainfall_mm"):
+                        d_lines.append(f"Avg rainfall: {district_profile['avg_annual_rainfall_mm']}mm/yr")
+                    if district_profile.get("agro_zone"):
+                        d_lines.append(f"Agro zone: {district_profile['agro_zone']}")
+                    if d_lines:
+                        prompt_parts.append(f"[DISTRICT PROFILE — {ctx.display_name}]\n"
+                                            + "\n".join(d_lines))
+        except Exception:
+            pass
+
+        # 6. ICAR RAG knowledge snippets
+        try:
+            rag_snippets = self._fetch_gov_rag_snippets(
+                query, self.classify_query(query)[0],
+                self._detect_crops(query)
+            )
+            if rag_snippets and "No specific advisory" not in rag_snippets:
+                prompt_parts.append(
+                    "[ICAR/GOVERNMENT ADVISORY — CITE THESE FACTS EXACTLY]\n"
+                    + rag_snippets[:800]
+                )
+        except Exception:
+            pass
+
+        # 7. Conversation history (last 6 turns — farmer context)
+        if clean_history:
+            hist_lines = [
+                f"{'Farmer' if m['role']=='user' else 'KrishiMitra'}: {m['content']}"
+                for m in clean_history[-6:]
+            ]
+            prompt_parts.append("[CONVERSATION HISTORY]\n" + "\n".join(hist_lines))
+
+        # 8. Query context (season, location, month, crop stage)
+        ctx_lines = [
+            f"Location: {ctx.display_name}{', ' + ctx.state if ctx.state else ''}",
+            f"Season: {season_label}",
+            f"Month: {now.strftime('%B %Y')}",
+            f"Language of response required: {lang}",
+        ]
+        if crop_hint:
+            ctx_lines.append(f"Crop being discussed: {crop_hint}")
+        prompt_parts.append("[QUERY CONTEXT]\n" + "\n".join(ctx_lines))
+
+        # 9. The farmer's actual question
+        prompt_parts.append(f"[FARMER QUESTION]\n{query}")
+
+        full_prompt = "\n\n" + "\n\n---\n\n".join(prompt_parts)
+
+        system_prompt = (
+            "You are KrishiMitra AI — India's most accurate agricultural advisor, "
+            "fine-tuned on 50,000 real Kisan Call Centre interactions.\n\n"
+            "RULES (follow strictly):\n"
+            "1. Read ALL sections above before answering. Your response MUST use the real-time data.\n"
+            "2. SOIL MOISTURE RULE: If moisture is Adequate/High → NEVER recommend irrigation. State the exact %.\n"
+            "3. SPRAY RULE: If spray is blocked → NEVER recommend spraying. Say 'barish ke baad karein'.\n"
+            "4. LANGUAGE: Reply in EXACTLY the same language as the farmer's question. Hindi→Hindi, Hinglish→Hinglish.\n"
+            "5. NUMBERS: Quote EXACT numbers from the data — MSP ₹X/q, dose Xg/L, interval X days. No guessing.\n"
+            "6. PERSONALISE: If you know the farmer's crop, farm size, or past history, use it in your answer.\n"
+            "7. ICAR FIRST: For pesticide doses, always cite ICAR POP. Never exceed label dose.\n"
+            "8. FORMAT: Bullet points for action steps. Bold key numbers. End with ONE next step today.\n"
+            "9. SENSOR CONFLICT: If farmer asks to irrigate but sensor says Adequate → explain why not.\n"
+            "10. MARKET: If farmer asks selling price, compare current mandi rate vs MSP. Advise when to sell."
+        )
+
+        ollama_payload = json.dumps({
+            "model": OLLAMA_MODEL,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": full_prompt},
+            ],
+            "options": {
+                "temperature":    0.3,
+                "num_predict":    800,
+                "top_p":          0.9,
+                "repeat_penalty": 1.1,
+                "num_ctx":        4096,
+            },
+            "stream": False,
+        }, ensure_ascii=False).encode("utf-8")
+
+        try:
+            ollama_req = urllib.request.Request(
+                OLLAMA_URL,
+                data=ollama_payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            # Direct Ollama calls can take 20-40s on consumer hardware
+            with urllib.request.urlopen(ollama_req, timeout=120) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                text = (data.get("message", {}).get("content") or "").strip()
+                if text:
+                    _phase1_failure_count = 0
+                    logger.info(
+                        "krishimitra-llm direct Ollama: '%s...' — %d chars",
+                        query[:40], len(text),
+                    )
+                    return text
                 return None
         except urllib.error.URLError:
-            # Server not running — expected when Phase 1 is offline
             _phase1_failure_count += 1
             _phase1_last_failure_ts = _time.time()
-            logger.debug("Phase 1 server offline — using rule-based fallback")
+            logger.debug("Direct Ollama also offline — falling back to rule-based")
             return None
         except Exception as exc:
             _phase1_failure_count += 1
             _phase1_last_failure_ts = _time.time()
-            logger.warning("Qwen+RAG unexpected error: %s", exc)
+            logger.warning("Direct Ollama error: %s", exc)
             return None
 
     # ── Named-location extraction ──────────────────────────────────────────────

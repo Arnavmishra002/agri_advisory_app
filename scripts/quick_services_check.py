@@ -19,6 +19,7 @@ os.environ.setdefault("SECRET_KEY", "quick-services-check-secret")
 os.environ.setdefault("DEBUG", "True")
 os.environ.setdefault("DATABASE_URL", "sqlite:///quick_check.sqlite3")
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+os.environ.setdefault("PHASE1_TIMEOUT_S", "25")
 
 import django
 
