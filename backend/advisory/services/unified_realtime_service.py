@@ -396,7 +396,7 @@ class WeatherService:
                 "latitude": lat,
                 "longitude": lon,
                 "data_source": "Open-Meteo (Real-time, Free)",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "language": lang,
                 "current": current_data,
                 "current_weather": current_data,       # alias for frontend compatibility
@@ -444,7 +444,7 @@ class WeatherService:
                 "location": location,
                 "data_source": "OpenWeatherMap",
                 "language": lang,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "current": current_data,
                 "current_weather": current_data,
                 "forecast_7day": _parse_owm_forecast(raw["list"]),
@@ -464,7 +464,7 @@ class WeatherService:
             "location": location,
             "data_source": "Estimated (all APIs unavailable)",
             "language": lang,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "current": {
                 "temperature": None, "humidity": None, "rainfall_mm": 0,
                 "wind_speed": None, "condition": "Unknown",
@@ -661,7 +661,7 @@ class MarketPricesService:
         )
         cache_key = f"{coord_key}:{location}:{state}:{mandi}:{crop}:{include_estimates}"
         if cache_key in self._cache:
-            age = (datetime.now() - self._cache_ts[cache_key]).total_seconds()
+            age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
             if age < self.CACHE_TTL:
                 return self._cache[cache_key]
 
@@ -758,7 +758,7 @@ class MarketPricesService:
             self._cache_ts.pop(oldest, None)
         self._cache[cache_key] = data
         self._cache[cache_key]  # move to end (mark as recently used)
-        self._cache_ts[cache_key] = datetime.now()
+        self._cache_ts[cache_key] = datetime.now(tz=timezone.utc)
         return data
 
     # Core MSP crops always present for advisory UI and tests (demo API returns random 10 rows)
@@ -830,7 +830,7 @@ class MarketPricesService:
             "location": location,
             "state": state or "",
             "data_source": "Agmarknet (API key required for live data)",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "top_crops": [],
             "total_records": 0,
             "message": msg,
@@ -951,7 +951,7 @@ class MarketPricesService:
         """
         cache_key = f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:{location}:{state}:{radius_km}"
         if cache_key in self._cache:
-            age = (datetime.now() - self._cache_ts[cache_key]).total_seconds()
+            age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
             if age < self.CACHE_TTL:
                 return self._cache[cache_key]
 
@@ -1131,14 +1131,14 @@ class MarketPricesService:
             "api_key_registered": registered_key,
             "using_demo_key": using_demo and not registered_key,
             "data_source": data_source,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "message": message,
             "nearest_mandi": nearest_mandi,
             "radius_km": radius_km if has_gps else None,
             "has_gps": has_gps,
         }
         self._cache[cache_key] = result
-        self._cache_ts[cache_key] = datetime.now()
+        self._cache_ts[cache_key] = datetime.now(tz=timezone.utc)
         return result
 
     @staticmethod
@@ -1663,7 +1663,7 @@ class MarketPricesService:
                 "grade": self._record_field(rec, "grade", "Grade", default=""),
                 "date": self._record_field(
                     rec, "arrival_date", "Arrival_Date", "Arrival Date",
-                    default=datetime.now().strftime("%d/%m/%Y"),
+                    default=datetime.now(tz=timezone.utc).strftime("%d/%m/%Y"),
                 ),
                 "unit": "₹/quintal",
             })
@@ -1674,7 +1674,7 @@ class MarketPricesService:
             "location": location,
             "selected_mandi": selected_mandi,
             "data_source": f"data.gov.in ({source})",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "top_crops": crops,
             "total_records": len(crops),
             "message": f"{len(crops)} live mandi records from data.gov.in ({source})",
@@ -1700,7 +1700,7 @@ class MarketPricesService:
         """
         crops_data = []
         target_crops = [crop] if crop else list(MSP_2024_25.keys())[:10]
-        month = datetime.now().month
+        month = datetime.now(tz=timezone.utc).month
 
         # Realistic seasonal premiums based on AGMARKNET historical patterns
         # Kharif harvest (Oct-Dec): prices near MSP; Rabi harvest (Mar-May): near MSP
@@ -1772,7 +1772,7 @@ class MarketPricesService:
                 "profit_vs_msp": profit_pct,
                 "profit_indicator": "📈" if profit_pct > 0 else "📉",
                 "unit": "₹/quintal",
-                "date": datetime.now().strftime("%d/%m/%Y"),
+                "date": datetime.now(tz=timezone.utc).strftime("%d/%m/%Y"),
                 "season_note": "Kharif" if month in [6,7,8,9,10,11] else "Rabi",
             })
 
@@ -1786,7 +1786,7 @@ class MarketPricesService:
                 "MSP-based seasonal estimate — NOT live mandi trades. "
                 "Set DATA_GOV_IN_API_KEY or use Agmarknet API for live prices."
             ),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "top_crops": crops_data,
             "total_records": len(crops_data),
             "message": (
@@ -2490,7 +2490,7 @@ class BlockchainIoTSimulator:
         """Simulated IoT sensor readings (soil, weather, moisture)"""
         import random, hashlib
         seed = hash(location) % 1000
-        random.seed(seed + datetime.now().hour)  # Vary by hour for realism
+        random.seed(seed + datetime.now(tz=timezone.utc).hour)  # Vary by hour for realism
 
         soil_moisture = random.uniform(35, 75)
         soil_temp = random.uniform(18, 32)
@@ -2502,7 +2502,7 @@ class BlockchainIoTSimulator:
         sensor_data = {
             "sensor_id": f"KM-IOT-{abs(hash(location)) % 9999:04d}",
             "location": location,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "readings": {
                 "soil_moisture_pct": round(soil_moisture, 1),
                 "soil_temperature_c": round(soil_temp, 1),

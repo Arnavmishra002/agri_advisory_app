@@ -30,7 +30,7 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeout
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from .crop_catalog import crop_catalog
@@ -521,7 +521,7 @@ def _classify_moisture(pct: Optional[float]) -> str:
 
 
 def _current_season(month: int = None) -> str:
-    m = month or datetime.now().month
+    m = month or datetime.now(tz=timezone.utc).month
     # Kharif: sown Jun-Jul, harvested Sep-Oct  →  Jun-Sep
     if m in (6, 7, 8, 9):
         return "Kharif (Jun-Sep)"
@@ -1102,7 +1102,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 profile_str = "[FARMER PROFILE] " + " | ".join(profile_lines)
                 history_block = profile_str + "\n\n" + history_block
 
-        now    = datetime.now()
+        now    = datetime.now(tz=timezone.utc)
         season = _current_season(now.month)
 
         # ── Generate response ─────────────────────────────────────
@@ -1286,7 +1286,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         OLLAMA_MODEL = _os.environ.get("OLLAMA_MODEL", "krishimitra-llm")
 
         prompt_parts: List[str] = []
-        now          = datetime.now()
+        now          = datetime.now(tz=timezone.utc)
         season_label = _current_season(now.month)
 
         # 1. Live weather + constraints
@@ -2274,7 +2274,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             farming_advice = fa_line.replace("[FARMING ADVICE]", "").strip()
 
         season = _current_season()
-        now    = datetime.now()
+        now    = datetime.now(tz=timezone.utc)
 
         # ── Evaluation Check 1: active weather alerts (prefix all responses) ─
         alert_prefix = ""

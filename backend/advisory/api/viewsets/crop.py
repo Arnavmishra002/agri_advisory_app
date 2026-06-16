@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -73,7 +73,7 @@ class TrendingCropsViewSet(viewsets.ViewSet):
                 "location": ctx.query_label,
                 "trending_crops": trending,
                 "data_source": rec_data.get("data_source"),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "total_crops": len(trending),
             }, ctx), status=status.HTTP_200_OK)
 
@@ -82,7 +82,7 @@ class TrendingCropsViewSet(viewsets.ViewSet):
             return Response({
                 "error": "Unable to fetch trending crops",
                 "trending_crops": [],
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -106,7 +106,7 @@ class CropViewSet(viewsets.ViewSet):
             "query": query,
             "results": results,
             "total": len(results),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         })
 
     def list(self, request):
@@ -137,12 +137,12 @@ class CropViewSet(viewsets.ViewSet):
                 "crop_info": crop_info,
                 "market_data": market_data.get("crops", []) if isinstance(market_data, dict) else [],
                 "data_source": "Government APIs + Intelligent Engine",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             }, ctx), status=status.HTTP_200_OK)
 
         except Exception as e:
             logger.error(f"Crop service error: {e}")
             return Response({
                 "error": "Unable to fetch crop data",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

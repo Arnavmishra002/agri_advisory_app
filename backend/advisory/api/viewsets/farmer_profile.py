@@ -16,7 +16,7 @@ with soil pH 6.8, mustard gives 15% higher expected return."
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.db.models import Q
 from rest_framework import status, viewsets
@@ -127,7 +127,7 @@ class FarmerProfileViewSet(viewsets.ViewSet):
                 if payload_key in d:
                     setattr(profile, model_field, d[payload_key])
 
-            profile.last_seen_at = datetime.now()
+            profile.last_seen_at = datetime.now(tz=timezone.utc)
             profile.save()
 
             return Response(
@@ -275,12 +275,12 @@ class FarmerProfileViewSet(viewsets.ViewSet):
                 if payload_key in d:
                     setattr(profile, model_field, d[payload_key])
 
-            profile.last_seen_at = datetime.now()
+            profile.last_seen_at = datetime.now(tz=timezone.utc)
             profile.save()
             return Response({"status": "updated", "profile": self._serialize(profile)})
 
         # GET request
-        profile.last_seen_at = datetime.now()
+        profile.last_seen_at = datetime.now(tz=timezone.utc)
         profile.save(update_fields=["last_seen_at"])
         return Response({"exists": True, "profile": self._serialize(profile)})
 

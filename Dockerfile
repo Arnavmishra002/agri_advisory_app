@@ -151,6 +151,7 @@ CMD ["sh", "-c", "\
     python manage.py migrate --noinput && \
     echo '✅ Migrations applied' && \
     python manage.py seed_msp 2>/dev/null || echo '⚠️  MSP seed skipped (already seeded)' && \
+    echo '✅ MSP data ready' && \
     exec gunicorn \
       --bind 0.0.0.0:8000 \
       --workers ${WEB_CONCURRENCY:-4} \

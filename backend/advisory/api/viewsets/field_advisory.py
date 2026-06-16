@@ -11,7 +11,7 @@ Endpoints:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from rest_framework import status, viewsets
@@ -200,7 +200,7 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 "sensors_received": sensors_clean,
                 "soil_status": soil_status,
                 "recommendations": _quick_soil_advice(soil_status, lang),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "next_step": "Call POST /api/field-advisory/recommend/ with this sensor data for full crop recommendations",
             }, ctx))
 
@@ -238,7 +238,7 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 "weather_current": om.get("current", {}),
                 "weather_alerts": weather_analysis.get("alerts", []),
                 "data_sources":   soil.get("data_sources", []),
-                "timestamp":      datetime.now().isoformat(),
+                "timestamp":      datetime.now(tz=timezone.utc).isoformat(),
             }, ctx))
 
         except Exception as exc:
@@ -280,7 +280,7 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 "rain_14d_mm":         analysis.get("rain_14d_mm", 0),
                 "avg_max_temp_7d":     analysis.get("avg_max_temp_7d"),
                 "data_source":         "Open-Meteo (real-time, free, 1km grid)",
-                "timestamp":           datetime.now().isoformat(),
+                "timestamp":           datetime.now(tz=timezone.utc).isoformat(),
             }, ctx))
 
         except Exception as exc:
@@ -337,7 +337,7 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 "crop_requirements": req,
                 "input_gaps":       gaps,
                 "data_sources":     soil.get("data_sources", []),
-                "timestamp":        datetime.now().isoformat(),
+                "timestamp":        datetime.now(tz=timezone.utc).isoformat(),
             }, ctx))
 
         except Exception as exc:
@@ -378,7 +378,7 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 "NASA POWER — agro-climate data (fallback)",
             ],
             "crops_in_database": 80,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         })
 
 

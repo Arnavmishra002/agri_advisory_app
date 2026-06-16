@@ -4,7 +4,7 @@ Delegates to the canonical CropRecommendationEngine v3 and unified services.
 No longer depends on the legacy crop recommendation system.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -99,7 +99,7 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
                 'location': location,
                 'pest_analysis': pest_data,
                 'data_source': 'ICAR pest database',
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': datetime.now(tz=timezone.utc).isoformat(),
             })
         except Exception as e:
             logger.error("Pest detection API error: %s", e)

@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from rest_framework import status, viewsets
 from rest_framework.response import Response
@@ -60,7 +60,7 @@ class PestDetectionViewSet(viewsets.ViewSet):
                             'location': location,
                             'pest_data': pest_data.get('data', pest_data),
                             'data_source': 'ICAR + PPQS (Government APIs)',
-                            'timestamp': datetime.now().isoformat()
+                            'timestamp': datetime.now(tz=timezone.utc).isoformat()
                         }
                         # Add location info if available
                         if latitude:
@@ -76,7 +76,7 @@ class PestDetectionViewSet(viewsets.ViewSet):
                 'crop': crop_name,
                 'location': location,
                 'data_source': 'ICAR + PPQS (Government APIs)',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(tz=timezone.utc).isoformat()
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
@@ -123,7 +123,7 @@ class PestDetectionViewSet(viewsets.ViewSet):
                         'location': location,
                         'data_source': 'ICAR + PPQS (Government APIs)',
                         'status': 'success',
-                        'timestamp': datetime.now().isoformat()
+                        'timestamp': datetime.now(tz=timezone.utc).isoformat()
                     }
                     
                     if pest_data and pest_data.get('status') == 'success':
@@ -139,7 +139,7 @@ class PestDetectionViewSet(viewsets.ViewSet):
                 'location': location,
                 'data_source': 'ICAR + PPQS (Government APIs)',
                 'status': 'success',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(tz=timezone.utc).isoformat()
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
@@ -147,5 +147,5 @@ class PestDetectionViewSet(viewsets.ViewSet):
             return Response({
                 'error': 'Unable to process pest detection',
                 'message': 'Government pest API temporarily unavailable',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(tz=timezone.utc).isoformat()
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

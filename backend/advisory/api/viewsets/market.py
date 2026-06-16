@@ -1,7 +1,7 @@
 """Realtime mandi / market price API."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -47,7 +47,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 data["crop_suggestion"] = norm
 
             # Always surface data freshness info
-            data.setdefault("fetched_at", datetime.now().isoformat())
+            data.setdefault("fetched_at", datetime.now(tz=timezone.utc).isoformat())
             return Response(attach_location_metadata(data, ctx))
 
         except Exception as exc:
@@ -143,7 +143,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 row.setdefault("mandi_name", row.get("mandi_name") or mandi)
 
             data["selected_mandi"] = mandi
-            data["fetched_at"] = datetime.now().isoformat()
+            data["fetched_at"] = datetime.now(tz=timezone.utc).isoformat()
             data["refresh_interval_seconds"] = 300  # tell frontend when to refresh
 
             return Response(attach_location_metadata(data, ctx))
@@ -173,7 +173,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
             "query": query,
             "results": results,
             "total": len(results),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         })
 
     @action(detail=False, methods=["get"], url_path="live-status")
@@ -211,7 +211,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
                     "Register free at https://data.gov.in/user/register → "
                     "API Keys → copy key → set DATA_GOV_IN_API_KEY in .env"
                 ),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             }, ctx))
 
         except Exception as exc:

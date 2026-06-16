@@ -47,7 +47,7 @@ class DiagnosticViewSet(viewsets.ViewSet):
             "query": query,
             "results": results,
             "total": len(results),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         })
 
     @action(detail=False, methods=['post'])

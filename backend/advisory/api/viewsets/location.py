@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -34,7 +34,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 "query": query,
                 "results": results,
                 "total": len(results),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             })
         except Exception as e:
             return Response(
@@ -51,7 +51,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 "status": "success",
                 "location": ctx.to_dict(),
                 "coordinates": {"lat": ctx.latitude, "lon": ctx.longitude},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             })
         except Exception as e:
             return Response(
@@ -93,7 +93,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                     "full_address": ctx.full_address,
                     "coordinates": {"lat": ctx.latitude, "lng": ctx.longitude},
                 },
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             })
         except Exception as e:
             return Response(
