@@ -197,7 +197,7 @@ def readiness_check(request):
     # ── Phase 1 AI server (Qwen + RAG) ────────────────────────────────────────
     try:
         import urllib.request
-        req = urllib.request.Request("http://127.0.0.1:8001/health")
+        req = urllib.request.Request(os.environ.get("PHASE1_URL", "http://127.0.0.1:8001") + "/health")
         with urllib.request.urlopen(req, timeout=2) as resp:
             import json
             h = json.loads(resp.read())
@@ -211,7 +211,7 @@ def readiness_check(request):
     # ── Ollama ────────────────────────────────────────────────────────────────
     try:
         import urllib.request
-        req = urllib.request.Request("http://127.0.0.1:11434/api/tags")
+        req = urllib.request.Request(os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434") + "/api/tags")
         with urllib.request.urlopen(req, timeout=2) as resp:
             import json
             models = [m["name"] for m in json.loads(resp.read()).get("models", [])]

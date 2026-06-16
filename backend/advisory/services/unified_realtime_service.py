@@ -16,7 +16,7 @@ import json
 import logging
 import threading
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 
 from .location_context import _haversine_km

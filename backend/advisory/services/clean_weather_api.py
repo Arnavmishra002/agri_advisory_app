@@ -155,10 +155,10 @@ class CleanWeatherAPI:
                             data = response.json()
                             if data and 'temperature' in data:
                                 return self._format_imd_response(data, location)
-                        except:
+                        except Exception:
                             # If not JSON, try to parse HTML/XML
                             return self._parse_imd_html(response.text, location)
-                except:
+                except Exception:
                     continue
             
             return None
@@ -301,7 +301,7 @@ class CleanWeatherAPI:
             # This would parse HTML content from IMD website
             # For now, return None to try other APIs
             return None
-        except:
+        except Exception:
             return None
     
     def _get_coordinates_for_location(self, location: str) -> Optional[Dict[str, float]]:
