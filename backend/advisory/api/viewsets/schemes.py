@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..location_utils import attach_location_metadata, resolve_request_location
+from ..errors import safe_error_message
 from ...services.unified_realtime_service import schemes_service
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ class GovernmentSchemesViewSet(viewsets.ViewSet):
                 {
                     "status": "error",
                     "error": "Unable to load government schemes",
-                    "message": str(exc),
+                    "message": safe_error_message(exc, context="schemes"),
                     "schemes": [],
                     "total": 0,
                 },
@@ -52,7 +53,7 @@ class GovernmentSchemesViewSet(viewsets.ViewSet):
                 {
                     "status": "error",
                     "error": "Unable to check eligibility",
-                    "message": str(exc),
+                    "message": safe_error_message(exc, context="schemes"),
                     "eligible_schemes": [],
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,

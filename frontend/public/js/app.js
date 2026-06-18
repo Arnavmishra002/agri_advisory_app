@@ -1357,7 +1357,7 @@
 
                 container.innerHTML = html;
             } else {
-                container.innerHTML = `${liveBadge}<div style="padding:20px;text-align:center;color:#888;">${data.message || 'मौसम डेटा उपलब्ध नहीं — Backend चालू करें'}</div>`;
+                container.innerHTML = `${liveBadge}<div style="padding:20px;text-align:center;color:#888;">${escapeHtml(data.message || 'मौसम डेटा उपलब्ध नहीं — Backend चालू करें')}</div>`;
             }
         } catch (error) {
             const container = document.getElementById('weatherData');

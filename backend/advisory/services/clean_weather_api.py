@@ -148,7 +148,7 @@ class CleanWeatherAPI:
             
             for url in imd_urls:
                 try:
-                    response = self.session.get(url, timeout=10, verify=False)
+                    response = self.session.get(url, timeout=(5, 10), verify=True)
                     if response.status_code == 200:
                         # Try to parse JSON response
                         try:

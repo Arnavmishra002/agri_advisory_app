@@ -532,7 +532,7 @@ class EnhancedMarketPricesService:
         try:
             # Real Agmarknet API call for specific mandi
             url = f"{self.government_apis['agmarknet']['base_url']}?state={state}&mandi={mandi_name}&limit=50"
-            response = self.session.get(url, timeout=3, verify=False)
+            response = self.session.get(url, timeout=(5, 10), verify=True)
             
             if response.status_code == 200:
                 data = response.json()
@@ -572,7 +572,7 @@ class EnhancedMarketPricesService:
         try:
             # Real e-NAM API call for specific mandi
             url = f"{self.government_apis['enam']['base_url']}?state={state}&mandi={mandi_name}&limit=50"
-            response = self.session.get(url, timeout=3, verify=False)
+            response = self.session.get(url, timeout=(5, 10), verify=True)
             
             if response.status_code == 200:
                 data = response.json()
@@ -612,7 +612,7 @@ class EnhancedMarketPricesService:
         try:
             # Real FCI API call for state
             url = f"{self.government_apis['fcidatacenter']['base_url']}?state={state}&limit=50"
-            response = self.session.get(url, timeout=3, verify=False)
+            response = self.session.get(url, timeout=(5, 10), verify=True)
             
             if response.status_code == 200:
                 data = response.json()
@@ -722,7 +722,7 @@ class EnhancedMarketPricesService:
             
             for endpoint in endpoints:
                 try:
-                    response = self.session.get(endpoint, timeout=3, verify=False)
+                    response = self.session.get(endpoint, timeout=(5, 10), verify=True)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_ministry_agriculture_response(data, location)
@@ -752,7 +752,7 @@ class EnhancedMarketPricesService:
             endpoint = state_endpoints.get(state)
             if endpoint:
                 try:
-                    response = self.session.get(endpoint, timeout=3, verify=False)
+                    response = self.session.get(endpoint, timeout=(5, 10), verify=True)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_state_agriculture_response(data, location)
@@ -778,7 +778,7 @@ class EnhancedMarketPricesService:
             
             for endpoint in endpoints:
                 try:
-                    response = self.session.get(endpoint, timeout=3, verify=False)
+                    response = self.session.get(endpoint, timeout=(5, 10), verify=True)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_commodity_exchange_response(data, location)
@@ -1903,7 +1903,7 @@ class EnhancedMarketPricesService:
             
             for endpoint in endpoints:
                 try:
-                    response = self.session.get(endpoint, timeout=15, verify=False)
+                    response = self.session.get(endpoint, timeout=(5, 15), verify=True)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_data_gov_response(data, location)
@@ -1931,7 +1931,7 @@ class EnhancedMarketPricesService:
             
             for endpoint in endpoints:
                 try:
-                    response = self.session.get(endpoint, timeout=15, verify=False)
+                    response = self.session.get(endpoint, timeout=(5, 15), verify=True)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_agriculture_portal_response(data, location)
@@ -1972,7 +1972,7 @@ class EnhancedMarketPricesService:
             
             for endpoint in endpoints:
                 try:
-                    response = self.session.get(endpoint, timeout=15, verify=False)
+                    response = self.session.get(endpoint, timeout=(5, 15), verify=True)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_state_agriculture_response(data, location, state)
@@ -2000,7 +2000,7 @@ class EnhancedMarketPricesService:
             
             for exchange_url in exchanges:
                 try:
-                    response = self.session.get(exchange_url, timeout=15, verify=False)
+                    response = self.session.get(exchange_url, timeout=(5, 15), verify=True)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_commodity_exchange_response(data, location)
@@ -2032,7 +2032,7 @@ class EnhancedMarketPricesService:
             
             for endpoint in endpoints:
                 try:
-                    response = self.session.get(endpoint, timeout=15, verify=False)
+                    response = self.session.get(endpoint, timeout=(5, 15), verify=True)
                     if response.status_code == 200:
                         data = response.json()
                         crops = self._parse_agmarknet_response(data, location)

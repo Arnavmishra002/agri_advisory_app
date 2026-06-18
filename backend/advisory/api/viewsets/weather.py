@@ -22,6 +22,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..location_utils import attach_location_metadata, resolve_request_location
+from ..errors import safe_error_message
 from ...services.language_service import normalise_language_code
 from ...services.unified_realtime_service import weather_service
 
@@ -75,7 +76,7 @@ class WeatherViewSet(viewsets.ViewSet):
                 {
                     "status": "error",
                     "error": "Unable to fetch weather",
-                    "message": str(exc),
+                    "message": safe_error_message(exc, context="weather"),
                     "is_live": False,
                     "fetched_at": datetime.now(tz=timezone.utc).isoformat(),
                 },
@@ -115,7 +116,7 @@ class WeatherViewSet(viewsets.ViewSet):
         except Exception as exc:
             logger.exception("Weather refresh error: %s", exc)
             return Response(
-                {"status": "error", "message": str(exc)},
+                {"status": "error", "message": safe_error_message(exc, context="weather")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -129,7 +130,7 @@ class WeatherViewSet(viewsets.ViewSet):
                 {
                     "status": "error",
                     "error": "Unable to fetch weather",
-                    "message": str(exc),
+                    "message": safe_error_message(exc, context="weather"),
                     "is_live": False,
                     "fetched_at": datetime.now(tz=timezone.utc).isoformat(),
                 },

@@ -18,7 +18,7 @@ import urllib3
 # NOTE: Global SSL warning suppression removed.
 # urllib3.disable_warnings() was disabling SSL verification warnings for the
 # entire Django process, masking real certificate errors in production HTTPS
-# calls.  Any endpoint that truly requires verify=False should pass that
+# calls.  Any endpoint that truly requires verify=True should pass that
 # argument explicitly and log a warning at that specific call site.
 
 logger = logging.getLogger(__name__)
@@ -561,7 +561,7 @@ class UltraDynamicGovernmentAPI:
         """Fetch real-time crop recommendations from ICAR"""
         try:
             icar_url = f"{self.government_apis['crop_recommendations']['icar']}?location={location}&season=current"
-            response = self.session.get(icar_url, timeout=10, verify=False)
+            response = self.session.get(icar_url, timeout=(5, 10), verify=True)
             
             if response.status_code == 200:
                 data = response.json()
@@ -599,7 +599,7 @@ class UltraDynamicGovernmentAPI:
         """Fetch real-time soil health data"""
         try:
             soil_url = f"{self.government_apis['soil_health']['soil_health_card']}?lat={latitude}&lon={longitude}"
-            response = self.session.get(soil_url, timeout=10, verify=False)
+            response = self.session.get(soil_url, timeout=(5, 10), verify=True)
             
             if response.status_code == 200:
                 data = response.json()
@@ -638,7 +638,7 @@ class UltraDynamicGovernmentAPI:
             # PM Kisan API
             pm_kisan_url = f"{self.government_apis['government_schemes']['pm_kisan']}?location={location}"
             try:
-                response = self.session.get(pm_kisan_url, timeout=10, verify=False)
+                response = self.session.get(pm_kisan_url, timeout=(5, 10), verify=True)
             except Exception as e:
                 raise e
 
@@ -663,7 +663,7 @@ class UltraDynamicGovernmentAPI:
         """Fetch real-time pest database from ICAR"""
         try:
             pest_url = f"{self.government_apis['pest_detection']['icar_pest']}?location={location}"
-            response = self.session.get(pest_url, timeout=10, verify=False)
+            response = self.session.get(pest_url, timeout=(5, 10), verify=True)
             
             if response.status_code == 200:
                 data = response.json()

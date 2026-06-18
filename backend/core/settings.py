@@ -526,19 +526,43 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'SAMEORIGIN'   # DENY breaks admin iframe previews
-    # HSTS: start at 0 so first-deploy can be verified over HTTPS before locking in.
-    # Ramp up to 31536000 once the service is confirmed stable on HTTPS.
-    SECURE_HSTS_SECONDS = 0          # ← safe default; increase after confirming HTTPS works
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-    SECURE_HSTS_PRELOAD = False
+    X_FRAME_OPTIONS = 'DENY'   # Strongest clickjack protection
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+    # HSTS: 1-day ramp-up (86400). Once confirmed stable on HTTPS, bump to 31536000.
+    SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '86400'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = False  # Only enable after full HSTS verification
     # CRITICAL: Tell Django that Render/Railway/Heroku proxy sends HTTPS.
-    # Render always forwards X-Forwarded-Proto: https for external requests.
-    # Without this header trust, Django's SecurityMiddleware sees plain HTTP
-    # internally and can incorrectly reject or redirect requests → 400.
+    # Without this, SecurityMiddleware sees plain HTTP internally → 400 errors.
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    # Content-Security-Policy — blocks inline XSS and rogue script sources
+    CSP_HEADERS = {
+        'Content-Security-Policy': (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
+            "img-src 'self' data: blob: https:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none';"
+        )
+    }
+else:
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
+    CSP_HEADERS = {}
+
+# Validate SECRET_KEY at startup — crash fast rather than run insecure
+_insecure_key = os.environ.get('SECRET_KEY', '') in ('', _INSECURE_DEV_SECRET)
+if not DEBUG and _insecure_key and not _RUNNING_PYTEST:
+    raise RuntimeError(
+        'FATAL: SECRET_KEY is not set or is the insecure dev default.\n'
+        'Generate one with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"\n'
+        'Then set SECRET_KEY=<value> in your .env or Render environment variables.'
+    )
 
 # ── WhiteNoise Static File Configuration ─────────────────────
 STORAGES = {

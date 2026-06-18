@@ -8,6 +8,7 @@ from rest_framework.response import Response
 logger = logging.getLogger(__name__)
 
 from ..location_utils import attach_location_metadata, resolve_request_location
+from ..errors import safe_error_message
 from ...services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
 from ...services.crop_catalog import crop_catalog
 from ...services.crop_recommendation_engine import crop_recommendation_engine
@@ -49,7 +50,7 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
             logger.error(f"Crop advisory error: {e}")
             return Response({
                 "error": "Unable to fetch crop recommendations",
-                "message": str(e),
+                "message": safe_error_message(e, context="crop"),
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
