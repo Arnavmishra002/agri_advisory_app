@@ -125,6 +125,23 @@ class SharedRateLimiter:
         except Exception as exc:
             logger.warning("Rate limiter reset failed: %s", exc)
 
+    def wait_time(self, client_id: str) -> float:
+        """Return estimated seconds until next token is available."""
+        try:
+            from django.core.cache import cache
+            state = cache.get(f"tb:{self.key_prefix}:{client_id}")
+            if state is None:
+                return 0.0
+            tokens, last = state
+            elapsed = max(0.0, time.time() - last)
+            current = min(float(self.capacity), tokens + elapsed * self.fill_rate)
+            if current >= 1.0:
+                return 0.0
+            needed = 1.0 - current
+            return needed / max(self.fill_rate, 0.001)
+        except Exception:
+            return 0.0
+
 
 # ── Pre-configured limiters ────────────────────────────────────────────────────
 # These are shared singletons — import and use directly.
