@@ -608,6 +608,8 @@
             } else {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
+            // Sync bottom nav & top nav
+            if (typeof window._syncBottomNav === 'function') window._syncBottomNav('home');
             return;
         }
 
@@ -623,6 +625,9 @@
         } else {
             console.warn(`⚠️ No content section found for service: ${serviceName}`);
         }
+
+        // Sync bottom nav & top nav active states
+        if (typeof window._syncBottomNav === 'function') window._syncBottomNav(serviceName);
 
         // Reload live data when user opens a service panel
         const loaders = {
@@ -1356,6 +1361,17 @@
                 }
 
                 container.innerHTML = html;
+
+                // Update hero weather widget with current weather summary
+                if (typeof window._updateHeroWeather === 'function') {
+                    window._updateHeroWeather({
+                        current_temperature: weather.temperature,
+                        current_weather_code: weather.weather_code || 0,
+                        current_humidity: weather.humidity,
+                        current_wind_speed: weather.wind_speed,
+                        daily_rain_sum: weather.rainfall_mm || 0
+                    });
+                }
             } else {
                 container.innerHTML = `${liveBadge}<div style="padding:20px;text-align:center;color:#888;">${escapeHtml(data.message || 'मौसम डेटा उपलब्ध नहीं — Backend चालू करें')}</div>`;
             }
@@ -2031,7 +2047,11 @@
         userDiv.textContent = message;
         userRow.appendChild(userDiv);
         chatMessages.appendChild(userRow);
+        // Clear and reset textarea
         input.value = '';
+        if (input.tagName === 'TEXTAREA') {
+            input.style.height = 'auto';
+        }
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
         // Show loading indicator (inline, not the shared #loading div)
@@ -2161,15 +2181,34 @@
         const input = document.getElementById('messageInput');
         if (input) {
             input.value = question;
+            // Auto-resize if textarea
+            if (typeof window.autoResizeChatInput === 'function') {
+                window.autoResizeChatInput(input);
+            }
             handleChatUserMessage();
         }
     }
 
     function clearChat() {
         const chatMessages = document.getElementById('chatMessages');
-        if (chatMessages) {
-            chatMessages.innerHTML = '<div class="message bot-message" style="background:linear-gradient(135deg,#e8f5e8,#f0fff0);border-left:4px solid #4a7c59;border-radius:10px;padding:15px;"><strong style="color:#2d5016;">🌾 KrishiMitra AI:</strong><div style="margin-top:8px;color:#333;line-height:1.6;">नमस्ते! मैं KrishiMitra AI हूँ। कोई भी कृषि संबंधी सवाल पूछें! 🌾</div></div>';
-        }
+        if (!chatMessages) return;
+        chatMessages.innerHTML = '';
+        // Re-add welcome message with proper CSS classes
+        const botRow = document.createElement('div');
+        botRow.className = 'chat-message-bot';
+        const avatar = document.createElement('div');
+        avatar.className = 'chat-avatar';
+        avatar.textContent = '🌾';
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble-bot';
+        bubble.innerHTML = '<strong style="color:var(--green-800);">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;">' +
+            'नमस्ते! मैं <strong>KrishiMitra AI</strong> हूँ — आपका कृषि विशेषज्ञ।<br><br>' +
+            'कोई भी कृषि संबंधी सवाल पूछें! 🌾<br>' +
+            '🌾 फसल खेती, मंडी भाव, सरकारी योजनाएं<br>' +
+            '🐛 कीट-रोग पहचान, मौसम-आधारित सलाह</div>';
+        botRow.appendChild(avatar);
+        botRow.appendChild(bubble);
+        chatMessages.appendChild(botRow);
     }
 
     // ========================================

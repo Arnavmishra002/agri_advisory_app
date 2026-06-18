@@ -4,98 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="KrishiMitra AI — किसानों का सबसे अच्छा डिजिटल सहायक। रियल-टाइम मंडी भाव, मौसम, फसल सलाह, IoT सेंसर विश्लेषण।">
+    <meta name="theme-color" content="#1a3a0a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>🌾 कृषिमित्र AI — किसानों का डिजिटल सहायक</title>
+    <title>🌾 KrishiMitra AI — किसानों का डिजिटल सहायक</title>
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome 6 -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- App styles -->
     <link rel="stylesheet" href="/css/styles.css">
 
+    <!-- Dark mode init (no flash) -->
+    <script>
+        (function(){
+            var t = localStorage.getItem('km_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
     <style>
-        body { font-family: 'Inter', 'Segoe UI', sans-serif; }
-
-        /* ── Floating label inputs ── */
-        .form-floating > .form-control { font-size: 0.9rem; }
-
-        /* ── Chat suggested question chips ── */
-        .chip {
-            display: inline-flex; align-items: center; gap: 5px;
-            background: #e8f5e8; border: 1px solid #a5d6a7;
-            color: #1a3a0a; padding: 5px 14px; border-radius: 999px;
-            font-size: 0.82rem; font-weight: 600; cursor: pointer;
-            transition: all 0.2s ease; white-space: nowrap;
-        }
-        .chip:hover { background: #2d5016; color: white; border-color: #2d5016; transform: translateY(-1px); }
-
-        /* ── Upload box ── */
-        .upload-zone {
-            border: 2px dashed #a5d6a7; border-radius: 14px;
-            padding: 20px 14px; text-align: center;
-            background: #f0fff4; cursor: pointer;
-            transition: all 0.25s ease;
-        }
-        .upload-zone:hover { border-color: #2d5016; background: #e8f5e8; }
-
+        /* Inline critical: only what must render before CSS loads */
+        body { font-family: 'Inter', sans-serif; }
         /* ── Section header decoration ── */
-        .section-header {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 6px;
-        }
-        .section-header h2 {
-            margin: 0; font-weight: 800; color: #1a3a0a; letter-spacing: -0.02em;
-        }
-
-        /* ── Live badge ── */
-        .live-dot {
-            display: inline-block; width: 8px; height: 8px;
-            background: #28a745; border-radius: 50%;
-            animation: pulse-green 2s infinite;
-        }
-
-        /* ── Mandi selector styled ── */
-        .mandi-bar {
-            background: white; border-radius: 14px; padding: 14px 18px;
-            border: 1.5px solid #d4edda; margin-bottom: 18px;
-            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        /* ── Card hover accent ── */
-        .service-card[onclick*="field-advisory"]::before { background: linear-gradient(90deg, #e65100, #ff8f00); }
-        .service-card[onclick*="ai-assistant"]::before    { background: linear-gradient(90deg, #5b2c6f, #8e44ad); }
-        .service-card[onclick*="pest"]::before            { background: linear-gradient(90deg, #c0392b, #e74c3c); }
-        .service-card[onclick*="weather"]::before         { background: linear-gradient(90deg, #0277bd, #29b6f6); }
-        .service-card[onclick*="market"]::before          { background: linear-gradient(90deg, #f57f17, #ffc107); }
-        .service-card[onclick*="crop-rec"]::before        { background: linear-gradient(90deg, #2e7d32, #66bb6a); }
-
-        /* ── Scroll to top button ── */
+        .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .section-header h2 { margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+        /* Scroll to top button */
         #scrollTopBtn {
-            position: fixed; bottom: 24px; right: 24px;
-            width: 44px; height: 44px; border-radius: 50%;
-            background: #2d5016; color: white; border: none;
+            position: fixed; bottom: 90px; right: 20px;
+            width: 46px; height: 46px; border-radius: 50%;
+            background: linear-gradient(135deg,#2d5016,#4a7c59); color: white; border: none;
             font-size: 1.1rem; cursor: pointer; display: none;
             box-shadow: 0 4px 14px rgba(45,80,22,0.4);
             transition: all 0.25s ease; z-index: 999;
         }
-        #scrollTopBtn:hover { background: #1a3a0a; transform: translateY(-2px); }
+        }
+        #scrollTopBtn:hover { transform: translateY(-4px) scale(1.06); }
         #scrollTopBtn.show { display: flex; align-items: center; justify-content: center; }
-
-        /* ── Market estimates toggle ── */
-        .market-estimates-toggle {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 0.85rem; color: #666; cursor: pointer;
-            padding: 7px 12px; background: #f8f9fa; border-radius: 8px;
-            margin-bottom: 12px; user-select: none;
-        }
-
-        @media (max-width: 576px) {
-            .chip { font-size: 0.75rem; padding: 4px 10px; }
-        }
+        @media (min-width: 768px) { #scrollTopBtn { bottom: 28px; right: 28px; } }
     </style>
 </head>
 <body>
@@ -106,17 +55,25 @@
 <nav class="navbar navbar-expand-lg">
     <div class="container">
         <a class="navbar-brand" href="#" onclick="showService('home');return false;">
-            🌾 <span data-i18n="hero_title">कृषिमित्र AI</span>
+            🌾 <span data-i18n="hero_title">KrishiMitra AI</span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+        <div class="d-flex align-items-center gap-2 ms-auto">
+            <!-- Dark mode toggle -->
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center gap-1">
-                <li class="nav-item"><a class="nav-link" href="#" onclick="showService('home');return false;" data-i18n="nav_home">होम</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" onclick="showService('government-schemes');return false;" data-i18n="nav_schemes">योजनाएं</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" onclick="showService('ai-assistant');return false;" data-i18n="nav_ai">AI सहायक</a></li>
+                <li class="nav-item"><a class="nav-link active" href="#" id="nav-home" onclick="showService('home');return false;" data-i18n="nav_home">🏠 होम</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" id="nav-weather" onclick="showService('weather');return false;">🌤️ मौसम</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" id="nav-market" onclick="showService('market-prices');return false;">💰 बाजार</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" id="nav-schemes" onclick="showService('government-schemes');return false;" data-i18n="nav_schemes">🏛️ योजनाएं</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" id="nav-ai" onclick="showService('ai-assistant');return false;" data-i18n="nav_ai">🤖 AI सहायक</a></li>
                 <!-- Language switcher injected by i18n.js -->
             </ul>
         </div>
@@ -130,18 +87,36 @@
     <!-- Animated depth orbs (pure CSS, no JS) -->
     <div class="hero-orb-1"></div>
     <div class="hero-orb-2"></div>
+    <div class="hero-orb-3"></div>
     <div class="container">
         <!-- Glassmorphism live badge -->
         <div class="live-badge-pill">
-            <span class="live-dot"></span> Live &bull; Open-Meteo + Agmarknet + Gemini AI
+            <span class="live-dot"></span> Live &bull; Open-Meteo &bull; Agmarknet &bull; Gemini AI
         </div>
-        <h1 class="hero-title" data-i18n="hero_title">🌾 कृषिमित्र AI</h1>
+        <h1 class="hero-title" data-i18n="hero_title">🌾 KrishiMitra AI</h1>
         <p class="hero-subtitle" data-i18n="hero_subtitle">किसानों का सबसे अच्छा दोस्त — AI से स्मार्ट खेती करें</p>
 
-        <!-- Search -->
+        <!-- Live Weather Mini-Widget -->
+        <div class="hero-weather-widget" id="heroWeatherWidget" onclick="showService('weather')" style="display:none;">
+            <div style="font-size:2rem;line-height:1;" id="heroWeatherIcon">🌤️</div>
+            <div class="hero-weather-divider"></div>
+            <div class="hero-weather-details">
+                <div class="hero-weather-temp" id="heroWeatherTemp">--°C</div>
+                <div class="hero-weather-condition" id="heroWeatherCondition">Loading...</div>
+                <div class="hero-weather-sub" id="heroWeatherSub">Tap for full forecast</div>
+            </div>
+            <div class="hero-weather-divider"></div>
+            <div style="text-align:left;">
+                <div style="font-size:0.78rem;opacity:0.85;">💧 <span id="heroHumidity">--</span>%</div>
+                <div style="font-size:0.78rem;opacity:0.85;">🌬️ <span id="heroWind">--</span> km/h</div>
+                <div style="font-size:0.78rem;opacity:0.85;">🌧️ <span id="heroRain">0</span> mm</div>
+            </div>
+        </div>
+
+        <!-- Location Search -->
         <div class="location-search-container">
             <div class="search-box">
-                <i class="fas fa-map-marker-alt" style="color:#4a7c59;"></i>
+                <i class="fas fa-map-marker-alt"></i>
                 <input type="text" id="locationSearchInput"
                     placeholder="शहर, जिला या गाँव खोजें..."
                     data-i18n="location_placeholder" data-i18n-target="placeholder"
@@ -149,7 +124,7 @@
                     onfocus="searchLocations(event)"
                     onkeydown="if(event.key==='Enter'){event.preventDefault();applyManualLocation();}"
                     autocomplete="off">
-                <button class="btn btn-primary btn-sm" onclick="applyManualLocation()" title="खोजें" style="font-size:0.82rem;">
+                <button class="btn" onclick="applyManualLocation()" title="खोजें">
                     <i class="fas fa-search"></i> खोजें
                 </button>
             </div>
@@ -800,7 +775,7 @@
         </div>
 
         <!-- Chat window -->
-        <div id="chatMessages" style="height:480px;overflow-y:auto;padding:20px 16px;background:#fafffe;border-radius:18px 18px 0 0;border:1.5px solid #d4edda;border-bottom:none;scroll-behavior:smooth;">
+        <div id="chatMessages" class="chat-container">
             <div class="chat-message-bot">
                 <div class="chat-avatar">🌾</div>
                 <div class="chat-bubble-bot">
@@ -820,18 +795,20 @@
         </div>
 
         <!-- Input -->
-        <div style="display:flex;gap:10px;border:1.5px solid #d4edda;border-top:none;border-radius:0 0 18px 18px;padding:12px 14px;background:white;align-items:center;">
-            <input type="text" class="form-control" id="messageInput"
-                placeholder="अपना सवाल यहाँ लिखें... (हिंदी, English, Hinglish या कोई भी भाषा)"
-                style="border-radius:999px;border:1.5px solid #e0e0e0;padding:10px 18px;font-size:0.9rem;"
-                onkeypress="if(event.key==='Enter')handleChatUserMessage()">
-            <button id="chatSendBtn" class="btn btn-success" onclick="handleChatUserMessage()"
-                style="border-radius:999px;padding:10px 20px;font-weight:700;white-space:nowrap;font-size:0.88rem;">
-                <i class="fas fa-paper-plane me-1"></i> भेजें
+        <div class="chat-input-row">
+            <button class="chat-voice-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice input">
+                <i class="fas fa-microphone"></i>
             </button>
-            <button onclick="clearChat()" class="btn btn-outline-secondary"
-                style="border-radius:50%;width:42px;height:42px;padding:0;flex-shrink:0;" title="चैट साफ करें">
-                <i class="fas fa-trash-alt" style="font-size:0.85rem;"></i>
+            <textarea id="messageInput"
+                placeholder="अपना सवाल यहाँ लिखें... (हिंदी, English, Hinglish या कोई भी भाषा)"
+                rows="1"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleChatUserMessage();}"
+                oninput="autoResizeChatInput(this)"></textarea>
+            <button onclick="clearChat()" class="chat-voice-btn" title="चैट साफ करें">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+            <button class="chat-send-btn" id="chatSendBtn" onclick="handleChatUserMessage()" title="भेजें">
+                <i class="fas fa-paper-plane"></i>
             </button>
         </div>
 
@@ -878,25 +855,49 @@
     <textarea id="problemDescription"></textarea>
 </div>
 
-<!-- Footer (Feature #12) -->
-<footer style="
-  background:var(--green-900,#1a3a0a);color:rgba(255,255,255,0.75);
-  text-align:center;padding:24px 16px;
-  font-size:0.8rem;margin-top:48px;
-  border-top:1px solid rgba(255,255,255,0.08);
-">
-  <div style="max-width:800px;margin:0 auto;">
-    <p style="margin:0;font-weight:600;color:rgba(255,255,255,0.9);">
-      🌾 KrishiMitra AI — किसानों का डिजिटल सहायक
+<!-- Mobile Bottom Navigation Bar -->
+<nav class="bottom-nav" id="bottomNav" aria-label="Bottom navigation">
+    <button class="bottom-nav-item active" id="bnav-home" onclick="showService('home')" aria-label="Home">
+        <i class="fas fa-home"></i>
+        <span class="bottom-nav-label">होम</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-weather" onclick="showService('weather')" aria-label="Weather">
+        <i class="fas fa-cloud-sun"></i>
+        <span class="bottom-nav-label">मौसम</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-market" onclick="showService('market-prices')" aria-label="Market">
+        <i class="fas fa-rupee-sign"></i>
+        <span class="bottom-nav-label">बाजार</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-ai" onclick="showService('ai-assistant')" aria-label="AI Assistant">
+        <i class="fas fa-robot"></i>
+        <span class="bottom-nav-label">AI</span>
+    </button>
+    <button class="bottom-nav-item" id="bnav-more" onclick="showService('government-schemes')" aria-label="More">
+        <i class="fas fa-th-large"></i>
+        <span class="bottom-nav-label">और</span>
+    </button>
+</nav>
+
+<!-- Footer -->
+<footer style="background:var(--green-900,#1a3a0a);color:rgba(255,255,255,0.75);text-align:center;padding:28px 16px;font-size:0.8rem;margin-top:48px;">
+  <div style="max-width:860px;margin:0 auto;">
+    <div style="margin-bottom:12px;">
+        <span style="font-size:1.5rem;">🌾</span>
+        <strong style="color:white;font-size:1rem;margin-left:8px;font-family:'Space Grotesk',sans-serif;">KrishiMitra AI</strong>
+    </div>
+    <p style="margin:0 0 8px;color:rgba(255,255,255,0.75);font-size:0.82rem;">
+      किसानों का डिजिटल सहायक — AI-Powered Farming
     </p>
-    <p style="margin:6px 0 0;font-size:0.75rem;">
-      Kisan Helpline: <strong style="color:#b9f0c8;">1800-180-1551</strong>
-      &nbsp;&bull;&nbsp; PM-Kisan: <strong style="color:#b9f0c8;">155261</strong>
-      &nbsp;&bull;&nbsp; Data: Open-Meteo &middot; Agmarknet &middot; data.gov.in &middot; Gemini AI
-    </p>
-    <p style="margin:6px 0 0;font-size:0.72rem;opacity:0.5;">
-      &copy; 2025 KrishiMitra AI &middot; For farmers, by technology
-    </p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;margin:12px 0;">
+      <span>📞 Kisan Helpline: <strong style="color:#b9f0c8;">1800-180-1551</strong></span>
+      <span>🏛️ PM-Kisan: <strong style="color:#b9f0c8;">155261</strong></span>
+      <span>🌾 NABARD: <strong style="color:#b9f0c8;">1800-200-1025</strong></span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;font-size:0.72rem;opacity:0.5;margin-top:10px;">
+      <span>Open-Meteo</span><span>·</span><span>Agmarknet</span><span>·</span><span>data.gov.in</span><span>·</span><span>Gemini AI</span><span>·</span><span>ICAR</span>
+    </div>
+    <p style="margin:10px 0 0;font-size:0.7rem;opacity:0.4;">&copy; 2025 KrishiMitra AI &middot; For farmers, by technology</p>
   </div>
 </footer>
 
@@ -1014,6 +1015,163 @@ window.showToast = function (message, type, duration) {
         setTimeout(function () { toast.remove(); }, 350);
     }, duration);
 };
+</script>
+
+<!-- ══════════════════════════════════════════════════════════
+     DARK MODE + BOTTOM NAV + HERO WEATHER + CHAT ENHANCEMENTS
+     ══════════════════════════════════════════════════════════ -->
+<script>
+/* ── Dark Mode Toggle ─────────────────────────────────────── */
+function toggleTheme() {
+    var html = document.documentElement;
+    var current = html.getAttribute('data-theme');
+    var next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    try { localStorage.setItem('km_theme', next); } catch(e) {}
+    updateThemeIcon(next);
+}
+function updateThemeIcon(theme) {
+    var icon = document.getElementById('themeIcon');
+    if (!icon) return;
+    if (theme === 'dark') {
+        icon.className = 'fas fa-sun';
+    } else {
+        icon.className = 'fas fa-moon';
+    }
+}
+// Set icon on load
+(function() {
+    var t = document.documentElement.getAttribute('data-theme') || 'light';
+    updateThemeIcon(t);
+})();
+
+/* ── Bottom Nav Active State Sync ────────────────────────── */
+window._syncBottomNav = function(service) {
+    var map = {
+        'home': 'bnav-home',
+        'weather': 'bnav-weather',
+        'market-prices': 'bnav-market',
+        'ai-assistant': 'bnav-ai',
+        'government-schemes': 'bnav-more',
+        'crop-recommendations': 'bnav-more',
+        'pest-control': 'bnav-more',
+        'field-advisory': 'bnav-more'
+    };
+    var navMap = {
+        'home': 'nav-home',
+        'weather': 'nav-weather',
+        'market-prices': 'nav-market',
+        'ai-assistant': 'nav-ai',
+        'government-schemes': 'nav-schemes'
+    };
+    // Bottom nav
+    document.querySelectorAll('.bottom-nav-item').forEach(function(b) {
+        b.classList.remove('active');
+    });
+    var bnavId = map[service] || 'bnav-home';
+    var bnavEl = document.getElementById(bnavId);
+    if (bnavEl) bnavEl.classList.add('active');
+    // Top nav
+    document.querySelectorAll('.navbar .nav-link').forEach(function(a) {
+        a.classList.remove('active');
+    });
+    var navId = navMap[service];
+    if (navId) {
+        var navEl = document.getElementById(navId);
+        if (navEl) navEl.classList.add('active');
+    }
+};
+
+/* ── Hero Weather Widget ─────────────────────────────────── */
+window._updateHeroWeather = function(data) {
+    var widget = document.getElementById('heroWeatherWidget');
+    if (!widget || !data) return;
+    var wmoIcons = {
+        0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+        45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',
+        61:'🌧️',63:'🌧️',65:'🌊',71:'🌨️',73:'🌨️',75:'❄️',
+        80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',99:'⛈️'
+    };
+    var wmoLabels = {
+        0:'Clear',1:'Mostly Clear',2:'Partly Cloudy',3:'Overcast',
+        45:'Foggy',51:'Light Drizzle',61:'Light Rain',63:'Rain',
+        65:'Heavy Rain',71:'Light Snow',73:'Snow',75:'Heavy Snow',
+        80:'Showers',81:'Rain Showers',82:'Heavy Showers',95:'Thunderstorm',99:'Severe Storm'
+    };
+    try {
+        var temp = Math.round(data.current_temperature || data.temperature || 0);
+        var code = data.current_weather_code || data.weather_code || 0;
+        var humidity = Math.round(data.current_humidity || data.humidity || 0);
+        var wind = Math.round((data.current_wind_speed || data.wind_speed || 0));
+        var rain = Math.round((data.daily_rain_sum || data.precipitation || 0) * 10) / 10;
+        document.getElementById('heroWeatherIcon').textContent = wmoIcons[code] || '🌤️';
+        document.getElementById('heroWeatherTemp').textContent = temp + '°C';
+        document.getElementById('heroWeatherCondition').textContent = wmoLabels[code] || 'Clear';
+        document.getElementById('heroWeatherSub').textContent = 'Tap for full forecast';
+        document.getElementById('heroHumidity').textContent = humidity;
+        document.getElementById('heroWind').textContent = wind;
+        document.getElementById('heroRain').textContent = rain;
+        widget.style.display = 'inline-flex';
+    } catch(e) {
+        widget.style.display = 'none';
+    }
+};
+
+/* ── Chat Input Auto-resize ──────────────────────────────── */
+window.autoResizeChatInput = function(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+};
+
+/* ── Voice Input (Web Speech API) ───────────────────────── */
+var _voiceRecognition = null;
+var _voiceRecording = false;
+window.toggleVoiceInput = function() {
+    var btn = document.getElementById('voiceBtn');
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        if (window.showToast) showToast('Voice input not supported in this browser', 'warning');
+        return;
+    }
+    if (_voiceRecording) {
+        if (_voiceRecognition) _voiceRecognition.stop();
+        _voiceRecording = false;
+        if (btn) btn.classList.remove('recording');
+        return;
+    }
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    _voiceRecognition = new SpeechRecognition();
+    _voiceRecognition.lang = 'hi-IN';
+    _voiceRecognition.interimResults = false;
+    _voiceRecognition.maxAlternatives = 1;
+    _voiceRecognition.onstart = function() {
+        _voiceRecording = true;
+        if (btn) btn.classList.add('recording');
+        if (window.showToast) showToast('🎤 बोलें...', 'info', 2000);
+    };
+    _voiceRecognition.onresult = function(event) {
+        var transcript = event.results[0][0].transcript;
+        var input = document.getElementById('messageInput');
+        if (input) {
+            input.value = transcript;
+            autoResizeChatInput(input);
+        }
+    };
+    _voiceRecognition.onerror = function(event) {
+        if (window.showToast) showToast('Voice error: ' + event.error, 'error');
+    };
+    _voiceRecognition.onend = function() {
+        _voiceRecording = false;
+        if (btn) btn.classList.remove('recording');
+    };
+    _voiceRecognition.start();
+};
+
+/* ── Services container upgrade ─────────────────────────── */
+(function() {
+    // Upgrade the section title group
+    var sc = document.querySelector('.services-container .text-center.mb-2');
+    if (sc) sc.className = 'section-title-group';
+})();
 </script>
 
 </body>
