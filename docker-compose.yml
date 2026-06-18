@@ -70,7 +70,7 @@ services:
       SERVE_FRONTEND: "true"
       FRONTEND_AT_ROOT: "true"
       # ── Gunicorn tuning ───────────────────────────────────
-      WEB_CONCURRENCY:          ${WEB_CONCURRENCY:-4}
+      WEB_CONCURRENCY:          ${WEB_CONCURRENCY:-2}
       GUNICORN_TIMEOUT:         ${GUNICORN_TIMEOUT:-120}
       GUNICORN_MAX_REQUESTS:    ${GUNICORN_MAX_REQUESTS:-1000}
       # ── Sentry ────────────────────────────────────────────────
