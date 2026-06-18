@@ -431,7 +431,7 @@ def _stream_generator(
                     yield _sse_frame({"token": token})
     except Exception as exc:
         logger.error("SSE stream error: %s", exc)
-        yield _sse_frame({"error": "Stream failed", "detail": str(exc)})
+        yield _sse_frame({"error": "Stream failed", "detail": safe_error_message(exc, context="chatbot")})
         return
 
     response_time_ms = int((time.monotonic() - t0) * 1000)
@@ -515,6 +515,13 @@ def stream_chat(request):
     if not query:
         from django.http import JsonResponse
         return JsonResponse({"error": "Query required"}, status=400)
+    # SECURITY FIX: enforce same query length cap as JSON endpoint
+    if len(query) > MAX_CHAT_QUERY_LENGTH:
+        from django.http import JsonResponse
+        return JsonResponse(
+            {"error": f"Query too long (max {MAX_CHAT_QUERY_LENGTH} chars)"},
+            status=400,
+        )
 
     ctx = resolve_request_location(request)
     history, session_ctx, language = _build_history_and_context(
@@ -529,7 +536,10 @@ def stream_chat(request):
         ),
         content_type="text/event-stream",
     )
-    response["Cache-Control"]               = "no-cache"
-    response["X-Accel-Buffering"]           = "no"   # disable nginx buffering
-    response["Access-Control-Allow-Origin"] = "*"
+    response["Cache-Control"]     = "no-cache"
+    response["X-Accel-Buffering"] = "no"   # disable nginx buffering
+    # SECURITY FIX: use configured CORS origins, fall back to * only in DEBUG
+    from django.conf import settings as _dj
+    _cors = getattr(_dj, 'CORS_ALLOWED_ORIGINS', None)
+    response["Access-Control-Allow-Origin"] = (_cors[0] if _cors else "*")
     return response

@@ -1829,7 +1829,7 @@
         resultsContainer.innerHTML = `
             <div class="text-center p-5">
                 <i class="fas fa-spinner fa-spin fa-3x text-success"></i>
-                <h4 class="mt-3">Analyzing ${crop.charAt(0).toUpperCase() + crop.slice(1)}...</h4>
+                <h4 class="mt-3">Analyzing ${escapeHtml(crop.charAt(0).toUpperCase() + crop.slice(1))}...</h4>
                 <p>Plant validation • EfficientNet-B3 • Weather check...</p>
             </div>
         `;
@@ -1858,7 +1858,7 @@
             } else {
                 resultsContainer.innerHTML = `
                     <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i> ${data.message || 'Diagnosis failed'}
+                        <i class="fas fa-exclamation-triangle"></i> ${escapeHtml(data.message || 'Diagnosis failed')}
                     </div>
                 `;
             }
@@ -1886,18 +1886,18 @@
 
         let html = `
             <div class="real-time-header">
-                <h4>🩺 Diagnostic Report: ${(data.crop_display || data.crop_detected || 'Crop').toString()}</h4>
-                <p class="data-source">📍 ${data.location || ''}</p>
+                <h4>🩺 Diagnostic Report: ${escapeHtml((data.crop_display || data.crop_detected || 'Crop').toString())}</h4>
+                <p class="data-source">📍 ${escapeHtml(data.location || '')}</p>
                 <p class="timestamp">🕒 ${new Date(data.timestamp).toLocaleString('hi-IN')}</p>
             </div>
         `;
         if (statusMsg) {
-            html += `<div class="alert ${alertClass} mt-3">${statusMsg}</div>`;
+            html += `<div class="alert ${alertClass} mt-3">${escapeHtml(statusMsg)}</div>`;
         }
         if (data.ml_prediction && data.ml_prediction.top_predictions && data.ml_prediction.top_predictions.length) {
             html += '<div class="small text-muted mb-2"><strong>Top AI guesses:</strong> ';
             html += data.ml_prediction.top_predictions.map(p =>
-                `${p.crop_name || '?'} / ${p.disease_name || '?'} (${Math.round((p.probability || 0) * 100)}%)`
+                `${escapeHtml(p.crop_name || '?')} / ${escapeHtml(p.disease_name || '?')} (${Math.round((p.probability || 0) * 100)}%)`
             ).join(' · ');
             html += '</div>';
         }
@@ -1912,7 +1912,7 @@
                 <div class="col-md-6">
                     <div class="card shadow-sm h-100" style="border-left: 4px solid ${severityColor};">
                         <div class="card-header bg-light">
-                            <h5 class="mb-0" style="color: #2d5016; font-weight: 700;">${d.name}</h5>
+                            <h5 class="mb-0" style="color: #2d5016; font-weight: 700;">${escapeHtml(d.name)}</h5>
                             <small style="color: #444; font-weight: 600;">Rank #${idx + 1}</small>
                         </div>
                         <div class="card-body">

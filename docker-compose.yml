@@ -217,9 +217,12 @@ services:
     profiles: ["postgres", "all"]
     image: redis:7-alpine
     container_name: krishimitra_redis
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly no
+    # FIX: appendonly yes persists rate-limiter state and session cache across restarts
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
     ports:
       - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -269,6 +272,8 @@ volumes:
     name: krishimitra_media_files
   postgres_data:
     name: krishimitra_postgres_data
+  redis_data:
+    name: krishimitra_redis_data
   mosquitto_data:
     name: krishimitra_mosquitto_data
   mosquitto_log:

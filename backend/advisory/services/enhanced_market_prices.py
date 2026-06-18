@@ -372,7 +372,7 @@ class EnhancedMarketPricesService:
             try:
                 cc_url = "https://commoditiescontrol.com/eagritrader/revamp/commodity.php?cid=8"
                 logger.info(f"Checking CommoditiesControl connectivity: {cc_url}")
-                cc_resp = self.session.get(cc_url, timeout=3, verify=False)
+                cc_resp = self.session.get(cc_url, timeout=(5, 8), verify=True)
                 
                 if cc_resp.status_code == 200:
                     today_str = datetime.now().strftime("%d %b %Y").upper() # e.g. 19 FEB 2026
@@ -431,7 +431,7 @@ class EnhancedMarketPricesService:
         try:
             # e-NAM API call with proper parameters
             url = f"{self.government_apis['enam']['base_url']}?state={state}&limit=20"
-            response = self.session.get(url, timeout=3, verify=False)
+            response = self.session.get(url, timeout=(5, 10), verify=True)
             
             if response.status_code == 200:
                 data = response.json()
@@ -469,8 +469,9 @@ class EnhancedMarketPricesService:
         """Fetch data from FCI Data Center with proper error handling"""
         try:
             # FCI Data Center API call with proper parameters
-            url = f"{self.government_apis['fcidatacenter']['base_url']}?state={state}&limit=20"
-            response = self.session.get(url, timeout=3, verify=False)
+            # CRIT FIX: was 'fcidatacenter' (KeyError) — correct key is 'fci'
+            url = f"{self.government_apis['fci']['base_url']}?state={state}&limit=20"
+            response = self.session.get(url, timeout=(5, 10), verify=True)
             
             if response.status_code == 200:
                 data = response.json()
@@ -1259,9 +1260,7 @@ class EnhancedMarketPricesService:
     
     def _get_enhanced_fallback_data(self, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Enhanced fallback data using real government MSP data with location-specific pricing"""
-        # STRICT VERIFICATION: Return None to fail if real-time data is missing
-        return None
-        
+        # Use MSP-based structured fallback when all real-time government APIs fail
         # Get real government MSP data (2024-25)
         government_msp_data = self._get_real_government_msp_data()
         

@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..location_utils import attach_location_metadata, resolve_request_location
+from ..errors import safe_error_message
 from ...services.crop_catalog import crop_catalog
 from ...services.unified_realtime_service import market_service
 
@@ -56,7 +57,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 {
                     "status": "error",
                     "error": "Unable to fetch market prices",
-                    "message": str(exc),
+                    "message": safe_error_message(exc, context="market"),
                     "top_crops": [],
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -90,7 +91,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 {
                     "status": "error",
                     "error": "Unable to fetch mandi list",
-                    "message": str(exc),
+                    "message": safe_error_message(exc, context="market"),
                     "mandis": [],
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -154,7 +155,7 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 {
                     "status": "error",
                     "error": "Unable to fetch mandi prices",
-                    "message": str(exc),
+                    "message": safe_error_message(exc, context="market"),
                     "top_crops": [],
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -217,6 +218,6 @@ class MarketPricesViewSet(viewsets.ViewSet):
         except Exception as exc:
             logger.exception("Live status check error: %s", exc)
             return Response(
-                {"status": "error", "message": str(exc)},
+                {"status": "error", "message": safe_error_message(exc, context="market")},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

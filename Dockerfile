@@ -83,10 +83,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=core.settings \
     # Gunicorn — all tunable via docker run -e or docker-compose env:
-    WEB_CONCURRENCY=4 \
+    # PERF: Default 2 workers (not 4). TF EfficientNet-B3 ~400MB/process;
+    # preload_app=True (gunicorn.conf.py) enables CoW sharing so 2 workers
+    # is safe on 1GB RAM. Set WEB_CONCURRENCY=1 on Render free (512MB).
+    WEB_CONCURRENCY=2 \
     GUNICORN_TIMEOUT=120 \
     GUNICORN_KEEPALIVE=5 \
     GUNICORN_MAX_REQUESTS=1000
+
+# FIX: Set PYTHONPATH so Django is importable in ALL execution contexts
+# (management commands, docker exec, cron jobs) regardless of cwd.
+ENV PYTHONPATH=/app/backend
 
 # ── System runtime libs only (no build tools) ─────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -140,7 +147,7 @@ EXPOSE 8000
 HEALTHCHECK \
     --interval=30s \
     --timeout=15s \
-    --start-period=30s \
+    --start-period=90s \
     --retries=3 \
     CMD curl -sf http://localhost:8000/api/health/ || exit 1
 
