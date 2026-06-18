@@ -36,10 +36,27 @@ dependencies:
   # Connectivity check — all platforms
   connectivity_plus: ^6.0.3
 
+  # ── Voice input (STT) — Task 8 / RAG-6 ──────────────────────────────────
+  # On-device STT — free, supports Hindi + 12 Indian languages, no cloud key
+  speech_to_text: ^6.6.0
+
+  # ── Text-to-speech (TTS) — Task 8 / RAG-6 ───────────────────────────────
+  flutter_tts: ^4.0.2
+
+  # ── Offline cache — Task 9 / RAG-6 ──────────────────────────────────────
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # ── Error monitoring — Task 7 / RAG-6 ───────────────────────────────────
+  # Wrap main() in SentryFlutter.init; reads DSN from --dart-define=SENTRY_DSN
+  sentry_flutter: ^7.19.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.8
 
 flutter:
   uses-material-design: true

@@ -152,6 +152,8 @@ CMD ["sh", "-c", "\
     echo '✅ Migrations applied' && \
     python manage.py seed_msp 2>/dev/null || echo '⚠️  MSP seed skipped (already seeded)' && \
     echo '✅ MSP data ready' && \
+    python manage.py warm_cache 2>/dev/null && \
+    echo '✅ Cache warmed' && \
     exec gunicorn \
       --bind 0.0.0.0:8000 \
       --workers ${WEB_CONCURRENCY:-4} \

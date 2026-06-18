@@ -6,8 +6,18 @@
 #   Start Command: cd backend && gunicorn --bind 0.0.0.0:$PORT --workers 4 --threads 4 --worker-class gthread --timeout 120 core.wsgi:application
 #   Build Command: pip install -r requirements-production.txt && cd backend && python manage.py collectstatic --noinput
 
-release: cd backend && python manage.py migrate --noinput && python manage.py seed_msp 2>/dev/null || true
+# ── Release phase (runs once before each deploy) ─────────────────────────────
+# Order matters:
+#   1. migrate  — schema changes first (zero-downtime deploys)
+#   2. seed_msp — idempotent MSP price seeding
+#   3. warm_cache — pre-warms Agmarknet + weather caches so first user request
+#                   is sub-100ms instead of waiting for cold API calls
+release: cd backend && \
+  python manage.py migrate --noinput && \
+  python manage.py seed_msp 2>/dev/null || true && \
+  python manage.py warm_cache
 
+# ── Web process ──────────────────────────────────────────────────────────────
 web: cd backend && gunicorn \
   --bind 0.0.0.0:$PORT \
   --workers ${WEB_CONCURRENCY:-4} \
@@ -21,3 +31,22 @@ web: cd backend && gunicorn \
   --error-logfile - \
   --log-level info \
   core.wsgi:application
+
+# ── Celery worker (optional — only needed when REDIS_URL is set) ─────────────
+# Handles async post-response writes: FarmerInteractionLog, session memory.
+# Without Redis, chatbot.py falls back to synchronous inline writes.
+# Enable on Render: add a Background Worker with this command.
+worker: cd backend && celery \
+  --app core.celery \
+  worker \
+  --loglevel=info \
+  --concurrency=2 \
+  --max-tasks-per-child=1000 \
+  --without-gossip \
+  --without-mingle \
+  --queues=celery
+
+# ── Celery beat (optional — periodic task scheduler) ────────────────────────
+# Runs scheduled tasks like cache refresh, MSP updates.
+# Only start this if you also have a Celery worker running.
+# beat: cd backend && celery --app core.celery beat --loglevel=info

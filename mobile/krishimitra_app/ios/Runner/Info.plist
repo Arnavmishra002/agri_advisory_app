@@ -60,6 +60,12 @@
 	<string>KrishiRaksha: फसल की तस्वीर अपलोड करें</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>KrishiRaksha: तस्वीर सहेजें</string>
+	<!-- Task 8: Microphone for voice input (speech_to_text) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>आवाज़ से सवाल पूछें — Voice input for farming queries</string>
+	<!-- Task 8: Speech recognition for voice input -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>आवाज़ को टेक्स्ट में बदलने के लिए — Voice-to-text for farming queries</string>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

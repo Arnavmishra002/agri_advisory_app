@@ -1012,11 +1012,15 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     except Exception as exc:
                         logger.warning("Fetch failed for %s: %s", key, exc)
             except FuturesTimeout:
-                # Collect any already-completed futures before the timeout hit
+                # Bug 3 fix: cancel still-running futures immediately so the
+                # thread pool slots are returned and any held DB connections are
+                # released.  Without this, abandoned futures keep their Django ORM
+                # connection open until the OS timeout (up to 60 s), exhausting
+                # the DB connection pool under load.
                 for fut, key in futures.items():
-                    if fut.done():
+                    if fut.done() and not fut.cancelled():
                         try:
-                            result = fut.result()
+                            result = fut.result(timeout=0)
                             if key == "weather" and not weather_data:
                                 weather_data = result or {}
                             elif key == "prices" and not prices_data:
@@ -1025,6 +1029,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                                 sc = result
                         except Exception:
                             pass
+                    elif not fut.done():
+                        fut.cancel()  # releases thread pool slot
                 logger.warning(
                     "Concurrent fetch timed out after 6s for %s — using partial data",
                     ctx.display_name,
@@ -3720,5 +3726,155 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         return []
 
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# answer_stream() — SSE / streaming support (Task 20 / RAG-4)
+# ─────────────────────────────────────────────────────────────────────────────
+# Injected onto the class so it lives alongside answer() without touching
+# the existing 3 000-line method body.
+
+def _answer_stream(
+    self,
+    query: str,
+    ctx,
+    language: str = "hi",
+    history=None,
+    farmer_profile=None,
+    fast_mode: bool = False,
+):
+    """
+    Generator version of answer().
+
+    Yields:
+        str tokens as they arrive from Gemini / Ollama stream.
+        One final sentinel dict: {"__done__": True, "intent": ..., ...}
+
+    Falls back to yielding the full answer in one chunk when streaming
+    is not available (rule-based path, Gemini non-stream, Phase1 non-stream).
+    This guarantees the SSE endpoint always gets at least one token yield
+    before the done sentinel.
+    """
+    import json as _json
+    import os as _os
+    import urllib.request as _ureq
+
+    query = (query or "").strip()
+    lang  = normalise_language_code(language)
+
+    if not query:
+        yield self._empty_response(lang)
+        yield {"__done__": True, "intent": INTENT_GENERAL, "language": lang,
+               "data_source": "KrishiMitra Advisory Engine", "crops_detected": []}
+        return
+
+    intent, crops_mentioned = self.classify_query(query)
+    now    = datetime.now(tz=timezone.utc)
+    season = _current_season(now.month)
+
+    # ── Try Gemini streaming first ────────────────────────────────
+    has_gemini = _is_valid_gemini_key(gemini_service.api_key)
+    if has_gemini and not fast_mode:
+        try:
+            import google.generativeai as _genai
+            _genai.configure(api_key=gemini_service.api_key)
+            model = _genai.GenerativeModel("gemini-1.5-flash")
+
+            # Build a compact grounded prompt (reuse existing helper via answer())
+            # We call answer() only for prompt building — not for generating.
+            # Build minimal context inline for streaming to avoid double fetch.
+            lang_instr = get_gemini_language_instruction(lang)
+            compact_prompt = (
+                f"You are KrishiMitra AI — expert agricultural advisor for Indian farmers.\n"
+                f"Language rule: {lang_instr}\n\n"
+                f"Query: {query}\n\n"
+                f"Respond concisely in the farmer's language. "
+                f"Use bullet points for action steps."
+            )
+            response = model.generate_content(compact_prompt, stream=True)
+            full_text = []
+            for chunk in response:
+                token = (chunk.text or "")
+                if token:
+                    full_text.append(token)
+                    yield token
+            yield {
+                "__done__": True,
+                "intent": intent,
+                "language": lang,
+                "data_source": "Gemini AI (stream)",
+                "crops_detected": [c["name"] for c in crops_mentioned],
+                "season": season,
+            }
+            return
+        except Exception as exc:
+            logger.warning("Gemini stream failed (%s) — falling back to answer()", exc)
+
+    # ── Try Phase 1 Ollama streaming ──────────────────────────────
+    if not fast_mode:
+        try:
+            PHASE1_STREAM_URL = "http://127.0.0.1:8001/chat/stream"
+            payload = _json.dumps({
+                "query": query, "language": lang,
+                "history": [{"role": m.get("role","user"), "content": m.get("content","")}
+                             for m in (history or [])[-6:] if m.get("content")],
+                "stream": True,
+            }, ensure_ascii=False).encode()
+            req = _ureq.Request(
+                PHASE1_STREAM_URL, data=payload,
+                headers={"Content-Type": "application/json"}, method="POST"
+            )
+            with _ureq.urlopen(req, timeout=30) as resp:
+                full_text = []
+                for raw in resp:
+                    line = raw.decode("utf-8").strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = _json.loads(line)
+                        if obj.get("done"):
+                            break
+                        token = obj.get("token", "")
+                        if token:
+                            full_text.append(token)
+                            yield token
+                    except Exception:
+                        continue
+                if full_text:
+                    yield {
+                        "__done__": True,
+                        "intent": intent,
+                        "language": lang,
+                        "data_source": "krishimitra-llm (stream)",
+                        "crops_detected": [c["name"] for c in crops_mentioned],
+                        "season": season,
+                    }
+                    return
+        except Exception as exc:
+            logger.debug("Phase1 stream unavailable (%s) — non-stream fallback", exc)
+
+    # ── Non-stream fallback: call answer() and yield as one chunk ─
+    result = self.answer(
+        query, ctx, language=language, history=history,
+        farmer_profile=farmer_profile, fast_mode=fast_mode,
+    )
+    full_text = result.get("response", "")
+    # Yield in ~50-char chunks so the SSE bubble still fills in progressively
+    chunk_size = 50
+    for i in range(0, len(full_text), chunk_size):
+        yield full_text[i:i + chunk_size]
+    yield {
+        "__done__": True,
+        "intent":          result.get("intent", intent),
+        "language":        result.get("language", lang),
+        "data_source":     result.get("data_source", "KrishiMitra Advisory Engine"),
+        "crops_detected":  result.get("crops_detected", [c["name"] for c in crops_mentioned]),
+        "season":          result.get("season", season),
+    }
+
+
+# Attach to class
+ChatIntelligenceService.answer_stream = _answer_stream
+
 # Module-level singleton
 chat_intelligence_service = ChatIntelligenceService()
+

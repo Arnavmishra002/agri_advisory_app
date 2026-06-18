@@ -1,8 +1,49 @@
-# KrishiMitra AI — Render Build Configuration v2
+# KrishiMitra AI — Render Build Configuration v3
 #
-# buildCommand: runs from repo root
-# startCommand: gunicorn uses gunicorn.conf.py which sets chdir=backend/
-#               so 'core' is importable without 'cd backend'
+# These values are read by Render's web service configuration.
+# Set them in your Render service dashboard → Settings → Build & Deploy,
+# or keep this file and Render will pick it up automatically.
+#
+# Build pipeline:
+#   1. pip install         — install Python dependencies
+#   2. collectstatic       — bundle admin/DRF static assets
+#   3. migrate             — apply DB schema (also in release command)
+#   4. seed_msp            — idempotent MSP price seeding
+#   5. warm_cache          — pre-warm Agmarknet + weather caches
+#                            (first farmer request will be sub-100ms)
+#
+# Required environment variables (set in Render dashboard):
+#   SECRET_KEY             — Django secret key (generate with: python -c "import secrets; print(secrets.token_hex(50))")
+#   DATABASE_URL           — PostgreSQL URL (Render provides this when you add a DB)
+#   DATA_GOV_IN_API_KEY    — Free from https://data.gov.in/user/register (live mandi prices)
+#   REDIS_URL              — Redis URL for Celery async writes (Render Redis add-on)
+#
+# Optional environment variables:
+#   GOOGLE_AI_API_KEY      — Gemini AI (chatbot Tier 2; rule-based works without it)
+#   OPENWEATHER_API_KEY    — OWM fallback weather (Open-Meteo is free primary)
+#   SENTRY_DSN             — Error monitoring (https://sentry.io free tier)
+#   SENTRY_ENVIRONMENT     — production / staging (default: production)
+#   RENDER_GIT_COMMIT      — Auto-set by Render; used as Sentry release tag
 
-buildCommand: pip install -r requirements-production.txt && cd backend && python manage.py collectstatic --noinput
-startCommand: gunicorn core.wsgi:application --config gunicorn.conf.py
+buildCommand: >
+  pip install -r backend/requirements.txt &&
+  cd backend &&
+  python manage.py collectstatic --noinput &&
+  python manage.py migrate --noinput &&
+  python manage.py seed_msp 2>/dev/null || true &&
+  python manage.py warm_cache
+
+startCommand: >
+  cd backend &&
+  gunicorn core.wsgi:application
+    --bind 0.0.0.0:$PORT
+    --workers ${WEB_CONCURRENCY:-4}
+    --threads 4
+    --worker-class gthread
+    --timeout ${GUNICORN_TIMEOUT:-120}
+    --keep-alive 5
+    --max-requests 1000
+    --max-requests-jitter 100
+    --access-logfile -
+    --error-logfile -
+    --log-level info

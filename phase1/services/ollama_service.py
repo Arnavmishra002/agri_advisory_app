@@ -1,11 +1,23 @@
 """
-KrishiMitra — Ollama / Qwen Chat Service
-=========================================
-Replaces Gemini API with local Qwen 2.5 7B.
-Zero cloud cost, full offline capability, data stays on-device.
+KrishiMitra — Ollama / Qwen Chat Service v2
+============================================
+Implements RAG context compression (RAG-2) on top of the original service:
+
+  - build_farming_prompt() now hard-caps RAG context at _MAX_CONTEXT_TOKENS
+    (≈1 500 words) instead of sending all retrieved chunks verbatim.
+  - Deduplicates chunks before including them.
+  - Logs token estimate so you can tune the cap.
+
+Why this matters (from the RAG optimization post):
+  "Sending 15 000 tokens to an LLM is often more expensive than retrieving
+   the right 1 500."  More tokens = more time spent reading = higher latency.
+
+All other behaviour (Ollama URL, model name, system prompt, streaming) is
+unchanged from v1.
 """
 
 from __future__ import annotations
+
 import json
 import logging
 import urllib.request
@@ -17,11 +29,17 @@ logger = logging.getLogger(__name__)
 OLLAMA_BASE   = "http://localhost:11434"
 DEFAULT_MODEL = "krishimitra-llm"
 
-# ── System prompt for farming advisor role ────────────────────────────────────
+# ── Context compression constants (RAG-2) ────────────────────────────────────
+# Approximate tokens in a chunk = chars / 4  (rough but fast).
+# We cap total RAG context at 1 500 tokens to keep the prompt lean.
+_MAX_CONTEXT_CHARS = 6_000   # ≈ 1 500 tokens at 4 chars/token
+_MAX_CHUNK_CHARS   = 600     # already applied in retriever, guard here too
+
+# ── System prompt ─────────────────────────────────────────────────────────────
 AGRI_SYSTEM_PROMPT = """\
 You are KrishiMitra AI — an expert agricultural advisor for Indian farmers.
-You have deep knowledge of ICAR (Indian Council of Agricultural Research) guidelines,
-government schemes, crop management, and Indian weather patterns.
+You have deep knowledge of ICAR guidelines, government schemes, crop management,
+and Indian weather patterns.
 
 STRICT RULES:
 1. Use ONLY the information provided in the [KNOWLEDGE BASE] section. Never invent facts.
@@ -44,13 +62,47 @@ STRICT RULES:
 
 
 def _ollama_available() -> bool:
-    """Check if Ollama server is running."""
     try:
         req = urllib.request.Request(f"{OLLAMA_BASE}/api/tags")
         with urllib.request.urlopen(req, timeout=3):
             return True
     except Exception:
         return False
+
+
+def _compress_chunks(chunks: List[str]) -> str:
+    """
+    RAG-2: Deduplicate and compress RAG chunks to stay within token budget.
+
+    Steps:
+      1. Deduplicate by first-80-char fingerprint
+      2. Truncate each chunk to _MAX_CHUNK_CHARS
+      3. Join with separator, hard-cap at _MAX_CONTEXT_CHARS
+      4. Log estimated token count
+
+    Returns the compressed knowledge-base string.
+    """
+    if not chunks:
+        return ""
+
+    seen:    set       = set()
+    unique:  List[str] = []
+    for c in chunks:
+        fp = c[:80]
+        if fp not in seen:
+            seen.add(fp)
+            unique.append(c[:_MAX_CHUNK_CHARS])
+
+    joined = "\n\n---\n\n".join(unique)
+    if len(joined) > _MAX_CONTEXT_CHARS:
+        joined = joined[:_MAX_CONTEXT_CHARS] + "\n\n[...context compressed for latency]"
+
+    est_tokens = len(joined) // 4
+    logger.debug(
+        "RAG context: %d raw chunks → %d unique → ~%d tokens",
+        len(chunks), len(unique), est_tokens,
+    )
+    return joined
 
 
 def build_farming_prompt(
@@ -64,13 +116,15 @@ def build_farming_prompt(
 ) -> str:
     """
     Assemble the full prompt from all available context.
-    Everything is clearly labelled so Qwen knows what to trust.
+
+    RAG-2 change: rag_chunks are compressed via _compress_chunks() before
+    inclusion so the prompt stays well within the 1 500-token context budget.
     """
     parts: List[str] = []
 
-    # 1. Knowledge base (RAG — highest trust)
-    if rag_chunks:
-        kb = "\n\n---\n\n".join(rag_chunks)
+    # 1. Knowledge base (RAG — highest trust, now compressed)
+    kb = _compress_chunks(rag_chunks)
+    if kb:
         parts.append(f"[KNOWLEDGE BASE — authoritative, cite these facts]\n{kb}")
     else:
         parts.append(
@@ -105,27 +159,29 @@ def build_farming_prompt(
     # 5. Farmer profile
     if farmer_profile:
         profile_lines = []
-        if farmer_profile.get("location"):
-            profile_lines.append(f"Location: {farmer_profile['location']}")
-        if farmer_profile.get("crop"):
-            profile_lines.append(f"Current crop: {farmer_profile['crop']}")
-        if farmer_profile.get("season"):
-            profile_lines.append(f"Season: {farmer_profile['season']}")
+        for key, label in [
+            ("location", "Location"), ("crop", "Current crop"),
+            ("season", "Season"), ("farm_size_bigha", "Farm size (bigha)"),
+            ("soil_ph", "Soil pH"), ("irrigation_type", "Irrigation"),
+        ]:
+            val = farmer_profile.get(key)
+            if val:
+                profile_lines.append(f"{label}: {val}")
         if profile_lines:
             parts.append("[FARMER PROFILE]\n" + "\n".join(profile_lines))
 
-    # 6. Recent conversation history (last 6 turns)
+    # 6. Recent conversation (last 4 turns only — keeps context lean)
     if conversation_history:
         history_lines = []
-        for msg in conversation_history[-6:]:
+        for msg in conversation_history[-4:]:
             role    = "Farmer" if msg.get("role") == "user" else "KrishiMitra AI"
-            content = (msg.get("content") or "").strip()
+            content = (msg.get("content") or "").strip()[:200]   # cap each turn
             if content:
                 history_lines.append(f"{role}: {content}")
         if history_lines:
             parts.append("[RECENT CONVERSATION]\n" + "\n".join(history_lines))
 
-    # 7. Current question + evaluation instructions
+    # 7. Current question + response instructions
     parts.append(f"[FARMER'S QUESTION]\n{question}")
     parts.append(
         "[YOUR RESPONSE — follow these checks before writing]\n"
@@ -137,7 +193,9 @@ def build_farming_prompt(
         "Now write your response:"
     )
 
-    return "\n\n".join(parts)
+    prompt = "\n\n".join(parts)
+    logger.debug("Prompt total chars: %d (~%d tokens)", len(prompt), len(prompt) // 4)
+    return prompt
 
 
 def chat(
@@ -148,10 +206,7 @@ def chat(
     max_tokens: int = 1200,
     timeout: int = 90,
 ) -> str:
-    """
-    Blocking chat — returns the full response as a string.
-    Falls back to a helpful offline message if Ollama is down.
-    """
+    """Blocking chat — returns the full response as a string."""
     if not _ollama_available():
         logger.warning("Ollama unavailable — returning offline message")
         return (
@@ -162,7 +217,7 @@ def chat(
         )
 
     payload = json.dumps({
-        "model":  model,
+        "model": model,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user",   "content": prompt},
@@ -188,10 +243,7 @@ def chat(
             return data["message"]["content"].strip()
     except urllib.error.URLError as exc:
         logger.error("Ollama request failed: %s", exc)
-        return (
-            "AI सेवा में त्रुटि। "
-            "Kisan Helpline: 1800-180-1551 पर कॉल करें।"
-        )
+        return "AI सेवा में त्रुटि। Kisan Helpline: 1800-180-1551 पर कॉल करें।"
     except Exception as exc:
         logger.error("Unexpected chat error: %s", exc)
         raise
@@ -212,7 +264,7 @@ def stream_chat(
         return
 
     payload = json.dumps({
-        "model":  model,
+        "model": model,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user",   "content": prompt},
@@ -251,16 +303,18 @@ def get_model_info() -> dict:
     try:
         req = urllib.request.Request(f"{OLLAMA_BASE}/api/tags")
         with urllib.request.urlopen(req, timeout=3) as resp:
-            data = json.loads(resp.read())
+            data   = json.loads(resp.read())
             models = data.get("models", [])
-            # Prioritize matching DEFAULT_MODEL or general krishimitra/qwen names
             active = next((m for m in models if DEFAULT_MODEL in m["name"]), None)
             if not active:
-                active = next((m for m in models if "krishimitra" in m["name"] or "qwen2.5" in m["name"]), None)
+                active = next(
+                    (m for m in models if "krishimitra" in m["name"] or "qwen2.5" in m["name"]),
+                    None,
+                )
             return {
                 "available": True,
-                "model": active["name"] if active else DEFAULT_MODEL,
-                "size_gb": round(active["size"] / 1e9, 1) if active else None,
+                "model":     active["name"] if active else DEFAULT_MODEL,
+                "size_gb":   round(active["size"] / 1e9, 1) if active else None,
             }
     except Exception:
         return {"available": False, "model": DEFAULT_MODEL}

@@ -623,7 +623,11 @@ class MarketPricesService:
         self._MAX_CACHE_ENTRIES = 200
         self._cache: OrderedDict = OrderedDict()
         self._cache_ts: Dict[str, datetime] = {}
-        self.CACHE_TTL = 180  # 3 min — mandi arrivals update every ~15 min
+        # Agmarknet updates once daily (~9 AM IST). A 3-min TTL causes unnecessary
+        # hammering — each expiry fires a real network call for no new data.
+        # 60 min for live data (Agmarknet), 24 h for seed/estimate fallback.
+        self.CACHE_TTL      = 3600   # 60 min — live Agmarknet data
+        self.CACHE_TTL_SEED = 86400  # 24 h  — seed/MSP-estimate fallback
         # BUG 5 FIX: use per-thread session to prevent urllib3 connection pool
         # corruption when the module-level ThreadPoolExecutor calls get_prices()
         # concurrently from multiple threads sharing the same Session object.
@@ -662,8 +666,13 @@ class MarketPricesService:
         cache_key = f"{coord_key}:{location}:{state}:{mandi}:{crop}:{include_estimates}"
         if cache_key in self._cache:
             age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
-            if age < self.CACHE_TTL:
-                return self._cache[cache_key]
+            cached = self._cache[cache_key]
+            # Live Agmarknet data: 60-min TTL (API updates once daily — 3-min TTL
+            # was causing 20× unnecessary network calls with no new data).
+            # Seed/MSP-estimate fallback: 24-h TTL (it never changes intraday).
+            ttl = self.CACHE_TTL_SEED if not cached.get("is_live") else self.CACHE_TTL
+            if age < ttl:
+                return cached
 
         data = None
 
@@ -885,6 +894,32 @@ class MarketPricesService:
             )
             data["message"] = f"{data.get('message', '')} {note}".strip()
 
+        # Always surface exact fetch time and age so Flutter UI can show
+        # "Data as of 09:15 AM (2 hours ago)" — honest freshness disclosure.
+        now_utc = datetime.now(tz=timezone.utc)
+        data["fetched_at"] = data.get("fetched_at") or now_utc.isoformat()
+        # Compute age from the Agmarknet reported_date if available (daily data)
+        reported = data.get("reported_date", "")
+        if reported and not data.get("data_age_minutes"):
+            try:
+                from datetime import timezone as _tz
+                import re as _re
+                # Agmarknet dates: "12-06-2026" or "2026-06-12"
+                if _re.match(r"\d{2}-\d{2}-\d{4}", reported):
+                    d, m, y = reported.split("-")
+                    reported_dt = datetime(int(y), int(m), int(d), 9, 0, tzinfo=_tz.utc)
+                elif _re.match(r"\d{4}-\d{2}-\d{2}", reported):
+                    y, m, d = reported.split("-")
+                    reported_dt = datetime(int(y), int(m), int(d), 9, 0, tzinfo=_tz.utc)
+                else:
+                    reported_dt = None
+                if reported_dt:
+                    data["data_age_minutes"] = max(
+                        0, int((now_utc - reported_dt).total_seconds() / 60)
+                    )
+            except Exception:
+                pass
+
         return data
 
     def _ensure_staple_crops(
@@ -952,6 +987,8 @@ class MarketPricesService:
         cache_key = f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:{location}:{state}:{radius_km}"
         if cache_key in self._cache:
             age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
+            # Mandi list is stable — 60-min TTL is sufficient and avoids hammering
+            # the Agmarknet market-registry endpoint every 3 minutes.
             if age < self.CACHE_TTL:
                 return self._cache[cache_key]
 

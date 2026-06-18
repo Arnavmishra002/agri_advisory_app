@@ -9,6 +9,8 @@ from .monitoring_views import (
     readiness_check,
     simple_health_check,
 )
+from .viewsets.chatbot import stream_chat
+from .monitoring_views import sentry_test, data_freshness
 from .viewsets import (
     ChatbotViewSet,
     CropAdvisoryViewSet,
@@ -56,9 +58,15 @@ router.register(r"farmer-profile", FarmerProfileViewSet, basename="farmer-profil
 
 urlpatterns = [
     path("", include(router.urls)),
+    # ── SSE streaming chatbot (Task 5) ─────────────────────────
+    path("chatbot/stream/", stream_chat, name="chatbot-stream"),
+    # ── Health ──────────────────────────────────────────────────
     path("health/", lambda request: HttpResponse("OK", status=200), name="health"),
     path("health/simple/", simple_health_check, name="simple_health"),
     path("health/liveness/", liveness_check, name="liveness_check"),
+    path("health/readiness/", readiness_check, name="readiness_check"),
+    path("health/sentry-test/", sentry_test, name="sentry_test"),
+    path("health/data-freshness/", data_freshness, name="data_freshness"),
     path(
         "government-schemes/",
         GovernmentSchemesViewSet.as_view({"get": "list"}),

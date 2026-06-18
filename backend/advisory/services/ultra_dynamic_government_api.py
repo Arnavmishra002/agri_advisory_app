@@ -14,10 +14,12 @@ from typing import Dict, List, Any, Optional
 from .enhanced_market_prices import EnhancedMarketPricesService
 from concurrent.futures import ThreadPoolExecutor
 import urllib3
-from urllib3.exceptions import InsecureRequestWarning
 
-# Disable SSL warnings for development
-urllib3.disable_warnings(InsecureRequestWarning)
+# NOTE: Global SSL warning suppression removed.
+# urllib3.disable_warnings() was disabling SSL verification warnings for the
+# entire Django process, masking real certificate errors in production HTTPS
+# calls.  Any endpoint that truly requires verify=False should pass that
+# argument explicitly and log a warning at that specific call site.
 
 logger = logging.getLogger(__name__)
 
@@ -450,84 +452,15 @@ class UltraDynamicGovernmentAPI:
             return None
     
     def _try_imd_api(self, latitude: float, longitude: float, location: str) -> Optional[Dict[str, Any]]:
-        """Try IMD API for real-time weather - Enhanced implementation"""
-        try:
-            # IMD Real-time API endpoints (working endpoints)
-            imd_endpoints = [
-                # IMD's official weather API
-                f"https://mausam.imd.gov.in/api/weather?lat={latitude}&lon={longitude}",
-                # IMD's district weather data
-                "https://mausam.imd.gov.in/imd_latest/contents/surface_weather.php",
-                # IMD's forecast API
-                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
-                # IMD's current conditions
-                'https://mausam.imd.gov.in/imd_latest/contents/district_forecast.php',
-                'https://city.imd.gov.in/citywx/city_weather.php'
-            ]
-            
-            for url in imd_endpoints:
-                try:
-                    # Add proper headers for IMD API
-                    headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        'Accept': 'application/json, text/html, */*',
-                        'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
-                        'Referer': 'https://mausam.imd.gov.in/'
-                    }
-                    
-                    # Reduced timeout to 3 seconds to prevent hanging
-                    response = self.session.get(url, headers=headers, timeout=3, verify=False)
-                    
-                    if response.status_code == 200:
-                        try:
-                            data = response.json()
-                            
-                            # Extract weather data from IMD response
-                            weather_data = {
-                                'status': 'success',
-                                'data': {
-                                    'temperature': f"{data.get('temperature', data.get('temp', 28))}°C",
-                                    'humidity': f"{data.get('humidity', data.get('rh', 65))}%",
-                                    'wind_speed': f"{data.get('wind_speed', data.get('ws', 12))} km/h",
-                                    'wind_direction': data.get('wind_direction', data.get('wd', 'उत्तर-पूर्व')),
-                                    'condition': data.get('condition', data.get('weather', 'साफ आसमान')),
-                                    'description': data.get('description', data.get('weather', 'साफ आसमान')),
-                                    'feels_like': f"{data.get('feels_like', data.get('temperature', 28) + 2)}°C",
-                                    'pressure': f"{data.get('pressure', data.get('pres', 1013))} hPa",
-                                    'visibility': f"{data.get('visibility', data.get('vis', 10))} km",
-                                    'uv_index': str(data.get('uv_index', data.get('uv', 5))),
-                                    'location': location,
-                                    'timestamp': datetime.now().isoformat(),
-                                    'data_source': 'IMD (Indian Meteorological Department)',
-                                    'reliability': 0.95
-                                },
-                                'forecast_7_days': self._get_7day_forecast_from_imd(data),
-                                'agricultural_advice': self._get_farmer_advisory_from_imd(data),
-                                'data_source': 'IMD (Indian Meteorological Department)',
-                                'timestamp': datetime.now().isoformat()
-                            }
-                            
-                            logger.info(f"✅ IMD API data obtained for {location}")
-                            return weather_data
-                            
-                        except json.JSONDecodeError:
-                            # Try to parse HTML response
-                            html_content = response.text
-                            if 'temperature' in html_content.lower() or 'weather' in html_content.lower():
-                                # Extract data from HTML (basic parsing)
-                                return self._parse_imd_html_response(html_content, location)
-                            continue
-                    
-                except Exception as e:
-                    logger.debug(f"IMD endpoint {url} failed: {e}")
-                    continue
-            
-            logger.warning(f"All IMD API endpoints failed for {location}")
-            return None
-            
-        except Exception as e:
-            logger.error(f"IMD API error: {e}")
-            return None
+        """
+        IMD API — disabled: all IMD REST endpoints tested in this method
+        (mausam.imd.gov.in, city.imd.gov.in) are not publicly accessible and
+        respond with 403/connection-refused, adding up to 15s of useless timeout
+        per request.  The Open-Meteo primary path in WeatherService already covers
+        the same data with higher reliability.  This stub returns None immediately
+        so the caller falls through to the Open-Meteo path without blocking.
+        """
+        return None
     
     def _try_accuweather_api(self, latitude: float, longitude: float, location: str) -> Optional[Dict[str, Any]]:
         """Try AccuWeather API for real-time weather"""

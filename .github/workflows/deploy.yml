@@ -21,134 +21,260 @@ concurrency:
   cancel-in-progress: false   # never cancel a running deploy
 
 jobs:
-
-  # ── Pre-deploy gate: ensure CI passed ───────────────────────
+  # ── Pre-deploy: quick smoke check ────────────────────────────
   pre-deploy-check:
     name: 🔒 Pre-deploy check
     runs-on: ubuntu-latest
     steps:
-      - name: Verify CI workflow passed
-        run: echo "Deploy triggered by ${{ github.actor }} on ${{ github.ref_name }}"
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps (fast — cached)
+        run: pip install -r backend/requirements.txt
+
+      - name: Django check (no DB required)
+        working-directory: backend
+        env:
+          SECRET_KEY: "pre-deploy-check-key"
+          DEBUG: "True"
+          DATABASE_URL: "sqlite:////tmp/pre-deploy.db"
+          ALLOWED_HOSTS: "localhost"
+        run: |
+          python manage.py check
+          echo "✅ Pre-deploy Django check passed"
+
+      - name: Migrations consistent (no pending changes)
+        working-directory: backend
+        env:
+          SECRET_KEY: "pre-deploy-check-key"
+          DEBUG: "True"
+          DATABASE_URL: "sqlite:////tmp/pre-deploy.db"
+        run: |
+          python manage.py migrate --noinput
+          python manage.py showmigrations | grep "\[ \]" && \
+            echo "❌ Unapplied migrations detected!" && exit 1 || \
+            echo "✅ All migrations applied"
+
+  # ── Docker Hub — build & push (always, on every main push) ──
+  publish-docker:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: pre-deploy-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        # Skip push when credentials not set (forks / first-time setup)
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/krishimitra-ai
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+
+      - name: Build & push production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: production
+          platforms: linux/amd64,linux/arm64
+          push: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            RENDER_GIT_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke-test built image
+        run: |
+          docker run --rm \
+            -e SECRET_KEY="smoke-test-key-${{ github.sha }}" \
+            -e DEBUG=True \
+            -e DATABASE_URL=sqlite:////tmp/smoke.db \
+            -e ALLOWED_HOSTS="localhost,testserver" \
+            krishimitra-ai:${{ github.sha }} \
+            sh -c "python manage.py check && echo '✅ Container smoke test passed'"
+        continue-on-error: true   # don't block deploy if local image not loaded
 
   # ── Deploy to Render ─────────────────────────────────────────
   deploy-render:
     name: 🚀 Deploy → Render
     runs-on: ubuntu-latest
-    needs: pre-deploy-check
+    needs: [pre-deploy-check, publish-docker]
     if: ${{ vars.DEPLOY_TARGET == 'render' || vars.DEPLOY_TARGET == '' }}
+    environment:
+      name: ${{ inputs.environment || 'production' }}
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Trigger Render deploy hook
         if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        id: render_deploy
         run: |
-          echo "🚀 Triggering Render deploy..."
+          echo "🚀 Triggering Render deploy for commit ${{ github.sha }}..."
           STATUS=$(curl -s -o /tmp/render_response.json -w "%{http_code}" \
             -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
-            -H "Content-Type: application/json")
+            -H "Content-Type: application/json" \
+            -d "{\"commitHash\": \"${{ github.sha }}\"}")
           echo "HTTP status: $STATUS"
           cat /tmp/render_response.json || true
           if [ "$STATUS" -ge 400 ]; then
             echo "❌ Render deploy hook failed with status $STATUS"
             exit 1
           fi
-          echo "✅ Render deploy triggered"
+          # Extract deploy ID for polling
+          DEPLOY_ID=$(cat /tmp/render_response.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id','unknown'))")
+          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+          echo "✅ Render deploy triggered (id: $DEPLOY_ID)"
 
       - name: Skip (no hook configured)
         if: ${{ secrets.RENDER_DEPLOY_HOOK_URL == '' }}
         run: |
           echo "⚠️  RENDER_DEPLOY_HOOK_URL secret not set — skipping Render deploy"
           echo "Add it: GitHub → Settings → Secrets → RENDER_DEPLOY_HOOK_URL"
+          echo "(Get it from: Render Dashboard → Service → Settings → Deploy Hook)"
+
+      - name: Wait for Render deploy to become healthy
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' && secrets.RENDER_SERVICE_URL != '' }}
+        run: |
+          echo "⏳ Waiting for Render service to become healthy..."
+          MAX_WAIT=300   # 5 minutes
+          INTERVAL=15
+          ELAPSED=0
+          URL="${{ secrets.RENDER_SERVICE_URL }}/api/health/"
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" --max-time 10 || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Render service healthy at $URL"
+              break
+            fi
+            echo "  [$ELAPSED s] Health check → $STATUS — waiting..."
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+          if [ $ELAPSED -ge $MAX_WAIT ]; then
+            echo "⚠️  Health check timed out after ${MAX_WAIT}s (deploy may still be in progress)"
+          fi
+
+      - name: Verify new endpoints live
+        if: ${{ secrets.RENDER_SERVICE_URL != '' }}
+        run: |
+          BASE="${{ secrets.RENDER_SERVICE_URL }}"
+          ENDPOINTS=(
+            "/api/health/"
+            "/api/health/sentry-test/"
+            "/api/health/data-freshness/"
+            "/api/weather/"
+          )
+          FAILED=0
+          for EP in "${ENDPOINTS[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE$EP" \
+              -H "Accept: application/json" --max-time 15 || echo "000")
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "405" ]; then
+              echo "  ✅ $EP → $STATUS"
+            else
+              echo "  ❌ $EP → $STATUS"
+              FAILED=$((FAILED+1))
+            fi
+          done
+          if [ $FAILED -gt 0 ]; then
+            echo "⚠️  $FAILED endpoint(s) returned unexpected status"
+          else
+            echo "✅ All post-deploy endpoints verified"
+          fi
+        continue-on-error: true
 
   # ── Deploy to Railway (alternative) ─────────────────────────
   deploy-railway:
     name: 🚀 Deploy → Railway
     runs-on: ubuntu-latest
-    needs: pre-deploy-check
+    needs: [pre-deploy-check]
     if: ${{ vars.DEPLOY_TARGET == 'railway' }}
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Trigger Railway deploy
         if: ${{ secrets.RAILWAY_TOKEN != '' }}
         run: |
           npm install -g @railway/cli --silent
-          railway up --service krishimitra-api
+          railway up --service krishimitra-api --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-  # ── Docker Hub publish (optional) ───────────────────────────
-  publish-docker:
-    name: 🐳 Publish Docker Image
-    runs-on: ubuntu-latest
-    needs: pre-deploy-check
-    if: ${{ vars.PUBLISH_DOCKER == 'true' }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          target: production
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/krishimitra-ai:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/krishimitra-ai:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ── Deploy summary ───────────────────────────────────────────
+  # ── Deploy Summary ───────────────────────────────────────────
   deploy-summary:
     name: 📋 Deploy Summary
     runs-on: ubuntu-latest
-    needs: [deploy-render]
+    needs: [deploy-render, publish-docker]
     if: always()
-
     steps:
       - name: Print summary
         run: |
-          echo "══════════════════════════════════════════════"
+          echo "══════════════════════════════════════════════════════"
           echo "  KrishiMitra AI — Deployment Summary"
-          echo "══════════════════════════════════════════════"
+          echo "══════════════════════════════════════════════════════"
           echo "  Branch:      ${{ github.ref_name }}"
           echo "  Commit:      ${{ github.sha }}"
           echo "  Author:      ${{ github.actor }}"
           echo "  Time (UTC):  $(date -u '+%Y-%m-%d %H:%M:%S')"
           echo "  Environment: ${{ inputs.environment || 'production' }}"
-          echo "══════════════════════════════════════════════"
+          echo "  Docker:      ${{ needs.publish-docker.result }}"
+          echo "  Render:      ${{ needs.deploy-render.result }}"
+          echo "══════════════════════════════════════════════════════"
           echo ""
-          echo "  Services deployed:"
-          echo "  ✅ 20 API routes"
-          echo "  ✅ 150+ crops · 22 languages · 126 districts"
-          echo "  ✅ 19-intent NLP chatbot (irrigation/sowing/harvest/storage/organic/seed/insurance/profit)"
-          echo "  ✅ Real-time: Open-Meteo + Agmarknet Direct API"
-          echo "  ✅ Field-level IoT sensor advisory"
-          echo "  ✅ Disease→Chat bridge (ML photo diagnosis)"
-          echo "  ✅ Hinglish + all 22 Indian language normalisation"
-          echo "══════════════════════════════════════════════"
+          echo "  What's deployed:"
+          echo "  ✅ 8 production bugs fixed (rate limiter, session memory, futures, IoT)"
+          echo "  ✅ SSE streaming chatbot  (/api/chatbot/stream/)"
+          echo "  ✅ Celery async writes    (persist_turn, log_interaction)"
+          echo "  ✅ Sentry monitoring      (Django + Celery + Redis integrations)"
+          echo "  ✅ DB composite index     (IoTSensorReading lat/lon/created_at)"
+          echo "  ✅ RAG optimizations      (Top-20→5 rerank, LRU cache, context compression)"
+          echo "  ✅ Real-time data fixes   (60-min market cache, dead IMD endpoints removed)"
+          echo "  ✅ Data freshness API     (/api/health/data-freshness/)"
+          echo "  ✅ Cache warm on startup  (python manage.py warm_cache)"
+          echo "  ✅ Weather /refresh/ endpoint for explicit pull-to-refresh"
+          echo ""
+          echo "  Flutter app:"
+          echo "  ✅ Voice input (speech_to_text) + TTS auto-readback"
+          echo "  ✅ Offline cache (Hive: weather 3h / mandi 6h / crop 24h)"
+          echo "  ✅ SSE token-by-token streaming chat bubble"
+          echo "  ✅ Data age labels (आज / कल के भाव / X hours ago)"
+          echo "══════════════════════════════════════════════════════"
 
-# ─── Secret / Variable Setup ────────────────────────────────────
-# GitHub → Settings → Secrets → Actions:
-#   RENDER_DEPLOY_HOOK_URL  : From Render service → Settings → Deploy Hook
-#   RAILWAY_TOKEN           : From Railway dashboard (for Railway deploys)
-#   DOCKERHUB_USERNAME      : Your Docker Hub username (for image publish)
-#   DOCKERHUB_TOKEN         : Docker Hub access token
+# ─── Required Secrets (GitHub → Settings → Secrets → Actions) ──────────────
+# RENDER_DEPLOY_HOOK_URL  Render service → Settings → Deploy Hook
+# RENDER_SERVICE_URL      Your Render service URL, e.g. https://krishimitra.onrender.com
+# DOCKERHUB_USERNAME      Docker Hub username
+# DOCKERHUB_TOKEN         Docker Hub access token (not password)
+# RAILWAY_TOKEN           Railway deploy token (only if using Railway)
 #
-# GitHub → Settings → Variables → Actions:
-#   DEPLOY_TARGET           : render | railway  (default: render)
-#   PUBLISH_DOCKER          : true | false      (default: false)
+# ─── Required Variables (GitHub → Settings → Variables → Actions) ───────────
+# DEPLOY_TARGET           render | railway   (default: render)
+#
+# ─── Render dashboard env vars to set ───────────────────────────────────────
+# SECRET_KEY              python -c "import secrets; print(secrets.token_hex(50))"
+# DATABASE_URL            (Render auto-sets this when you add a PostgreSQL DB)
+# REDIS_URL               (Render Redis add-on — enables Celery async writes)
+# DATA_GOV_IN_API_KEY     Free: https://data.gov.in/user/register
+# GOOGLE_AI_API_KEY       Optional: Gemini AI (rule-based works without it)
+# SENTRY_DSN              Optional: https://sentry.io free tier
+# RENDER_GIT_COMMIT       Auto-set by Render (used as Sentry release tag)

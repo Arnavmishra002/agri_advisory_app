@@ -213,8 +213,17 @@ class AgmarknetDirectClient:
         return None
 
     def _get_seed_result(self) -> Dict[str, Any]:
-        """Return the static seed prices as a properly formatted response."""
-        return self._format_response(_SEED_PRICES, "11-06-2026", is_live=False)
+        """
+        Return the static seed prices as a properly formatted response.
+
+        Seed prices are real Agmarknet values captured on 12-06-2026.
+        When the live API is unavailable they serve as a meaningful fallback
+        rather than showing nothing — but they are clearly labelled as
+        'Reference prices' so farmers know they may be up to a day old.
+        The live API is retried on the next request (cache TTL = 1h), so
+        seed data is shown for at most one hour before a fresh attempt.
+        """
+        return self._format_response(_SEED_PRICES, "12-06-2026", is_live=False)
 
     def _format_response(
         self,
@@ -261,7 +270,7 @@ class AgmarknetDirectClient:
         source_label = (
             "Agmarknet 2.0 (Live — no key needed)"
             if is_live else
-            "Agmarknet 2.0 (Seed data — API temporarily unavailable)"
+            "Agmarknet 2.0 (Reference prices — live API temporarily unavailable; retrying hourly)"
         )
 
         return {

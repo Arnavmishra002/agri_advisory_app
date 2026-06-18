@@ -5,6 +5,7 @@ Self-contained: no dependency on the deleted advisory.monitoring package.
 
 from typing import Any, Dict
 import logging
+import os
 import time
 from datetime import datetime
 
@@ -236,3 +237,94 @@ def liveness_check(request):
         "uptime_s":  _uptime_seconds(),
         "timestamp": _now(),
     })
+
+
+# ── Data freshness endpoint (Fix 8) ──────────────────────────────────────────
+@csrf_exempt
+def data_freshness(request):
+    """
+    GET /api/health/data-freshness/
+
+    Returns the current age of every cached real-time data source so the
+    Flutter app and ops team can instantly see whether data is stale.
+
+    Response shape:
+    {
+      "market": {"is_live": true, "reported_date": "12-06-2026", "cache_age_min": 14},
+      "weather": {"is_live": true, "source": "Open-Meteo", "cache_age_min": 2},
+      "timestamp": "2026-06-17T08:30:00Z"
+    }
+    """
+    from datetime import datetime, timezone as _tz
+    result = {"timestamp": datetime.now(tz=_tz.utc).isoformat()}
+
+    # ── Market (Agmarknet Direct) ─────────────────────────────
+    try:
+        from advisory.services.agmarknet_direct_client import agmarknet_direct, CACHE_TTL_SECS
+        import time as _time
+        cache_key = "national"
+        cached = agmarknet_direct._cache.get(cache_key)
+        ts     = agmarknet_direct._cache_ts.get(cache_key, 0)
+        age_s  = int(_time.time() - ts) if ts else None
+        result["market"] = {
+            "is_live":       cached.get("is_live", False) if cached else False,
+            "reported_date": cached.get("reported_date", "") if cached else "",
+            "total_records": cached.get("total_records", 0) if cached else 0,
+            "data_source":   cached.get("data_source", "not loaded") if cached else "not loaded",
+            "cache_age_min": round(age_s / 60, 1) if age_s is not None else None,
+            "cache_ttl_min": round(CACHE_TTL_SECS / 60, 0),
+            "next_refresh_min": (
+                max(0, round((CACHE_TTL_SECS - age_s) / 60, 1))
+                if age_s is not None else None
+            ),
+        }
+    except Exception as exc:
+        result["market"] = {"error": str(exc)}
+
+    # ── Weather (Open-Meteo) ──────────────────────────────────
+    try:
+        from django.core.cache import caches
+        _wcache = caches["weather_cache"]
+        # Probe Delhi to check if weather cache is populated
+        probe = _wcache.get("weather:delhi:hi")
+        result["weather"] = {
+            "cache_populated": probe is not None,
+            "primary_source": "Open-Meteo (free, no key)",
+            "fallback_source": "OpenWeatherMap (OPENWEATHER_API_KEY)",
+            "note": "Weather cache is per-location; probe checks Delhi as sentinel.",
+        }
+    except Exception as exc:
+        result["weather"] = {"error": str(exc)}
+
+    # ── RAG / Phase1 ──────────────────────────────────────────
+    try:
+        from phase1.rag.retriever import _result_cache, _embed
+        info = _embed.cache_info()
+        result["rag"] = {
+            "result_cache_entries": len(_result_cache),
+            "embedding_lru_hits":   info.hits,
+            "embedding_lru_misses": info.misses,
+            "embedding_lru_size":   info.currsize,
+        }
+    except Exception:
+        result["rag"] = {"note": "Phase1 RAG not loaded (offline mode)"}
+
+    return JsonResponse(result)
+@csrf_exempt
+def sentry_test(request):
+    """
+    GET /api/health/sentry-test/
+
+    Sends a test event to Sentry to verify the DSN is correctly configured
+    post-deploy.  Returns {"sentry": "event_sent"} when DSN is active,
+    {"sentry": "not_configured"} when absent — never raises.
+    """
+    try:
+        import sentry_sdk
+        from django.conf import settings as _s
+        if getattr(_s, "SENTRY_DSN", None):
+            sentry_sdk.capture_message("KrishiMitra Sentry DSN test", level="info")
+            return JsonResponse({"status": "ok", "sentry": "event_sent"})
+        return JsonResponse({"status": "ok", "sentry": "not_configured"})
+    except Exception as exc:
+        return JsonResponse({"status": "ok", "sentry": f"error: {exc}"})

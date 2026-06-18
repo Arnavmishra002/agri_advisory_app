@@ -438,17 +438,22 @@
 
     // ── Reverse geocode helper ────────────────────────────────────────────
     async function _reverseGeocode(lat, lon, accuracy) {
-        const url = apiFetch(`/api/locations/reverse/?lat=${lat}&lon=${lon}&accuracy=${accuracy}&accuracy_meters=${accuracy}`);
+        // Backend endpoint expects 'latitude'/'longitude' (not 'lat'/'lon')
+        const url = apiFetch(`/api/locations/reverse/?latitude=${lat}&longitude=${lon}&accuracy=${accuracy}&accuracy_meters=${accuracy}`);
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`Reverse geocode HTTP ${resp.status}`);
         const data = await resp.json();
         const loc = data.location || {};
-        // Village → locality → sublocality → display_name → city (most-specific first)
+        // Pick most specific name: village > locality > sublocality > display_name > name > city
+        // This gives Zepto/Swiggy-level precision (mohalla/neighbourhood/village)
         const name = [
-            loc.sublocality, loc.village, loc.locality,
+            loc.village, loc.locality, loc.sublocality,
             loc.display_name, loc.name, loc.city
-        ].find(Boolean) || 'Your location';
-        return { name, state: loc.state || '', loc };
+        ].find(s => s && s.trim().length > 0) || 'Your location';
+        // Show "Hazratganj, Lucknow" or just "Hazratganj" if same
+        const displayCity = loc.city && loc.city !== name ? loc.city : '';
+        const fullName = displayCity ? `${name}, ${displayCity}` : name;
+        return { name: fullName, state: loc.state || '', loc };
     }
 
     // ── Live GPS pulse dot in location bar ───────────────────────────────

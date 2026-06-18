@@ -353,3 +353,42 @@ test_data_gov_key.py
 *.safetensors
 custom_llm_trainer/krishimitra-model*/
 custom_llm_trainer/*.gguf
+
+# Socket / PID / control files
+*.ctl
+*.pid
+*.sock
+gunicorn.ctl
+
+# Runtime logs and server artifacts
+server.log
+gunicorn.log
+
+# ML model binaries — tracked models/* should be re-downloaded, not committed
+models/*.pkl
+models/*.joblib
+models/*.h5
+models/crop_disease/checkpoints/
+models/crop_disease/logs/
+
+# Flutter / mobile build artifacts
+mobile/krishimitra_app/build/
+mobile/krishimitra_app/.dart_tool/
+mobile/krishimitra_app/.flutter-plugins
+mobile/krishimitra_app/.flutter-plugins-dependencies
+
+# Collected static files (generated at deploy time)
+/staticfiles/
+/static/
+
+# Kiro IDE specs (local development only)
+.kiro/specs/
+
+# Extra local DB files in backend (only backend/db.sqlite3 allowed by Django rule above)
+backend/live_test.db
+backend/local.db
+backend/quick_check.sqlite3
+backend/verify_features.sqlite3
+
+# Phase1 ChromaDB vector store (generated locally)
+phase1/chroma_db/

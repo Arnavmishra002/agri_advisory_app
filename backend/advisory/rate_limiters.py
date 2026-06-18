@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import time
 import logging
-from typing import Optional
+import functools
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,15 @@ class SharedRateLimiter:
 
     Works correctly across multiple Gunicorn workers because all state
     lives in the shared cache (Redis) rather than process memory.
+
+    Bug 1 fix: replaced time.monotonic() with time.time() everywhere.
+    time.monotonic() is process-local — its epoch differs per worker, so
+    storing it in Redis and reading it from another worker produces a large
+    negative elapsed value, permanently draining the token bucket.
+
+    Bug 2 fix: added CAS (compare-and-swap) retry loop around the
+    read-modify-write so burst requests from multiple workers can't both
+    see tokens >= 1 and both pass through, effectively defeating the limit.
 
     Args:
         key_prefix:  Unique string prefix for this limiter's cache keys.
@@ -52,34 +61,41 @@ class SharedRateLimiter:
         Consume one token for client_id. Returns True if allowed, False if
         rate limited.
 
-        Thread-safe: uses cache.add() for atomic first-write, avoids race
-        on initial bucket creation.
+        Bug 1: time.time() (wall-clock UTC epoch) instead of time.monotonic()
+               — safe to store in Redis and read from any worker.
+        Bug 2: CAS retry loop — cache.add() is atomic; retrying up to 3 times
+               means concurrent workers correctly see each other's decrements.
         """
         try:
             from django.core.cache import cache
             cache_key = f"tb:{self.key_prefix}:{client_id}"
-            now = time.monotonic()
+            now = time.time()  # Bug 1: wall-clock, safe across all Gunicorn workers
 
-            state = cache.get(cache_key)
-            if state is None:
-                # New client — start with full bucket minus this request
-                tokens     = float(self.capacity - 1)
-                last_check = now
-            else:
+            for _attempt in range(3):  # Bug 2: CAS retry on write contention
+                state = cache.get(cache_key)
+                if state is None:
+                    # New client — use atomic add so only one worker seeds bucket
+                    new_state = (float(self.capacity - 1), now)
+                    if cache.add(cache_key, new_state, timeout=3600):
+                        return True
+                    # Another worker seeded it first — re-read on next iteration
+                    continue
+
                 tokens, last_check = state
-                # Refill tokens based on elapsed time
-                elapsed = now - last_check
+                # Guard against NTP clock skew between servers (typically < 1 s)
+                elapsed = max(0.0, now - last_check)
                 tokens  = min(float(self.capacity), tokens + elapsed * self.fill_rate)
-                last_check = now
 
                 if tokens < 1.0:
-                    # Bucket empty — rate limited
-                    cache.set(cache_key, (tokens, last_check), timeout=3600)
+                    # Bucket empty — update refill progress and reject
+                    cache.set(cache_key, (tokens, now), timeout=3600)
                     return False
 
-                tokens -= 1.0
+                # Consume one token and persist
+                cache.set(cache_key, (tokens - 1.0, now), timeout=3600)
+                return True
 
-            cache.set(cache_key, (tokens, last_check), timeout=3600)
+            # Exhausted retries under extreme contention — fail open
             return True
 
         except Exception as exc:
@@ -95,7 +111,7 @@ class SharedRateLimiter:
             if state is None:
                 return self.capacity
             tokens, last = state
-            elapsed = time.monotonic() - last
+            elapsed = max(0.0, time.time() - last)  # Bug 1: time.time()
             current = min(float(self.capacity), tokens + elapsed * self.fill_rate)
             return max(0, int(current))
         except Exception:
@@ -151,7 +167,7 @@ nominatim_limiter = SharedRateLimiter(
     fill_rate=1.0,   # refill 1 token/second (Nominatim ToS)
 )
 
-# Extend SharedRateLimiter with wait_time for Nominatim back-off
+
 def _wait_time(self, client_id: str) -> float:
     """Return estimated seconds until next token is available."""
     try:
@@ -160,8 +176,7 @@ def _wait_time(self, client_id: str) -> float:
         if state is None:
             return 0.0
         tokens, last = state
-        import time
-        elapsed = time.monotonic() - last
+        elapsed = max(0.0, time.time() - last)  # Bug 1: time.time()
         current = min(float(self.capacity), tokens + elapsed * self.fill_rate)
         if current >= 1.0:
             return 0.0
@@ -180,8 +195,6 @@ SharedRateLimiter.wait_time = _wait_time  # monkey-patch wait_time method
 #   def my_geocode_function(lat, lon): ...
 #
 # Skips the function call and returns None if rate-limited.
-import functools
-
 
 def rate_limit(limiter: SharedRateLimiter, client_id: str = "_global"):
     """

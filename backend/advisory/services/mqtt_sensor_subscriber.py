@@ -102,14 +102,24 @@ class BatchedSensorIngestor:
             self.flush()
 
     def flush(self) -> None:
-        """Perform bulk database insert for all queued payloads."""
-        with self._lock:
-            qsize = self._queue.qsize()
-            if qsize == 0:
-                return
+        """Perform bulk database insert for all queued payloads.
 
+        Bug 6 fix: the old code read self._queue.qsize() as the drain count, then
+        re-entered with self._lock held.  qsize() is advisory — it changes between
+        the call and the drain loop.  Two concurrent callers (MQTT on_message
+        threshold trigger + periodic flusher) could both acquire the lock
+        sequentially and the second one would produce an empty bulk_create call.
+
+        Fix: non-blocking lock acquire so only one thread flushes at a time;
+        drain the queue fully via get_nowait() loop instead of relying on the
+        advisory qsize snapshot.
+        """
+        if not self._lock.acquire(blocking=False):
+            # Another thread is already flushing — skip this invocation
+            return
+        try:
             payloads_to_write = []
-            for _ in range(qsize):
+            while True:
                 try:
                     payloads_to_write.append(self._queue.get_nowait())
                 except queue.Empty:
@@ -120,6 +130,8 @@ class BatchedSensorIngestor:
 
             self._bulk_insert(payloads_to_write)
             self._last_flush = time.time()
+        finally:
+            self._lock.release()
 
     def check_periodic_flush(self) -> None:
         """Call periodically from background thread to flush on time intervals."""

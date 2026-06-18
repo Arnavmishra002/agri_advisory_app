@@ -104,7 +104,7 @@ class SessionMemoryService:
         """
         try:
             from ..models import ChatHistory, ChatSession
-            from django.db import transaction  # FIX 3a
+            from django.db import transaction
 
             common_fields = dict(
                 session_id=session_id,
@@ -117,8 +117,8 @@ class SessionMemoryService:
                 longitude=longitude,
             )
 
-            # FIX 3b: all four DB ops in one atomic block so concurrent Meta
-            # webhook retries can't race on insertion + deletion.
+            # All four DB ops in one atomic block so concurrent requests
+            # can't race on insertion + deletion.
             with transaction.atomic():
                 ChatHistory.objects.create(
                     user_id=user_id,
@@ -132,7 +132,6 @@ class SessionMemoryService:
                     message_content=ai_response,
                     **common_fields,
                 )
-                # FIX 3c: pass real user_id (not session_id) to ChatSession
                 ChatSession.objects.update_or_create(
                     session_id=session_id,
                     defaults={
@@ -143,16 +142,20 @@ class SessionMemoryService:
                         "is_active":          True,
                     },
                 )
-                # FIX 3d: trim inside the same transaction — concurrent
-                # threads can’t race on deletion this way.
-                old_ids = list(
+                # Bug 4 fix: old code used Python-side slice [N:] which fetched
+                # ALL rows into memory before discarding — O(N) wire traffic per
+                # chat turn.  This subquery pushes the DELETE to the DB engine:
+                # DELETE WHERE id NOT IN (SELECT TOP N ids) — O(log N) instead.
+                keep_ids = list(
                     ChatHistory.objects
                     .filter(session_id=session_id)
                     .order_by("-created_at")
-                    .values_list("id", flat=True)[MAX_HISTORY_TURNS:]
+                    .values_list("id", flat=True)[:MAX_HISTORY_TURNS]
                 )
-                if old_ids:
-                    ChatHistory.objects.filter(id__in=old_ids).delete()
+                if keep_ids:
+                    ChatHistory.objects.filter(
+                        session_id=session_id
+                    ).exclude(id__in=keep_ids).delete()
 
         except Exception as exc:
             logger.warning("SessionMemory.save_turn failed (non-fatal): %s", exc)
@@ -161,8 +164,7 @@ class SessionMemoryService:
         self,
         session_id: str,
         context: Dict[str, Any],
-        user_id: Optional[str] = None,  # FIX 3e: explicit user_id so ChatSession
-                                         #         is never seeded with session_id
+        user_id: Optional[str] = None,
     ) -> None:
         """
         Merge `context` dict into ChatSession.conversation_context.
@@ -170,12 +172,20 @@ class SessionMemoryService:
         """
         try:
             from ..models import ChatSession
-            sess, _ = ChatSession.objects.get_or_create(
+            # Bug 4b fix: use update_or_create instead of get_or_create to
+            # prevent the IntegrityError race where two concurrent first-messages
+            # for the same session_id both fail the GET and both attempt CREATE,
+            # violating the unique constraint on session_id and silently losing
+            # one turn.  update_or_create is safe under concurrent access because
+            # Django wraps it in a SELECT FOR UPDATE on PostgreSQL.
+            sess, created = ChatSession.objects.update_or_create(
                 session_id=session_id,
-                # Bug 3e fix: NEVER seed user_id with session_id — use "anonymous"
-                # so the column always means a user identifier, not a session token.
                 defaults={"user_id": user_id or "anonymous"},
             )
+            if not created:
+                # Existing row — refresh to get the latest context before merging
+                # so we don't overwrite concurrent updates from another worker.
+                sess.refresh_from_db(fields=["conversation_context"])
             existing = sess.conversation_context or {}
             existing.update(context)
             sess.conversation_context = existing

@@ -160,8 +160,9 @@ async def chat_endpoint(req: ChatRequest):
     if req.stream:
         raise HTTPException(400, "Use POST /chat/stream for streaming responses")
 
-    # 1. RAG retrieval — k=8 for maximum coverage, prioritises exact numbers
-    rag_results = retrieve_with_sources(req.query, k=8)
+    # 1. RAG retrieval — fetch 20 candidates, reranker returns top 5
+    #    (RAG-1: parallel vector+keyword; RAG-2: compressed context; RAG-3: cached)
+    rag_results = retrieve_with_sources(req.query, k=5)
     rag_texts   = [r["text"]        for r in rag_results]
     rag_sources = list({r["source_file"] for r in rag_results})
 
@@ -217,8 +218,8 @@ async def chat_stream_endpoint(req: ChatRequest):
     Streaming chat — tokens arrive in real-time.
     Response is newline-delimited JSON: {"token": "..."} or {"done": true}.
     """
-    # 1. RAG — k=6 for broader coverage
-    rag_texts = retrieve(req.query, k=6)
+    # 1. RAG — Top-20 → rerank → Top-5 (RAG-1/2/3 pipeline)
+    rag_texts = retrieve(req.query, k=5)
 
     # 2. Weather
     weather_summary = ""

@@ -2,7 +2,7 @@
 .git
 .gitignore
 .github
-
+.kiro
 # ─── Python artifacts ──────────────────────────────────────────
 __pycache__/
 *.py[cod]
@@ -14,13 +14,11 @@ htmlcov/
 *.egg-info/
 dist/
 build/
-
 # ─── Environment / Secrets ─────────────────────────────────────
 .env
 .env.*
 !.env.example
 !frontend/.env.example
-
 # ─── Databases (never copy into image) ─────────────────────────
 *.sqlite3
 *.db
@@ -28,16 +26,21 @@ test_*.db
 diag.db
 v.db
 ci_test_db.sqlite3
-
 # ─── Node / Frontend ───────────────────────────────────────────
 frontend/node_modules/
 # dist IS needed (built in Stage 1 inside Docker)
 # frontend/dist/   <-- intentionally NOT ignored
-
+# ─── Mobile app (not needed in backend image) ──────────────────
+mobile/
+# ─── ML trainer (large GGUF model files — mount as volume) ─────
+custom_llm_trainer/*.gguf
+custom_llm_trainer/
+# ─── Phase 1 local server (only needed when Ollama is running) ──
+phase1/chroma_db/
+phase1/knowledge_base/
 # ─── ML models (mount as volume in production) ─────────────────
 models/
 data/
-
 # ─── Logs & Media ──────────────────────────────────────────────
 *.log
 logs/
@@ -46,7 +49,6 @@ staticfiles/
 backend/staticfiles/
 media/
 backend/media/
-
 # ─── IDE / OS ──────────────────────────────────────────────────
 .DS_Store
 .idea/
@@ -54,12 +56,10 @@ backend/media/
 *.swp
 *.swo
 Thumbs.db
-
 # ─── Docs / CI notes ───────────────────────────────────────────
 *.md
 !README.md
 docs/
-
 # ─── Test / temp files ─────────────────────────────────────────
 check_*.js
 audit.py

@@ -485,20 +485,33 @@ PERFORMANCE_MONITORING = {
 SENTRY_DSN = os.environ.get('SENTRY_DSN')
 
 if SENTRY_DSN and sentry_sdk and DjangoIntegration:
+    try:
+        from sentry_sdk.integrations.celery import CeleryIntegration
+        from sentry_sdk.integrations.redis import RedisIntegration
+        _sentry_integrations = [
+            DjangoIntegration(
+                transaction_style="url",      # group by URL pattern not function name
+                middleware_spans=True,        # trace each middleware
+                signals_spans=False,          # skip Django signal spans (too noisy)
+                cache_spans=True,             # trace Django cache hits/misses
+            ),
+            CeleryIntegration(monitor_beat_tasks=False),
+            RedisIntegration(),
+        ]
+    except ImportError:
+        _sentry_integrations = [DjangoIntegration()]
+
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        integrations=[
-            DjangoIntegration(),
-        ],
-        # 10% tracing in production — capturing 100% is expensive at scale
-        traces_sample_rate=0.1,
-        # If you are using more than one Django project in a single Python process,
-        # or if you are running your Django project as a sub-application of a larger Python application,
-        # you may need to configure the following to avoid issues:
-        # `request_bodies='always'` to capture full request bodies for errors.
-        # `send_default_pii=True` to send personally identifiable information (e.g., usernames).
-        # `environment=os.environ.get('SENTRY_ENVIRONMENT', 'development')`
-        # `server_name=os.environ.get('SENTRY_SERVER_NAME', 'django-app')`
+        integrations=_sentry_integrations,
+        # 10% of transactions traced in production — sufficient for p95 latency
+        traces_sample_rate=float(os.environ.get('SENTRY_TRACES_SAMPLE_RATE', '0.1')),
+        # Capture 100% of errors (not transactions) regardless of sample rate
+        sample_rate=1.0,
+        environment=os.environ.get('SENTRY_ENVIRONMENT', 'production'),
+        release=os.environ.get('RENDER_GIT_COMMIT', 'local'),
+        # Scrub PII from breadcrumbs & request bodies
+        send_default_pii=False,
     )
 
 # Static files — single definition (production-style, leading slash)

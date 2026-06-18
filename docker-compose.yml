@@ -73,8 +73,13 @@ services:
       WEB_CONCURRENCY:          ${WEB_CONCURRENCY:-4}
       GUNICORN_TIMEOUT:         ${GUNICORN_TIMEOUT:-120}
       GUNICORN_MAX_REQUESTS:    ${GUNICORN_MAX_REQUESTS:-1000}
-      # ── Sentry (optional) ─────────────────────────────────
-      SENTRY_DSN: ${SENTRY_DSN:-}
+      # ── Sentry ────────────────────────────────────────────────
+      SENTRY_DSN:                ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT:        ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      # ── Phase 1 local LLM (Ollama) ───────────────────────
+      PHASE1_TIMEOUT_S:          ${PHASE1_TIMEOUT_S:-45}
+      OLLAMA_MODEL:              ${OLLAMA_MODEL:-krishimitra-llm}
     volumes:
       # Persistent data: SQLite DB, uploads, IoT sensor readings
       - app_data:/app/data
@@ -98,6 +103,56 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Celery worker (profile: postgres or all) ────────────────
+  # Handles async post-response writes so the HTTP response reaches the
+  # farmer before FarmerInteractionLog / session saves hit the DB.
+  # Only meaningful when REDIS_URL is set (falls back to inline sync otherwise).
+  celery:
+    profiles: ["postgres", "all"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: krishimitra-api:latest          # reuse the same image
+    container_name: krishimitra_celery
+    working_dir: /app/backend
+    command: >
+      celery --app core.celery worker
+        --loglevel=info
+        --concurrency=2
+        --max-tasks-per-child=1000
+        --without-gossip
+        --without-mingle
+        --queues=celery
+    environment:
+      SECRET_KEY:          ${SECRET_KEY:-change-me-set-in-dotenv}
+      DEBUG:               ${DEBUG:-False}
+      DATABASE_URL:        ${DATABASE_URL:-sqlite:////app/data/db.sqlite3}
+      REDIS_URL:           ${REDIS_URL:-}
+      CELERY_BROKER_URL:   ${REDIS_URL:-}
+      SENTRY_DSN:          ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT:  ${SENTRY_ENVIRONMENT:-production}
+      DJANGO_SETTINGS_MODULE: core.settings
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "--app", "core.celery", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
     logging:
       driver: "json-file"
       options:
