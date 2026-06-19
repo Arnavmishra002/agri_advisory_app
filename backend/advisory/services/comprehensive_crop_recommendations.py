@@ -27,19 +27,21 @@ class ComprehensiveCropRecommendations:
         self.crop_database = self._load_crop_database()
         
         
-        # Initialize Government API for real-time data
+        # Initialize Government API for real-time data — use module-level singleton
         try:
+            from .ultra_dynamic_government_api import _gov_api_singleton
+            self.government_api = _gov_api_singleton
+            self.has_real_api = self.government_api is not None
+        except ImportError:
+            # Singleton not yet created; create it here
             try:
                 from .ultra_dynamic_government_api import UltraDynamicGovernmentAPI
-            except ImportError:
-                from ultra_dynamic_government_api import UltraDynamicGovernmentAPI
-                
-            self.government_api = UltraDynamicGovernmentAPI()
-            self.has_real_api = True
-        except ImportError as e:
-            logger.warning(f"Could not import UltraDynamicGovernmentAPI, using fallback data: {e}")
-            self.government_api = None
-            self.has_real_api = False
+                self.government_api = UltraDynamicGovernmentAPI()
+                self.has_real_api = True
+            except Exception as e:
+                logger.warning("Could not load UltraDynamicGovernmentAPI, using fallback data: %s", e)
+                self.government_api = None
+                self.has_real_api = False
 
         # Location-based crop suitability
         self.location_crops = {
@@ -1616,16 +1618,13 @@ class ComprehensiveCropRecommendations:
     def _get_weather_analysis(self, location: str, latitude: float, longitude: float) -> Dict[str, Any]:
         """Get weather analysis from real government sources"""
         try:
-            # Import government API services
-            from .ultra_dynamic_government_api import UltraDynamicGovernmentAPI
-            from .enhanced_government_api import EnhancedGovernmentAPI
-            
-            # Try ultra dynamic API first
+            # Use self.government_api singleton (set in __init__) — avoid per-call instantiation
             try:
-                ultra_api = UltraDynamicGovernmentAPI()
-                weather_response = ultra_api.get_comprehensive_government_data(
-                    lat=latitude, lon=longitude, location=location
-                )
+                ultra_api = self.government_api
+                if ultra_api:
+                    weather_response = ultra_api.get_comprehensive_government_data(
+                        lat=latitude, lon=longitude, location=location
+                    )
                 
                 # Extract weather data from comprehensive response
                 weather_data = {}
@@ -1688,16 +1687,13 @@ class ComprehensiveCropRecommendations:
     def _get_soil_analysis(self, location: str, latitude: float, longitude: float) -> Dict[str, Any]:
         """Get soil analysis from real government sources"""
         try:
-            # Import government API services
-            from .ultra_dynamic_government_api import UltraDynamicGovernmentAPI
-            from .enhanced_government_api import EnhancedGovernmentAPI
-            
-            # Try ultra dynamic API first
+            # Use self.government_api singleton (set in __init__) — avoid per-call instantiation
             try:
-                ultra_api = UltraDynamicGovernmentAPI()
-                soil_response = ultra_api.get_comprehensive_government_data(
-                    lat=latitude, lon=longitude, location=location
-                )
+                ultra_api = self.government_api
+                if ultra_api:
+                    soil_response = ultra_api.get_comprehensive_government_data(
+                        lat=latitude, lon=longitude, location=location
+                    )
                 
                 # Extract soil data
                 soil_data = {}
@@ -1761,16 +1757,13 @@ class ComprehensiveCropRecommendations:
     def _get_market_analysis(self, location: str) -> Dict[str, Any]:
         """Get market analysis from real government sources"""
         try:
-            # Import government API services
-            from .ultra_dynamic_government_api import UltraDynamicGovernmentAPI
-            from .enhanced_government_api import EnhancedGovernmentAPI
-            
-            # Try ultra dynamic API first
+            # Use self.government_api singleton (set in __init__) — avoid per-call instantiation
             try:
-                ultra_api = UltraDynamicGovernmentAPI()
-                market_response = ultra_api.get_comprehensive_government_data(
-                    lat=0, lon=0, location=location
-                )
+                ultra_api = self.government_api
+                if ultra_api:
+                    market_response = ultra_api.get_comprehensive_government_data(
+                        lat=0, lon=0, location=location
+                    )
                 
                 # Extract market data
                 market_data = {}

@@ -12,7 +12,14 @@ from ..errors import safe_error_message
 from ...services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
 from ...services.crop_catalog import crop_catalog
 from ...services.crop_recommendation_engine import crop_recommendation_engine
-from ...services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
+
+# Module-level singleton — avoid instantiating on every request
+try:
+    from ...services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI as _UltraDynamicGovernmentAPI
+    _gov_api_singleton = _UltraDynamicGovernmentAPI()
+except Exception as _e:
+    logger.warning("UltraDynamicGovernmentAPI failed to load: %s", _e)
+    _gov_api_singleton = None
 
 
 class CropAdvisoryViewSet(viewsets.ViewSet):
@@ -20,11 +27,12 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.gov_api = UltraDynamicGovernmentAPI()
+        # Use module-level singleton instead of per-request instantiation
+        self.gov_api = _gov_api_singleton
         try:
             self.crop_service = ComprehensiveCropRecommendations()
         except Exception as e:
-            logger.warning(f"Could not load ComprehensiveCropRecommendations: {e}")
+            logger.warning("Could not load ComprehensiveCropRecommendations: %s", e)
             self.crop_service = None
 
     def list(self, request):
@@ -59,7 +67,7 @@ class TrendingCropsViewSet(viewsets.ViewSet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.gov_api = UltraDynamicGovernmentAPI()
+        self.gov_api = _gov_api_singleton  # use module-level singleton
 
     def list(self, request):
         """Get trending crops using government APIs"""
@@ -92,7 +100,7 @@ class CropViewSet(viewsets.ViewSet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.gov_api = UltraDynamicGovernmentAPI()
+        self.gov_api = _gov_api_singleton  # use module-level singleton
 
     @action(detail=False, methods=["get"])
     def search(self, request):

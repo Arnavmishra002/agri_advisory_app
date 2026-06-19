@@ -15,10 +15,17 @@ from ..location_utils import attach_location_metadata, resolve_request_location
 from ...services.crop_catalog import crop_catalog
 from ...services.crop_recommendation_engine import crop_recommendation_engine
 from ...services.language_service import normalise_language_code
-from ...services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
 from ...services.unified_realtime_service import market_service, weather_service
 
 logger = logging.getLogger(__name__)
+
+# Module-level singleton — avoid per-request init of UltraDynamicGovernmentAPI
+try:
+    from ...services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI as _UltraDynamicGovernmentAPI
+    _gov_api_singleton = _UltraDynamicGovernmentAPI()
+except Exception as _e:
+    logger.warning("UltraDynamicGovernmentAPI failed to load: %s", _e)
+    _gov_api_singleton = None
 
 
 class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
@@ -28,7 +35,8 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.gov_api = UltraDynamicGovernmentAPI()
+        # Use module-level singleton instead of per-request instantiation
+        self.gov_api = _gov_api_singleton
 
     # ── Weather ───────────────────────────────────────────────
     @action(detail=False, methods=['get'])

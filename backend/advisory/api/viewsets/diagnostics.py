@@ -216,4 +216,5 @@ class DiagnosticViewSet(viewsets.ViewSet):
                 'is_correct': is_correct,
             })
         except Exception as e:
-            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.exception("Feedback processing error: %s", e)
+            return Response({'status': 'error', 'message': 'Unable to process feedback'}, status=status.HTTP_400_BAD_REQUEST)

@@ -7,7 +7,7 @@ from .clean_weather_api import CleanWeatherAPI
 from .crop_catalog import crop_catalog
 from ..ml.config import LOW_CONFIDENCE_MESSAGE, NOT_PLANT_MESSAGE
 from .crop_disease_ml_service import crop_disease_ml_service
-from .ultra_dynamic_government_api import UltraDynamicGovernmentAPI
+from .ultra_dynamic_government_api import _gov_api_singleton as _udg_api_singleton
 
 try:
     from ..models import DiagnosticSession
@@ -111,7 +111,8 @@ class KrishiRakshaPestService:
 
     def __init__(self):
         self.weather_api = CleanWeatherAPI()
-        self.gov_api = UltraDynamicGovernmentAPI()
+        # Use the shared singleton to avoid creating a redundant requests.Session
+        self.gov_api = _udg_api_singleton
 
     def diagnose_crop(
         self,

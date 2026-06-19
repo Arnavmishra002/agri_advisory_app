@@ -1502,3 +1502,17 @@ class UltraDynamicGovernmentAPI:
             'status': 'success',
             'data_source': 'Government Schemes (Fallback)'
         }
+
+
+# ── Module-level singleton ────────────────────────────────────────────────────
+# All other modules should import and reuse this instance to avoid
+# creating a new requests.Session + URL map + in-memory cache on every request.
+import logging as _logging
+_logger = _logging.getLogger(__name__)
+
+try:
+    _gov_api_singleton: "UltraDynamicGovernmentAPI" = UltraDynamicGovernmentAPI()
+    _logger.debug("UltraDynamicGovernmentAPI singleton created successfully")
+except Exception as _e:
+    _gov_api_singleton = None  # type: ignore[assignment]
+    _logger.warning("UltraDynamicGovernmentAPI singleton creation failed: %s", _e)

@@ -7,16 +7,22 @@ from rest_framework.response import Response
 logger = logging.getLogger(__name__)
 
 from ...services.enhanced_pest_detection import pest_detection_service
-from ...services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
+
+# Module-level singleton — avoid per-request instantiation
+try:
+    from ...services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI as _UltraDynamicGovernmentAPI
+    _gov_api_singleton = _UltraDynamicGovernmentAPI()
+except Exception as _e:
+    logger.warning("UltraDynamicGovernmentAPI failed to load: %s", _e)
+    _gov_api_singleton = None
 
 
 class PestDetectionViewSet(viewsets.ViewSet):
     """Pest Detection Service - Uses Government APIs (ICAR, PPQS) for Real-Time Accurate Pest Data"""
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Use UltraDynamicGovernmentAPI for government pest data
-        self.gov_api = UltraDynamicGovernmentAPI()
+        self.gov_api = _gov_api_singleton  # use module-level singleton
         self.pest_service = pest_detection_service
     
     def list(self, request):
