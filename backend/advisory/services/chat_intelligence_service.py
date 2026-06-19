@@ -1273,7 +1273,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         ]
 
         # ── Path A: Phase 1 server (RAG + Ollama, best quality) ──────────────
-        PHASE1_URL = "http://127.0.0.1:8001/chat"
+        PHASE1_URL = _os.environ.get("PHASE1_URL", "http://127.0.0.1:8001/chat")
         payload = json.dumps({
             "query":          query,
             "language":       lang,
@@ -1313,7 +1313,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             logger.info("Phase 1 timeout/error (%s) — trying direct Ollama", type(exc).__name__)
 
         # ── Path B: Direct Ollama — Ultra-Rich Context (all real-time data) ─────
-        OLLAMA_URL   = "http://localhost:11434/api/chat"
+        OLLAMA_BASE  = _os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+        OLLAMA_URL   = f"{OLLAMA_BASE}/api/chat"
         OLLAMA_MODEL = _os.environ.get("OLLAMA_MODEL", "krishimitra-llm")
 
         prompt_parts: List[str] = []
