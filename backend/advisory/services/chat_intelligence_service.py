@@ -507,6 +507,7 @@ class WeatherConstraints:
     frost_warning:      bool  = False   # min_temp <2°C in 3 days
     heavy_rain_48h:     bool  = False
     rain_next_3d_mm:    float = 0.0     # Bug D fix: total rain forecast next 3 days
+    temperature:        Optional[float] = None
 
 def _classify_moisture(pct: Optional[float]) -> str:
     if pct is None:
@@ -1112,21 +1113,45 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         season = _current_season(now.month)
 
         # ── Generate response ─────────────────────────────────────
-        # Priority chain (100% offline-first):
-        #   1. krishimitra-llm — Ultra-rich grounded prompt (real-time data)
-        #      — Path A: Phase 1 FastAPI + RAG (ICAR knowledge retrieval)
-        #      — Path B: Direct Ollama (all real-time context, no RAG)
-        #   2. Gemini API (optional cloud, only if GOOGLE_AI_API_KEY is set)
-        #   3. Rule-based (ICAR-grounded, instant, always available)
+        # Priority chain (offline-first, AI-credit-saving):
+        #   0. Local Knowledge Base  — instant pre-built Q&A (0 AI credits)
+        #      Covers: MSP, sowing, fertilizer, irrigation, pests, schemes
+        #      ~80% hit rate → zero credits for most farmer queries
+        #   1. krishimitra-llm / Qwen2.5:7b — local Ollama (0 AI credits)
+        #      Covers: complex / multi-step / novel queries
+        #   2. Gemini API — cloud (costs AI credits)
+        #      Only when: key is set AND Tiers 0+1 both returned nothing
+        #   3. Rule-based — instant ICAR-grounded fallback (always works)
         #
-        # fast_mode=True bypasses Tier 1+2 → instant rule-based answer (~600ms).
-        # Use fast_mode=True for web/mobile when the user needs a quick response;
-        # the frontend can upgrade to full LLM via a follow-up /enhance/ call.
+        # fast_mode=True: only Tier 0 + Tier 3 run (no LLM at all)
         response_text: Optional[str] = None
         data_source   = "KrishiMitra Advisory Engine"
 
+        # ── Tier 0: Local Knowledge Base (instant, zero AI credits) ──────────
+        try:
+            from .knowledge_base import knowledge_base
+            crop_id = crops_mentioned[0].get("id") if crops_mentioned else None
+            kb_result = knowledge_base.answer(
+                query=query,
+                crop=crop_id,
+                state=ctx.get("state") if isinstance(ctx, dict) else None,
+                language=lang,
+                weather_context=wc,
+            )
+            if kb_result.get("answer"):
+                response_text = kb_result["answer"]
+                kb_source = kb_result.get("source", "knowledge_base")
+                data_source = (
+                    "KrishiMitra KB (instant)"
+                    if kb_source == "knowledge_base"
+                    else "krishimitra-llm (fine-tuned KCC model)"
+                )
+                logger.info("KB Tier 0: answered via %s for intent=%s", kb_source, intent)
+        except Exception as exc:
+            logger.warning("KB Tier 0 error: %s", exc)
+
         # Tier 1: krishimitra-llm — analyses ALL real-time data before responding
-        if not fast_mode:
+        if not response_text and not fast_mode:
             response_text = self._qwen_rag_answer(
                 query=query, ctx=ctx, lang=lang, history=history,
                 sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
@@ -1603,6 +1628,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         sc: SensorContext,
     ) -> WeatherConstraints:
         wc = WeatherConstraints()
+        wc.temperature = sc.air_temp_c
 
         alerts = weather.get("farming_alerts") or []
         wc.alerts_text = " | ".join(str(a) for a in alerts[:3]) if alerts else "None"
