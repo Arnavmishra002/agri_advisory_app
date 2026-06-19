@@ -676,40 +676,30 @@ class MarketPricesService:
 
         data = None
 
-        # Priority 0: Agmarknet Direct API (api.agmarknet.gov.in — no key needed)
-        # Returns national commodity prices, updated daily, zero registration required.
-        # Falls back to Priority 1 if the API is down or returns no matching crop.
+        # Priority 0: data.gov.in official API (free key) → Agmarknet scraper → seed prices
+        # DataGovMandiClient handles the full fallback chain automatically:
+        #   data.gov.in OGD API (if DATA_GOV_IN_API_KEY is set and valid)
+        #   → Agmarknet direct dashboard (no key needed — 25 commodities)
+        #   → Hardcoded seed prices (always returns data, labeled clearly)
+        # Redis-backed cache (1-hour TTL, shared across all Gunicorn workers).
         try:
-            from .agmarknet_direct_client import agmarknet_direct
-            direct_data = agmarknet_direct.get_national_prices()
+            from .data_gov_mandi_client import data_gov_mandi_client
+            direct_data = data_gov_mandi_client.get_national_prices(
+                commodity=crop or None,
+                state=state or None,
+            )
             if direct_data and direct_data.get("top_crops"):
                 # If a specific crop is requested, filter to that crop first
-                if crop:
-                    from .crop_catalog import crop_catalog
-                    norm = crop_catalog.normalize(crop)
-                    crop_id = norm["id"] if norm else crop.lower()
-                    matched = [
-                        r for r in direct_data["top_crops"]
-                        if r.get("crop_id") == crop_id or
-                           crop.lower() in r.get("crop_name", "").lower()
-                    ]
-                    if matched:
-                        direct_data = dict(direct_data)
-                        direct_data["top_crops"] = matched
-                        data = direct_data
-                        logger.info(
-                            "Agmarknet Direct: matched %d rows for crop=%s", len(matched), crop
-                        )
-                    # If no match for this specific crop, fall through to Priority 1
-                else:
-                    # No crop filter — return all 25 national commodities
-                    data = direct_data
-                    logger.info(
-                        "Agmarknet Direct: %d national prices loaded",
-                        len(direct_data["top_crops"]),
-                    )
+                # DataGovMandiClient already filters by commodity & state internally;
+                # accept result directly. Fallback chain (Agmarknet → seed) already applied.
+                data = direct_data
+                source_short = direct_data.get("data_source_short", "data.gov.in/Agmarknet")
+                logger.info(
+                    "data_gov_mandi: %d crops loaded from %s",
+                    len(direct_data["top_crops"]), source_short,
+                )
         except Exception as exc:
-            logger.warning("Agmarknet Direct API error: %s", exc)
+            logger.warning("data_gov_mandi client error: %s", exc)
 
         # Priority 1: Agmarknet 2.0 official API — only runs if Priority 0 found no data
         # or if a specific mandi filter requires location-specific pricing.

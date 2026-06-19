@@ -18,20 +18,21 @@ class Command(BaseCommand):
     help = "Pre-warm the Agmarknet price cache and weather geocode cache."
 
     def handle(self, *args, **options):
-        self.stdout.write("Warming Agmarknet Direct cache...")
+        self.stdout.write("Warming mandi price cache (data.gov.in → Agmarknet → seed)...")
         try:
-            from advisory.services.agmarknet_direct_client import agmarknet_direct
-            result = agmarknet_direct.get_national_prices(force_refresh=True)
+            from advisory.services.data_gov_mandi_client import data_gov_mandi_client
+            result = data_gov_mandi_client.get_national_prices(force_refresh=True)
             count = len(result.get("top_crops", [])) if result else 0
+            source = result.get("data_source_short", result.get("data_source", "unknown")) if result else "none"
             is_live = result.get("is_live", False) if result else False
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"  Agmarknet: {count} commodities loaded "
-                    f"({'LIVE' if is_live else 'seed fallback'})"
+                    f"  Mandi prices: {count} commodities loaded "
+                    f"({'LIVE' if is_live else 'reference'}) via {source}"
                 )
             )
         except Exception as exc:
-            self.stdout.write(self.style.WARNING(f"  Agmarknet cache warm failed: {exc}"))
+            self.stdout.write(self.style.WARNING(f"  Mandi cache warm failed: {exc}"))
 
         self.stdout.write("Warming weather cache for major cities...")
         cities = [

@@ -184,31 +184,28 @@ class MarketPricesViewSet(viewsets.ViewSet):
         Returns the data source status and setup instructions if key is missing.
         """
         try:
+            from ...services.data_gov_mandi_client import data_gov_mandi_client
             ctx = resolve_request_location(request)
-            registered = market_service._has_registered_data_gov_key()
-            using_demo = not registered
+            has_datagov_key = data_gov_mandi_client.has_valid_api_key()
 
-            # Quick probe — don't cache
-            probe = market_service.get_prices(
-                ctx.query_label,
-                lat=ctx.latitude,
-                lon=ctx.longitude,
-                state=ctx.state or None,
-            )
-
+            probe = data_gov_mandi_client.get_national_prices()
             live_count = len([c for c in probe.get("top_crops", []) if c.get("is_live")])
+            active_source = probe.get("data_source_short", probe.get("data_source", ""))
 
             return Response(attach_location_metadata({
-                "status": "success",
-                "is_live":            probe.get("is_live", False),
+                "status":              "success",
+                "is_live":             probe.get("is_live", False),
                 "live_rows_available": live_count,
-                "api_key_registered": registered,
-                "using_demo_key":     using_demo,
-                "data_source":        probe.get("data_source", ""),
-                "coverage":           probe.get("coverage", ""),
-                "setup_required": not registered,
+                "active_source":       active_source,
+                "data_gov_key_set":    has_datagov_key,
+                "source_priority": [
+                    {"tier": 1, "name": "data.gov.in OGD API", "active": has_datagov_key},
+                    {"tier": 2, "name": "Agmarknet Direct (no key)", "active": not has_datagov_key},
+                    {"tier": 3, "name": "Seed/Reference prices", "active": False},
+                ],
+                "data_source":         probe.get("data_source", ""),
                 "setup_instructions": (
-                    None if registered else
+                    None if has_datagov_key else
                     "Register free at https://data.gov.in/user/register → "
                     "API Keys → copy key → set DATA_GOV_IN_API_KEY in .env"
                 ),
