@@ -76,7 +76,7 @@ FROM python:3.11-slim AS production
 LABEL org.opencontainers.image.title="KrishiMitra AI"
 LABEL org.opencontainers.image.description="Precision Agriculture Advisory — 150+ crops, 22 languages, IoT sensors, real-time mandi prices, 19-intent NLP chatbot"
 LABEL org.opencontainers.image.source="https://github.com/Arnavmishra002/agri_advisory_app"
-LABEL org.opencontainers.image.version="3.0.0"
+LABEL org.opencontainers.image.version="4.0.0"
 
 # ── Runtime environment ────────────────────────────────────────
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -163,7 +163,7 @@ CMD ["sh", "-c", "\
     echo '✅ Cache warmed' && \
     exec gunicorn \
       --bind 0.0.0.0:8000 \
-      --workers ${WEB_CONCURRENCY:-4} \
+      --workers ${WEB_CONCURRENCY:-2} \
       --threads 4 \
       --worker-class gthread \
       --timeout ${GUNICORN_TIMEOUT:-120} \
