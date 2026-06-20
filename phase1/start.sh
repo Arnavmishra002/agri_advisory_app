@@ -20,12 +20,21 @@ fi
 echo "✅  Ollama running"
 
 # Check model
-MODEL_CHECK=$(curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; d=json.load(sys.stdin); models=[m['name'] for m in d.get('models',[])]; print('ok' if any('qwen2.5' in m or 'krishimitra' in m for m in models) else 'missing')" 2>/dev/null)
-if [ "$MODEL_CHECK" != "ok" ]; then
-  echo "⚠  Model not found. Pulling qwen2.5:7b..."
-  ollama pull qwen2.5:7b
+MODEL_CHECK=$(curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; d=json.load(sys.stdin); models=[m['name'] for m in d.get('models',[])]; print('krishimitra' if any('krishimitra' in m for m in models) else 'qwen' if any('qwen2.5' in m for m in models) else 'missing')" 2>/dev/null)
+if [ "$MODEL_CHECK" = "missing" ]; then
+  echo "⚠  No model found."
+  echo "   Preferred: cd custom_llm_trainer && ollama create krishimitra-llm -f Modelfile"
+  echo "   Fallback:  ollama pull qwen2.5:7b"
+  exit 1
+elif [ "$MODEL_CHECK" = "qwen" ]; then
+  echo "⚠  krishimitra-llm not found — using qwen2.5:7b fallback"
+  echo "   To load your fine-tuned model: cd custom_llm_trainer && ollama create krishimitra-llm -f Modelfile"
+  # Update DEFAULT_MODEL env override so Phase1 uses qwen2.5:7b
+  export OLLAMA_MODEL=qwen2.5:7b
+else
+  echo "✅  krishimitra-llm (your custom model) ready"
+  export OLLAMA_MODEL=krishimitra-llm
 fi
-echo "✅  Ollama model ready"
 
 # Activate venv
 source "$VENV/bin/activate"
