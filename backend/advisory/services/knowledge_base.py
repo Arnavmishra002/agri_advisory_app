@@ -44,17 +44,7 @@ _OLLAMA_BASE    = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 _OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "krishimitra-llm")
 _OLLAMA_TIMEOUT = (3, 45)  # (connect, read) seconds
 
-# ── MSP 2024-25 (₹/quintal) ──────────────────────────────────────────────────
-MSP_2024_25 = {
-    "wheat":      2425, "rice":        2369, "maize":       2400,
-    "jowar":      3699, "bajra":       2775, "ragi":        4290,
-    "barley":     2150, "mustard":     5950, "groundnut":   6783,
-    "soybean":    4892, "sunflower":   7280, "sesame":      9267,
-    "cotton":     7121, "gram":        5650, "arhar":       8000,
-    "moong":      8682, "urad":        7400, "masoor":      6425,
-    "copra":     12100, "jute":        5335, "sugarcane":    340,
-    "niger":      7734,
-}
+from .msp_data import MSP_2024_25
 
 # ── Sowing calendar (month ranges for each crop) ──────────────────────────────
 SOWING_CALENDAR = {

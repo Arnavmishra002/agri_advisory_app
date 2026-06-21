@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── Existing placeholder ──────────────────────────────────────
-@shared_task
+@shared_task(name="backend.advisory.tasks.refresh_location_cache")
 def refresh_location_cache():
     """Placeholder for periodic cache refresh."""
     logger.info("refresh_location_cache: no-op (configure Celery to enable)")
@@ -25,6 +25,7 @@ def refresh_location_cache():
 
 # ── Task 1: persist one Q→A turn + update session context ─────
 @shared_task(
+    name="backend.advisory.tasks.persist_turn",
     bind=True,
     max_retries=2,
     default_retry_delay=5,
@@ -76,10 +77,13 @@ def persist_turn(
             logger.error(
                 "persist_turn: max retries exceeded for session %s", session_id
             )
+            import sentry_sdk
+            sentry_sdk.capture_exception(exc)
 
 
 # ── Task 2: write FarmerInteractionLog row ────────────────────
 @shared_task(
+    name="backend.advisory.tasks.log_interaction",
     bind=True,
     max_retries=2,
     default_retry_delay=5,
@@ -139,3 +143,5 @@ def log_interaction(
             logger.error(
                 "log_interaction: max retries exceeded for session %s", session_id
             )
+            import sentry_sdk
+            sentry_sdk.capture_exception(exc)

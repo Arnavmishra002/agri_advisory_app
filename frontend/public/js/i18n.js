@@ -290,6 +290,8 @@
     function _updateLanguageDropdown(code) {
         const sel = document.getElementById('languageSwitcher');
         if (sel) sel.value = code;
+        const chatSel = document.getElementById('chatLanguageSwitcher');
+        if (chatSel) chatSel.value = code;
     }
 
     /** Build and inject the language switcher dropdown into the navbar. */

@@ -30,6 +30,7 @@ from ..location_utils import attach_location_metadata, resolve_request_location
 from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
 from ...services.chat_intelligence_service import chat_intelligence_service, _current_season
 from ...services.session_memory_service import session_memory
+from ..auth_utils import _cors_for_request, _resolve_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -398,7 +399,7 @@ def _sse_frame(data: dict) -> str:
 
 def _stream_generator(
     query, ctx, language, history, farmer_ctx, fast_mode,
-    session_id, request,
+    session_id, request, user_id,
 ) -> Generator[str, None, None]:
     """
     Generator that yields SSE frames.
@@ -459,10 +460,9 @@ def _stream_generator(
     if crops:
         context_update["last_crop"] = crops[0]
 
-    user = getattr(request, "user", None)
     _dispatch_writes(
         session_id=session_id,
-        user_id=str(user.id) if (user and user.is_authenticated) else "anonymous",
+        user_id=user_id,
         user_query=query,
         ai_response=full_response,
         intent=result_meta.get("intent", "general"),
@@ -528,18 +528,18 @@ def stream_chat(request):
         request, session_id, language
     )
     farmer_ctx = _load_farmer_context(request, session_id, session_ctx)
+    user_id = _resolve_user_id(request)
 
     response = StreamingHttpResponse(
         _stream_generator(
             query, ctx, language, history, farmer_ctx, fast_mode,
-            session_id, request,
+            session_id, request, user_id,
         ),
         content_type="text/event-stream",
     )
     response["Cache-Control"]     = "no-cache"
     response["X-Accel-Buffering"] = "no"   # disable nginx buffering
-    # SECURITY FIX: use configured CORS origins, fall back to * only in DEBUG
-    from django.conf import settings as _dj
-    _cors = getattr(_dj, 'CORS_ALLOWED_ORIGINS', None)
-    response["Access-Control-Allow-Origin"] = (_cors[0] if _cors else "*")
+    
+    # SECURITY FIX: dynamic CORS lookup
+    response["Access-Control-Allow-Origin"] = _cors_for_request(request)
     return response

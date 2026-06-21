@@ -706,20 +706,29 @@
 <!-- AI Assistant -->
 <div class="content-section" id="ai-assistant-content">
     <div class="container" style="max-width:860px;">
-        <div class="section-header mb-1"><h2>🤖 KrishiMitra AI सहायक</h2></div>
-        <p class="text-muted mb-3">22 भाषाएं · Gemini AI + ICAR data · 24/7 उपलब्ध</p>
+        <!-- Chat header container -->
+        <div class="chat-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div class="section-header mb-0"><h2>🤖 KrishiMitra AI सहायक</h2></div>
+            <div class="chat-header-actions d-flex align-items-center gap-2">
+                <div id="chatLanguageSwitcherContainer"></div>
+            </div>
+        </div>
+        <p class="text-muted mb-3" id="chat-subtitle">22 भाषाएं · Gemini AI + ICAR data · 24/7 उपलब्ध</p>
 
-        <!-- Suggested chips -->
-        <div class="mb-3 d-flex flex-wrap gap-2">
-            <button class="chip" onclick="askSuggested('गेहूँ की बुवाई का सही समय और तरीका बताएं')">🌾 गेहूँ बुवाई कब?</button>
-            <button class="chip" onclick="askSuggested('PM-Kisan status कैसे देखें?')">💰 PM-Kisan?</button>
-            <button class="chip" onclick="askSuggested('धान में कीट लग रहा है क्या करें')">🐛 धान कीट?</button>
-            <button class="chip" onclick="askSuggested('सरसों का MSP क्या है और कहाँ बेचें?')">💸 सरसों भाव?</button>
-            <button class="chip" onclick="askSuggested('KCC के लिए कैसे आवेदन करें?')">💳 KCC?</button>
-            <button class="chip" onclick="askSuggested('टमाटर में पीली पत्ती और सफेद मक्खी का उपचार')">🍅 टमाटर रोग?</button>
-            <button class="chip" onclick="askSuggested('Soil Health Card कहाँ से मिलेगा?')">🧪 मिट्टी जांच?</button>
-            <button class="chip" onclick="askSuggested('मेरी जगह के हिसाब से कौन सी फसल उगाएं?')">🌱 फसल सुझाव?</button>
-            <button class="chip" onclick="askSuggested('PM-KUSUM सोलर पंप आवेदन कैसे करें?')">☀️ सोलर पंप?</button>
+        <!-- Suggested chips Empty State -->
+        <div id="empty-state" class="mb-3">
+            <div style="font-size:0.88rem; font-weight:700; color:var(--green-800); margin-bottom:8px;" data-i18n="chat_suggested_title">💡 अक्सर पूछे जाने वाले सवाल:</div>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="chip" onclick="askSuggested('गेहूँ की बुवाई का सही समय और तरीका बताएं')">🌾 गेहूँ बुवाई कब?</button>
+                <button class="chip" onclick="askSuggested('PM-Kisan status कैसे देखें?')">💰 PM-Kisan?</button>
+                <button class="chip" onclick="askSuggested('धान में कीट लग रहा है क्या करें')">🐛 धान कीट?</button>
+                <button class="chip" onclick="askSuggested('सरसों का MSP क्या है और कहाँ बेचें?')">💸 सरसों भाव?</button>
+                <button class="chip" onclick="askSuggested('KCC के लिए कैसे आवेदन करें?')">💳 KCC?</button>
+                <button class="chip" onclick="askSuggested('टमाटर में पीली पत्ती और सफेद मक्खी का उपचार')">🍅 टमाटर रोग?</button>
+                <button class="chip" onclick="askSuggested('Soil Health Card कहाँ से मिलेगा?')">🧪 मिट्टी जांच?</button>
+                <button class="chip" onclick="askSuggested('मेरी जगह के हिसाब से कौन सी फसल उगाएं?')">🌱 फसल सुझाव?</button>
+                <button class="chip" onclick="askSuggested('PM-KUSUM सोलर पंप आवेदन कैसे करें?')">☀️ सोलर पंप?</button>
+            </div>
         </div>
 
         <!-- Farmer Profile quick-save card (auto-persists for personalized AI) -->
@@ -804,6 +813,7 @@
             <button onclick="clearChat()" class="chat-voice-btn" title="चैट साफ करें">
                 <i class="fas fa-trash-alt"></i>
             </button>
+            <span id="stream-dot" class="stream-dot" style="display: none;" title="Streaming response..."></span>
             <button class="chat-send-btn" id="chatSendBtn" onclick="handleChatUserMessage()" title="भेजें">
                 <i class="fas fa-paper-plane"></i>
             </button>

@@ -167,16 +167,7 @@ CROP_HINDI = {
     "banana": "केला", "apple": "सेब",
 }
 
-# ─── MSP 2024-25 (Official, in ₹/quintal) ───────────────────────────────────
-MSP_2024_25 = {
-    "wheat":      2275, "rice":     2300, "maize":    2090,
-    "soybean":    4892, "cotton":   7121, "mustard":  5650,
-    "gram":       5440, "lentil":   6425, "groundnut":6783,
-    "sunflower":  7280, "jowar":    3371, "bajra":    2625,
-    "ragi":       3846, "barley":   1735,
-    # Pulses added from seed_msp command
-    "arhar":      7000, "moong":    8682, "urad":     7400,
-}
+from .msp_data import MSP_2024_25
 
 # ── DB-backed MSP lookup (falls back to dict above) ─────────────────────────
 # Run `python manage.py seed_msp` once to populate the Crop table.

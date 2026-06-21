@@ -24,6 +24,7 @@ from __future__ import annotations
 import atexit
 import json
 import logging
+import os as _os
 import re
 import re as _re
 import urllib.error
@@ -76,10 +77,9 @@ logger = logging.getLogger(__name__)
 # concurrent users that’s 300 threads being created+destroyed simultaneously,
 # risking OOM and OS ulimit breaches.
 _DATA_FETCH_POOL = ThreadPoolExecutor(
-    # Bug 6 fix: 3 fetches/request × 100 concurrent users = 300 needed.
-    # Raise to 20 to avoid silent queue stalls at peak load on Render.
-    # OS threads are cheap (2MB stack each); 20 is safe on a 512MB instance.
-    max_workers=20,
+    # 3 concurrent fetches per request. On Render free tier (512MB / 2 workers)
+    # 8 I/O-bound threads handle ~40 RPS without OOM. Override via env if needed.
+    max_workers=int(_os.environ.get("FETCH_POOL_WORKERS", "8")),
     thread_name_prefix="km-fetch",
 )
 atexit.register(_DATA_FETCH_POOL.shutdown, wait=False)
@@ -88,11 +88,53 @@ atexit.register(_DATA_FETCH_POOL.shutdown, wait=False)
 import os as _os
 import time as _time
 
+import dataclasses
+
+def _wc_to_dict(wc) -> dict:
+    return dataclasses.asdict(wc) if wc is not None else {}
+
+def _safe_temp(temp_str: str, fallback: float = 25.0) -> float:
+    try:
+        return float(temp_str)
+    except (TypeError, ValueError):
+        return fallback
+
 _PHASE1_TIMEOUT_S:       int   = int(_os.environ.get("PHASE1_TIMEOUT_S", "45"))
-_phase1_failure_count:   int   = 0
-_phase1_last_failure_ts: float = 0.0
 _PHASE1_CB_MAX_FAILS:    int   = 3   # open circuit after 3 consecutive failures
 _PHASE1_CB_RESET_S:      int   = 60  # retry after 60 s cooldown
+
+_CB_KEY_FAILS = "krishimitra:phase1:cb:fails"
+_CB_KEY_TS    = "krishimitra:phase1:cb:ts"
+
+def _cb_is_open() -> bool:
+    import time
+    from django.core.cache import caches
+    try:
+        cache = caches["default"]
+        fails = int(cache.get(_CB_KEY_FAILS) or 0)
+        if fails < _PHASE1_CB_MAX_FAILS:
+            return False
+        return (time.time() - float(cache.get(_CB_KEY_TS) or 0)) < _PHASE1_CB_RESET_S
+    except Exception:
+        return False
+
+def _cb_increment() -> None:
+    import time
+    from django.core.cache import caches
+    try:
+        c = caches["default"]
+        if not c.add(_CB_KEY_FAILS, 1, timeout=_PHASE1_CB_RESET_S * 2):
+            c.incr(_CB_KEY_FAILS)
+        c.set(_CB_KEY_TS, time.time(), timeout=_PHASE1_CB_RESET_S * 2)
+    except Exception:
+        pass
+
+def _cb_reset() -> None:
+    from django.core.cache import caches
+    try:
+        caches["default"].delete(_CB_KEY_FAILS)
+    except Exception:
+        pass
 
 # ── Module-level Hindi→English term map (used by _qwen_rag_answer) ───────────
 # Built once at import time instead of on every request.
@@ -185,283 +227,8 @@ STAPLE_FOR_CHAT = ["wheat", "rice", "maize", "mustard", "tomato", "onion", "pota
 # Used by _extract_query_location() to detect city names in chat messages like
 # "rampur ka mausam" → return Rampur's coordinates instead of GPS location.
 # Covers all state capitals + major agricultural districts (~250 entries).
-_INDIAN_CITY_CATALOG: Dict[str, Tuple[str, str, float, float]] = {
-    # key(lowercase): (display_name, state, lat, lon)
-    # ── Metros ──
-    "delhi": ("Delhi", "Delhi", 28.7041, 77.1025),
-    "mumbai": ("Mumbai", "Maharashtra", 19.0760, 72.8777),
-    "bangalore": ("Bangalore", "Karnataka", 12.9716, 77.5946),
-    "bengaluru": ("Bangalore", "Karnataka", 12.9716, 77.5946),
-    "hyderabad": ("Hyderabad", "Telangana", 17.3850, 78.4867),
-    "chennai": ("Chennai", "Tamil Nadu", 13.0827, 80.2707),
-    "kolkata": ("Kolkata", "West Bengal", 22.5726, 88.3639),
-    # ── State capitals ──
-    "lucknow": ("Lucknow", "Uttar Pradesh", 26.8467, 80.9462),
-    "jaipur": ("Jaipur", "Rajasthan", 26.9124, 75.7873),
-    "bhopal": ("Bhopal", "Madhya Pradesh", 23.2599, 77.4126),
-    "patna": ("Patna", "Bihar", 25.5941, 85.1376),
-    "raipur": ("Raipur", "Chhattisgarh", 21.2514, 81.6296),
-    "ranchi": ("Ranchi", "Jharkhand", 23.3441, 85.3096),
-    "bhubaneswar": ("Bhubaneswar", "Odisha", 20.2961, 85.8245),
-    "guwahati": ("Guwahati", "Assam", 26.1445, 91.7362),
-    "dehradun": ("Dehradun", "Uttarakhand", 30.3165, 78.0322),
-    "shimla": ("Shimla", "Himachal Pradesh", 31.1048, 77.1734),
-    "chandigarh": ("Chandigarh", "Chandigarh", 30.7333, 76.7794),
-    "jammu": ("Jammu", "J&K", 32.7266, 74.8570),
-    "srinagar": ("Srinagar", "J&K", 34.0837, 74.7973),
-    "gandhinagar": ("Gandhinagar", "Gujarat", 23.2156, 72.6369),
-    "panaji": ("Panaji", "Goa", 15.4909, 73.8278),
-    "thiruvananthapuram": ("Thiruvananthapuram", "Kerala", 8.5241, 76.9366),
-    "trivandrum": ("Thiruvananthapuram", "Kerala", 8.5241, 76.9366),
-    # Note: "bangalore" key already defined above — bengaluru is the alias
-    "imphal": ("Imphal", "Manipur", 24.8170, 93.9368),
-    "shillong": ("Shillong", "Meghalaya", 25.5788, 91.8933),
-    "aizawl": ("Aizawl", "Mizoram", 23.7271, 92.7176),
-    "kohima": ("Kohima", "Nagaland", 25.6751, 94.1086),
-    "itanagar": ("Itanagar", "Arunachal Pradesh", 27.0844, 93.6053),
-    "agartala": ("Agartala", "Tripura", 23.8315, 91.2868),
-    "gangtok": ("Gangtok", "Sikkim", 27.3314, 88.6138),
-    "dispur": ("Dispur", "Assam", 26.1433, 91.7898),
-    "amaravati": ("Amaravati", "Andhra Pradesh", 16.5062, 80.6480),
-    "vijayawada": ("Vijayawada", "Andhra Pradesh", 16.5062, 80.6480),
-    "port blair": ("Port Blair", "Andaman", 11.6234, 92.7265),
-    # ── Major agricultural cities (UP) ──
-    "agra": ("Agra", "Uttar Pradesh", 27.1767, 78.0081),
-    "varanasi": ("Varanasi", "Uttar Pradesh", 25.3176, 82.9739),
-    "kanpur": ("Kanpur", "Uttar Pradesh", 26.4499, 80.3319),
-    "allahabad": ("Prayagraj", "Uttar Pradesh", 25.4358, 81.8463),
-    "prayagraj": ("Prayagraj", "Uttar Pradesh", 25.4358, 81.8463),
-    "meerut": ("Meerut", "Uttar Pradesh", 28.9845, 77.7064),
-    "bareilly": ("Bareilly", "Uttar Pradesh", 28.3670, 79.4304),
-    "aligarh": ("Aligarh", "Uttar Pradesh", 27.8974, 78.0880),
-    "moradabad": ("Moradabad", "Uttar Pradesh", 28.8386, 78.7733),
-    "saharanpur": ("Saharanpur", "Uttar Pradesh", 29.9640, 77.5460),
-    "gorakhpur": ("Gorakhpur", "Uttar Pradesh", 26.7606, 83.3732),
-    "faizabad": ("Faizabad", "Uttar Pradesh", 26.7749, 82.1376),
-    "mathura": ("Mathura", "Uttar Pradesh", 27.4924, 77.6737),
-    "rampur": ("Rampur", "Uttar Pradesh", 28.8055, 79.0131),
-    "noida": ("Noida", "Uttar Pradesh", 28.5355, 77.3910),
-    "ghaziabad": ("Ghaziabad", "Uttar Pradesh", 28.6692, 77.4538),
-    "muzaffarnagar": ("Muzaffarnagar", "Uttar Pradesh", 29.4727, 77.7085),
-    "shahjahanpur": ("Shahjahanpur", "Uttar Pradesh", 27.8838, 79.9058),
-    "etawah": ("Etawah", "Uttar Pradesh", 26.7782, 79.0219),
-    "lakhimpur": ("Lakhimpur Kheri", "Uttar Pradesh", 27.9497, 80.7877),
-    "sitapur": ("Sitapur", "Uttar Pradesh", 27.5640, 80.6820),
-    "jhansi": ("Jhansi", "Uttar Pradesh", 25.4484, 78.5685),
-    "banda": ("Banda", "Uttar Pradesh", 25.4742, 80.3352),
-    "unnao": ("Unnao", "Uttar Pradesh", 26.5497, 80.4983),
-    "rae bareli": ("Rae Bareli", "Uttar Pradesh", 26.2311, 81.2321),
-    "raebareli": ("Rae Bareli", "Uttar Pradesh", 26.2311, 81.2321),
-    "sultanpur": ("Sultanpur", "Uttar Pradesh", 26.2648, 82.0727),
-    "azamgarh": ("Azamgarh", "Uttar Pradesh", 26.0692, 83.1836),
-    "jaunpur": ("Jaunpur", "Uttar Pradesh", 25.7468, 82.6836),
-    "bijnor": ("Bijnor", "Uttar Pradesh", 29.3721, 78.1358),
-    "amroha": ("Amroha", "Uttar Pradesh", 28.9042, 78.4685),
-    "bulandshahr": ("Bulandshahr", "Uttar Pradesh", 28.4069, 77.8495),
-    "hapur": ("Hapur", "Uttar Pradesh", 28.7295, 77.7795),
-    "firozabad": ("Firozabad", "Uttar Pradesh", 27.1520, 78.3950),
-    "hardoi": ("Hardoi", "Uttar Pradesh", 27.3947, 80.1206),
-    "barabanki": ("Barabanki", "Uttar Pradesh", 26.9336, 81.1961),
-    "bahraich": ("Bahraich", "Uttar Pradesh", 27.5740, 81.5960),
-    "ballia": ("Ballia", "Uttar Pradesh", 25.7596, 84.1485),
-    "basti": ("Basti", "Uttar Pradesh", 26.7964, 82.7327),
-    "mirzapur": ("Mirzapur", "Uttar Pradesh", 25.1452, 82.5693),
-    "sonbhadra": ("Sonbhadra", "Uttar Pradesh", 24.6899, 83.0680),
-    # ── Punjab / Haryana / Himachal ──
-    "ludhiana": ("Ludhiana", "Punjab", 30.9010, 75.8573),
-    "amritsar": ("Amritsar", "Punjab", 31.6340, 74.8723),
-    "patiala": ("Patiala", "Punjab", 30.3398, 76.3869),
-    "jalandhar": ("Jalandhar", "Punjab", 31.3260, 75.5762),
-    "bathinda": ("Bathinda", "Punjab", 30.2110, 74.9455),
-    "ferozepur": ("Ferozepur", "Punjab", 30.9238, 74.6234),
-    "gurdaspur": ("Gurdaspur", "Punjab", 32.0349, 75.4057),
-    "pathankot": ("Pathankot", "Punjab", 32.2643, 75.6572),
-    "hoshiarpur": ("Hoshiarpur", "Punjab", 31.5143, 75.9109),
-    "faridkot": ("Faridkot", "Punjab", 30.6680, 74.7577),
-    "rohtak": ("Rohtak", "Haryana", 28.8955, 76.6066),
-    "hisar": ("Hisar", "Haryana", 29.1492, 75.7217),
-    "sirsa": ("Sirsa", "Haryana", 29.5330, 75.0193),
-    "karnal": ("Karnal", "Haryana", 29.6857, 76.9905),
-    "panipat": ("Panipat", "Haryana", 29.3909, 76.9635),
-    "ambala": ("Ambala", "Haryana", 30.3782, 76.7767),
-    "faridabad": ("Faridabad", "Haryana", 28.4089, 77.3178),
-    "gurgaon": ("Gurgaon", "Haryana", 28.4595, 77.0266),
-    "gurugram": ("Gurgaon", "Haryana", 28.4595, 77.0266),
-    "rewari": ("Rewari", "Haryana", 28.1961, 76.6166),
-    "kaithal": ("Kaithal", "Haryana", 29.8014, 76.3998),
-    "kurukshetra": ("Kurukshetra", "Haryana", 29.9695, 76.8783),
-    "yamunanagar": ("Yamunanagar", "Haryana", 30.1290, 77.2674),
-    "mandi": ("Mandi", "Himachal Pradesh", 31.7080, 76.9318),
-    "kullu": ("Kullu", "Himachal Pradesh", 31.9579, 77.1095),
-    "dharamsala": ("Dharamsala", "Himachal Pradesh", 32.2190, 76.3234),
-    "una": ("Una", "Himachal Pradesh", 31.4686, 76.2701),
-    "bilaspur_hp": ("Bilaspur", "Himachal Pradesh", 31.3311, 76.7603),  # renamed to avoid conflict with Bilaspur CG
-    # ── Rajasthan ──
-    "jodhpur": ("Jodhpur", "Rajasthan", 26.2389, 73.0243),
-    "kota": ("Kota", "Rajasthan", 25.2138, 75.8648),
-    "ajmer": ("Ajmer", "Rajasthan", 26.4499, 74.6399),
-    "bikaner": ("Bikaner", "Rajasthan", 28.0229, 73.3119),
-    "udaipur": ("Udaipur", "Rajasthan", 24.5854, 73.7125),
-    "alwar": ("Alwar", "Rajasthan", 27.5530, 76.6346),
-    "bharatpur": ("Bharatpur", "Rajasthan", 27.2152, 77.4931),
-    "ganganagar": ("Ganganagar", "Rajasthan", 29.9038, 73.8772),
-    "hanumangarh": ("Hanumangarh", "Rajasthan", 29.5826, 74.3301),
-    "churu": ("Churu", "Rajasthan", 28.2996, 74.9665),
-    "sikar": ("Sikar", "Rajasthan", 27.6094, 75.1398),
-    "nagaur": ("Nagaur", "Rajasthan", 27.2032, 73.7383),
-    "barmer": ("Barmer", "Rajasthan", 25.7521, 71.3967),
-    "jaisalmer": ("Jaisalmer", "Rajasthan", 26.9157, 70.9083),
-    "jhalawar": ("Jhalawar", "Rajasthan", 24.5979, 76.1586),
-    # ── Madhya Pradesh ──
-    "indore": ("Indore", "Madhya Pradesh", 22.7196, 75.8577),
-    "gwalior": ("Gwalior", "Madhya Pradesh", 26.2183, 78.1828),
-    "jabalpur": ("Jabalpur", "Madhya Pradesh", 23.1815, 79.9864),
-    "ujjain": ("Ujjain", "Madhya Pradesh", 23.1765, 75.7885),
-    "sagar": ("Sagar", "Madhya Pradesh", 23.8388, 78.7378),
-    "rewa": ("Rewa", "Madhya Pradesh", 24.5332, 81.3042),
-    "satna": ("Satna", "Madhya Pradesh", 24.5785, 80.8322),
-    "hoshangabad": ("Hoshangabad", "Madhya Pradesh", 22.7513, 77.7264),
-    "betul": ("Betul", "Madhya Pradesh", 21.9060, 77.9019),
-    "chhindwara": ("Chhindwara", "Madhya Pradesh", 22.0574, 78.9382),
-    "dewas": ("Dewas", "Madhya Pradesh", 22.9623, 76.0508),
-    "mandsaur": ("Mandsaur", "Madhya Pradesh", 24.0739, 75.0710),
-    "neemuch": ("Neemuch", "Madhya Pradesh", 24.4752, 74.8680),
-    "ratlam": ("Ratlam", "Madhya Pradesh", 23.3341, 75.0373),
-    "vidisha": ("Vidisha", "Madhya Pradesh", 23.5253, 77.8151),
-    "morena": ("Morena", "Madhya Pradesh", 26.4960, 77.9994),
-    "bhind": ("Bhind", "Madhya Pradesh", 26.5635, 78.7885),
-    "sheopur": ("Sheopur", "Madhya Pradesh", 25.6601, 76.7001),
-    # ── Maharashtra / Gujarat / Goa ──
-    "pune": ("Pune", "Maharashtra", 18.5204, 73.8567),
-    "nagpur": ("Nagpur", "Maharashtra", 21.1458, 79.0882),
-    "nashik": ("Nashik", "Maharashtra", 19.9975, 73.7898),
-    "aurangabad": ("Aurangabad", "Maharashtra", 19.8762, 75.3433),
-    "solapur": ("Solapur", "Maharashtra", 17.6599, 75.9064),
-    "amravati": ("Amravati", "Maharashtra", 20.9320, 77.7523),
-    "kolhapur": ("Kolhapur", "Maharashtra", 16.7050, 74.2433),
-    "latur": ("Latur", "Maharashtra", 18.4088, 76.5604),
-    "nanded": ("Nanded", "Maharashtra", 19.1601, 77.3013),
-    "ahmednagar": ("Ahmednagar", "Maharashtra", 19.0952, 74.7459),
-    "sangli": ("Sangli", "Maharashtra", 16.8524, 74.5815),
-    "satara": ("Satara", "Maharashtra", 17.6805, 74.0183),
-    "jalgaon": ("Jalgaon", "Maharashtra", 21.0077, 75.5626),
-    "nandurbar": ("Nandurbar", "Maharashtra", 21.3663, 74.2414),
-    "dhule": ("Dhule", "Maharashtra", 20.9042, 74.7749),
-    "wardha": ("Wardha", "Maharashtra", 20.7453, 78.6022),
-    "yavatmal": ("Yavatmal", "Maharashtra", 20.3888, 78.1204),
-    "akola": ("Akola", "Maharashtra", 20.7093, 77.0082),
-    "buldhana": ("Buldhana", "Maharashtra", 20.5292, 76.1842),
-    "surat": ("Surat", "Gujarat", 21.1702, 72.8311),
-    "rajkot": ("Rajkot", "Gujarat", 22.3039, 70.8022),
-    "vadodara": ("Vadodara", "Gujarat", 22.3072, 73.1812),
-    "bhavnagar": ("Bhavnagar", "Gujarat", 21.7645, 72.1519),
-    "anand": ("Anand", "Gujarat", 22.5645, 72.9289),
-    "mehsana": ("Mehsana", "Gujarat", 23.5997, 72.3693),
-    "banaskantha": ("Banaskantha", "Gujarat", 24.1726, 72.4148),
-    "junagadh": ("Junagadh", "Gujarat", 21.5222, 70.4579),
-    "surendranagar": ("Surendranagar", "Gujarat", 22.7277, 71.6477),
-    "amreli": ("Amreli", "Gujarat", 21.6025, 71.2219),
-    # ── Karnataka / Andhra / Telangana / Tamil Nadu / Kerala ──
-    "mysuru": ("Mysuru", "Karnataka", 12.2958, 76.6394),
-    "mysore": ("Mysuru", "Karnataka", 12.2958, 76.6394),
-    "hubli": ("Hubli-Dharwad", "Karnataka", 15.3647, 75.1240),
-    "dharwad": ("Dharwad", "Karnataka", 15.4589, 75.0078),
-    "belgaum": ("Belagavi", "Karnataka", 15.8497, 74.4977),
-    "belagavi": ("Belagavi", "Karnataka", 15.8497, 74.4977),
-    "bellary": ("Ballari", "Karnataka", 15.1394, 76.9214),
-    "bijapur": ("Vijayapura", "Karnataka", 16.8302, 75.7100),
-    "davanagere": ("Davanagere", "Karnataka", 14.4644, 75.9218),
-    "tumkur": ("Tumakuru", "Karnataka", 13.3409, 77.1010),
-    "kolar": ("Kolar", "Karnataka", 13.1364, 78.1294),
-    "mandya": ("Mandya", "Karnataka", 12.5218, 76.8951),
-    "raichur": ("Raichur", "Karnataka", 16.2120, 77.3439),
-    "gulbarga": ("Kalaburagi", "Karnataka", 17.3297, 76.8200),
-    "vizag": ("Visakhapatnam", "Andhra Pradesh", 17.6868, 83.2185),
-    "visakhapatnam": ("Visakhapatnam", "Andhra Pradesh", 17.6868, 83.2185),
-    "guntur": ("Guntur", "Andhra Pradesh", 16.2999, 80.4570),
-    "tirupati": ("Tirupati", "Andhra Pradesh", 13.6288, 79.4192),
-    "nellore": ("Nellore", "Andhra Pradesh", 14.4426, 79.9865),
-    "kurnool": ("Kurnool", "Andhra Pradesh", 15.8281, 78.0373),
-    "warangal": ("Warangal", "Telangana", 17.9784, 79.5941),
-    "nizamabad": ("Nizamabad", "Telangana", 18.6725, 78.0940),
-    "karimnagar": ("Karimnagar", "Telangana", 18.4386, 79.1288),
-    "khammam": ("Khammam", "Telangana", 17.2472, 80.1514),
-    "nalgonda": ("Nalgonda", "Telangana", 17.0575, 79.2670),
-    "coimbatore": ("Coimbatore", "Tamil Nadu", 11.0168, 76.9558),
-    "madurai": ("Madurai", "Tamil Nadu", 9.9252, 78.1198),
-    "tiruchirappalli": ("Trichy", "Tamil Nadu", 10.7905, 78.7047),
-    "trichy": ("Trichy", "Tamil Nadu", 10.7905, 78.7047),
-    "salem": ("Salem", "Tamil Nadu", 11.6643, 78.1460),
-    "vellore": ("Vellore", "Tamil Nadu", 12.9165, 79.1325),
-    "tirunelveli": ("Tirunelveli", "Tamil Nadu", 8.7139, 77.7567),
-    "thanjavur": ("Thanjavur", "Tamil Nadu", 10.7870, 79.1378),
-    "erode": ("Erode", "Tamil Nadu", 11.3410, 77.7172),
-    "kochi": ("Kochi", "Kerala", 9.9312, 76.2673),
-    "kozhikode": ("Kozhikode", "Kerala", 11.2588, 75.7804),
-    "thrissur": ("Thrissur", "Kerala", 10.5276, 76.2144),
-    "kollam": ("Kollam", "Kerala", 8.8932, 76.6141),
-    "palakkad": ("Palakkad", "Kerala", 10.7867, 76.6548),
-    "alappuzha": ("Alappuzha", "Kerala", 9.4981, 76.3388),
-    # ── Bihar / Jharkhand / Odisha ──
-    "gaya": ("Gaya", "Bihar", 24.7914, 85.0002),
-    "bhagalpur": ("Bhagalpur", "Bihar", 25.2425, 86.9842),
-    "muzaffarpur": ("Muzaffarpur", "Bihar", 26.1209, 85.3647),
-    "darbhanga": ("Darbhanga", "Bihar", 26.1542, 85.8918),
-    "purnia": ("Purnia", "Bihar", 25.7771, 87.4753),
-    "motihari": ("Motihari", "Bihar", 26.6469, 84.9175),
-    "chapra": ("Chapra", "Bihar", 25.7801, 84.7415),
-    "begusarai": ("Begusarai", "Bihar", 25.4182, 86.1272),
-    "samastipur": ("Samastipur", "Bihar", 25.8577, 85.7831),
-    "siwan": ("Siwan", "Bihar", 26.2239, 84.3558),
-    "dhanbad": ("Dhanbad", "Jharkhand", 23.7957, 86.4304),
-    "bokaro": ("Bokaro", "Jharkhand", 23.6693, 85.9845),
-    "jamshedpur": ("Jamshedpur", "Jharkhand", 22.8046, 86.2029),
-    "hazaribagh": ("Hazaribagh", "Jharkhand", 23.9966, 85.3613),
-    "sambalpur": ("Sambalpur", "Odisha", 21.4669, 83.9756),
-    "cuttack": ("Cuttack", "Odisha", 20.4625, 85.8828),
-    "rourkela": ("Rourkela", "Odisha", 22.2604, 84.8536),
-    "berhampur": ("Berhampur", "Odisha", 19.3149, 84.7941),
-    "balasore": ("Balasore", "Odisha", 21.4942, 86.9278),
-    # ── West Bengal / NE States ──
-    "asansol": ("Asansol", "West Bengal", 23.6836, 86.9692),
-    "siliguri": ("Siliguri", "West Bengal", 26.7271, 88.3953),
-    "durgapur": ("Durgapur", "West Bengal", 23.5204, 87.3119),
-    "bardhaman": ("Bardhaman", "West Bengal", 23.2324, 87.8615),
-    "murshidabad": ("Murshidabad", "West Bengal", 24.1855, 88.2697),
-    "nadia": ("Nadia", "West Bengal", 23.4700, 88.5560),
-    "malda": ("Malda", "West Bengal", 25.0108, 88.1415),
-    "jalpaiguri": ("Jalpaiguri", "West Bengal", 26.5418, 88.7181),
-    "cooch behar": ("Cooch Behar", "West Bengal", 26.3452, 89.4413),
-    "dibrugarh": ("Dibrugarh", "Assam", 27.4728, 94.9120),
-    "silchar": ("Silchar", "Assam", 24.8333, 92.7789),
-    "tezpur": ("Tezpur", "Assam", 26.6338, 92.7957),
-    "jorhat": ("Jorhat", "Assam", 26.7509, 94.2037),
-    "nagaon": ("Nagaon", "Assam", 26.3468, 92.6863),
-    "bongaigaon": ("Bongaigaon", "Assam", 26.4795, 90.5584),
-    # ── Chhattisgarh / Uttarakhand ──
-    "bilaspur": ("Bilaspur", "Chhattisgarh", 22.0796, 82.1391),
-    "durg": ("Durg", "Chhattisgarh", 21.1904, 81.2849),
-    "rajnandgaon": ("Rajnandgaon", "Chhattisgarh", 21.0973, 81.0301),
-    "jagdalpur": ("Jagdalpur", "Chhattisgarh", 19.0864, 82.0275),
-    "haridwar": ("Haridwar", "Uttarakhand", 29.9457, 78.1642),
-    "rishikesh": ("Rishikesh", "Uttarakhand", 30.0869, 78.2676),
-    "roorkee": ("Roorkee", "Uttarakhand", 29.8543, 77.8880),
-    "haldwani": ("Haldwani", "Uttarakhand", 29.2183, 79.5130),
-    "nainital": ("Nainital", "Uttarakhand", 29.3919, 79.4542),
-    "almora": ("Almora", "Uttarakhand", 29.5973, 79.6593),
-    "pithoragarh": ("Pithoragarh", "Uttarakhand", 29.5830, 80.2162),
-}
+from .city_catalog import _INDIAN_CITY_CATALOG, _WEATHER_STOPWORDS
 
-# Stopwords to ignore when scanning a chat query for city names
-_WEATHER_STOPWORDS = {
-    'mausam', 'weather', 'barish', 'baarish', 'rain', 'rainfa', 'temperature',
-    'tapman', 'garmi', 'sardi', 'thand', 'dhoop', 'barf', 'snow',
-    'ka', 'ki', 'ke', 'hai', 'hain', 'kaisa', 'kaisi', 'kya', 'aaj', 'kal',
-    'abhi', 'is', 'in', 'wahan', 'yahan', 'waha', 'wala', 'wali', 'batao',
-    'bata', 'tell', 'how', 'what', 'the', 'and', 'for', 'of', 'at', 'in',
-    'today', 'tomorrow', 'now', 'current', 'forecast', 'live', 'hoga',
-    'hogi', 'rahega', 'rahegi', 'monsoon', 'season', 'aane', 'wala', 'bad',
-}
 
 
 
@@ -1134,9 +901,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             kb_result = knowledge_base.answer(
                 query=query,
                 crop=crop_id,
-                state=ctx.get("state") if isinstance(ctx, dict) else None,
+                state=ctx.state if hasattr(ctx, "state") else None,
                 language=lang,
-                weather_context=wc,
+                weather_context=_wc_to_dict(wc),
             )
             if kb_result.get("answer"):
                 response_text = kb_result["answer"]
@@ -1230,15 +997,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         Both paths use the circuit breaker to avoid stalling on offline servers.
         """
-        global _phase1_failure_count, _phase1_last_failure_ts
-
         # ── Circuit breaker check ─────────────────────────────────────────────
-        if (_phase1_failure_count >= _PHASE1_CB_MAX_FAILS
-                and (_time.time() - _phase1_last_failure_ts) < _PHASE1_CB_RESET_S):
+        if _cb_is_open():
             logger.debug(
-                "Phase 1 circuit breaker OPEN (%d failures, %.0fs ago) — skipping",
-                _phase1_failure_count,
-                _time.time() - _phase1_last_failure_ts,
+                "Phase 1 circuit breaker OPEN — skipping",
             )
             return None
 
@@ -1299,7 +1061,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 data = json.loads(resp.read().decode("utf-8"))
                 text = (data.get("response") or "").strip()
                 if text:
-                    _phase1_failure_count = 0
+                    _cb_reset()
                     logger.info(
                         "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
                         query[:40], data.get("rag_chunks", 0),
@@ -1523,7 +1285,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 data = json.loads(resp.read().decode("utf-8"))
                 text = (data.get("message", {}).get("content") or "").strip()
                 if text:
-                    _phase1_failure_count = 0
+                    _cb_reset()
                     logger.info(
                         "krishimitra-llm direct Ollama: '%s...' — %d chars",
                         query[:40], len(text),
@@ -1531,13 +1293,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     return text
                 return None
         except urllib.error.URLError:
-            _phase1_failure_count += 1
-            _phase1_last_failure_ts = _time.time()
+            _cb_increment()
             logger.debug("Direct Ollama also offline — falling back to rule-based")
             return None
         except Exception as exc:
-            _phase1_failure_count += 1
-            _phase1_last_failure_ts = _time.time()
+            _cb_increment()
             logger.warning("Direct Ollama error: %s", exc)
             return None
 
@@ -1561,18 +1321,26 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # Remove punctuation
         q_clean = re.sub(r'[^\w\s]', ' ', q_lower)
 
+        # FIX: "mandi mein bhav" — "mandi" means market here, not Mandi city HP.
+        # Guard: if query reads as market-price context, skip city extraction.
+        if re.search(
+            r'\b(mandi\s*(mein|me|ka|ki|se|bhav|price|rate)|apmc\s*mein|bazar\s*mein)\b',
+            q_lower,
+        ):
+            return None
+
         # ── Try multi-word city names first (longest match wins) ──────────────
-        for city_key, (display, state, lat, lon) in _INDIAN_CITY_CATALOG.items():
-            if ' ' in city_key and city_key in q_clean:
+        for city_key in sorted(
+            (k for k in _INDIAN_CITY_CATALOG if ' ' in k),
+            key=len,
+            reverse=True,
+        ):
+            if city_key in q_clean:
+                display, state, lat, lon = _INDIAN_CITY_CATALOG[city_key]
                 return LocationContext(
-                    latitude=lat,
-                    longitude=lon,
-                    display_name=display,
-                    city=display,
-                    state=state,
-                    country="India",
-                    source="query_city_extraction",
-                    confidence=0.85,
+                    latitude=lat, longitude=lon, display_name=display,
+                    city=display, state=state, country="India",
+                    source="query_city_extraction", confidence=0.85,
                 )
 
         # ── Single-word token scan ─────────────────────────────────────────────
@@ -1596,10 +1364,59 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
     # ── Sensor context: simulator only (no real hardware yet) ────
 
     def _resolve_sensor_context(self, ctx: LocationContext) -> SensorContext:
-        """Fetch simulated IoT readings from BlockchainIoTSimulator.
-        When real sensors are connected, add DB lookup here as Tier 1."""
+        """
+        Tier 1: Real IoTSensorReading DB (live ESP32 MQTT hardware).
+        Tier 2: BlockchainIoTSimulator fallback.
+
+        FIX: The old implementation always used the simulator, silently
+        ignoring real sensor readings collected by mqtt_sensor_subscriber.py.
+        Farmers with actual ESP32 sensors were getting fake simulated data.
+        """
+        # ── Tier 1: Real hardware readings from DB ────────────────────────────
+        if ctx.latitude is not None and ctx.longitude is not None:
+            try:
+                import django
+                if django.conf.settings.configured:
+                    from django.utils import timezone
+                    from datetime import timedelta
+                    from ..models import IoTSensorReading
+
+                    cutoff = timezone.now() - timedelta(minutes=30)
+                    reading = (
+                        IoTSensorReading.objects
+                        .filter(
+                            latitude__range=(ctx.latitude - 0.15, ctx.latitude + 0.15),
+                            longitude__range=(ctx.longitude - 0.15, ctx.longitude + 0.15),
+                            created_at__gte=cutoff,
+                        )
+                        .order_by("-created_at")
+                        .first()
+                    )
+                    if reading:
+                        pct = reading.moisture_pct
+                        sc = SensorContext(
+                            soil_moisture_pct=pct,
+                            soil_temp_c=reading.soil_temp_c,
+                            nitrogen_kg_ha=reading.nitrogen_kg_ha,
+                            phosphorus_kg_ha=reading.phosphorus_kg_ha,
+                            potassium_kg_ha=reading.potassium_kg_ha,
+                            soil_ph=reading.ph,
+                            source=f"iot_db:{reading.sensor_device_id or reading.field_id}",
+                        )
+                        sc.moisture_status = _classify_moisture(pct)
+                        logger.info(
+                            "Real sensor used for %s (device=%s, age=%ds)",
+                            ctx.display_name,
+                            reading.sensor_device_id,
+                            (timezone.now() - reading.created_at).seconds,
+                        )
+                        return sc
+            except Exception as exc:
+                logger.debug("DB sensor lookup skipped: %s", exc)
+
+        # ── Tier 2: Simulator fallback ────────────────────────────────────────
         try:
-            sim = iot_blockchain.get_iot_sensor_data(ctx.query_label)
+            sim      = iot_blockchain.get_iot_sensor_data(ctx.query_label)
             readings = sim.get("readings", {})
             npk      = readings.get("npk", {})
             health   = sim.get("soil_health_score", {})
@@ -1992,7 +1809,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         return INTENT_GENERAL, crops_mentioned
 
     def _detect_crops(self, text: str) -> List[Dict[str, Any]]:
-        """Extract crop entities using the crop catalog."""
+        """Extract crop entities using the crop catalog.
+
+        FIX: use .get("id") everywhere — crop_catalog.normalize() returns None
+        for unknown crop names (e.g. Hindi names not in catalog). Direct
+        subscript norm["id"] raised TypeError: 'NoneType' object is not
+        subscriptable, crashing every market-price request with Hindi input.
+        Same guard applied to the search() fallback path.
+        """
         found: List[Dict[str, Any]] = []
         seen = set()
         tokens = re.split(r"[\s,?.!;|]+", text.lower())
@@ -2002,12 +1826,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 if len(phrase) < 2:
                     continue
                 norm = crop_catalog.normalize(phrase)
-                if norm and norm["id"] not in seen:
+                # FIX: was norm["id"] — crashes when normalize() returns None
+                if norm and norm.get("id") and norm["id"] not in seen:
                     seen.add(norm["id"])
                     found.append(norm)
         if not found:
             for r in crop_catalog.search(text, limit=3):
-                if r["id"] not in seen:
+                # FIX: was r["id"] — search() can return dicts without "id" key
+                if r.get("id") and r["id"] not in seen:
                     seen.add(r["id"])
                     found.append(r)
         return found[:5]
@@ -3131,7 +2957,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"**किस्में:** {sc_data['varieties_hi']}\n\n"
                         f"**बीज उपचार:** {sc_data['treatment']}\n\n"
                         f"💡 **अभी का मौसम ({loc}):** {temp}°C — "
-                        + ("बुवाई के लिए उपयुक्त" if temp and float(temp) < 30 else "तापमान अधिक है — बुवाई के लिए प्रतीक्षा करें")
+                        + ("बुवाई के लिए उपयुक्त" if temp and _safe_temp(temp) < 30 else "तापमान अधिक है — बुवाई के लिए प्रतीक्षा करें")
                         + f"\n\n📞 KVK/ICAR: 1800-180-1551"
                     ),
                     "en": (
@@ -3144,7 +2970,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"**Varieties:** {sc_data['varieties_en']}\n\n"
                         f"**Seed treatment:** {sc_data['treatment']}\n\n"
                         f"💡 **Current weather ({loc}):** {temp}°C — "
-                        + ("suitable for sowing" if temp and float(temp) < 30 else "too hot — wait for temperature to drop")
+                        + ("suitable for sowing" if temp and _safe_temp(temp) < 30 else "too hot — wait for temperature to drop")
                         + f"\n\n📞 KVK/ICAR: 1800-180-1551"
                     ),
                 }.get(lang, f"{crop_name_display}: sow {sc_data['window_en']}. Seed rate {sc_data['seed_rate']}.")
@@ -3213,7 +3039,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"• साफ सुथरे बोरे में भंडारण करें\n"
                         f"• मंडी में बेचने से पहले भाव चेक करें — agmarknet.gov.in\n\n"
                         f"💡 अभी का मौसम: {temp}°C — "
-                        + ("कटाई के लिए ठीक" if temp and float(temp) < 35 else "बारिश/तेज धूप से फसल बचाएं")
+                        + ("कटाई के लिए ठीक" if temp and _safe_temp(temp) < 35 else "बारिश/तेज धूप से फसल बचाएं")
                         + f"\n\n📞 ICAR: 1800-180-1551"
                     ),
                     "en": (

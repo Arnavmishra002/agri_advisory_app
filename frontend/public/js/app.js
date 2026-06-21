@@ -2030,6 +2030,8 @@
     // ========================================
     // AI CHAT FUNCTIONS
     // ========================================
+    let lastQuery = '';
+
     async function handleChatUserMessage() {
         const input = document.getElementById('messageInput');
         const chatMessages = document.getElementById('chatMessages');
@@ -2038,15 +2040,28 @@
         const message = input.value.trim();
         if (!message) return;
 
+        lastQuery = message;
+
+        // Hide empty state suggestions
+        const emptyState = document.getElementById('empty-state');
+        if (emptyState) emptyState.style.display = 'none';
+
         // Add user message to chat
-        // Bug #2 fix: use correct CSS class names (.chat-message-user, .chat-bubble-user)
         const userRow = document.createElement('div');
         userRow.className = 'chat-message-user';
         const userDiv = document.createElement('div');
         userDiv.className = 'chat-bubble-user';
         userDiv.textContent = message;
+
+        // User timestamp
+        const userTime = document.createElement('span');
+        userTime.className = 'msg-time';
+        userTime.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        userDiv.appendChild(userTime);
+
         userRow.appendChild(userDiv);
         chatMessages.appendChild(userRow);
+
         // Clear and reset textarea
         input.value = '';
         if (input.tagName === 'TEXTAREA') {
@@ -2054,13 +2069,23 @@
         }
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        // Show loading indicator (inline, not the shared #loading div)
-        const loadingDiv = document.createElement('div');
-        loadingDiv.id = 'chatLoadingMsg';
-        loadingDiv.style.cssText = 'padding:12px;color:#4a7c59;font-size:0.9rem;';
-        loadingDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${(typeof window.t === 'function' ? window.t('loading') : 'Loading...')}`;
-        chatMessages.appendChild(loadingDiv);
+        // Pre-render skeleton bubble
+        const skeletonRow = document.createElement('div');
+        skeletonRow.className = 'chat-message-bot skeleton-msg';
+        skeletonRow.innerHTML = `
+            <div class="chat-avatar" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2d5016,#4a7c59);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">🌾</div>
+            <div class="skeleton-bubble">
+                <div class="skeleton-bar long"></div>
+                <div class="skeleton-bar medium"></div>
+                <div class="skeleton-bar short"></div>
+            </div>
+        `;
+        chatMessages.appendChild(skeletonRow);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Blinking stream dot next to send button
+        const streamDot = document.getElementById('stream-dot');
+        if (streamDot) streamDot.style.display = 'inline-block';
 
         try {
             const data = await apiPostJson('/api/chatbot/query/', {
@@ -2074,13 +2099,8 @@
             });
             const botReply = data.response || data.answer || data.message || 'मुझे समझ नहीं आया, कृपया फिर से पूछें।';
 
-            // Remove loading indicator
-            const ld = document.getElementById('chatLoadingMsg');
-            if (ld) ld.remove();
-
-            // Bug #4 fix: removed inner redeclaration of escapeHtml that shadowed the outer
-            // closure version (the inner version was missing '"' and "'" escapes, enabling
-            // attribute injection). The outer escapeHtml is used directly.
+            // Remove skeleton
+            skeletonRow.remove();
 
             let extra = '';
             const suggestions = data.crop_suggestions || [];
@@ -2089,7 +2109,6 @@
                 extra += '<strong style="color:#2d5016;font-size:0.9rem;">📌 सुझाव:</strong><ul style="margin:6px 0 0 18px;padding:0;font-size:0.88rem;">';
                 suggestions.forEach(s => {
                     if (s.type === 'crop_recommendation') {
-                        // Bug-fix: only show Hindi name in () if it actually differs from English
                         const hindiPart = (s.hindi && s.hindi !== s.crop) ? ' (' + escapeHtml(s.hindi) + ')' : '';
                         extra += '<li><b>' + escapeHtml(s.crop) + '</b>' + hindiPart + ' — ' + escapeHtml(s.score) + '%: ' + escapeHtml(s.reason) + '</li>';
                     } else if (s.type === 'market_price') {
@@ -2098,15 +2117,12 @@
                 });
                 extra += '</ul></div>';
             }
-            // Bug-fix: filter out null/empty/"none" values before rendering source pills
             const sources = (data.sources || []).filter(s => s && s.toLowerCase() !== 'none' && s.toLowerCase() !== 'null' && s.trim() !== '');
             if (sources.length) {
                 extra += '<div style="margin-top:8px;font-size:0.75rem;color:#666;">📡 स्रोत: ' + escapeHtml(sources.slice(0, 3).join(' • ')) + '</div>';
             }
 
-            // ── AI source badge ────────────────────────────────────────────
             const dataSource = data.data_source || '';
-            // Bug #6 fix: backend returns lowercase 'gemini-1.5-flash' etc. — case-insensitive check
             const dsLower = dataSource.toLowerCase();
             let aiSourceBadge = '';
             if (dsLower.includes('gemini')) {
@@ -2118,19 +2134,14 @@
             }
             if (aiSourceBadge) extra += aiSourceBadge;
 
-            // ── Memory indicator ──────────────────────────────────────────
             if (data.context && data.context.memory_active) {
                 extra += '<span style="display:inline-block;background:#fff3e0;color:#e65100;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;margin-left:4px;">💾 Memory Active</span>';
             }
 
-            // ── Persist detected crops to farmer profile (Fix 5) ─────────
-            // Every crop mentioned in the AI response is stored so the AI
-            // can say "Last time you asked about wheat aphids..." next session.
             if (data.crops_detected && data.crops_detected.length > 0) {
                 _maybeUpdateCurrentCrop(data.crops_detected);
             }
 
-            // Bug #2 fix: use correct CSS class names for bot message
             const botRow = document.createElement('div');
             botRow.className = 'chat-message-bot';
             const botAvatar = document.createElement('div');
@@ -2139,28 +2150,35 @@
             const botDiv = document.createElement('div');
             botDiv.className = 'chat-bubble-bot';
             botDiv.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(botReply) + '</div>' + extra;
+            
+            // Bot timestamp
+            const botTime = document.createElement('span');
+            botTime.className = 'msg-time';
+            botTime.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            botDiv.appendChild(botTime);
+
             botRow.appendChild(botAvatar);
             botRow.appendChild(botDiv);
             chatMessages.appendChild(botRow);
 
-            // Update AI status indicator in navbar
             _updateAIStatusBadge(dataSource);
 
         } catch (error) {
-            const ld = document.getElementById('chatLoadingMsg');
-            if (ld) ld.remove();
+            skeletonRow.remove();
 
             const errDiv = document.createElement('div');
-            errDiv.style.cssText = 'background:#fff3cd;border-left:4px solid #ffc107;border-radius:10px;padding:12px;margin:8px 0;color:#856404;';
-            errDiv.textContent = `त्रुटि: ${error.message || 'नेटवर्क — कृपया दोबारा प्रयास करें'}`;
+            errDiv.className = 'error-banner';
+            errDiv.innerHTML = `
+                <span>⚠️ त्रुटि: ${escapeHtml(error.message || 'नेटवर्क — कृपया दोबारा प्रयास करें')}</span>
+                <button class="retry-btn" onclick="retryLastQuery()">Try again</button>
+            `;
             chatMessages.appendChild(errDiv);
         } finally {
+            if (streamDot) streamDot.style.display = 'none';
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     }
 
-    // Update the AI status badge in the chat panel header
-    // Bug #6 fix: case-insensitive comparison for gemini/qwen/rag
     function _updateAIStatusBadge(dataSource) {
         let badge = document.getElementById('aiStatusBadge');
         if (!badge) return;
@@ -2181,7 +2199,6 @@
         const input = document.getElementById('messageInput');
         if (input) {
             input.value = question;
-            // Auto-resize if textarea
             if (typeof window.autoResizeChatInput === 'function') {
                 window.autoResizeChatInput(input);
             }
@@ -2189,11 +2206,38 @@
         }
     }
 
+    function prefill(text) {
+        const input = document.getElementById('messageInput');
+        if (input) {
+            input.value = text;
+            input.focus();
+            if (typeof window.autoResizeChatInput === 'function') {
+                window.autoResizeChatInput(input);
+            }
+        }
+    }
+
+    function retryLastQuery() {
+        // Remove all error banners
+        document.querySelectorAll('.error-banner').forEach(el => el.remove());
+        if (lastQuery) {
+            const input = document.getElementById('messageInput');
+            if (input) {
+                input.value = lastQuery;
+                handleChatUserMessage();
+            }
+        }
+    }
+
     function clearChat() {
         const chatMessages = document.getElementById('chatMessages');
         if (!chatMessages) return;
         chatMessages.innerHTML = '';
-        // Re-add welcome message with proper CSS classes
+
+        // Show empty state suggestions again
+        const emptyState = document.getElementById('empty-state');
+        if (emptyState) emptyState.style.display = 'block';
+
         const botRow = document.createElement('div');
         botRow.className = 'chat-message-bot';
         const avatar = document.createElement('div');
@@ -2211,9 +2255,39 @@
         chatMessages.appendChild(botRow);
     }
 
-    // ========================================
-    // MAKE FUNCTIONS GLOBALLY AVAILABLE
-    // ========================================
+    function buildChatLanguageSwitcher() {
+        const container = document.getElementById('chatLanguageSwitcherContainer');
+        if (!container || document.getElementById('chatLanguageSwitcher')) return;
+
+        const sel = document.createElement('select');
+        sel.id = 'chatLanguageSwitcher';
+        sel.className = 'form-select form-select-sm language-switcher';
+        sel.title = 'भाषा / Language';
+        sel.style.cssText = 'width:auto;min-width:130px;border-radius:20px;padding:4px 10px;font-size:0.88rem;cursor:pointer;';
+
+        if (window.SUPPORTED_LANGUAGES) {
+            window.SUPPORTED_LANGUAGES.forEach(lang => {
+                const opt = document.createElement('option');
+                opt.value = lang.code;
+                opt.textContent = `${lang.name} (${lang.english})`;
+                if (lang.code === (window.getCurrentLang ? window.getCurrentLang() : 'hi')) {
+                    opt.selected = true;
+                }
+                sel.appendChild(opt);
+            });
+        }
+
+        sel.addEventListener('change', function () {
+            if (window.setLanguage) {
+                window.setLanguage(this.value);
+            }
+            const navSel = document.getElementById('languageSwitcher');
+            if (navSel) navSel.value = this.value;
+        });
+
+        container.appendChild(sel);
+    }
+
     window.apiFetch = apiFetch;
     window.apiGetJson = apiGetJson;
     window.apiPostJson = apiPostJson;
@@ -2225,7 +2299,6 @@
     window.detectLocation = detectLocation;
     window.startContinuousLocationWatch = startContinuousLocationWatch;
     window.selectMandi = selectMandi;
-    // Farmer profile helpers — exposed for inline HTML onchange handlers
     window._upsertFarmerProfile  = _upsertFarmerProfile;
     window.saveFarmerCropHistory = saveFarmerCropHistory;
     window.onMandiSelected = onMandiSelected;
@@ -2251,8 +2324,9 @@
     window.handleChatUserMessage = handleChatUserMessage;
     window.sendMessage = handleChatUserMessage;
     window.askSuggested = askSuggested;
+    window.prefill = prefill;
+    window.retryLastQuery = retryLastQuery;
     window.clearChat = clearChat;
-    // Field Advisory & Language exports
     window.loadFieldAdvisory = loadFieldAdvisory;
     window.loadFieldAdvisoryWithoutSensor = loadFieldAdvisoryWithoutSensor;
     window.fillPreset = fillPreset;
@@ -2284,6 +2358,7 @@
     async function bootstrapApp() {
         console.log('📊 Page loaded, initializing...');
         setupServiceCards();
+        buildChatLanguageSwitcher();
 
         // Bug #7 fix: don't await health check before loading services.
         // Health check was blocking the entire app render during cold-start (Render free tier ~30s).
