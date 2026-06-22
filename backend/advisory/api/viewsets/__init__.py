@@ -10,12 +10,14 @@ from .field_advisory import FieldAdvisoryViewSet
 from .languages import LanguageViewSet
 from .location import LocationRecommendationViewSet
 from .market import MarketPricesViewSet
-from .misc import ForumPostViewSet, SMSIVRViewSet, TextToSpeechViewSet, UserViewSet
+from .auth_viewset import AuthViewSet
+from .misc import ForumPostViewSet, SMSIVRViewSet, TextToSpeechViewSet
 from .pest import PestDetectionViewSet
 from .schemes import GovernmentSchemesViewSet
 from .weather import WeatherViewSet
 
 __all__ = [
+    "AuthViewSet",
     "ChatbotViewSet",
     "CropAdvisoryViewSet",
     "CropViewSet",
@@ -33,6 +35,5 @@ __all__ = [
     "SMSIVRViewSet",
     "TextToSpeechViewSet",
     "TrendingCropsViewSet",
-    "UserViewSet",
     "WeatherViewSet",
 ]

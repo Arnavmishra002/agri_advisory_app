@@ -34,9 +34,13 @@
     }
 
     async function apiPostJson(path, body) {
+        // Inject auth token if logged in
+        const authHeaders = (window.KM_Auth && KM_Auth.isLoggedIn())
+            ? KM_Auth.getAuthHeaders()
+            : {};
         const response = await fetch(apiFetch(path), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify(body),
         });
         if (!response.ok) {
@@ -249,6 +253,10 @@
             if (currentLongitude) payload.longitude = currentLongitude;
             if (currentLocation)  payload.location_name = currentLocation;
             if (currentState)     payload.state = currentState;
+            // Link to logged-in user if available
+            if (window.KM_Auth && KM_Auth.isLoggedIn() && KM_Auth._user) {
+                payload.user_id = KM_Auth._user.id;
+            }
             // Fire-and-forget — never blocks the UI
             fetch(apiFetch('/api/farmer-profile/'), {
                 method: 'POST',

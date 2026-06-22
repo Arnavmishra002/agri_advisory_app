@@ -606,14 +606,8 @@ class TextToSpeechViewSet(viewsets.ViewSet):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  User + Forum stubs (functional enough for now)
+#  Forum stub
 # ─────────────────────────────────────────────────────────────────────────────
-class UserViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny]
-    def list(self, request):
-        return Response({"message": "User service — use /api/token/ for JWT auth"})
-
-
 class ForumPostViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
     def list(self, request):

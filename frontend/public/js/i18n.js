@@ -232,6 +232,180 @@
             ta: '🌐 மொழி', gu: '🌐 ભાષા', kn: '🌐 ಭಾಷೆ', ml: '🌐 ഭാഷ',
             pa: '🌐 ਭਾਸ਼ਾ', or: '🌐 ଭାଷା', as: '🌐 ভাষা', ur: '🌐 زبان'
         },
+        // Auth
+        auth_login: {
+            hi: 'लॉगिन', en: 'Login', mr: 'लॉगिन', ta: 'உள்நுழை', te: 'లాగిన్',
+            gu: 'લૉગિન', pa: 'ਲੌਗਿਨ', bn: 'লগইন', kn: 'ಲಾಗಿನ್', ml: 'ലോഗിൻ',
+            or: 'Login', as: 'Login', ur: 'Login', mai: 'Login', kok: 'Login',
+            ne: 'Login', mni: 'Login', sd: 'Login', ks: 'Login', doi: 'Login',
+            bo: 'Login', sat: 'Login'
+        },
+        auth_register: {
+            hi: 'रजिस्टर', en: 'Register', mr: 'नोंदणी', ta: 'பதிவு', te: 'నమోదు',
+            gu: 'નોંધણી', pa: 'ਰਜਿਸਟਰ', bn: 'নিবন্ধন', kn: 'ನೋಂದಣಿ', ml: 'രജിസ്റ്റർ',
+            or: 'Register', as: 'Register', ur: 'Register', mai: 'Register', kok: 'Register',
+            ne: 'Register', mni: 'Register', sd: 'Register', ks: 'Register', doi: 'Register',
+            bo: 'Register', sat: 'Register'
+        },
+        auth_logout: {
+            hi: 'लॉगआउट', en: 'Logout', mr: 'लॉगआउट', ta: 'வெளியேறு', te: 'లాగ్అవుట్',
+            gu: 'લૉગઆઉટ', pa: 'ਲੌਗਆਉਟ', bn: 'লগআউট', kn: 'ಲಾಗ್ಔಟ್', ml: 'ലോഗ്ഔട്ട്',
+            or: 'Logout', as: 'Logout', ur: 'Logout', mai: 'Logout', kok: 'Logout',
+            ne: 'Logout', mni: 'Logout', sd: 'Logout', ks: 'Logout', doi: 'Logout',
+            bo: 'Logout', sat: 'Logout'
+        },
+        auth_tab_otp: {
+            hi: 'OTP लॉगिन', en: 'OTP Login', mr: 'OTP लॉगिन', ta: 'OTP உள்நுழைவு', te: 'OTP లాగిన్',
+            gu: 'OTP લૉગિન', pa: 'OTP ਲੌਗਿਨ', bn: 'OTP লগইন', kn: 'OTP ಲಾಗಿನ್', ml: 'OTP ലോഗിൻ',
+            or: 'OTP Login', as: 'OTP Login', ur: 'OTP Login', mai: 'OTP Login', kok: 'OTP Login',
+            ne: 'OTP Login', mni: 'OTP Login', sd: 'OTP Login', ks: 'OTP Login', doi: 'OTP Login',
+            bo: 'OTP Login', sat: 'OTP Login'
+        },
+        auth_tab_password: {
+            hi: 'पासवर्ड', en: 'Password', mr: 'पासवर्ड', ta: 'கடவுச்சொல்', te: 'పాస్‌వర్డ్',
+            gu: 'પાસવર્ડ', pa: 'ਪਾਸਵਰਡ', bn: 'পাসওয়ার্ড', kn: 'ಪಾಸ್‌ವರ್ಡ್', ml: 'പാസ്‌വേഡ്',
+            or: 'Password', as: 'Password', ur: 'Password', mai: 'Password', kok: 'Password',
+            ne: 'Password', mni: 'Password', sd: 'Password', ks: 'Password', doi: 'Password',
+            bo: 'Password', sat: 'Password'
+        },
+        auth_tab_register: {
+            hi: 'रजिस्टर', en: 'Register', mr: 'नोंदणी', ta: 'பதிவு', te: 'నమోదు',
+            gu: 'નોંધણી', pa: 'ਰਜਿਸਟਰ', bn: 'নিবন্ধন', kn: 'ನೋಂದಣಿ', ml: 'രജിസ്റ്റർ',
+            or: 'Register', as: 'Register', ur: 'Register', mai: 'Register', kok: 'Register',
+            ne: 'Register', mni: 'Register', sd: 'Register', ks: 'Register', doi: 'Register',
+            bo: 'Register', sat: 'Register'
+        },
+        auth_phone_label: {
+            hi: 'मोबाइल नंबर', en: 'Mobile Number', mr: 'मोबाइल नंबर', ta: 'மொபைல் எண்', te: 'మొబైల్ నంబర్',
+            gu: 'મોબાઈલ નંબર', pa: 'ਮੋਬਾਈਲ ਨੰਬਰ', bn: 'মোবাইল নম্বর', kn: 'ಮೊಬೈಲ್ ಸಂಖ್ಯೆ', ml: 'മൊബൈൽ നമ്പർ',
+            or: 'Mobile Number', as: 'Mobile Number', ur: 'Mobile Number', mai: 'Mobile Number', kok: 'Mobile Number',
+            ne: 'Mobile Number', mni: 'Mobile Number', sd: 'Mobile Number', ks: 'Mobile Number', doi: 'Mobile Number',
+            bo: 'Mobile Number', sat: 'Mobile Number'
+        },
+        auth_otp_label: {
+            hi: 'OTP दर्ज करें', en: 'Enter OTP', mr: 'OTP टाका', ta: 'OTP உள்ளிட', te: 'OTP నమోదు',
+            gu: 'OTP દાખલ કરો', pa: 'OTP ਦਰਜ ਕਰੋ', bn: 'OTP লিখুন', kn: 'OTP ನಮೂದಿಸಿ', ml: 'OTP നൽകുക',
+            or: 'Enter OTP', as: 'Enter OTP', ur: 'Enter OTP', mai: 'Enter OTP', kok: 'Enter OTP',
+            ne: 'Enter OTP', mni: 'Enter OTP', sd: 'Enter OTP', ks: 'Enter OTP', doi: 'Enter OTP',
+            bo: 'Enter OTP', sat: 'Enter OTP'
+        },
+        auth_send_otp: {
+            hi: 'OTP भेजें', en: 'Send OTP', mr: 'OTP पाठवा', ta: 'OTP அனுப்பு', te: 'OTP పంపు',
+            gu: 'OTP મોકલો', pa: 'OTP ਭੇਜੋ', bn: 'OTP পাঠান', kn: 'OTP ಕಳುಹಿಸಿ', ml: 'OTP അയക്കുക',
+            or: 'Send OTP', as: 'Send OTP', ur: 'Send OTP', mai: 'Send OTP', kok: 'Send OTP',
+            ne: 'Send OTP', mni: 'Send OTP', sd: 'Send OTP', ks: 'Send OTP', doi: 'Send OTP',
+            bo: 'Send OTP', sat: 'Send OTP'
+        },
+        auth_verify_otp: {
+            hi: 'OTP सत्यापित करें', en: 'Verify OTP', mr: 'OTP सत्यापित करा', ta: 'OTP சரிபார்', te: 'OTP ధృవీకరించు',
+            gu: 'OTP ચકાસો', pa: 'OTP ਜਾਂਚੋ', bn: 'OTP যাচাই করুন', kn: 'OTP ಪರಿಶೀಲಿಸಿ', ml: 'OTP പരിശോധിക്കുക',
+            or: 'Verify OTP', as: 'Verify OTP', ur: 'Verify OTP', mai: 'Verify OTP', kok: 'Verify OTP',
+            ne: 'Verify OTP', mni: 'Verify OTP', sd: 'Verify OTP', ks: 'Verify OTP', doi: 'Verify OTP',
+            bo: 'Verify OTP', sat: 'Verify OTP'
+        },
+        auth_password_label: {
+            hi: 'पासवर्ड', en: 'Password', mr: 'पासवर्ड', ta: 'கடவுச்சொல்', te: 'పాస్‌వర్డ్',
+            gu: 'પાસવર્ડ', pa: 'ਪਾਸਵਰਡ', bn: 'পাসওয়ার্ড', kn: 'ಪಾಸ್‌ವರ್ಡ್', ml: 'പാസ്‌വേഡ്',
+            or: 'Password', as: 'Password', ur: 'Password', mai: 'Password', kok: 'Password',
+            ne: 'Password', mni: 'Password', sd: 'Password', ks: 'Password', doi: 'Password',
+            bo: 'Password', sat: 'Password'
+        },
+        auth_username_label: {
+            hi: 'Username', en: 'Username', mr: 'Username', ta: 'பயனர்பெயர்', te: 'వినియోగదారు పేరు',
+            gu: 'વપરાશકર્તા નામ', pa: 'ਯੂਜ਼ਰਨੇਮ', bn: 'ব্যবহারকারীর নাম', kn: 'ಬಳಕೆದಾರ ಹೆಸರು', ml: 'ഉപയോക്തൃ നാമം',
+            or: 'Username', as: 'Username', ur: 'Username', mai: 'Username', kok: 'Username',
+            ne: 'Username', mni: 'Username', sd: 'Username', ks: 'Username', doi: 'Username',
+            bo: 'Username', sat: 'Username'
+        },
+        auth_name_label: {
+            hi: 'नाम', en: 'Name', mr: 'नाव', ta: 'பெயர்', te: 'పేరు',
+            gu: 'નામ', pa: 'ਨਾਮ', bn: 'নাম', kn: 'ಹೆಸರು', ml: 'പേര്',
+            or: 'Name', as: 'Name', ur: 'Name', mai: 'Name', kok: 'Name',
+            ne: 'Name', mni: 'Name', sd: 'Name', ks: 'Name', doi: 'Name',
+            bo: 'Name', sat: 'Name'
+        },
+        auth_state_label: {
+            hi: 'राज्य', en: 'State', mr: 'राज्य', ta: 'மாநிலம்', te: 'రాష్ట్రం',
+            gu: 'રાજ્ય', pa: 'ਰਾਜ', bn: 'রাজ্য', kn: 'ರಾಜ್ಯ', ml: 'സംസ്ഥാനം',
+            or: 'State', as: 'State', ur: 'State', mai: 'State', kok: 'State',
+            ne: 'State', mni: 'State', sd: 'State', ks: 'State', doi: 'State',
+            bo: 'State', sat: 'State'
+        },
+        auth_guest_continue: {
+            hi: 'Guest के रूप में जारी रखें', en: 'Continue as Guest', mr: 'Guest म्हणून सुरू ठेवा',
+            ta: 'விருந்தினராக தொடர', te: 'అతిథిగా కొనసాగించు',
+            gu: 'Guest તરીકે ચાલુ રાખો', pa: 'Guest ਵਜੋਂ ਜਾਰੀ ਰੱਖੋ', bn: 'Guest হিসেবে চালিয়ে যান',
+            kn: 'Guest ಆಗಿ ಮುಂದುವರಿಯಿರಿ', ml: 'Guest ആയി തുടരുക',
+            or: 'Continue as Guest', as: 'Continue as Guest', ur: 'Continue as Guest',
+            mai: 'Continue as Guest', kok: 'Continue as Guest', ne: 'Continue as Guest',
+            mni: 'Continue as Guest', sd: 'Continue as Guest', ks: 'Continue as Guest',
+            doi: 'Continue as Guest', bo: 'Continue as Guest', sat: 'Continue as Guest'
+        },
+        auth_welcome_back: {
+            hi: 'वापस स्वागत है!', en: 'Welcome back!', mr: 'परत स्वागत!', ta: 'மீண்டும் வரவேற்கிறோம்!',
+            te: 'తిరిగి స్వాగతం!', gu: 'પાછા આવવા માટે સ્વાગત!', pa: 'ਵਾਪਸ ਸੁਆਗਤ!',
+            bn: 'ফিরে আসার জন্য স্বাগত!', kn: 'ಮರಳಿ ಸ್ವಾಗತ!', ml: 'തിരിച്ചു സ്വാഗതം!',
+            or: 'Welcome back!', as: 'Welcome back!', ur: 'Welcome back!',
+            mai: 'Welcome back!', kok: 'Welcome back!', ne: 'Welcome back!',
+            mni: 'Welcome back!', sd: 'Welcome back!', ks: 'Welcome back!',
+            doi: 'Welcome back!', bo: 'Welcome back!', sat: 'Welcome back!'
+        },
+        auth_error_invalid_otp: {
+            hi: 'गलत OTP। दोबारा जांचें।', en: 'Invalid OTP. Please check.', mr: 'चुकीचा OTP.',
+            ta: 'தவறான OTP.', te: 'తప్పు OTP.',
+            gu: 'ખોટો OTP.', pa: 'ਗਲਤ OTP.', bn: 'ভুল OTP.',
+            kn: 'ತಪ್ಪು OTP.', ml: 'തെറ്റായ OTP.',
+            or: 'Invalid OTP.', as: 'Invalid OTP.', ur: 'Invalid OTP.',
+            mai: 'Invalid OTP.', kok: 'Invalid OTP.', ne: 'Invalid OTP.',
+            mni: 'Invalid OTP.', sd: 'Invalid OTP.', ks: 'Invalid OTP.',
+            doi: 'Invalid OTP.', bo: 'Invalid OTP.', sat: 'Invalid OTP.'
+        },
+        auth_error_expired_otp: {
+            hi: 'OTP समाप्त हो गया। नया OTP भेजें।', en: 'OTP expired. Request a new one.',
+            mr: 'OTP कालबाह्य.', ta: 'OTP காலாவதி.', te: 'OTP గడువు ముగిసింది.',
+            gu: 'OTP સમાપ્ત.', pa: 'OTP ਮਿਆਦ ਪੁੱਗ ਗਈ.', bn: 'OTP মেয়াদ শেষ.',
+            kn: 'OTP ಅವಧಿ ಮೀರಿದೆ.', ml: 'OTP കാലഹരണപ്പെട്ടു.',
+            or: 'OTP expired.', as: 'OTP expired.', ur: 'OTP expired.',
+            mai: 'OTP expired.', kok: 'OTP expired.', ne: 'OTP expired.',
+            mni: 'OTP expired.', sd: 'OTP expired.', ks: 'OTP expired.',
+            doi: 'OTP expired.', bo: 'OTP expired.', sat: 'OTP expired.'
+        },
+        auth_error_rate_limit: {
+            hi: 'बहुत अधिक प्रयास। 1 घंटे बाद कोशिश करें।', en: 'Too many attempts. Try after 1 hour.',
+            mr: 'खूप जास्त प्रयत्न.', ta: 'அதிக முயற்சிகள்.', te: 'చాలా ప్రయత్నాలు.',
+            gu: 'ઘણા પ્રયત્નો.', pa: 'ਬਹੁਤ ਜ਼ਿਆਦਾ ਕੋਸ਼ਿਸ਼ਾਂ.', bn: 'অনেক বেশি চেষ্টা.',
+            kn: 'ಹಲವಾರು ಪ್ರಯತ್ನಗಳು.', ml: 'ഒരുപാട് ശ്രമങ്ങൾ.',
+            or: 'Too many attempts.', as: 'Too many attempts.', ur: 'Too many attempts.',
+            mai: 'Too many attempts.', kok: 'Too many attempts.', ne: 'Too many attempts.',
+            mni: 'Too many attempts.', sd: 'Too many attempts.', ks: 'Too many attempts.',
+            doi: 'Too many attempts.', bo: 'Too many attempts.', sat: 'Too many attempts.'
+        },
+        auth_error_network: {
+            hi: 'इंटरनेट कनेक्शन जांचें।', en: 'Check internet connection.', mr: 'इंटरनेट तपासा.',
+            ta: 'இணைய இணைப்பை சரிபார்க்கவும்.', te: 'ఇంటర్నెట్ తనిఖీ చేయండి.',
+            gu: 'ઇન્ટરનેટ ચકાસો.', pa: 'ਇੰਟਰਨੈੱਟ ਜਾਂਚੋ.', bn: 'ইন্টারনেট পরীক্ষা করুন.',
+            kn: 'ಇಂಟರ್ನೆಟ್ ಪರಿಶೀಲಿಸಿ.', ml: 'ഇന്റർനെറ്റ് പരിശോധിക്കുക.',
+            or: 'Check internet connection.', as: 'Check internet connection.', ur: 'Check internet connection.',
+            mai: 'Check internet connection.', kok: 'Check internet connection.', ne: 'Check internet connection.',
+            mni: 'Check internet connection.', sd: 'Check internet connection.', ks: 'Check internet connection.',
+            doi: 'Check internet connection.', bo: 'Check internet connection.', sat: 'Check internet connection.'
+        },
+        auth_resend_otp: {
+            hi: 'OTP दोबारा भेजें', en: 'Resend OTP', mr: 'OTP पुन्हा पाठवा', ta: 'OTP மீண்டும் அனுப்பு',
+            te: 'OTP మళ్లీ పంపు', gu: 'OTP ફરીથી મોકલો', pa: 'OTP ਦੁਬਾਰਾ ਭੇਜੋ',
+            bn: 'OTP আবার পাঠান', kn: 'OTP ಮತ್ತೆ ಕಳುಹಿಸಿ', ml: 'OTP വീണ്ടും അയക്കുക',
+            or: 'Resend OTP', as: 'Resend OTP', ur: 'Resend OTP',
+            mai: 'Resend OTP', kok: 'Resend OTP', ne: 'Resend OTP',
+            mni: 'Resend OTP', sd: 'Resend OTP', ks: 'Resend OTP',
+            doi: 'Resend OTP', bo: 'Resend OTP', sat: 'Resend OTP'
+        },
+        auth_or_divider: {
+            hi: 'या', en: 'or', mr: 'किंवा', ta: 'அல்லது', te: 'లేదా',
+            gu: 'અથવા', pa: 'ਜਾਂ', bn: 'অথবা', kn: 'ಅಥವಾ', ml: 'അല്ലെങ്കിൽ',
+            or: 'or', as: 'or', ur: 'or', mai: 'or', kok: 'or',
+            ne: 'or', mni: 'or', sd: 'or', ks: 'or', doi: 'or',
+            bo: 'or', sat: 'or'
+        },
     };
 
     // ── Current language state ─────────────────────────────────────────

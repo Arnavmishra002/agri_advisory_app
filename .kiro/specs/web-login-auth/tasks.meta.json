@@ -1,0 +1,278 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Backend: Create AuthViewSet with OTP + register + me endpoints": [
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028937151
+      },
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028949386
+      },
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029131171
+      }
+    ],
+    "2. Backend: Add OTP rate limiter instance and wire URL routes": [
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028937223
+      },
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029143784
+      },
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029248969
+      }
+    ],
+    "3. Frontend: Add auth modal HTML to index.html + navbar login button": [
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028937267
+      },
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029270766
+      },
+      {
+        "executionId": "05f32ab3-5eac-4188-bf9d-719d589843a1",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029439502
+      },
+      {
+        "executionId": "05f32ab3-5eac-4188-bf9d-719d589843a1",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029451980
+      },
+      {
+        "executionId": "bb52334c-9923-4f39-8f10-db33ad8a8f52",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782030027997
+      },
+      {
+        "executionId": "50b84dec-3feb-4b10-a685-e5565c05a251",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782108694722
+      },
+      {
+        "executionId": "50b84dec-3feb-4b10-a685-e5565c05a251",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782108818273
+      }
+    ],
+    "4. Frontend: Create auth.js module (KM_Auth object, all methods)": [
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028937293
+      },
+      {
+        "executionId": "05f32ab3-5eac-4188-bf9d-719d589843a1",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029439526
+      },
+      {
+        "executionId": "514d4ab9-bb70-4a98-96f1-3c7546ed92ab",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029769854
+      },
+      {
+        "executionId": "bb52334c-9923-4f39-8f10-db33ad8a8f52",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782030028020
+      },
+      {
+        "executionId": "50b84dec-3feb-4b10-a685-e5565c05a251",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782108823681
+      },
+      {
+        "executionId": "50b84dec-3feb-4b10-a685-e5565c05a251",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109033197
+      }
+    ],
+    "5. Frontend: Update app.js to inject Bearer token in API calls": [
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028937315
+      },
+      {
+        "executionId": "05f32ab3-5eac-4188-bf9d-719d589843a1",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029439546
+      },
+      {
+        "executionId": "514d4ab9-bb70-4a98-96f1-3c7546ed92ab",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029770560
+      },
+      {
+        "executionId": "bb52334c-9923-4f39-8f10-db33ad8a8f52",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782030028039
+      },
+      {
+        "executionId": "50b84dec-3feb-4b10-a685-e5565c05a251",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109034109
+      }
+    ],
+    "6. Frontend: Add auth CSS to styles.css (modal, OTP boxes, navbar pill)": [
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028937339
+      },
+      {
+        "executionId": "05f32ab3-5eac-4188-bf9d-719d589843a1",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029439564
+      },
+      {
+        "executionId": "514d4ab9-bb70-4a98-96f1-3c7546ed92ab",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029771283
+      },
+      {
+        "executionId": "bb52334c-9923-4f39-8f10-db33ad8a8f52",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782030028064
+      },
+      {
+        "executionId": "50b84dec-3feb-4b10-a685-e5565c05a251",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109039659
+      },
+      {
+        "executionId": "4aa0eab5-7b18-4e6a-886f-666e7a66ccd3",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109231197
+      },
+      {
+        "executionId": "4aa0eab5-7b18-4e6a-886f-666e7a66ccd3",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109236795
+      },
+      {
+        "executionId": "4aa0eab5-7b18-4e6a-886f-666e7a66ccd3",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109384357
+      }
+    ],
+    "7. Frontend: Add 20 auth_* keys to i18n.js for all 22 languages": [
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028937375
+      },
+      {
+        "executionId": "05f32ab3-5eac-4188-bf9d-719d589843a1",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029439581
+      },
+      {
+        "executionId": "514d4ab9-bb70-4a98-96f1-3c7546ed92ab",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029771923
+      },
+      {
+        "executionId": "bb52334c-9923-4f39-8f10-db33ad8a8f52",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782030028086
+      },
+      {
+        "executionId": "50b84dec-3feb-4b10-a685-e5565c05a251",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109040633
+      },
+      {
+        "executionId": "4aa0eab5-7b18-4e6a-886f-666e7a66ccd3",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109231222
+      },
+      {
+        "executionId": "4aa0eab5-7b18-4e6a-886f-666e7a66ccd3",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109237660
+      },
+      {
+        "executionId": "6f2cf793-2b69-475b-8c03-f438dce83325",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782111651044
+      }
+    ],
+    "8. Tests: CI smoke test — verify /api/users/otp/request/ + /me/ importable": [
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028937392
+      },
+      {
+        "executionId": "05f32ab3-5eac-4188-bf9d-719d589843a1",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029439596
+      },
+      {
+        "executionId": "bb52334c-9923-4f39-8f10-db33ad8a8f52",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782030028107
+      },
+      {
+        "executionId": "4aa0eab5-7b18-4e6a-886f-666e7a66ccd3",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109231242
+      },
+      {
+        "executionId": "70bf0bf1-4df1-42c9-8011-5248577b5031",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109679724
+      },
+      {
+        "executionId": "6f2cf793-2b69-475b-8c03-f438dce83325",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782111651789
+      }
+    ],
+    "9. Commit + push + rebuild Docker": [
+      {
+        "executionId": "1fe0d697-aeb8-44f2-b4d1-40d274b0dffb",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782028937410
+      },
+      {
+        "executionId": "05f32ab3-5eac-4188-bf9d-719d589843a1",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782029439613
+      },
+      {
+        "executionId": "bb52334c-9923-4f39-8f10-db33ad8a8f52",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782030028134
+      },
+      {
+        "executionId": "4aa0eab5-7b18-4e6a-886f-666e7a66ccd3",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782109231261
+      },
+      {
+        "executionId": "6f2cf793-2b69-475b-8c03-f438dce83325",
+        "chatSessionId": "sess_9587b0a2-00dc-4bd3-afae-48ea07d2d254",
+        "timestamp": 1782111659077
+      }
+    ]
+  }
+}

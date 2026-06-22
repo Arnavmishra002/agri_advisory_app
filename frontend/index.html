@@ -62,6 +62,36 @@
             <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode">
                 <i class="fas fa-moon" id="themeIcon"></i>
             </button>
+            <!-- Auth: Login button (logged-out state) -->
+            <button class="btn btn-login-pill" id="navLoginBtn"
+                onclick="window.KM_Auth && KM_Auth.openModal('phone')"
+                aria-label="Login / Register">
+                <i class="fas fa-user-circle me-1"></i>
+                <span data-i18n="auth_login">लॉगिन</span>
+            </button>
+            <!-- Auth: User pill (logged-in state, hidden initially) -->
+            <div class="navbar-user-pill d-none" id="navUserPill">
+                <i class="fas fa-user-circle"></i>
+                <span id="navUserName" class="navbar-user-name">किसान</span>
+                <div class="dropdown">
+                    <button class="btn btn-sm navbar-user-dropdown-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg" style="min-width:180px;border-radius:14px;">
+                        <li><span class="dropdown-item-text text-muted" style="font-size:0.78rem;padding:10px 16px 4px;">
+                            <i class="fas fa-phone me-2 text-success"></i><span id="navUserPhone"></span>
+                        </span></li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li><a class="dropdown-item" href="#" onclick="window.KM_Auth&&KM_Auth.openModal('profile');return false;" style="font-size:0.85rem;">
+                            <i class="fas fa-user me-2 text-success"></i><span data-i18n="nav_profile">मेरी प्रोफ़ाइल</span>
+                        </a></li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="window.KM_Auth&&KM_Auth.logout();return false;" style="font-size:0.85rem;">
+                            <i class="fas fa-sign-out-alt me-2"></i><span data-i18n="auth_logout">लॉगआउट</span>
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -928,6 +958,7 @@
 </script>
 <script src="/js/i18n.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/auth.js"></script>
 
 <!-- Feature #2: Navbar scroll-shrink -->
 <script>
@@ -1178,8 +1209,149 @@ window.toggleVoiceInput = function() {
     // Upgrade the section title group
     var sc = document.querySelector('.services-container .text-center.mb-2');
     if (sc) sc.className = 'section-title-group';
-})();
-</script>
-
+<!-- AUTH MODAL -->
+<div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered auth-modal-dialog">
+    <div class="modal-content auth-modal-content">
+      <div class="modal-header auth-modal-header border-0 pb-0">
+        <div class="auth-modal-brand">
+          <span class="auth-modal-logo">🌾</span>
+          <div>
+            <div class="auth-modal-title">KrishiMitra AI</div>
+            <div class="auth-modal-subtitle">किसानों का डिजिटल सहायक</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close auth-close-btn" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="auth-tabs-row">
+        <button class="auth-tab-btn active" id="tabBtnPhone" onclick="KM_Auth.switchTab('phone')">
+          <i class="fas fa-mobile-alt me-1"></i><span>OTP Login</span>
+        </button>
+        <button class="auth-tab-btn" id="tabBtnPassword" onclick="KM_Auth.switchTab('password')">
+          <i class="fas fa-lock me-1"></i><span>Password</span>
+        </button>
+        <button class="auth-tab-btn" id="tabBtnRegister" onclick="KM_Auth.switchTab('register')">
+          <i class="fas fa-user-plus me-1"></i><span>Register</span>
+        </button>
+      </div>
+      <div class="modal-body auth-modal-body">
+        <!-- TAB 1: OTP -->
+        <div id="authTabPhone" class="auth-tab-panel">
+          <div id="otpStep1">
+            <label class="auth-label" for="authPhoneInput">📱 मोबाइल नंबर</label>
+            <div class="auth-phone-input-group">
+              <span class="auth-phone-prefix">+91</span>
+              <input type="tel" id="authPhoneInput" class="auth-input auth-phone-input"
+                placeholder="9876543210" maxlength="10" inputmode="numeric"
+                oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"
+                onkeydown="if(event.key==='Enter'){KM_Auth.requestOtp();}">
+            </div>
+            <div class="auth-error-msg" id="otpPhoneError"></div>
+            <button class="auth-btn-primary mt-2" id="btnSendOtp" onclick="KM_Auth.requestOtp()">
+              <span data-i18n="auth_send_otp">OTP भेजें</span>
+              <span class="auth-btn-spinner d-none" id="spinnerSendOtp"><i class="fas fa-circle-notch fa-spin"></i></span>
+            </button>
+            <div class="auth-divider"><span data-i18n="auth_or_divider">या</span></div>
+            <button class="auth-btn-ghost" onclick="KM_Auth.continueAsGuest()">
+              👤 <span data-i18n="auth_guest_continue">Guest के रूप में जारी रखें</span>
+            </button>
+          </div>
+          <div id="otpStep2" style="display:none;">
+            <div class="auth-back-row">
+              <button class="auth-back-btn" onclick="KM_Auth.backToPhoneStep()">
+                <i class="fas fa-arrow-left me-1"></i> वापस
+              </button>
+              <span class="auth-phone-display" id="otpPhoneDisplay"></span>
+            </div>
+            <label class="auth-label">🔑 6-अंकीय OTP दर्ज करें</label>
+            <div class="otp-input-group" id="otpInputGroup">
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" autocomplete="one-time-code">
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric">
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric">
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric">
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric">
+              <input type="text" class="otp-digit" maxlength="1" inputmode="numeric">
+            </div>
+            <div class="auth-error-msg" id="otpVerifyError"></div>
+            <div class="auth-success-msg" id="otpVerifySuccess"></div>
+            <button class="auth-btn-primary" id="btnVerifyOtp" onclick="KM_Auth.verifyOtp()">
+              <span data-i18n="auth_verify_otp">OTP सत्यापित करें</span>
+              <span class="auth-btn-spinner d-none" id="spinnerVerifyOtp"><i class="fas fa-circle-notch fa-spin"></i></span>
+            </button>
+            <div class="auth-resend-row">
+              <button class="auth-resend-btn" id="btnResendOtp" onclick="KM_Auth.resendOtp()" disabled>
+                <span data-i18n="auth_resend_otp">OTP दोबारा भेजें</span>
+              </button>
+              <span class="auth-countdown" id="otpCountdown"></span>
+            </div>
+          </div>
+        </div>
+        <!-- TAB 2: Password -->
+        <div id="authTabPassword" class="auth-tab-panel" style="display:none;">
+          <label class="auth-label" for="authUsernameInput">👤 Username</label>
+          <input type="text" id="authUsernameInput" class="auth-input"
+            placeholder="username या phone" autocomplete="username"
+            onkeydown="if(event.key==='Enter'){document.getElementById('authPasswordInput').focus();}">
+          <label class="auth-label mt-3" for="authPasswordInput">🔒 Password</label>
+          <div class="auth-password-group">
+            <input type="password" id="authPasswordInput" class="auth-input auth-password-input"
+              placeholder="••••••••" autocomplete="current-password"
+              onkeydown="if(event.key==='Enter'){KM_Auth.loginPassword();}">
+            <button class="auth-password-toggle" type="button"
+              onclick="KM_Auth.togglePasswordVisibility('authPasswordInput',this)">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="auth-error-msg" id="passwordLoginError"></div>
+          <div class="auth-success-msg" id="passwordLoginSuccess"></div>
+          <button class="auth-btn-primary mt-3" id="btnLoginPassword" onclick="KM_Auth.loginPassword()">
+            <span data-i18n="auth_login">लॉगिन करें</span>
+            <span class="auth-btn-spinner d-none" id="spinnerLoginPassword"><i class="fas fa-circle-notch fa-spin"></i></span>
+          </button>
+        </div>
+        <!-- TAB 3: Register -->
+        <div id="authTabRegister" class="auth-tab-panel" style="display:none;">
+          <label class="auth-label" for="regNameInput">👤 नाम (वैकल्पिक)</label>
+          <input type="text" id="regNameInput" class="auth-input" placeholder="Ramesh Kumar" autocomplete="name">
+          <label class="auth-label mt-3" for="regUsernameInput">🆔 Username</label>
+          <input type="text" id="regUsernameInput" class="auth-input" placeholder="ramesh_farmer" autocomplete="username">
+          <label class="auth-label mt-3" for="regPasswordInput">🔒 Password (min 8 chars)</label>
+          <div class="auth-password-group">
+            <input type="password" id="regPasswordInput" class="auth-input auth-password-input"
+              placeholder="••••••••" autocomplete="new-password">
+            <button class="auth-password-toggle" type="button"
+              onclick="KM_Auth.togglePasswordVisibility('regPasswordInput',this)">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <label class="auth-label mt-3">📱 मोबाइल नंबर (वैकल्पिक)</label>
+          <div class="auth-phone-input-group">
+            <span class="auth-phone-prefix">+91</span>
+            <input type="tel" id="regPhoneInput" class="auth-input auth-phone-input"
+              placeholder="9876543210" maxlength="10" inputmode="numeric"
+              oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)">
+          </div>
+          <label class="auth-label mt-3" for="regStateInput">🗺️ राज्य (वैकल्पिक)</label>
+          <input type="text" id="regStateInput" class="auth-input" placeholder="Uttar Pradesh" list="stateList">
+          <datalist id="stateList">
+            <option value="Andhra Pradesh"><option value="Assam"><option value="Bihar">
+            <option value="Chhattisgarh"><option value="Gujarat"><option value="Haryana">
+            <option value="Himachal Pradesh"><option value="Jharkhand"><option value="Karnataka">
+            <option value="Kerala"><option value="Madhya Pradesh"><option value="Maharashtra">
+            <option value="Odisha"><option value="Punjab"><option value="Rajasthan">
+            <option value="Tamil Nadu"><option value="Telangana"><option value="Uttar Pradesh">
+            <option value="Uttarakhand"><option value="West Bengal"><option value="Delhi">
+          </datalist>
+          <div class="auth-error-msg" id="registerError"></div>
+          <div class="auth-success-msg" id="registerSuccess"></div>
+          <button class="auth-btn-primary mt-3" id="btnRegister" onclick="KM_Auth.register()">
+            <span data-i18n="auth_register">खाता बनाएं</span>
+            <span class="auth-btn-spinner d-none" id="spinnerRegister"><i class="fas fa-circle-notch fa-spin"></i></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

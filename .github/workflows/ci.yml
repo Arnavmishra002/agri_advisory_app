@@ -72,7 +72,7 @@ jobs:
           routes = sorted([r[0] for r in router.registry])
           required = ['advisories','chatbot','crops','diagnostics',
                       'field-advisory','languages','locations',
-                      'market-prices','schemes','weather']
+                      'market-prices','schemes','users','weather']
           missing = [r for r in required if r not in routes]
           if missing:
               print('MISSING routes:', missing); sys.exit(1)
@@ -113,6 +113,12 @@ jobs:
           )
           from advisory.api.viewsets.chatbot import ChatbotViewSet, stream_chat, _dispatch_writes
           from advisory.api.monitoring_views import sentry_test, data_freshness
+          # AuthViewSet smoke test (web-login-auth spec)
+          from advisory.api.viewsets.auth_viewset import AuthViewSet, otp_rate_limiter
+          assert hasattr(AuthViewSet, 'otp_request'), 'otp_request action missing'
+          assert hasattr(AuthViewSet, 'otp_verify'),  'otp_verify action missing'
+          assert hasattr(AuthViewSet, 'me'),          'me action missing'
+          print('✅ AuthViewSet imported and all actions verified')
           print(f'✅ Languages:{len(SUPPORTED_LANGUAGES)} Crops:{len(ALL_CROP_DATA)} Districts:{len(DISTRICT_PROFILES)}')
           print('✅ All services + new modules imported successfully')
           "

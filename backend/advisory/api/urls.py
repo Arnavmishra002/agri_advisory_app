@@ -29,12 +29,12 @@ from .viewsets import (
     SMSIVRViewSet,
     TextToSpeechViewSet,
     TrendingCropsViewSet,
-    UserViewSet,
     WeatherViewSet,
 )
+from .viewsets.auth_viewset import AuthViewSet
 
 router = DefaultRouter()
-router.register(r"users", UserViewSet, basename="users")
+router.register(r"users", AuthViewSet, basename="users")
 router.register(r"advisories", CropAdvisoryViewSet, basename="advisories")
 router.register(r"crops", CropViewSet, basename="crops")
 router.register(r"weather", WeatherViewSet, basename="weather")
