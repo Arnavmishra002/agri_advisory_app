@@ -34,6 +34,7 @@
     }
 
     async function apiPostJson(path, body) {
+
         // Inject auth token if logged in
         const authHeaders = (window.KM_Auth && KM_Auth.isLoggedIn())
             ? KM_Auth.getAuthHeaders()
@@ -88,7 +89,6 @@
                   Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
                   Math.sin(dLon/2)**2;
         return 2 * R * Math.asin(Math.sqrt(a));
-    }
     const sessionId = (() => {
         try {
             const key = 'krishi_session_id';
@@ -101,6 +101,9 @@
         } catch (e) {
             return 'sess_' + Date.now();
         }
+    })();
+    // Expose for auth.js guest session migration
+    window._getSessionId = () => sessionId;
     })();
 
     const escapeHtml = (s) => String(s || '')
@@ -2040,6 +2043,63 @@
     // ========================================
     let lastQuery = '';
 
+    // ── Conversation history (in-memory + localStorage persistence) ──────────
+    // Stores last 10 turns as [{role, content}] — sent to backend on every request
+    // so the AI has full multi-turn context.
+    const CHAT_HISTORY_KEY = 'km_chat_history_' + sessionId;
+    const MAX_HISTORY_CLIENT = 10;
+    let conversationHistory = (() => {
+        try {
+            const stored = localStorage.getItem(CHAT_HISTORY_KEY);
+            return stored ? JSON.parse(stored) : [];
+        } catch (e) { return []; }
+    })();
+
+    function _pushHistory(role, content, intent) {
+        const entry = { role, content };
+        if (role === 'assistant' && intent) entry.intent = intent;
+        conversationHistory.push(entry);
+        // Keep only last MAX_HISTORY_CLIENT turns
+        if (conversationHistory.length > MAX_HISTORY_CLIENT * 2) {
+            conversationHistory = conversationHistory.slice(-MAX_HISTORY_CLIENT * 2);
+        }
+        try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(conversationHistory)); } catch (e) {}
+    }
+
+    function _restoreChatHistory() {
+        if (!conversationHistory.length) return;
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return;
+        // Only restore if chat is empty (just the welcome message)
+        if (chatMessages.querySelectorAll('.chat-message-user').length > 0) return;
+        conversationHistory.forEach(msg => {
+            if (msg.role === 'user') {
+                const row = document.createElement('div');
+                row.className = 'chat-message-user';
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble-user';
+                bubble.textContent = msg.content;
+                row.appendChild(bubble);
+                chatMessages.appendChild(row);
+            } else {
+                const row = document.createElement('div');
+                row.className = 'chat-message-bot';
+                const avatar = document.createElement('div');
+                avatar.style.cssText = 'width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2d5016,#4a7c59);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;';
+                avatar.textContent = '🌾';
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble-bot';
+                bubble.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(msg.content) + '</div>';
+                row.appendChild(avatar);
+                row.appendChild(bubble);
+                chatMessages.appendChild(row);
+            }
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        const emptyState = document.getElementById('empty-state');
+        if (emptyState && conversationHistory.length > 0) emptyState.style.display = 'none';
+    }
+
     async function handleChatUserMessage() {
         const input = document.getElementById('messageInput');
         const chatMessages = document.getElementById('chatMessages');
@@ -2096,6 +2156,9 @@
         if (streamDot) streamDot.style.display = 'inline-block';
 
         try {
+            // Push user message into history BEFORE sending (so AI sees it as context for follow-up)
+            _pushHistory('user', message);
+
             const data = await apiPostJson('/api/chatbot/query/', {
                 query: message,
                 location: currentLocation,
@@ -2104,8 +2167,13 @@
                 accuracy: currentLocationAccuracy,
                 language: (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : (document.documentElement.lang === 'en' ? 'en' : 'hi')),
                 session_id: sessionId,
+                // Send last 8 turns so backend AI has full multi-turn context
+                history: conversationHistory.slice(-8),
             });
             const botReply = data.response || data.answer || data.message || 'मुझे समझ नहीं आया, कृपया फिर से पूछें।';
+
+            // Persist bot reply to conversation history
+            _pushHistory('assistant', botReply, data.intent);
 
             // Remove skeleton
             skeletonRow.remove();
@@ -2241,6 +2309,9 @@
         const chatMessages = document.getElementById('chatMessages');
         if (!chatMessages) return;
         chatMessages.innerHTML = '';
+        // Clear in-memory + persisted conversation history
+        conversationHistory = [];
+        try { localStorage.removeItem(CHAT_HISTORY_KEY); } catch (e) {}
 
         // Show empty state suggestions again
         const emptyState = document.getElementById('empty-state');
@@ -2335,6 +2406,8 @@
     window.prefill = prefill;
     window.retryLastQuery = retryLastQuery;
     window.clearChat = clearChat;
+    window._restoreChatHistory = _restoreChatHistory;
+    window._getConversationHistory = () => conversationHistory;
     window.loadFieldAdvisory = loadFieldAdvisory;
     window.loadFieldAdvisoryWithoutSensor = loadFieldAdvisoryWithoutSensor;
     window.fillPreset = fillPreset;
@@ -2367,6 +2440,8 @@
         console.log('📊 Page loaded, initializing...');
         setupServiceCards();
         buildChatLanguageSwitcher();
+        // Restore chat history from localStorage on page load
+        setTimeout(_restoreChatHistory, 300);
 
         // Bug #7 fix: don't await health check before loading services.
         // Health check was blocking the entire app render during cold-start (Render free tier ~30s).

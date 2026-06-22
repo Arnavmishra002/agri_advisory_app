@@ -14,7 +14,7 @@ services:
       cd frontend && npm ci --no-audit --no-fund --silent && npm run build && cd .. &&
       pip install -r backend/requirements.txt &&
       cd backend && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: "cd backend && gunicorn core.wsgi:application -c ../gunicorn.conf.py --bind 0.0.0.0:$PORT --log-level info"
+    startCommand: "cd backend && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --worker-class gthread --log-level info"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -75,6 +75,16 @@ services:
         value: "krishimitra/farm"
       - key: MQTT_CLIENT_ID
         value: "krishimitra-backend-web"
+      - key: FETCH_POOL_WORKERS
+        value: "8"
+      - key: PHASE1_TIMEOUT_S
+        value: "25"
+      - key: REDIS_URL
+        value: ""
+      - key: OLLAMA_MODEL
+        value: "krishimitra-llm"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
 
   - type: worker
     name: agri-advisory-mqtt-worker
