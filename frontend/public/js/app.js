@@ -89,6 +89,8 @@
                   Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
                   Math.sin(dLon/2)**2;
         return 2 * R * Math.asin(Math.sqrt(a));
+    }
+
     const sessionId = (() => {
         try {
             const key = 'krishi_session_id';
@@ -104,7 +106,6 @@
     })();
     // Expose for auth.js guest session migration
     window._getSessionId = () => sessionId;
-    })();
 
     const escapeHtml = (s) => String(s || '')
         .replace(/&/g, '&amp;')
