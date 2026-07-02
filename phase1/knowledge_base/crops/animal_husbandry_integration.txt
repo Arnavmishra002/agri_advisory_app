@@ -111,9 +111,9 @@ This guide provides practical advice and detailed information on integrating dai
 ---
 
 ### F) Market Prices for Agricultural Produce (MSP 2024-25)
-- **Wheat:** Rs 1975/mt
-- **Rice:** Rs 1836/mt
-- **Cotton:** Rs 5700/mt
+- **Wheat:** Rs 2425/q
+- **Rice:** Rs 2369/q
+- **Cotton:** Rs 7121/q
 
 ---
 

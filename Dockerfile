@@ -74,9 +74,9 @@ FROM python:3.11-slim AS production
 
 # ── Labels ────────────────────────────────────────────────────
 LABEL org.opencontainers.image.title="KrishiMitra AI"
-LABEL org.opencontainers.image.description="Precision Agriculture Advisory — 150+ crops, 22 languages, IoT sensors, real-time mandi prices, 19-intent NLP chatbot"
+LABEL org.opencontainers.image.description="Precision Agriculture Advisory — 167 crops, 22 languages, local LLM/RAG, real-time mandi prices, diagnostics fallback"
 LABEL org.opencontainers.image.source="https://github.com/Arnavmishra002/agri_advisory_app"
-LABEL org.opencontainers.image.version="4.2.1"
+LABEL org.opencontainers.image.version="4.3.0"
 
 # ── Runtime environment ────────────────────────────────────────
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -89,11 +89,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     WEB_CONCURRENCY=2 \
     GUNICORN_TIMEOUT=120 \
     GUNICORN_KEEPALIVE=5 \
-    GUNICORN_MAX_REQUESTS=1000
+    GUNICORN_MAX_REQUESTS=1000 \
+    PHASE1_BASE_URL=http://127.0.0.1:8001 \
+    PHASE1_TIMEOUT_S=8 \
+    OLLAMA_CONNECT_TIMEOUT_S=2 \
+    OLLAMA_READ_TIMEOUT_S=8 \
+    OLLAMA_DIRECT_TIMEOUT_S=8 \
+    CHAT_REALTIME_TIMEOUT_S=4 \
+    CROP_REC_REALTIME_TIMEOUT_S=5 \
+    OLLAMA_CHAT_TIMEOUT_S=12 \
+    OLLAMA_STREAM_TIMEOUT_S=60
 
 # FIX: Set PYTHONPATH so Django is importable in ALL execution contexts
 # (management commands, docker exec, cron jobs) regardless of cwd.
-ENV PYTHONPATH=/app/backend
+ENV PYTHONPATH=/app/backend:/app/phase1
 
 # ── System runtime libs only (no build tools) ─────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -114,6 +123,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # ── Application code ──────────────────────────────────────────
 COPY backend/ /app/backend/
+COPY phase1/ /app/phase1/
 
 # ── Frontend static files ─────────────────────────────────────
 COPY --from=frontend-builder /build/frontend/dist    /app/frontend/dist

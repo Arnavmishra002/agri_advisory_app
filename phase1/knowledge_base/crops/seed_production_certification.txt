@@ -107,8 +107,8 @@ This guide provides detailed information on seed production, quality checks, hom
   - Rice: Apply water at panicle initiation, booting, and heading stages.
 
 - **MSP 2024-25 Values:** Refer to the latest Minimum Support Price (MSP) announced by the Government of India for specific crops. For example:
-  - Wheat: Rs. 1975 per quintal
-  - Rice: Rs. 1836 per quintal
+  - Wheat: Rs. 2425 per quintal
+  - Rice: Rs. 2369 per quintal
 
 ---
 

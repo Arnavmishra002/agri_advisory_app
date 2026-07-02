@@ -198,7 +198,10 @@ def readiness_check(request):
     # ── Phase 1 AI server (Qwen + RAG) ────────────────────────────────────────
     try:
         import urllib.request
-        req = urllib.request.Request(os.environ.get("PHASE1_URL", "http://127.0.0.1:8001") + "/health")
+        phase1_base = os.environ.get("PHASE1_BASE_URL") or os.environ.get("PHASE1_URL", "http://127.0.0.1:8001")
+        if phase1_base.rstrip("/").endswith("/chat"):
+            phase1_base = phase1_base.rstrip("/")[:-5]
+        req = urllib.request.Request(phase1_base.rstrip("/") + "/health")
         with urllib.request.urlopen(req, timeout=2) as resp:
             import json
             h = json.loads(resp.read())
@@ -220,6 +223,20 @@ def readiness_check(request):
             checks["ollama"] = f"ok (qwen={'present' if qwen_present else 'missing'})"
     except Exception:
         checks["ollama"] = "offline (local LLM unavailable)"
+
+    # ── Crop disease ML model ────────────────────────────────────────────────
+    try:
+        from advisory.ml.config import DEFAULT_MODEL_DIR, MODEL_FILENAME, LABELS_FILENAME
+        model_path = DEFAULT_MODEL_DIR / MODEL_FILENAME
+        labels_path = DEFAULT_MODEL_DIR / LABELS_FILENAME
+        if model_path.exists() and labels_path.exists():
+            checks["crop_disease_model"] = "ok (EfficientNet-B3 ready)"
+        else:
+            checks["crop_disease_model"] = (
+                f"missing ({model_path.name}); diagnostics use advisory_fallback"
+            )
+    except Exception as exc:
+        checks["crop_disease_model"] = f"unknown: {exc}"
 
     status_code = 200 if overall_ok else 503
     return JsonResponse({

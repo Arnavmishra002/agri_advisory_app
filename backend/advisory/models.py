@@ -337,6 +337,10 @@ class IoTSensorReading(models.Model):
         indexes = [
             models.Index(fields=["field_id", "created_at"]),
             models.Index(fields=["latitude", "longitude"]),
+            models.Index(
+                fields=["latitude", "longitude", "created_at"],
+                name="iot_latlon_createdat_idx",
+            ),
         ]
 
     def __str__(self):
@@ -547,12 +551,75 @@ class FarmerInteractionLog(models.Model):
         db_table = "farmer_interaction_logs"
         ordering = ["-created_at"]
         indexes  = [
-            models.Index(fields=["session_id", "created_at"]),
-            models.Index(fields=["intent", "created_at"]),
-            models.Index(fields=["state", "intent"]),
-            models.Index(fields=["ai_tier", "created_at"]),
-            models.Index(fields=["language", "created_at"]),
+            models.Index(fields=["session_id", "created_at"], name="fil_session_idx"),
+            models.Index(fields=["intent", "created_at"], name="fil_intent_idx"),
+            models.Index(fields=["state", "intent"], name="fil_state_intent_idx"),
+            models.Index(fields=["ai_tier", "created_at"], name="fil_tier_idx"),
+            models.Index(fields=["language", "created_at"], name="fil_lang_idx"),
         ]
 
     def __str__(self):
         return f"[{self.intent}] {self.query[:60]} — {self.created_at.date()}"
+
+
+class CropRecommendationLog(models.Model):
+    """
+    Logs every crop recommendation made by the engine.
+    Used to:
+      1. Track which crops were recommended in which region/season
+      2. Build a feedback loop — if farmer later says crop failed, score goes down
+      3. Tune agro-zone priority_crops based on real adoption
+      4. Export training data for next model version
+    """
+    session_id    = models.CharField(max_length=100, db_index=True)
+    phone_number  = models.CharField(max_length=20, blank=True)
+    location_name = models.CharField(max_length=200, blank=True)
+    state         = models.CharField(max_length=100, blank=True, db_index=True)
+    district      = models.CharField(max_length=100, blank=True)
+    latitude      = models.FloatField(null=True, blank=True)
+    longitude     = models.FloatField(null=True, blank=True)
+    agro_zone     = models.CharField(max_length=50, blank=True)
+    season        = models.CharField(max_length=20, blank=True, db_index=True)
+
+    # What was recommended
+    recommendations = models.JSONField(
+        help_text="List of {crop_key, crop_name, score, rank} dicts"
+    )
+    top_crop       = models.CharField(max_length=100, blank=True, db_index=True)
+    profile_source = models.CharField(max_length=50, blank=True,
+                                       help_text="district_exact | state_first_district | keyword | gps_zone")
+
+    # Context at recommendation time
+    soil_type     = models.CharField(max_length=50, blank=True)
+    rainfall_band = models.CharField(max_length=20, blank=True)
+    irrigation    = models.CharField(max_length=20, blank=True)
+    weather_risk  = models.CharField(max_length=50, blank=True)
+    current_temp  = models.FloatField(null=True, blank=True)
+    market_is_live = models.BooleanField(default=False)
+
+    # Outcome feedback (filled later when farmer reports results)
+    farmer_adopted   = models.BooleanField(null=True, blank=True,
+                                            help_text="Did farmer actually grow the recommended crop?")
+    adopted_crop     = models.CharField(max_length=100, blank=True,
+                                         help_text="Which crop they actually grew")
+    outcome_rating   = models.IntegerField(null=True, blank=True,
+                                            help_text="1-5: how well the recommendation worked out")
+    outcome_notes    = models.TextField(blank=True)
+    feedback_at      = models.DateTimeField(null=True, blank=True)
+
+    language      = models.CharField(max_length=10, default="hi")
+    created_at    = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "crop_recommendation_logs"
+        ordering = ["-created_at"]
+        indexes  = [
+            models.Index(fields=["session_id", "created_at"]),
+            models.Index(fields=["state", "season", "created_at"]),
+            models.Index(fields=["top_crop", "state"]),
+            models.Index(fields=["agro_zone", "season"]),
+            models.Index(fields=["farmer_adopted", "top_crop"]),
+        ]
+
+    def __str__(self):
+        return f"Rec {self.top_crop} for {self.location_name} ({self.season}) — {self.created_at.date()}"

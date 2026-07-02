@@ -853,6 +853,33 @@ body {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   box-shadow: var(--shadow-xs);
 }
+.mandi-bar-label {
+  color: var(--green-800);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.mandi-selector {
+  flex: 1 1 260px;
+  min-width: 220px;
+  max-width: 440px;
+  border-color: var(--green-300);
+}
+.mandi-radius-select {
+  width: auto;
+  min-width: 92px;
+  border-color: var(--green-300);
+}
+.mandi-status-badge {
+  flex: 1 1 210px;
+  min-width: 170px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+.mandi-refresh-btn,
+.mandi-load-more-btn {
+  border-radius: var(--r-full);
+}
 
 /* ══════════════════════════════════════════════════════════════════
    CHAT / AI ASSISTANT
@@ -1540,7 +1567,12 @@ footer {
 
 /* ── Mandi bar dark ──────────────────────────────────────────── */
 [data-theme="dark"] .mandi-bar { background: var(--bg-surface) !important; }
-[data-theme="dark"] #mandiSelector { background: var(--bg-subtle); color: var(--text-primary); border-color: var(--border-color); }
+[data-theme="dark"] #mandiSelector,
+[data-theme="dark"] #mandiRadiusSelect {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
 
 /* ── Market estimates toggle dark ────────────────────────────── */
 [data-theme="dark"] .market-estimates-toggle { background: var(--bg-subtle); }

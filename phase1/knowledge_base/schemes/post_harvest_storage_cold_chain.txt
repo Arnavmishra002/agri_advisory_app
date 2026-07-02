@@ -106,10 +106,10 @@
 - ETL values are specific to different pests and vary by region. Consult local agricultural extension services or ICAR/CIB&RC guidelines for precise thresholds.
 
 **MSP 2024-25 Values:**
-- Wheat: ₹1,980/mt
-- Rice: ₹1,735/mt
-- Maize: ₹1,600/mt
-- Pulses (e.g., Chickpea): ₹4,500/mt
+- Wheat: ₹2,425/q
+- Rice: ₹2,369/q
+- Maize: ₹2,400/q
+- Pulses (e.g., Chickpea): ₹5,650/q
 
 **Fertilizer Split Schedule:**
 - Wheat: Apply 20 kg N, 80 kg P₂O₅, and 30 kg K₂O per hectare in two splits.

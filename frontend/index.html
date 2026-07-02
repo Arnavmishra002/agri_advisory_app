@@ -184,12 +184,12 @@
 
         <!-- MSP Stats bar — animated counters via IntersectionObserver -->
         <div class="stats-bar mb-4" id="statsBar">
-            <div class="stat-item" data-count="2275" data-prefix="₹" data-suffix="">
-                <div class="stat-value" id="stat-wheat">₹2,275</div>
+            <div class="stat-item" data-count="2425" data-prefix="₹" data-suffix="">
+                <div class="stat-value" id="stat-wheat">₹2,425</div>
                 <div class="stat-label">🌾 गेहूँ MSP 2024-25</div>
             </div>
-            <div class="stat-item" data-count="2300" data-prefix="₹" data-suffix="">
-                <div class="stat-value" id="stat-rice">₹2,300</div>
+            <div class="stat-item" data-count="2369" data-prefix="₹" data-suffix="">
+                <div class="stat-value" id="stat-rice">₹2,369</div>
                 <div class="stat-label">🍚 धान MSP 2024-25</div>
             </div>
             <div class="stat-item" data-count="6000" data-prefix="₹" data-suffix="">
@@ -239,7 +239,7 @@
                     <div class="status-indicator"></div>
                     <div class="service-icon">🌾</div>
                     <h3 class="service-title" data-i18n="service_crops">फसल सुझाव</h3>
-                    <p class="service-description">80 फसलें · 126 जिले · लाइव मौसम + मंडी भाव विश्लेषण</p>
+                    <p class="service-description">165+ फसल प्रोफाइल · 126 जिले · लाइव/फॉलबैक मौसम + मंडी भाव</p>
                     <div class="service-info-panel" style="border-left-color:#388e3c;">
                         <div class="service-info-panel-label" style="color:#1b5e20;">🌱 Multi-Factor Score</div>
                         <div class="service-info-panel-body">
@@ -279,12 +279,12 @@
                     <div class="status-indicator"></div>
                     <div class="service-icon">💰</div>
                     <h3 class="service-title" data-i18n="service_market">बाजार कीमतें</h3>
-                    <p class="service-description">Agmarknet 2.0 + data.gov.in से रियल-टाइम मंडी भाव</p>
+                    <p class="service-description">GPS के हिसाब से Agmarknet 2.0 + data.gov.in मंडी भाव</p>
                     <div class="service-info-panel" style="border-left-color:#f57f17;">
                         <div class="service-info-panel-label" style="color:#e65100;">📊 Live Mandi Data</div>
                         <div class="service-info-panel-body">
-                            🌾 गेहूँ MSP ₹2,275 / q<br>
-                            🍚 धान MSP ₹2,300 / q<br>
+                            🌾 गेहूँ MSP ₹2,425 / q<br>
+                            🍚 धान MSP ₹2,369 / q<br>
                             🌻 सोयाबीन MSP ₹4,892 / q<br>
                             🔄 हर 3 मिनट अपडेट
                         </div>
@@ -299,12 +299,12 @@
                     <div class="status-indicator"></div>
                     <div class="service-icon">🩺</div>
                     <h3 class="service-title" data-i18n="service_pest">KrishiRaksha 2.0</h3>
-                    <p class="service-description">EfficientNet-B3 AI से फोटो देखकर कीट-रोग पहचान</p>
+                    <p class="service-description">EfficientNet-B3 तैयार होने पर AI पहचान · अभी सुरक्षित advisory fallback</p>
                     <div class="service-info-panel" style="border-left-color:#c62828;">
                         <div class="service-info-panel-label" style="color:#b71c1c;">🔬 AI-Powered Diagnosis</div>
                         <div class="service-info-panel-body">
                             📸 3-angle photo upload<br>
-                            🤖 150+ disease database<br>
+                            🤖 Model health + fallback labels<br>
                             🌡️ मौसम + क्षेत्र सत्यापन<br>
                             📞 ICAR: 1800-180-1551
                         </div>
@@ -319,7 +319,7 @@
                     <div class="status-indicator"></div>
                     <div class="service-icon">🤖</div>
                     <h3 class="service-title" data-i18n="service_ai">AI सहायक</h3>
-                    <p class="service-description">22 भाषाएं · Gemini AI + ICAR data grounding · 24/7</p>
+                    <p class="service-description">22 भाषाएं · Local KrishiMitra LLM + RAG · Gemini fallback</p>
                     <div class="service-info-panel" style="border-left-color:#6a1b9a;">
                         <div class="service-info-panel-label" style="color:#4a148c;">💬 किसी भी भाषा में पूछें</div>
                         <div class="service-info-panel-body">
@@ -438,7 +438,7 @@
 <div class="content-section" id="crop-recommendations-content">
     <div class="container">
         <div class="section-header"><h2>🌾 फसल सुझाव</h2><span class="live-dot ms-2"></span></div>
-        <p class="text-muted mb-4">80 फसलें · 126 जिले · लाइव मौसम + मंडी भाव विश्लेषण</p>
+        <p class="text-muted mb-4">165+ भारतीय फसल प्रोफाइल · 126 जिले · लाइव/फॉलबैक मौसम + मंडी भाव विश्लेषण</p>
         <div class="crop-search-container mb-4" style="position:relative;max-width:560px;">
             <div class="search-box">
                 <i class="fas fa-seedling"></i>
@@ -521,12 +521,21 @@
 
         <!-- Mandi selector -->
         <div class="mandi-bar">
-            <label class="fw-bold m-0" style="color:#2d5016;font-size:0.9rem;white-space:nowrap;">🏪 मंडी चुनें:</label>
-            <select id="mandiSelector" onchange="onMandiSelected(this.value)" class="form-select form-select-sm" style="flex:1;min-width:180px;max-width:320px;border-color:#a5d6a7;">
+            <label class="fw-bold m-0 mandi-bar-label">🏪 नज़दीकी मंडी:</label>
+            <select id="mandiRadiusSelect" onchange="onMandiRadiusChanged()" class="form-select form-select-sm mandi-radius-select" title="मंडी खोज दायरा">
+                <option value="50">50 km</option>
+                <option value="100">100 km</option>
+                <option value="150" selected>150 km</option>
+                <option value="250">250 km</option>
+            </select>
+            <select id="mandiSelector" onchange="onMandiSelected(this.value)" class="form-select form-select-sm mandi-selector">
                 <option value="">-- सभी मंडियां (All Mandis) --</option>
             </select>
-            <span id="mandiStatusBadge" style="font-size:0.8rem;color:#666;"></span>
-            <button id="mandiLoadMoreBtn" class="btn btn-sm btn-outline-success" style="display:none;border-radius:999px;" onclick="loadMoreMandis()">और मंडियां</button>
+            <span id="mandiStatusBadge" class="mandi-status-badge"></span>
+            <button id="mandiRefreshBtn" class="btn btn-sm btn-outline-success mandi-refresh-btn" onclick="refreshNearbyMandis()" title="नज़दीकी मंडियां फिर से लोड करें">
+                <i class="fas fa-location-crosshairs"></i>
+            </button>
+            <button id="mandiLoadMoreBtn" class="btn btn-sm btn-outline-success mandi-load-more-btn" style="display:none;" onclick="loadMoreMandis()">और मंडियां</button>
         </div>
 
         <div id="pricesData" class="loading">
@@ -549,7 +558,7 @@
 <div class="content-section" id="pest-control-content">
     <div class="container">
         <div class="section-header mb-1"><h2>🩺 KrishiRaksha 2.0</h2></div>
-        <p class="text-muted mb-4">EfficientNet-B3 AI · 150+ disease database · GPS weather verification</p>
+        <p class="text-muted mb-4">EfficientNet-B3 model readiness · honest advisory fallback · GPS weather verification</p>
 
         <div class="row g-4">
             <!-- Step 1 -->
@@ -743,7 +752,7 @@
                 <div id="chatLanguageSwitcherContainer"></div>
             </div>
         </div>
-        <p class="text-muted mb-3" id="chat-subtitle">22 भाषाएं · Gemini AI + ICAR data · 24/7 उपलब्ध</p>
+        <p class="text-muted mb-3" id="chat-subtitle">22 भाषाएं · Local KrishiMitra LLM + RAG + ICAR data · Gemini fallback</p>
 
         <!-- Suggested chips Empty State -->
         <div id="empty-state" class="mb-3">
@@ -932,7 +941,7 @@
       <span>🌾 NABARD: <strong style="color:#b9f0c8;">1800-200-1025</strong></span>
     </div>
     <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;font-size:0.72rem;opacity:0.5;margin-top:10px;">
-      <span>Open-Meteo</span><span>·</span><span>Agmarknet</span><span>·</span><span>data.gov.in</span><span>·</span><span>Gemini AI</span><span>·</span><span>ICAR</span>
+      <span>Open-Meteo</span><span>·</span><span>Agmarknet</span><span>·</span><span>data.gov.in</span><span>·</span><span>Local LLM + RAG</span><span>·</span><span>Gemini fallback</span><span>·</span><span>ICAR</span>
     </div>
     <p style="margin:10px 0 0;font-size:0.7rem;opacity:0.4;">&copy; 2025 KrishiMitra AI &middot; For farmers, by technology</p>
   </div>

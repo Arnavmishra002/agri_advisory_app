@@ -50,3 +50,9 @@ worker: cd backend && celery \
 # Runs scheduled tasks like cache refresh, MSP updates.
 # Only start this if you also have a Celery worker running.
 # beat: cd backend && celery --app core.celery beat --loglevel=info
+
+# ── Phase 1 local LLM/RAG service (optional) ────────────────────────────────
+# Requires Ollama plus the Phase 1 vector store/knowledge assets.
+# If not started, /api/health/readiness/ reports phase1_ai=offline and chat
+# falls back to direct Ollama/Gemini/rules with clear source labels.
+phase1: cd phase1 && uvicorn main:app --host 0.0.0.0 --port ${PHASE1_PORT:-8001}

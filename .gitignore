@@ -234,6 +234,12 @@ deploy/
 deployment/
 docker-compose.prod.yml
 
+# Flutter app source is intentionally tracked even though root Python ignores
+# generic lib/ directories and Markdown files.
+!mobile/krishimitra_app/lib/
+!mobile/krishimitra_app/lib/**
+!mobile/krishimitra_app/README.md
+
 # Monitoring
 monitoring/
 metrics/
