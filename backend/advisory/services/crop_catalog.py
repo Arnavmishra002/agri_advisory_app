@@ -102,18 +102,54 @@ class CropCatalog:
     def __init__(self):
         self._crops: List[Dict[str, Any]] = []
         self._by_id: Dict[str, Dict[str, Any]] = {}
-        for row in _CROP_ROWS:
+        rows = self._rows_with_recommendation_crops()
+        for row in rows:
             entry = {
                 "id": row["id"],
                 "name": row["name"],
                 "hindi": row.get("hindi") or CROP_HINDI.get(row["id"], ""),
                 "aliases": list(row.get("aliases") or []),
                 "category": row.get("category", "general"),
-                "msp": MSP_2024_25.get(row["id"]),
-                "has_msp": row["id"] in MSP_2024_25,
+                "msp": row.get("msp", MSP_2024_25.get(row["id"])),
+                "has_msp": bool(row.get("msp")) or row["id"] in MSP_2024_25,
             }
             self._crops.append(entry)
             self._by_id[row["id"]] = entry
+
+    @staticmethod
+    def _display_name(crop_id: str) -> str:
+        return str(crop_id or "").replace("_", " ").replace("-", " ").title()
+
+    @classmethod
+    def _rows_with_recommendation_crops(cls) -> List[Dict[str, Any]]:
+        """Keep autocomplete/dropdowns aligned with the recommendation database."""
+        rows = list(_CROP_ROWS)
+        known = {row["id"] for row in rows}
+        try:
+            from .comprehensive_crop_database import ALL_CROP_DATA
+        except Exception:
+            ALL_CROP_DATA = {}
+
+        for crop_id, profile in ALL_CROP_DATA.items():
+            if crop_id in known:
+                continue
+            name = cls._display_name(crop_id)
+            aliases = [crop_id.replace("_", " ")]
+            aliases.extend(
+                str(value)
+                for value in (profile.get("name_local") or {}).values()
+                if value
+            )
+            rows.append({
+                "id": crop_id,
+                "name": name,
+                "hindi": profile.get("name_hindi", ""),
+                "aliases": aliases,
+                "category": str(profile.get("category", "general")).lower(),
+                "msp": profile.get("msp_per_quintal") or None,
+            })
+            known.add(crop_id)
+        return rows
 
     def get(self, crop_id: str) -> Optional[Dict[str, Any]]:
         return self._by_id.get((crop_id or "").lower().strip())
