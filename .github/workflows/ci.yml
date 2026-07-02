@@ -376,11 +376,13 @@ jobs:
           import django; django.setup()
           from advisory.services.session_memory_service import SessionMemoryService
           src = inspect.getsource(SessionMemoryService.update_session_context)
-          assert 'update_or_create' in src, 'Bug 4b not fixed: get_or_create still in update_session_context'
-          assert 'get_or_create' not in src, 'Bug 4b not fixed: get_or_create still present'
+          src_code = '\n'.join(line.split('#', 1)[0] for line in src.splitlines())
+          assert 'update_or_create' in src_code, 'Bug 4b not fixed: get_or_create still in update_session_context'
+          assert 'get_or_create' not in src_code, 'Bug 4b not fixed: get_or_create still present in executable code'
           src_trim = inspect.getsource(SessionMemoryService.save_turn)
-          assert 'exclude(id__in=keep_ids)' in src_trim, 'Bug 4 not fixed: N+1 trim not replaced'
-          assert '[MAX_HISTORY_TURNS:]' not in src_trim, 'Bug 4 not fixed: Python-side slice still present'
+          src_trim_code = '\n'.join(line.split('#', 1)[0] for line in src_trim.splitlines())
+          assert 'exclude(id__in=keep_ids)' in src_trim_code, 'Bug 4 not fixed: N+1 trim not replaced'
+          assert '[MAX_HISTORY_TURNS:]' not in src_trim_code, 'Bug 4 not fixed: Python-side slice still present'
           print('✅ Session memory: update_or_create + DB-side trim confirmed')
           "
 
