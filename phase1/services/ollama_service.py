@@ -20,14 +20,17 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import urllib.request
 import urllib.error
 from typing import Iterator, List, Optional
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_BASE   = "http://localhost:11434"
+OLLAMA_BASE   = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 DEFAULT_MODEL = "krishimitra-llm"
+_OLLAMA_CHAT_TIMEOUT_S = int(os.getenv("OLLAMA_CHAT_TIMEOUT_S", "20"))
+_OLLAMA_STREAM_TIMEOUT_S = int(os.getenv("OLLAMA_STREAM_TIMEOUT_S", "60"))
 
 # ── Context compression constants (RAG-2) ────────────────────────────────────
 # Approximate tokens in a chunk = chars / 4  (rough but fast).
@@ -44,8 +47,8 @@ and Indian weather patterns.
 STRICT RULES:
 1. Use ONLY the information provided in the [KNOWLEDGE BASE] section. Never invent facts.
 2. CRITICAL — cite EXACT numbers from the knowledge base: MSP values, chemical doses,
-   ETL thresholds, NPK rates. If you see "MSP 2024-25: Rs. 2275/quintal" in the knowledge
-   base, quote ₹2,275/q exactly — never round or estimate from memory.
+   ETL thresholds, NPK rates. If you see "MSP 2024-25: Rs. 2425/quintal" in the knowledge
+   base, quote ₹2,425/q exactly — never round or estimate from memory.
 3. If the knowledge base has no relevant information, say so clearly and suggest:
    "Please call Kisan Helpline 1800-180-1551 (free, 24x7) for expert advice."
 4. Always cite your source: "As per ICAR guidelines..." or "As per government data..."
@@ -204,7 +207,7 @@ def chat(
     model: str = DEFAULT_MODEL,
     temperature: float = 0.25,
     max_tokens: int = 1200,
-    timeout: int = 90,
+    timeout: int = _OLLAMA_CHAT_TIMEOUT_S,
 ) -> str:
     """Blocking chat — returns the full response as a string."""
     if not _ollama_available():
@@ -280,7 +283,7 @@ def stream_chat(
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=_OLLAMA_STREAM_TIMEOUT_S) as resp:
             for raw_line in resp:
                 line = raw_line.decode("utf-8").strip()
                 if not line:

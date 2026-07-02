@@ -35,9 +35,9 @@ mobile/
 # ─── ML trainer (large GGUF model files — mount as volume) ─────
 custom_llm_trainer/*.gguf
 custom_llm_trainer/
-# ─── Phase 1 local server (only needed when Ollama is running) ──
-phase1/chroma_db/
-phase1/knowledge_base/
+# ─── Phase 1 local server assets are included for optional RAG service ──
+# ChromaDB + knowledge_base are small enough and required for farmer-ready
+# local LLM/RAG answers when running docker compose --profile ai.
 # ─── ML models (mount as volume in production) ─────────────────
 models/
 data/

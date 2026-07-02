@@ -132,12 +132,12 @@ This guide provides detailed instructions and practical advice on implementing o
 
 ---
 
-### MSP 2024-25 Values (Approximate)
+### MSP 2024-25 Values
 - **Crops**: 
-  - Rice: Rs 1,800/mt
-  - Wheat: Rs 1,900/mt
-  - Cotton: Rs 3,600/mt
-  - Sugarcane: Rs 4,200/mt
+  - Rice: Rs 2369/q
+  - Wheat: Rs 2425/q
+  - Cotton: Rs 7121/q
+  - Sugarcane: Rs 340/q
 
 ---
 

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from django.db import IntegrityError, OperationalError, ProgrammingError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
 from ..errors import safe_error_message
@@ -26,10 +27,56 @@ class DiagnosticViewSet(viewsets.ViewSet):
     """
     API for KrishiRaksha 2.0: Advanced Pest Detection
     """
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.pest_service = KrishiRakshaPestService()
+
+    @staticmethod
+    def _predict_label(result):
+        status_code = result.get("status", "error")
+        if result.get("disease_name"):
+            return result["disease_name"]
+        return {
+            "model_unavailable": "AI model not trained",
+            "tensorflow_missing": "AI model dependencies missing",
+            "not_plant": "Not a crop leaf photo",
+            "low_confidence": "Disease not confidently identified",
+            "error": "Diagnosis unavailable",
+        }.get(status_code, "Diagnosis unavailable")
+
+    @staticmethod
+    def _prediction_response_text(result):
+        status_code = result.get("status", "error")
+        if status_code == "success":
+            disease = result.get("disease_name") or "the detected issue"
+            crop = result.get("crop_name") or "the crop"
+            conf = result.get("confidence_percent")
+            conf_txt = f" ({conf}% confidence)" if conf is not None else ""
+            return (
+                f"AI detected {disease} in {crop}{conf_txt}. "
+                "Confirm with your local KVK/agriculture officer before spraying, "
+                "and follow the label dose."
+            )
+        if status_code == "model_unavailable":
+            return (
+                "Image received, but the trained crop disease model is not installed on this server. "
+                "Use KrishiRaksha full diagnosis for crop/weather-based advisory, or ask admin to train: "
+                "python -m advisory.ml.train --data-dir data/datasets"
+            )
+        if status_code == "advisory_fallback":
+            return (
+                result.get("message")
+                or "Image received. The trained ML model is unavailable, so this is a crop/weather advisory fallback."
+            )
+        if status_code == "tensorflow_missing":
+            return "Image received, but ML dependencies are missing. Install backend/requirements-ml.txt on the server."
+        if status_code == "not_plant":
+            return result.get("message") or "Please upload a clear photo of a crop leaf in daylight."
+        if status_code == "low_confidence":
+            return result.get("message") or "Please upload a clearer close-up of the affected leaf."
+        return result.get("message") or "Diagnosis is temporarily unavailable. Please try again with a clear leaf image."
 
     @action(detail=False, methods=["get"], url_path="crop-search")
     def crop_search(self, request):
@@ -90,7 +137,7 @@ class DiagnosticViewSet(viewsets.ViewSet):
             # re-raised so the caller gets a 500 instead of a silent data loss.
             # Only IntegrityError (duplicate session_id) is safe to swallow.
             try:
-                if result['status'] == 'success':
+                if result['status'] in ('success', 'advisory_fallback'):
                     DiagnosticSession.objects.create(
                         session_id=session_id or str(uuid.uuid4()),
                         user_id=str(request.user.id) if request.user.is_authenticated else 'anonymous',
@@ -107,9 +154,23 @@ class DiagnosticViewSet(viewsets.ViewSet):
                 logger.error("CRITICAL: DiagnosticSession.create failed for session_id=%s: %s", session_id, db_err)
                 raise   # will be caught by outer except → 500 response
             
+            treatment_advice = disease_chat_bridge.format_for_api(
+                result, ctx, language=request.data.get("language", "hi")
+            )
+            top = (result.get("diagnosis") or [{}])[0]
+            response_text = (
+                treatment_advice.get("response")
+                or treatment_advice.get("advice")
+                or result.get("message")
+                or "Diagnosis advisory generated."
+            )
             return Response(attach_location_metadata({
                 **result,
-                "treatment_advice": disease_chat_bridge.format_for_api(result, ctx, language=request.data.get("language", "hi")),
+                "crop": result.get("crop_detected") or crop,
+                "disease": top.get("name") or self._predict_label(result),
+                "response": response_text,
+                "recommendation": response_text,
+                "treatment_advice": treatment_advice,
             }, ctx))
             
         except Exception as e:
@@ -149,14 +210,23 @@ class DiagnosticViewSet(viewsets.ViewSet):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
+            requested_crop = (
+                request.data.get("crop")
+                or request.data.get("crop_name")
+                or request.data.get("commodity")
+            )
             payload = {
                 "status": result.get("status", "error"),
                 "crop_name": result.get("crop_name"),
                 "disease_name": result.get("disease_name"),
+                "crop": result.get("crop_name") or requested_crop,
+                "disease": self._predict_label(result),
                 "confidence": result.get("confidence", 0.0),
                 "confidence_percent": result.get("confidence_percent"),
                 "top_predictions": result.get("top_predictions", []),
                 "message": result.get("message"),
+                "response": self._prediction_response_text(result),
+                "recommendation": self._prediction_response_text(result),
                 "model": result.get("model"),
                 "threshold": result.get("threshold"),
             }

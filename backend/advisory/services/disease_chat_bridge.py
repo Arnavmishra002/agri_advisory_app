@@ -215,6 +215,28 @@ class DiseaseChatBridge:
             ctx:              LocationContext
             language:         Farmer's language
         """
+        if diagnosis_result.get("status") == "advisory_fallback":
+            top = (diagnosis_result.get("diagnosis") or [{}])[0]
+            treatments = top.get("treatment") or []
+            response = (
+                "Image received, but the trained leaf-disease ML model is not installed. "
+                "This is a crop/weather advisory fallback, not image classification."
+            )
+            if treatments:
+                response += "\n\nSuggested next steps:\n- " + "\n- ".join(str(t) for t in treatments[:5])
+            return {
+                "response": response,
+                "advice": response,
+                "disease": top.get("name", "Advisory fallback"),
+                "crop": diagnosis_result.get("crop_detected", "unknown"),
+                "confidence": float(top.get("confidence", 0.0)),
+                "severity": top.get("severity_label", "Low"),
+                "sources": ["KrishiRaksha crop/weather advisory fallback"],
+                "data_source": "advisory_fallback",
+                "intent": "pest_disease",
+                "skipped": False,
+            }
+
         if diagnosis_result.get("status") != "success":
             return {"advice": None, "skipped": True, "reason": "diagnosis not successful"}
 

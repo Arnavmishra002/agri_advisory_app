@@ -159,11 +159,11 @@
   - Vegetative Growth: Watering twice daily during hot weather
   - Bulb Formation: Reduce watering frequency to once every two days
 
-#### 5. MSP 2024-25 Values (As of Current Data)
-- **Basmati Rice:** Rs 18,000/MT
-- **Tomato:** Rs 300/KG
-- **Onion:** Rs 70/KG
-- **Turmeric:** Rs 6,000/KG
+#### 5. Indicative Market Price Examples (not MSP)
+- **Basmati Rice:** Verify live mandi/eNAM export prices before sale
+- **Tomato:** Verify live mandi prices before sale
+- **Onion:** Verify live mandi prices before sale
+- **Turmeric:** Verify live mandi prices before sale
 
 ---
 

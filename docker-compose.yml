@@ -5,12 +5,14 @@
 #   (default)          API only    → web on :8001
 #   --profile full     API + Nginx → web on :8001, nginx on :8080
 #   --profile postgres API + PG    → web + postgres + redis
-#   --profile all      Everything  → web + nginx + postgres + redis
+#   --profile ai       API + Phase 1 RAG service
+#   --profile all      Everything  → web + nginx + postgres + redis + phase1
 #
 # Quick start:
 #   cp .env.example .env            # fill in SECRET_KEY at minimum
 #   docker compose up               # SQLite, no nginx
-#   docker compose --profile all up # Full stack with PostgreSQL + Redis + Nginx
+#   docker compose --profile ai up  # API + Phase 1 RAG (requires Ollama)
+#   docker compose --profile all up # Full stack with PostgreSQL + Redis + Nginx + Phase 1
 # ═══════════════════════════════════════════════════════════════
 
 services:
@@ -78,7 +80,14 @@ services:
       SENTRY_ENVIRONMENT:        ${SENTRY_ENVIRONMENT:-production}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
       # ── Phase 1 local LLM (Ollama) ───────────────────────
-      PHASE1_TIMEOUT_S:          ${PHASE1_TIMEOUT_S:-45}
+      PHASE1_BASE_URL:           ${PHASE1_BASE_URL:-http://phase1:8001}
+      PHASE1_TIMEOUT_S:          ${DOCKER_PHASE1_TIMEOUT_S:-8}
+      OLLAMA_BASE_URL:           ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_CONNECT_TIMEOUT_S:  ${DOCKER_OLLAMA_CONNECT_TIMEOUT_S:-2}
+      OLLAMA_READ_TIMEOUT_S:     ${DOCKER_OLLAMA_READ_TIMEOUT_S:-8}
+      OLLAMA_DIRECT_TIMEOUT_S:   ${DOCKER_OLLAMA_DIRECT_TIMEOUT_S:-8}
+      CHAT_REALTIME_TIMEOUT_S:   ${DOCKER_CHAT_REALTIME_TIMEOUT_S:-4}
+      CROP_REC_REALTIME_TIMEOUT_S: ${DOCKER_CROP_REC_REALTIME_TIMEOUT_S:-5}
       OLLAMA_MODEL:              ${OLLAMA_MODEL:-krishimitra-llm}
     volumes:
       # Persistent data: SQLite DB, uploads, IoT sensor readings
@@ -151,6 +160,50 @@ services:
       test: ["CMD", "celery", "--app", "core.celery", "inspect", "ping", "-d", "celery@$$HOSTNAME"]
       interval: 60s
       timeout: 15s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Phase 1 RAG + local LLM bridge (profile: ai or all) ─────
+  # Requires Ollama to be reachable at DOCKER_OLLAMA_BASE_URL. On Docker Desktop,
+  # http://host.docker.internal:11434 points to Ollama running on the host.
+  phase1:
+    profiles: ["ai", "all"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: krishimitra-api:latest
+    container_name: krishimitra_phase1
+    working_dir: /app/phase1
+    command: >
+      uvicorn main:app
+        --host 0.0.0.0
+        --port 8001
+        --workers 1
+    environment:
+      PYTHONPATH: /app/backend:/app/phase1
+      DJANGO_SETTINGS_MODULE: core.settings
+      SECRET_KEY: ${SECRET_KEY:-change-me-set-in-dotenv}
+      DEBUG: ${DEBUG:-False}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/db.sqlite3}
+      OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-krishimitra-llm}
+      OLLAMA_CHAT_TIMEOUT_S: ${DOCKER_OLLAMA_CHAT_TIMEOUT_S:-12}
+      OLLAMA_STREAM_TIMEOUT_S: ${DOCKER_OLLAMA_STREAM_TIMEOUT_S:-60}
+    ports:
+      - "${PHASE1_PORT:-8002}:8001"
+    volumes:
+      - app_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
       retries: 3
       start_period: 30s
     logging:

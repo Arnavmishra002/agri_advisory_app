@@ -174,8 +174,16 @@ class KrishiRakshaPestService:
         """Image-based path only — never invent diseases from crop name alone."""
         ml_result = self._run_ml_inference(images)
         raw_diagnosis = self._diagnosis_from_ml(ml_result)
+        advisory_fallback = False
         if raw_diagnosis is None:
-            raw_diagnosis = self._ml_unavailable_diagnosis(crop_name)
+            ml_status = (ml_result or {}).get("status")
+            if ml_status in ("model_unavailable", "tensorflow_missing") or ml_result is None:
+                raw_diagnosis = self._model_unavailable_rule_diagnosis(
+                    crop_name, catalog_entry
+                )
+                advisory_fallback = True
+            else:
+                raw_diagnosis = self._ml_unavailable_diagnosis(crop_name)
 
         detected_crop = self._classify_crop(
             crop_name, images, catalog_entry, ml_result=ml_result
@@ -185,8 +193,8 @@ class KrishiRakshaPestService:
         )
         final_result = self._analyze_severity(verified, from_image=True)
 
-        status = "success"
-        if ml_result and ml_result.get("status") in (
+        status = "advisory_fallback" if advisory_fallback else "success"
+        if not advisory_fallback and ml_result and ml_result.get("status") in (
             "low_confidence",
             "not_plant",
             "model_unavailable",
@@ -210,12 +218,16 @@ class KrishiRakshaPestService:
                 "specialist_model": (
                     "ML active"
                     if ml_result and ml_result.get("status") == "success"
+                    else "Crop/weather advisory fallback"
+                    if advisory_fallback
                     else "Blocked (no fake expert fallback)"
                 ),
                 "region_verification": "GPS weather at your location",
                 "severity_analysis": (
                     "From model confidence"
                     if ml_result and ml_result.get("status") == "success"
+                    else "From advisory confidence"
+                    if advisory_fallback
                     else "N/A"
                 ),
             },
@@ -228,7 +240,12 @@ class KrishiRakshaPestService:
             ),
             "timestamp": datetime.now().isoformat(),
             "ml_prediction": ml_result,
-            "message": (ml_result or {}).get("message"),
+            "message": (
+                "Image received. The trained leaf-disease ML model is not available "
+                "on this server, so this is a crop/weather-based advisory, not image classification."
+                if advisory_fallback
+                else (ml_result or {}).get("message")
+            ),
         }
 
     def _diagnose_text_only(
@@ -361,6 +378,35 @@ class KrishiRakshaPestService:
             }
         ]
 
+    def _model_unavailable_rule_diagnosis(
+        self, crop_name: str, catalog_entry: Optional[Dict] = None
+    ) -> List[Dict[str, Any]]:
+        """Useful but honest fallback when a plant image is present but ML is unavailable."""
+        crop_id = catalog_entry["id"] if catalog_entry else (crop_name or "crop")
+        crop_label = catalog_entry["name"] if catalog_entry else str(crop_id).title()
+        candidates = self._catalog_expert_logic(str(crop_id), catalog_entry)
+        out: List[Dict[str, Any]] = []
+        for item in candidates[:3]:
+            copy = dict(item)
+            base_conf = float(copy.get("confidence", 0.45) or 0.45)
+            copy["confidence"] = round(min(base_conf, 0.48), 2)
+            copy["name"] = f"{copy.get('name', 'Crop stress')} (advisory fallback)"
+            copy["source"] = "crop_weather_rule_fallback"
+            copy["explanation"] = (
+                "A leaf image was uploaded, but the trained ML classifier is not installed. "
+                f"This advisory is based on the selected crop ({crop_label}), crop category, "
+                "and local weather checks; it is not an image-classification result. "
+                + str(copy.get("explanation", ""))
+            ).strip()
+            treatments = list(copy.get("treatment") or [])
+            copy["treatment"] = [
+                "Use this as a precautionary advisory until ML/expert diagnosis is available",
+                "Take one close-up leaf photo and one whole-plant photo for KVK confirmation",
+                *treatments[:3],
+            ]
+            out.append(copy)
+        return out or self._ml_unavailable_diagnosis(crop_name)
+
     def _diagnosis_from_ml(self, ml_result: Optional[Dict[str, Any]]) -> Optional[List[Dict]]:
         if not ml_result:
             return None
@@ -473,6 +519,7 @@ class KrishiRakshaPestService:
                     "plant_validation",
                     "safety",
                     "EfficientNet-B3",
+                    "crop_weather_rule_fallback",
                 ):
                     verified.append(d)
             return sorted(verified, key=lambda x: x["confidence"], reverse=True)

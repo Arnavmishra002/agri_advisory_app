@@ -64,7 +64,7 @@
     let currentState = 'Delhi';
     let currentLocationAccuracy = null;
     let allMandisCache = [];
-    let mandiDropdownVisibleCount = 100;
+    let mandiDropdownVisibleCount = 80;
     let currentMandi = '';
     let currentCropSearch = '';
     let krSelectedCrop = '';
@@ -218,6 +218,8 @@
         updateAccuracyBadge(currentLocationAccuracy);
 
         currentMandi = '';
+        allMandisCache = [];
+        mandiDropdownVisibleCount = 80;
         const mandiSel = document.getElementById('mandiSelector');
         if (mandiSel) mandiSel.value = '';
 
@@ -691,6 +693,12 @@
     // DATA LOADING FUNCTIONS
     // ========================================
 
+    function getMandiRadiusKm() {
+        const raw = document.getElementById('mandiRadiusSelect')?.value || '150';
+        const radius = parseInt(raw, 10);
+        return Number.isFinite(radius) ? radius : 150;
+    }
+
     function renderMandiOptions(mandis, visibleCount) {
         const sel = document.getElementById('mandiSelector');
         if (!sel) return;
@@ -741,7 +749,7 @@
     }
 
     function loadMoreMandis() {
-        mandiDropdownVisibleCount += 100;
+        mandiDropdownVisibleCount += 80;
         renderMandiOptions(allMandisCache, mandiDropdownVisibleCount);
         const btn = document.getElementById('mandiLoadMoreBtn');
         if (btn && mandiDropdownVisibleCount >= allMandisCache.length) {
@@ -749,7 +757,7 @@
         }
     }
 
-    async function populateMandiDropdown(location) {
+    async function populateMandiDropdown() {
         const sel = document.getElementById('mandiSelector');
         const badge = document.getElementById('mandiStatusBadge');
         const loadMoreBtn = document.getElementById('mandiLoadMoreBtn');
@@ -762,12 +770,19 @@
         try {
             // Pass GPS + radius so backend returns location-specific mandis only
             const locQ = buildLocationQuery();
-            const radiusKm = 150;  // show mandis within 150 km by default
+            const radiusKm = getMandiRadiusKm();
             const data = await apiGetJson(
                 `/api/market-prices/mandis/?${locQ}&radius_km=${radiusKm}`
             );
             allMandisCache = data.mandis || [];
-            mandiDropdownVisibleCount = 100;
+            mandiDropdownVisibleCount = 80;
+
+            const stillAvailable = currentMandi
+                ? allMandisCache.some(m => m.name === currentMandi)
+                : true;
+            if (!stillAvailable) {
+                currentMandi = '';
+            }
 
             renderMandiOptions(allMandisCache, mandiDropdownVisibleCount);
 
@@ -781,7 +796,7 @@
             // Status badge — show nearest mandi prominently
             if (badge) {
                 if (!allMandisCache.length) {
-                    badge.textContent = '⚠️ नज़दीकी मंडी नहीं मिली — GPS चालू करें';
+                    badge.textContent = `⚠️ ${radiusKm} km में मंडी नहीं मिली — radius बढ़ाएं या GPS चालू करें`;
                 } else {
                     const nearest = data.nearest_mandi || allMandisCache[0];
                     const distHint = nearest && nearest.distance_km != null
@@ -791,7 +806,7 @@
                         ? ` · ${data.live_count} live`
                         : '';
                     badge.textContent =
-                        `🏪 ${allMandisCache.length} मंडियां${distHint}${liveHint}`;
+                        `🏪 ${allMandisCache.length} मंडियां (${radiusKm} km)${distHint}${liveHint}`;
                 }
             }
 
@@ -808,8 +823,20 @@
         } catch (err) {
             console.error('Mandi list error:', err);
             sel.innerHTML = '<option value="">-- सभी मंडियां (All Mandis) --</option>';
-            if (badge) badge.textContent = '';
+            if (badge) badge.textContent = '⚠️ मंडी सूची लोड नहीं हुई';
         }
+    }
+
+    function refreshNearbyMandis() {
+        currentMandi = '';
+        allMandisCache = [];
+        const sel = document.getElementById('mandiSelector');
+        if (sel) sel.value = '';
+        populateMandiDropdown().then(() => loadMarketPrices());
+    }
+
+    function onMandiRadiusChanged() {
+        refreshNearbyMandis();
     }
 
     function onMandiSelected(mandiName) {
@@ -1118,7 +1145,7 @@
                 (data.status === 'unavailable' || data.status === 'partial') && !estimatesChecked) {
                 const ePath = currentMandi
                     ? `/api/market-prices/mandi-prices/?${buildLocationQuery()}&mandi=${encodeURIComponent(currentMandi)}&include_estimates=true`
-                    : `/api/market-prices/?${buildLocationQuery()}&include_estimates=true`;
+                    : `/api/market-prices/?${buildLocationQuery()}&include_estimates=true${currentCropSearch ? '&crop=' + encodeURIComponent(currentCropSearch) : ''}`;
                 const est = await apiGetJson(ePath);
                 if (est.top_crops?.length) { data = est; data._auto_estimates = true; }
             }
@@ -1880,7 +1907,7 @@
             const data = await response.json();
             console.log('KrishiRaksha Response:', data);
 
-            const okStatuses = ['success', 'low_confidence', 'not_plant', 'photo_required', 'model_unavailable', 'tensorflow_missing'];
+            const okStatuses = ['success', 'advisory_fallback', 'low_confidence', 'not_plant', 'photo_required', 'model_unavailable', 'tensorflow_missing'];
             if (okStatuses.includes(data.status)) {
                 displayKrishiRakshaResults(data);
             } else {
@@ -1904,9 +1931,11 @@
         const resultsContainer = document.getElementById('krishiRakshaResults');
         const diagnoses = data.diagnosis || [];
         const statusAlerts = {
+            advisory_fallback: 'alert-warning',
             not_plant: 'alert-warning',
             low_confidence: 'alert-warning',
             model_unavailable: 'alert-info',
+            tensorflow_missing: 'alert-info',
             photo_required: 'alert-info',
         };
         const alertClass = statusAlerts[data.status] || 'alert-success';
@@ -2205,7 +2234,7 @@
             if (dsLower.includes('gemini')) {
                 aiSourceBadge = '<span style="display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">✨ Gemini AI</span>';
             } else if (dsLower.includes('qwen') || dsLower.includes('rag')) {
-                aiSourceBadge = '<span style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">🧠 Qwen+RAG (Local)</span>';
+                aiSourceBadge = '<span style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">🧠 Local LLM + RAG</span>';
             } else if (dataSource) {
                 aiSourceBadge = '<span style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">📚 Advisory Engine</span>';
             }
@@ -2264,7 +2293,7 @@
             badge.textContent = '✨ Gemini AI';
             badge.style.cssText = 'display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
         } else if (dsL.includes('qwen') || dsL.includes('rag')) {
-            badge.textContent = '🧠 Qwen+RAG';
+            badge.textContent = '🧠 Local LLM + RAG';
             badge.style.cssText = 'display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
         } else {
             badge.textContent = '📚 Advisory';
@@ -2384,6 +2413,8 @@
     window.onMandiSelected = onMandiSelected;
     window.populateMandiDropdown = populateMandiDropdown;
     window.loadMoreMandis = loadMoreMandis;
+    window.refreshNearbyMandis = refreshNearbyMandis;
+    window.onMandiRadiusChanged = onMandiRadiusChanged;
     window.applyManualLocation = applyManualLocation;
     window.showService = showService;
     window.loadMarketPrices = loadMarketPrices;

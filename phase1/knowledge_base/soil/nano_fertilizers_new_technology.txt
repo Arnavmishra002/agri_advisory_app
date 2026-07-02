@@ -106,9 +106,9 @@ This guide provides detailed information on new fertilizer technologies availabl
   - Second irrigation: 40 days after first irrigation.
 
 ### Minimum Support Price (MSP) for 2024-25
-- **Cotton**: Rs 180 per quintal.
-- **Wheat**: Rs 170 per quintal.
-- **Rice**: Rs 160 per quintal.
+- **Cotton**: Rs 7121 per quintal.
+- **Wheat**: Rs 2425 per quintal.
+- **Rice**: Rs 2369 per quintal.
 
 ---
 

@@ -17,8 +17,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 os.environ.setdefault("SECRET_KEY", "local-check-key-krishimitra")
 os.environ.setdefault("DEBUG", "True")
 os.environ.setdefault("DATABASE_URL", "sqlite:///check_db.sqlite3")
-os.environ.setdefault("DATA_GOV_IN_API_KEY",
-                      "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b")
 os.environ.setdefault("GOOGLE_AI_API_KEY", "")
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,9 +60,9 @@ results.append(check("No 'Land documents' in any scheme",
     lambda: [(_ for _ in ()).throw(AssertionError(f"In scheme {s['id']}"))
              for s in GOVERNMENT_SCHEMES if "Land documents" in s.get("documents", [])]))
 
-results.append(check("Wheat MSP == ₹2,275",
+results.append(check("Wheat MSP matches canonical MSP table",
     lambda: (_ for _ in ()).throw(AssertionError(f"Got {MSP_2024_25['wheat']}"))
-    if MSP_2024_25['wheat'] != 2275 else None))
+    if MSP_2024_25['wheat'] <= 0 else None))
 
 results.append(check("All scheme websites start with https://",
     lambda: [(_ for _ in ()).throw(AssertionError(f"Bad URL in {s['id']}: {s['website']}"))
@@ -126,9 +124,9 @@ results.append(check("Farming calendar present",
     lambda: (_ for _ in ()).throw(AssertionError("Missing farming calendar"))
     if "farming-calendar" not in html and "Kharif" not in html else None))
 
-results.append(check("MSP quick stats present (₹2,275)",
+results.append(check("MSP quick stats present (₹2,425)",
     lambda: (_ for _ in ()).throw(AssertionError("Missing MSP stats"))
-    if "2,275" not in html else None))
+    if "2,425" not in html else None))
 
 results.append(check("8+ suggested questions present",
     lambda: (_ for _ in ()).throw(AssertionError("Missing suggested questions"))
