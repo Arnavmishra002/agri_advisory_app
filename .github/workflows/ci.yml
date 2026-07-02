@@ -155,6 +155,8 @@ jobs:
 
           import django
           django.setup()
+          from django.core.management import call_command
+          call_command("migrate", verbosity=0, interactive=False)
 
           from django.core.files.uploadedfile import SimpleUploadedFile
           from django.test import Client
