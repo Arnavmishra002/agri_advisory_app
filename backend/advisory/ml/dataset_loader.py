@@ -284,7 +284,7 @@ def _cap_samples(
     rng = random.Random(seed)
     by_label: Dict[str, List[Tuple[str, str]]] = {}
     for item in samples:
-        by_label[item[1]].append(item)
+        by_label.setdefault(item[1], []).append(item)
     capped: List[Tuple[str, str]] = []
     for label in sorted(by_label.keys()):
         items = by_label[label]

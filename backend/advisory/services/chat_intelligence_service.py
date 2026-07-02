@@ -732,6 +732,36 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         if not crops_mentioned and prior_crops:
                             crops_mentioned = prior_crops
 
+        # Plain greetings should be instant and should not spend time/credits on
+        # KB, RAG, LLM, weather, or mandi calls. The greeting formatter also
+        # avoids showing placeholder weather when no weather was requested.
+        if intent == INTENT_GREETING and not crops_mentioned:
+            now = datetime.now(tz=timezone.utc)
+            response_text = self._smart_rule_response(
+                query=query,
+                intent=intent,
+                crops=crops_mentioned,
+                ctx=ctx,
+                context_block="",
+                lang=lang,
+                history=history,
+                sc=SensorContext(),
+                wc=WeatherConstraints(),
+            )
+            return {
+                "response": response_text,
+                "intent": intent,
+                "sources": [],
+                "crops_detected": [],
+                "crop_suggestions": self._crop_suggestions_for_intent(
+                    ctx, intent, crops_mentioned, lang=lang
+                ),
+                "language": lang,
+                "data_source": "KrishiMitra Advisory Engine",
+                "timestamp": now.isoformat(),
+                "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
+            }
+
         # ── Named-location override ───────────────────────────────────────────
         # E.g. "rampur ka mausam" or "rampur crop suggestion"
         # Overrides location context if a known city/district is mentioned in the query.
@@ -2258,37 +2288,29 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # ── GREETING ──────────────────────────────────────────────
         if intent == INTENT_GREETING:
+            location_line_hi = f"📍 आपकी लोकेशन: **{loc}**\n" if loc else ""
+            location_line_en = f"📍 Your location: **{loc}**\n" if loc else ""
             msgs = {
                 "hi": (
                     f"नमस्ते किसान भाई! 🌾 मैं **KrishiMitra AI** हूँ — आपका स्मार्ट कृषि सहायक।\n\n"
-                    f"📍 आपकी लोकेशन: **{loc}**\n"
-                    f"🌡️ अभी का मौसम: **{temp}°C**, {cond}\n"
+                    f"{location_line_hi}"
                     f"🗓️ सीजन: **{season}**\n"
-                    f"💡 {farming_advice or 'सामान्य कृषि कार्य जारी रखें'}\n\n"
-                    f"मैं इन सभी विषयों में मदद कर सकता हूँ:\n"
-                    f"🌱 फसल सुझाव — कौन सी फसल उगाऊं?\n"
-                    f"💰 मंडी भाव — आज का गेहूँ/धान का भाव?\n"
-                    f"🌦️ मौसम — सिंचाई कब करूँ?\n"
-                    f"🏛️ योजनाएं — PM-Kisan, PMFBY, KCC\n"
-                    f"🐛 कीट-रोग — फसल में रोग क्यों?\n"
-                    f"🧪 खाद — कितनी Urea डालूँ?\n\n"
-                    f"💬 Hindi, English या Hinglish — किसी भी भाषा में पूछें!\n"
+                    f"💬 अपना सवाल भेजें, जैसे:\n"
+                    f"• आज गेहूं का मंडी भाव क्या है?\n"
+                    f"• मेरी लोकेशन पर कौन सी फसल लगाऊं?\n"
+                    f"• अगले 3 दिन बारिश होगी क्या?\n"
+                    f"• टमाटर के पत्ते पीले क्यों हो रहे हैं?\n\n"
                     f"📞 Kisan Call Centre: **1800-180-1551** (Free, 24x7)"
                 ),
                 "en": (
-                    f"Hello Farmer! 🌾 I'm **KrishiMitra AI** — your intelligent farming assistant.\n\n"
-                    f"📍 Your location: **{loc}**\n"
-                    f"🌡️ Current weather: **{temp}°C**, {cond}\n"
+                    f"Hello Farmer! 🌾 I'm **KrishiMitra AI** — your farming assistant.\n\n"
+                    f"{location_line_en}"
                     f"🗓️ Season: **{season}**\n"
-                    f"💡 {farming_advice or 'Suitable for normal farming activities'}\n\n"
-                    f"I can help with:\n"
-                    f"🌱 Crop recommendations for your location\n"
-                    f"💰 Live mandi prices (Agmarknet/eNAM)\n"
-                    f"🌦️ 16-day weather forecast + irrigation schedule\n"
-                    f"🏛️ Government schemes (PM-Kisan, PMFBY, KCC)\n"
-                    f"🐛 Pest & disease identification\n"
-                    f"🧪 Fertiliser recommendations\n\n"
-                    f"Ask in any Indian language or English!\n"
+                    f"Ask a farming question, for example:\n"
+                    f"• What is today's wheat mandi price?\n"
+                    f"• Which crop should I grow here?\n"
+                    f"• Will it rain in the next 3 days?\n"
+                    f"• Why are tomato leaves turning yellow?\n\n"
                     f"📞 Kisan Helpline: **1800-180-1551** (Free, 24x7)"
                 ),
             }
