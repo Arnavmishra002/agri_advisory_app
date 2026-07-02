@@ -13,9 +13,13 @@ class ApiException implements Exception {
   @override String toString() => 'ApiException($statusCode): $message';
 
   String get displayMessage {
-    if (statusCode == null) return 'नेटवर्क त्रुटि — सर्वर से संपर्क नहीं हो सका।';
-    if ((statusCode ?? 0) >= 500) return 'सर्वर में समस्या। थोड़ी देर बाद कोशिश करें।';
-    return 'डेटा लोड नहीं हो सका। (${statusCode})';
+    if (statusCode == null) {
+      return 'नेटवर्क त्रुटि — सर्वर से संपर्क नहीं हो सका।';
+    }
+    if ((statusCode ?? 0) >= 500) {
+      return 'सर्वर में समस्या। थोड़ी देर बाद कोशिश करें।';
+    }
+    return 'डेटा लोड नहीं हो सका। ($statusCode)';
   }
 }
 
@@ -29,9 +33,15 @@ class ApiService {
 
   String _locQ({required String loc, double? lat, double? lon, String? state}) {
     final p = <String, String>{'location': loc};
-    if (lat   != null) p['latitude']  = lat.toStringAsFixed(6);
-    if (lon   != null) p['longitude'] = lon.toStringAsFixed(6);
-    if (state != null && state.isNotEmpty) p['state'] = state;
+    if (lat != null) {
+      p['latitude'] = lat.toStringAsFixed(6);
+    }
+    if (lon != null) {
+      p['longitude'] = lon.toStringAsFixed(6);
+    }
+    if (state != null && state.isNotEmpty) {
+      p['state'] = state;
+    }
     return Uri(queryParameters: p).query;
   }
 
@@ -39,7 +49,9 @@ class ApiService {
     debugPrint('GET $url');
     try {
       final r = await _client.get(Uri.parse(url)).timeout(_timeout);
-      if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
+      if (r.statusCode == 200) {
+        return jsonDecode(r.body) as Map<String, dynamic>;
+      }
       throw ApiException('GET $url → ${r.statusCode}', statusCode: r.statusCode);
     } on SocketException catch (e) {
       throw ApiException('Cannot connect: $e');
@@ -157,16 +169,22 @@ class ApiService {
         }
         for (final frame in frames) {
           final trimmed = frame.trim();
-          if (trimmed.isEmpty) continue;
+          if (trimmed.isEmpty) {
+            continue;
+          }
           // Each line inside a frame: "data: {...}"
           for (final line in trimmed.split('\n')) {
             if (line.startsWith('data: ')) {
               final jsonStr = line.substring(6).trim();
-              if (jsonStr.isEmpty) continue;
+              if (jsonStr.isEmpty) {
+                continue;
+              }
               try {
                 final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
                 yield parsed;
-                if (parsed['done'] == true) return;
+                if (parsed['done'] == true) {
+                  return;
+                }
               } catch (_) {
                 // Malformed frame — skip
               }
@@ -224,11 +242,21 @@ class ApiService {
     String? state, String? mandi, String? crop,
   }) async {
     final p = <String, String>{'location': location};
-    if (lat   != null) p['latitude']  = lat.toString();
-    if (lon   != null) p['longitude'] = lon.toString();
-    if (state != null) p['state']     = state;
-    if (mandi != null) p['mandi']     = mandi;
-    if (crop  != null) p['crop']      = crop;
+    if (lat != null) {
+      p['latitude'] = lat.toString();
+    }
+    if (lon != null) {
+      p['longitude'] = lon.toString();
+    }
+    if (state != null) {
+      p['state'] = state;
+    }
+    if (mandi != null) {
+      p['mandi'] = mandi;
+    }
+    if (crop != null) {
+      p['crop'] = crop;
+    }
     final uri = Uri.parse('${AppConfig.baseUrl}/api/market-prices/')
         .replace(queryParameters: p);
     return _get(uri.toString());
@@ -248,15 +276,21 @@ class ApiService {
   // ── Schemes ──────────────────────────────────────────────────────────────
   Future<List<dynamic>> getSchemes({String? state, String lang = 'hi'}) async {
     final p = <String, String>{'language': lang};
-    if (state != null) p['state'] = state;
+    if (state != null) {
+      p['state'] = state;
+    }
     final uri = Uri.parse('${AppConfig.baseUrl}/api/schemes/')
         .replace(queryParameters: p);
     final raw = await _get(uri.toString());
-    if (raw['schemes'] is List && (raw['schemes'] as List).isNotEmpty)
+    if (raw['schemes'] is List && (raw['schemes'] as List).isNotEmpty) {
       return raw['schemes'] as List;
-    if (raw['catalog'] is List && (raw['catalog'] as List).isNotEmpty)
+    }
+    if (raw['catalog'] is List && (raw['catalog'] as List).isNotEmpty) {
       return raw['catalog'] as List;
-    if (raw['results'] is List) return raw['results'] as List;
+    }
+    if (raw['results'] is List) {
+      return raw['results'] as List;
+    }
     return [];
   }
 
@@ -282,7 +316,9 @@ class ApiService {
     required File image, required String crop,
     required String sessionId, String lang = 'hi',
   }) async {
-    if (kIsWeb) throw const ApiException('Camera upload not supported on web browser');
+    if (kIsWeb) {
+      throw const ApiException('Camera upload not supported on web browser');
+    }
     final req = http.MultipartRequest(
         'POST', Uri.parse('${AppConfig.baseUrl}/api/diagnostics/predict/'));
     req.fields['crop']       = crop;
@@ -292,7 +328,9 @@ class ApiService {
     try {
       final streamed = await req.send().timeout(_timeout);
       final r = await http.Response.fromStream(streamed);
-      if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
+      if (r.statusCode == 200) {
+        return jsonDecode(r.body) as Map<String, dynamic>;
+      }
       throw ApiException('Diagnose failed', statusCode: r.statusCode);
     } on SocketException catch (e) {
       throw ApiException('Cannot connect: $e');

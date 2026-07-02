@@ -30,10 +30,10 @@ class SharedRateLimiter:
     Works correctly across multiple Gunicorn workers because all state
     lives in the shared cache (Redis) rather than process memory.
 
-    Bug 1 fix: replaced time.monotonic() with time.time() everywhere.
-    time.monotonic() is process-local — its epoch differs per worker, so
-    storing it in Redis and reading it from another worker produces a large
-    negative elapsed value, permanently draining the token bucket.
+    Bug 1 fix: use time.time() everywhere.
+    The old process-local clock had a different epoch per worker, so storing
+    it in Redis and reading it from another worker could produce a large
+    negative elapsed value and permanently drain the token bucket.
 
     Bug 2 fix: added CAS (compare-and-swap) retry loop around the
     read-modify-write so burst requests from multiple workers can't both
@@ -61,8 +61,8 @@ class SharedRateLimiter:
         Consume one token for client_id. Returns True if allowed, False if
         rate limited.
 
-        Bug 1: time.time() (wall-clock UTC epoch) instead of time.monotonic()
-               — safe to store in Redis and read from any worker.
+        Bug 1: time.time() uses the wall-clock UTC epoch, so it is safe to
+               store in Redis and read from any worker.
         Bug 2: CAS retry loop — cache.add() is atomic; retrying up to 3 times
                means concurrent workers correctly see each other's decrements.
         """

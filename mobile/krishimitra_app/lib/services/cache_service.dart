@@ -1,16 +1,16 @@
-/// KrishiMitra Offline Cache Service (Task 10 / RAG-7)
-///
-/// Wraps Hive for fast local key-value caching of API responses.
-/// Every entry is stored with a UTC timestamp; callers pass a TTL and
-/// this service returns null for expired entries.
-///
-/// Cache keys are namespaced by (screen, locationName, lang) so a user
-/// who switches location never sees stale data from the old location.
-///
-/// TTLs (from spec requirement 6):
-///   weather  : 3 hours
-///   mandi    : 6 hours
-///   crop_rec : 24 hours
+// KrishiMitra Offline Cache Service (Task 10 / RAG-7)
+//
+// Wraps Hive for fast local key-value caching of API responses.
+// Every entry is stored with a UTC timestamp; callers pass a TTL and
+// this service returns null for expired entries.
+//
+// Cache keys are namespaced by (screen, locationName, lang) so a user
+// who switches location never sees stale data from the old location.
+//
+// TTLs (from spec requirement 6):
+//   weather  : 3 hours
+//   mandi    : 6 hours
+//   crop_rec : 24 hours
 
 import 'package:hive_flutter/hive_flutter.dart';
 

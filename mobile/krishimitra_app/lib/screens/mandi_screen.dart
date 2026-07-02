@@ -75,8 +75,8 @@ class _MandiScreenState extends State<MandiScreen>
       final nearest = data['nearest_mandi'] as Map<String, dynamic>?;
       if (nearest != null && nearest['name'] != null) {
         final d = nearest['distance_km'];
-        _nearestMsg = '📍 नज़दीकी: ${nearest['name']}'
-            + (d != null ? ' (${(d as num).toStringAsFixed(0)} km)' : '');
+        final distance = d != null ? ' (${(d as num).toStringAsFixed(0)} km)' : '';
+        _nearestMsg = '📍 नज़दीकी: ${nearest['name']}$distance';
       }
 
       MandiInfo? sel;
@@ -85,7 +85,9 @@ class _MandiScreenState extends State<MandiScreen>
       }
       sel ??= list.isNotEmpty ? list.first : null;
       setState(() { _mandis = list; _sel = sel; _loadingMandis = false; });
-      if (sel != null) _loadPrices(sel.name);
+      if (sel != null) {
+        _loadPrices(sel.name);
+      }
     } catch (_) {
       final cached = _cache.get(cacheKey, const Duration(hours: 12));
       if (cached != null) {
@@ -108,7 +110,9 @@ class _MandiScreenState extends State<MandiScreen>
         _fromCache = true; _cacheAge = _cache.ageHours(cacheKey);
         _loadingMandis = false;
       });
-      if (sel != null) _loadPrices(sel.name);
+      if (sel != null) {
+        _loadPrices(sel.name);
+      }
     } catch (_) {
       setState(() { _loadingMandis = false; _err = 'cache_parse'; });
     }
@@ -238,24 +242,26 @@ class _MandiScreenState extends State<MandiScreen>
   ]));
 
   Widget _mandiList() {
-    if (_mandis.isEmpty) return Center(child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Text('🏪', style: TextStyle(fontSize: 56)),
-        const SizedBox(height: 12),
-        const Text('नज़दीक कोई मंडी नहीं मिली',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        Text('GPS चालू करें या लोकेशन बदलें',
-            style: TextStyle(color: Colors.grey[600])),
-        const SizedBox(height: 20),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.refresh),
-          label: const Text('दोबारा खोजें'),
-          onPressed: _loadMandis,
-        ),
-      ]),
-    ));
+    if (_mandis.isEmpty) {
+      return Center(child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Text('🏪', style: TextStyle(fontSize: 56)),
+          const SizedBox(height: 12),
+          const Text('नज़दीक कोई मंडी नहीं मिली',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Text('GPS चालू करें या लोकेशन बदलें',
+              style: TextStyle(color: Colors.grey[600])),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: const Text('दोबारा खोजें'),
+            onPressed: _loadMandis,
+          ),
+        ]),
+      ));
+    }
 
     final veryNear = _mandis.where((m) => m.proximity == 'very_near').toList();
     final near     = _mandis.where((m) => m.proximity == 'near').toList();
@@ -414,15 +420,17 @@ class _MandiScreenState extends State<MandiScreen>
   }
 
   Widget _pricesTab() {
-    if (_sel == null) return Center(child: Column(
-      mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Text('🏪', style: TextStyle(fontSize: 48)),
-      const SizedBox(height: 12),
-      const Text('पहले एक मंडी चुनें', style: TextStyle(fontSize: 16)),
-      const SizedBox(height: 8),
-      TextButton(onPressed: () => _tab.animateTo(0),
-          child: const Text('मंडी चुनें →')),
-    ]));
+    if (_sel == null) {
+      return Center(child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Text('🏪', style: TextStyle(fontSize: 48)),
+        const SizedBox(height: 12),
+        const Text('पहले एक मंडी चुनें', style: TextStyle(fontSize: 16)),
+        const SizedBox(height: 8),
+        TextButton(onPressed: () => _tab.animateTo(0),
+            child: const Text('मंडी चुनें →')),
+      ]));
+    }
 
     return Column(children: [
       // Selected mandi header

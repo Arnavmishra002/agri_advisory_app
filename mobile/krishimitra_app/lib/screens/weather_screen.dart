@@ -216,7 +216,7 @@ class _WeatherScreenState extends State<WeatherScreen>
       Row(mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
-          '${d.temperature?.toStringAsFixed(0) ?? '--'}',
+          d.temperature?.toStringAsFixed(0) ?? '--',
           style: const TextStyle(color: Colors.white, fontSize: 96,
               fontWeight: FontWeight.w100, height: 1.0),
         ),

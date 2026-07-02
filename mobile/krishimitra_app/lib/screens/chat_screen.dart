@@ -76,12 +76,17 @@ class _ChatScreenState extends State<ChatScreen>
     _micScale = Tween<double>(begin: 1.0, end: 1.3)
         .animate(CurvedAnimation(parent: _micAnim, curve: Curves.easeInOut));
     _micAnim.addStatusListener((s) {
-      if (s == AnimationStatus.completed) _micAnim.reverse();
-      else if (s == AnimationStatus.dismissed && _isListening) _micAnim.forward();
+      if (s == AnimationStatus.completed) {
+        _micAnim.reverse();
+      } else if (s == AnimationStatus.dismissed && _isListening) {
+        _micAnim.forward();
+      }
     });
     _initVoice();
     _store.loadHistory().then((h) {
-      if (mounted) setState(() => _msgs = h);
+      if (mounted) {
+        setState(() => _msgs = h);
+      }
       _scrollBottom();
     });
   }
@@ -107,7 +112,9 @@ class _ChatScreenState extends State<ChatScreen>
     await _tts.setLanguage(_toLangLocale(widget.lang));
     await _tts.setSpeechRate(0.45);
     await _tts.setVolume(1.0);
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _toggleListen() async {
@@ -118,7 +125,9 @@ class _ChatScreenState extends State<ChatScreen>
     if (_isListening) {
       await _stt.stop();
       _micAnim.stop();
-      if (mounted) setState(() => _isListening = false);
+      if (mounted) {
+        setState(() => _isListening = false);
+      }
     } else {
       final locale = _toLangLocale(widget.lang);
       final started = await _stt.listen(
@@ -127,11 +136,15 @@ class _ChatScreenState extends State<ChatScreen>
           if (result.finalResult && result.recognizedWords.isNotEmpty) {
             _ctrl.text = result.recognizedWords;
             _micAnim.stop();
-            if (mounted) setState(() => _isListening = false);
+            if (mounted) {
+              setState(() => _isListening = false);
+            }
             _lastInputWasVoice = true;
             _send(result.recognizedWords);
           } else {
-            if (mounted) setState(() => _ctrl.text = result.recognizedWords);
+            if (mounted) {
+              setState(() => _ctrl.text = result.recognizedWords);
+            }
           }
         },
         listenFor: const Duration(seconds: 20),
@@ -143,7 +156,9 @@ class _ChatScreenState extends State<ChatScreen>
       );
       if (started) {
         _micAnim.forward();
-        if (mounted) setState(() => _isListening = true);
+        if (mounted) {
+          setState(() => _isListening = true);
+        }
       }
     }
   }
@@ -156,7 +171,9 @@ class _ChatScreenState extends State<ChatScreen>
   });
 
   void _showSnack(String msg) {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), duration: const Duration(seconds: 2)));
   }
@@ -164,7 +181,9 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Send message (with SSE streaming) ────────────────────────
   Future<void> _send(String text) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty || _typing) return;
+    if (trimmed.isEmpty || _typing) {
+      return;
+    }
     _ctrl.clear();
     final voiceMode = _lastInputWasVoice;
     _lastInputWasVoice = false;
@@ -209,18 +228,20 @@ class _ChatScreenState extends State<ChatScreen>
             return;
           }
           if (frame['token'] != null) {
-            if (mounted) setState(() {
-              _streamBuf += frame['token'] as String;
-              // Update the placeholder message's content in-place
-              final idx = _msgs.indexWhere((m) => m.id == botId);
-              if (idx != -1) {
-                _msgs[idx] = ChatMessage(
-                  id: botId, role: 'assistant',
-                  content: _streamBuf, timestamp: DateTime.now(),
-                  dataSource: 'streaming…',
-                );
-              }
-            });
+            if (mounted) {
+              setState(() {
+                _streamBuf += frame['token'] as String;
+                // Update the placeholder message's content in-place
+                final idx = _msgs.indexWhere((m) => m.id == botId);
+                if (idx != -1) {
+                  _msgs[idx] = ChatMessage(
+                    id: botId, role: 'assistant',
+                    content: _streamBuf, timestamp: DateTime.now(),
+                    dataSource: 'streaming…',
+                  );
+                }
+              });
+            }
             _scrollBottom();
           }
           if (frame['done'] == true) {
@@ -241,7 +262,9 @@ class _ChatScreenState extends State<ChatScreen>
         ),
         onDone: () {
           // Guard: if stream closed without done frame
-          if (_typing) _finalizeStream(botId, _streamBuf, voiceMode: voiceMode);
+          if (_typing) {
+            _finalizeStream(botId, _streamBuf, voiceMode: voiceMode);
+          }
         },
       );
     } catch (e) {
@@ -259,7 +282,9 @@ class _ChatScreenState extends State<ChatScreen>
     String botId, String content, {
     String? dataSource, String? intent, required bool voiceMode,
   }) {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     _streamSub?.cancel();
     _streamSub = null;
     final idx = _msgs.indexWhere((m) => m.id == botId);
@@ -273,7 +298,11 @@ class _ChatScreenState extends State<ChatScreen>
       dataSource: dataSource, intent: intent,
     );
     setState(() {
-      if (idx != -1) _msgs[idx] = finalMsg; else _msgs.add(finalMsg);
+      if (idx != -1) {
+        _msgs[idx] = finalMsg;
+      } else {
+        _msgs.add(finalMsg);
+      }
       _typing    = false;
       _streamBuf = '';
     });
@@ -349,7 +378,9 @@ class _ChatScreenState extends State<ChatScreen>
         tooltip: 'Clear chat',
         onPressed: () async {
           await _store.clearHistory();
-          if (mounted) setState(() => _msgs.clear());
+          if (mounted) {
+            setState(() => _msgs.clear());
+          }
         },
       ),
     ],
@@ -554,7 +585,7 @@ class _ChatScreenState extends State<ChatScreen>
     _dot(1), const SizedBox(width: 4),
     _dot(2),
     const SizedBox(width: 8),
-    Text(_streamBuf.isEmpty ? '' : '${_streamBuf.length} chars…',
+    Text(_streamBuf.isEmpty ? '' : '${_streamBuf.length} chars...',
         style: const TextStyle(fontSize: 10, color: Colors.grey)),
   ]);
 

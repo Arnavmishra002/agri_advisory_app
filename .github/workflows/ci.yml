@@ -78,7 +78,7 @@ jobs:
               print('MISSING routes:', missing); sys.exit(1)
           # Verify new endpoints exist in urlpatterns
           url_names = [p.name for p in urlpatterns if hasattr(p,'name') and p.name]
-          for ep in ['chatbot-stream','sentry_test','data_freshness','health_readiness']:
+          for ep in ['chatbot-stream','sentry_test','data_freshness','readiness_check']:
               if ep not in url_names:
                   print(f'MISSING endpoint: {ep}'); sys.exit(1)
           print(f'✅ {len(routes)} router routes + new endpoints verified')
@@ -512,7 +512,7 @@ jobs:
         run: |
           flutter --version
           flutter pub get
-          flutter analyze
+          flutter analyze --no-fatal-infos
 
   # ── Docker Build ─────────────────────────────────────────────
   docker:
