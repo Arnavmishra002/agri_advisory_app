@@ -261,14 +261,14 @@ jobs:
       - name: Rate limiter token bucket (time.time, CAS loop)
         working-directory: ${{ github.workspace }}
         run: |
-          python3 -c "
+          python3 - <<'PY'
           import sys, os, time
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
                              'SECRET_KEY':'ci-test','DEBUG':'True',
-                             'DATABASE_URL':'sqlite:///ci.db',
-                             'CACHE_BACKEND':'django.core.cache.backends.locmem.LocMemCache'})
+                             'DATABASE_URL':'sqlite:///ci.db'})
           import django; django.setup()
+          from django.test.utils import override_settings
           from advisory.rate_limiters import SharedRateLimiter
           # 1. time.time() is used (not monotonic)
           import inspect
@@ -278,15 +278,22 @@ jobs:
           # 2. CAS retry loop present
           assert 'range(3)' in src or '_attempt' in src, 'Bug 2 not fixed: CAS loop missing'
           # 3. Functional test with local cache
-          lim = SharedRateLimiter('ci_test', capacity=3, fill_rate=100.0)
-          results = [lim.is_allowed('test_client') for _ in range(5)]
-          assert results[:3] == [True, True, True], f'First 3 should pass: {results}'
-          assert results[3] == False, f'4th should be rate-limited: {results}'
+          cache_config = {
+              'default': {
+                  'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+                  'LOCATION': f'ci-rate-limit-{time.time_ns()}',
+              }
+          }
+          with override_settings(CACHES=cache_config):
+              lim = SharedRateLimiter(f'ci_test_{time.time_ns()}', capacity=3, fill_rate=0.0)
+              results = [lim.is_allowed('test_client') for _ in range(5)]
+              assert results[:3] == [True, True, True], f'First 3 should pass: {results}'
+              assert results[3] == False, f'4th should be rate-limited: {results}'
           # 4. remaining() uses time.time()
           src_rem = inspect.getsource(SharedRateLimiter.remaining)
           assert 'time.time()' in src_rem, 'remaining() still uses monotonic'
           print('✅ Rate limiter: time.time() confirmed, CAS loop present, functional test passed')
-          "
+          PY
 
       # ── Intent classification ────────────────────────────────
       - name: Chatbot intent classification (15 queries)
