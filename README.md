@@ -1,39 +1,90 @@
-# KrishiMitra — Agricultural Advisory App
+# KrishiMitra - Agricultural Advisory App
 
-Monorepo with a **Django + DRF API** (`backend/`) and a **standalone Vite frontend** (`frontend/`).
+KrishiMitra is a farmer advisory platform for Indian agriculture. The repository
+is a monorepo containing a Django REST API, a Vite web UI, a Flutter mobile app,
+a local Phase 1 AI/RAG service, crop disease ML tooling, and deployment scripts.
 
-## Project layout
+The production goal is farmer-safe behavior: live weather and mandi data when
+available, location-aware crop recommendations, honest disease diagnostics, and
+chatbot answers grounded in the local knowledge base before optional cloud AI.
 
-```
+## What Runs Where
+
+| Surface | Local dev | Docker compose | Purpose |
+| --- | --- | --- | --- |
+| Django API and optional built UI | `http://127.0.0.1:8000` | `http://localhost:8001` | Main app, API, admin, health checks |
+| Vite frontend | `http://localhost:5173` | Built into Django/nginx image | Web UI during frontend development |
+| Phase 1 AI/RAG | `http://localhost:8001` from `phase1/` | `http://localhost:8002` | FastAPI bridge for local RAG/Ollama |
+| Nginx full profile | - | `http://localhost:8080` | Static UI plus reverse proxy |
+
+Important: `localhost:8002` is the Phase 1 AI/RAG service, not the main web UI.
+Use `localhost:8001` for the Docker app or `127.0.0.1:8000` for local
+`runserver`.
+
+## Repository Layout
+
+```text
 agri_advisory_app/
-├── backend/              # Django API (manage.py, advisory/, core/)
-├── frontend/             # Vite static UI (VITE_API_BASE_URL → API)
-├── scripts/              # Ops: deploy, quick_services_check, production verify
-├── docs/                 # Architecture & service audit
-├── manage.py             # Wrapper — runs backend/manage.py from repo root
-├── Dockerfile            # Multi-stage: API + optional nginx UI
-└── docker-compose.yml
+├── backend/                  # Django + DRF API, services, admin, ML inference
+├── frontend/                 # Standalone Vite UI
+├── mobile/                   # Flutter mobile app source
+├── phase1/                   # FastAPI local AI/RAG service for Ollama + Chroma
+├── custom_llm_trainer/       # Local KrishiMitra Ollama model assets
+├── scripts/                  # Smoke checks, deploy helpers, training helpers
+├── docs/                     # Architecture, audits, operational notes
+├── models/                   # Local/mounted ML artifacts, ignored by git
+├── data/                     # Local datasets/runtime data, ignored by git
+├── manage.py                 # Root wrapper for backend/manage.py
+├── Dockerfile                # Multi-stage API and nginx image
+├── docker-compose.yml        # Web, Phase 1, Postgres, Redis, nginx, MQTT
+└── render.yaml               # Render deployment blueprint
 ```
 
-**Tests:** The pytest suite under `tests/` was removed. Use `python scripts/quick_services_check.py` or `python scripts/production_service_verification.py` for smoke checks.
+## Current Production Notes
 
-## Quick start (backend)
+- Chatbot priority is local knowledge base plus Phase 1 RAG/Ollama first, direct
+  Ollama next, Gemini only when `GOOGLE_AI_API_KEY` is configured, then a
+  rule-based farmer-safe fallback.
+- Weather uses Open-Meteo without an API key. `OPENWEATHER_API_KEY` is optional.
+- Mandi prices work best with `DATA_GOV_IN_API_KEY`; without it coverage and
+  rate limits are restricted.
+- Crop recommendations are location-aware and use weather/market data with
+  bounded fallbacks.
+- Disease diagnostics do not fake image classification. If the trained model is
+  missing or low quality, the API returns an advisory fallback instead of a false
+  disease label.
+- Production should use Redis via `REDIS_URL` for shared cache, rate limiting,
+  Celery, and consistent behavior across workers.
+
+## Quick Start - Backend
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r backend/requirements.txt
-cp .env.example .env   # SECRET_KEY, DATA_GOV_IN_API_KEY, GOOGLE_AI_API_KEY
-python manage.py migrate    # from repo root
+cp .env.example .env
+python manage.py migrate
 python manage.py runserver
 ```
 
-- API root: http://127.0.0.1:8000/
-- Health: http://127.0.0.1:8000/api/health/
-- Swagger: http://127.0.0.1:8000/api/schema/swagger-ui/
+Useful backend URLs:
 
-Equivalent from `backend/`: `cd backend && python manage.py runserver`
+| URL | Purpose |
+| --- | --- |
+| `http://127.0.0.1:8000/` | API/root app |
+| `http://127.0.0.1:8000/api/health/` | Basic health |
+| `http://127.0.0.1:8000/api/health/readiness/` | Database, cache, AI, model readiness |
+| `http://127.0.0.1:8000/api/schema/swagger-ui/` | Swagger UI |
+| `http://127.0.0.1:8000/admin/` | Django admin |
 
-## Quick start (frontend)
+Equivalent backend-only command:
+
+```bash
+cd backend
+python manage.py runserver
+```
+
+## Quick Start - Frontend
 
 ```bash
 cd frontend
@@ -42,61 +93,272 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 — set `VITE_API_BASE_URL=http://localhost:8000` in `frontend/.env`.
-
-## Run both (local dev)
-
-1. Terminal A: `python manage.py runserver` (port 8000)
-2. Terminal B: `cd frontend && npm run dev` (port 5173)
-
-CORS allows `localhost:5173` when `DEBUG=True`.
-
-## Optional: serve built UI from Django
+Set `frontend/.env` for local API calls:
 
 ```bash
-cd frontend && npm run build
-export SERVE_FRONTEND=true
-python manage.py runserver
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
-Built files: `frontend/dist/`.
+Use `http://localhost:8001` instead when the API is running through Docker.
+
+## Run Backend And Frontend Together
+
+```bash
+# Terminal A
+python manage.py runserver
+
+# Terminal B
+cd frontend
+npm run dev
+```
+
+When `DEBUG=True`, CORS allows the Vite dev server on `localhost:5173`.
+
+## Phase 1 Local AI/RAG
+
+Phase 1 is a FastAPI service that connects the Django chatbot to local RAG and
+Ollama. It is optional, but recommended when using KrishiMitra's own local LLM.
+
+Prerequisites:
+
+```bash
+ollama serve
+ollama pull qwen2.5:7b
+ollama pull nomic-embed-text
+```
+
+Create the custom local model if needed:
+
+```bash
+cd custom_llm_trainer
+ollama create krishimitra-llm -f Modelfile
+```
+
+Start Phase 1 locally:
+
+```bash
+cd phase1
+bash start.sh
+# or:
+uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+```
+
+Check it:
+
+```bash
+curl http://localhost:8001/health
+curl "http://localhost:8001/rag/search?q=wheat"
+```
+
+When using Docker, Phase 1 is exposed on host port `8002`:
+
+```bash
+docker compose --profile ai up --build web phase1
+curl http://localhost:8002/health
+```
 
 ## Docker
 
-```bash
-# API only (host port 8001)
-docker compose up web --build
+Create `.env` first and set at least `SECRET_KEY`.
 
-# API + nginx static UI (host port 8080)
+```bash
+cp .env.example .env
+```
+
+Common commands:
+
+```bash
+# API plus built frontend served by Django, host port 8001
+docker compose up --build web
+
+# API plus Phase 1 AI/RAG, host ports 8001 and 8002
+docker compose --profile ai up --build web phase1
+
+# API plus nginx static UI, host ports 8001 and 8080
 docker compose --profile full up --build
+
+# Full stack: Django, nginx, PostgreSQL, Redis, Phase 1, MQTT
+docker compose --profile all up --build
 ```
 
-## Environment variables
+The compose file stores runtime state in named volumes for the database,
+uploads, static files, Redis, MQTT, and mounted ML models.
 
-| Variable | Purpose |
-|----------|---------|
-| `SECRET_KEY` | Django secret |
-| `DEBUG` | `true` for local dev |
-| `DATABASE_URL` | Postgres/SQLite URL |
-| `DATA_GOV_IN_API_KEY` | Live mandi prices ([data.gov.in](https://data.gov.in/user/register)) |
-| `GOOGLE_AI_API_KEY` | Gemini chatbot |
-| `CORS_ALLOWED_ORIGINS` | Production frontend origin(s) |
-| `SERVE_FRONTEND` | Serve `frontend/dist` from Django |
-| `VITE_API_BASE_URL` | Frontend → API (in `frontend/.env`) |
+## Crop Disease Model
 
-## Verification (no pytest)
+Real image classification requires a trained Keras model at:
+
+```text
+models/crop_disease/efficientnetb3_crop_disease.keras
+```
+
+Large datasets and trained model artifacts are intentionally not committed.
+Install or mount the model in production, or train one from local datasets.
+
+Install ML dependencies:
 
 ```bash
-python manage.py check
-python scripts/quick_services_check.py
-python scripts/production_service_verification.py
+pip install -r backend/requirements-ml.txt
 ```
 
-Pre-push: `python scripts/check_before_push.py`
+Prepare datasets under `data/datasets/` and inspect them:
+
+```bash
+python scripts/setup_training_data.py --analyze-only
+```
+
+Train EfficientNet-B3:
+
+```bash
+PYTHONPATH=backend python -m advisory.ml.train \
+  --data-dir data/datasets \
+  --output-dir models/crop_disease \
+  --architecture efficientnetb3
+```
+
+Evaluate before production:
+
+```bash
+PYTHONPATH=backend python -m advisory.ml.evaluate \
+  --model-dir models/crop_disease \
+  --data-dir data/datasets
+```
+
+`/api/health/readiness/` reports whether the model is missing, needs retraining,
+or is a production candidate.
+
+## Flutter Mobile
+
+The mobile app lives in `mobile/`. For release builds, pass the backend URL with
+`--dart-define` instead of hard-coding it:
+
+```bash
+cd mobile/krishimitra
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+flutter build apk --release --dart-define=API_BASE_URL=https://your-api.example.com
+flutter build appbundle --release --dart-define=API_BASE_URL=https://your-api.example.com
+```
+
+Local shell environments may not have Flutter installed. GitHub Actions runs
+`flutter analyze` for mobile regressions.
+
+## Environment Variables
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `SECRET_KEY` | Production | Django secret key |
+| `DEBUG` | No | Local debug mode |
+| `DATABASE_URL` | Production | PostgreSQL or SQLite URL |
+| `ALLOWED_HOSTS` | Production | Django host allow-list |
+| `CORS_ALLOWED_ORIGINS` | Production | Frontend origins allowed to call API |
+| `CSRF_TRUSTED_ORIGINS` | Production | Trusted origins for state-changing requests |
+| `DATA_GOV_IN_API_KEY` | Recommended | Fuller live mandi coverage |
+| `GOOGLE_AI_API_KEY` | Optional | Gemini fallback for chatbot |
+| `OPENWEATHER_API_KEY` | Optional | OpenWeather fallback; Open-Meteo works without a key |
+| `REDIS_URL` | Production | Shared cache, rate limits, Celery broker |
+| `SERVE_FRONTEND` | Optional | Serve `frontend/dist/` from Django |
+| `VITE_API_BASE_URL` | Frontend | Browser API base URL |
+| `PHASE1_BASE_URL` | Optional | Django -> Phase 1 service URL |
+| `PHASE1_TIMEOUT_S` | Optional | Phase 1 request timeout |
+| `OLLAMA_BASE_URL` | Optional | Local Ollama URL |
+| `OLLAMA_MODEL` | Optional | Local LLM model name |
+| `CROP_DISEASE_MODEL_DIR` | Optional | Directory containing disease model artifacts |
+| `ML_CONFIDENCE_THRESHOLD` | Optional | Minimum confidence for image classification |
+| `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | Optional | WhatsApp integration |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | Optional | SMS/IVR integration |
+| `GROQ_API_KEY` | Optional | Voice transcription for WhatsApp audio |
+| `MQTT_BROKER_HOST` | Optional | ESP32/IoT telemetry ingestion |
+
+## Verification
+
+This repo currently uses smoke checks and CI contract tests rather than a pytest
+suite.
+
+Backend:
+
+```bash
+python3 -m compileall -q backend phase1 scripts custom_llm_trainer
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python scripts/check_before_push.py
+```
+
+Frontend:
+
+```bash
+cd frontend
+node --check public/js/app.js
+npm audit --audit-level=high
+npm run build
+```
+
+Mobile:
+
+```bash
+cd mobile/krishimitra
+flutter analyze
+```
+
+Manual farmer-critical API probes:
+
+```bash
+curl http://127.0.0.1:8000/api/health/readiness/
+curl "http://127.0.0.1:8000/api/locations/search/?q=lucknow&limit=2"
+curl "http://127.0.0.1:8000/api/crops/search/?q=makhana"
+```
+
+## GitHub Actions
+
+The CI workflow validates backend routes and farmer-critical API behavior,
+frontend build health, mobile analysis, code quality rules, and Docker build
+contracts. Pull requests should be green before merging.
 
 ## Deployment
 
-- **API only:** Gunicorn from `backend/` (`Procfile`, Render `rootDir: backend`) — host frontend on CDN.
-- **Combined:** Build frontend, set `SERVE_FRONTEND=true`, or use `docker compose --profile full`.
+Recommended production setup:
 
-See `Dockerfile`, `render.yaml`, `scripts/deploy.sh`.
+1. PostgreSQL database with `DATABASE_URL`.
+2. Redis with `REDIS_URL`.
+3. Django API served by Gunicorn from `backend/`.
+4. Frontend hosted by CDN/static hosting, nginx, or Django with
+   `SERVE_FRONTEND=true`.
+5. Optional Phase 1 service plus Ollama for local RAG/LLM.
+6. Trained crop disease model mounted at `models/crop_disease/`.
+7. `DATA_GOV_IN_API_KEY` set for stronger mandi coverage.
+
+Render/Railway style API-only deployments can use `Procfile`, `render.yaml`,
+or `scripts/deploy.sh`. Combined single-container deployments should build the
+frontend first and set `SERVE_FRONTEND=true`.
+
+## Troubleshooting
+
+`http://localhost:8002` returns JSON or API responses:
+
+- This is expected. Port `8002` is Phase 1 AI/RAG in Docker.
+- Open `http://localhost:8001` for the main Docker app.
+
+Docker Desktop reports no space left on device:
+
+```bash
+docker system df
+docker builder prune
+docker system prune -a --volumes
+```
+
+The last command removes unused images, containers, build cache, and volumes.
+Back up any local database/uploads before pruning volumes.
+
+Chatbot is slow or times out:
+
+- Start Phase 1 and Ollama if using local AI.
+- Lower `PHASE1_TIMEOUT_S`, `OLLAMA_READ_TIMEOUT_S`, and
+  `CHAT_REALTIME_TIMEOUT_S` for development.
+- Confirm `/api/health/readiness/` reports `phase1_ai` and `ollama` separately.
+
+Disease diagnosis returns `advisory_fallback`:
+
+- The image was accepted, but no production-ready trained classifier was loaded.
+- Train or mount `models/crop_disease/efficientnetb3_crop_disease.keras`.
+- Re-check `/api/health/readiness/` before exposing image classification to
+  farmers.
