@@ -7,7 +7,7 @@ import tensorflow as tf
 from .model_builder import get_preprocess_fn
 
 
-def decode_and_resize(path: tf.Tensor, label: tf.Tensor) -> tuple:
+def decode_and_resize(path: tf.Tensor, label: tf.Tensor, image_size=(224, 224)) -> tuple:
     def _load(path_str: bytes, label_val: int):
         import numpy as np
         from PIL import Image
@@ -16,21 +16,35 @@ def decode_and_resize(path: tf.Tensor, label: tf.Tensor) -> tuple:
         try:
             raw = open(path_str.decode("utf-8"), "rb").read()
             im = Image.open(io.BytesIO(raw)).convert("RGB")
-            im = im.resize((224, 224), Image.Resampling.BILINEAR)
+            im = im.resize(image_size, Image.Resampling.BILINEAR)
             arr = np.array(im, dtype=np.float32)
             return arr, np.int32(label_val)
         except Exception:
-            return np.zeros((224, 224, 3), np.float32), np.int32(label_val)
+            return np.zeros((image_size[1], image_size[0], 3), np.float32), np.int32(label_val)
 
     img, lbl = tf.py_function(
         _load, [path, label], [tf.float32, tf.int32]
     )
-    img.set_shape((224, 224, 3))
+    img.set_shape((image_size[1], image_size[0], 3))
     lbl.set_shape(())
     return img, lbl
 
 
-def augment_train(image: tf.Tensor, label: tf.Tensor) -> tuple:
+def _apply_preprocess(image: tf.Tensor, preprocess_mode: str) -> tf.Tensor:
+    if preprocess_mode == "rescale_1_255":
+        return image / 255.0
+    if preprocess_mode == "none":
+        return image
+    preprocess = get_preprocess_fn()
+    return preprocess(image)
+
+
+def augment_train(
+    image: tf.Tensor,
+    label: tf.Tensor,
+    image_size=(224, 224),
+    preprocess_mode: str = "efficientnet",
+) -> tuple:
     image = tf.image.random_flip_left_right(image)
     image = tf.image.random_flip_up_down(image)
     image = tf.image.random_brightness(image, max_delta=0.25)
@@ -49,33 +63,62 @@ def augment_train(image: tf.Tensor, label: tf.Tensor) -> tuple:
     nh = tf.cast(tf.round(tf.cast(h, tf.float32) * scale), tf.int32)
     nw = tf.cast(tf.round(tf.cast(w, tf.float32) * scale), tf.int32)
     image = tf.image.resize(image, [nh, nw])
-    image = tf.image.resize_with_crop_or_pad(image, 224, 224)
+    image = tf.image.resize_with_crop_or_pad(image, image_size[1], image_size[0])
 
     # Gaussian noise
     noise = tf.random.normal(tf.shape(image), mean=0.0, stddev=8.0)
     image = tf.clip_by_value(image + noise, 0, 255)
 
-    preprocess = get_preprocess_fn()
-    image = preprocess(image)
+    image = _apply_preprocess(image, preprocess_mode)
     return image, label
 
 
-def preprocess_val(image: tf.Tensor, label: tf.Tensor) -> tuple:
-    preprocess = get_preprocess_fn()
-    image = preprocess(image)
+def preprocess_val(
+    image: tf.Tensor,
+    label: tf.Tensor,
+    preprocess_mode: str = "efficientnet",
+) -> tuple:
+    image = _apply_preprocess(image, preprocess_mode)
     return image, label
 
 
-def make_datasets(train_paths, train_labels, val_paths, val_labels, batch_size: int):
+def make_datasets(
+    train_paths,
+    train_labels,
+    val_paths,
+    val_labels,
+    batch_size: int,
+    image_size=(224, 224),
+    preprocess_mode: str = "efficientnet",
+    augment: bool = True,
+):
     train_ds = tf.data.Dataset.from_tensor_slices((train_paths, train_labels))
     train_ds = train_ds.shuffle(min(len(train_paths), 5000), seed=42)
-    train_ds = train_ds.map(decode_and_resize, num_parallel_calls=tf.data.AUTOTUNE)
-    train_ds = train_ds.map(augment_train, num_parallel_calls=tf.data.AUTOTUNE)
+    train_ds = train_ds.map(
+        lambda path, label: decode_and_resize(path, label, image_size),
+        num_parallel_calls=tf.data.AUTOTUNE,
+    )
+    if augment:
+        train_ds = train_ds.map(
+            lambda image, label: augment_train(image, label, image_size, preprocess_mode),
+            num_parallel_calls=tf.data.AUTOTUNE,
+        )
+    else:
+        train_ds = train_ds.map(
+            lambda image, label: preprocess_val(image, label, preprocess_mode),
+            num_parallel_calls=tf.data.AUTOTUNE,
+        )
     train_ds = train_ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
     val_ds = tf.data.Dataset.from_tensor_slices((val_paths, val_labels))
-    val_ds = val_ds.map(decode_and_resize, num_parallel_calls=tf.data.AUTOTUNE)
-    val_ds = val_ds.map(preprocess_val, num_parallel_calls=tf.data.AUTOTUNE)
+    val_ds = val_ds.map(
+        lambda path, label: decode_and_resize(path, label, image_size),
+        num_parallel_calls=tf.data.AUTOTUNE,
+    )
+    val_ds = val_ds.map(
+        lambda image, label: preprocess_val(image, label, preprocess_mode),
+        num_parallel_calls=tf.data.AUTOTUNE,
+    )
     val_ds = val_ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
     return train_ds, val_ds

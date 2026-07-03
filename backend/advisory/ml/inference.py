@@ -31,6 +31,7 @@ from .config import (
 )
 from .image_validation import validate_plant_image
 from .labels import load_labels, parse_label
+from .model_metadata import load_model_metadata
 from .preprocess import prepare_for_model
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,7 @@ class CropDiseasePredictor:
         )
         self.model: Optional[Any] = None
         self.class_names: List[str] = []
+        self.metadata: Dict[str, Any] = {}
         self._load()
 
     def _load(self) -> None:
@@ -65,6 +67,32 @@ class CropDiseasePredictor:
             self.class_names = load_labels(labels_file)
         else:
             logger.warning("Missing %s", labels_file)
+        self.metadata = load_model_metadata(self.model_dir, self.class_names)
+
+    def _input_size(self) -> tuple[int, int]:
+        raw_size = self.metadata.get("input_size")
+        if isinstance(raw_size, (list, tuple)) and len(raw_size) == 2:
+            try:
+                return int(raw_size[0]), int(raw_size[1])
+            except (TypeError, ValueError):
+                pass
+        if self.model is not None:
+            shape = getattr(self.model, "input_shape", None)
+            if isinstance(shape, list):
+                shape = shape[0]
+            if shape and len(shape) >= 3 and shape[1] and shape[2]:
+                return int(shape[2]), int(shape[1])
+        return 224, 224
+
+    def _preprocess_batch(self, batch):
+        preprocess_mode = self.metadata.get("preprocess") or "efficientnet"
+        if preprocess_mode == "rescale_1_255":
+            return batch / 255.0
+        if preprocess_mode == "none":
+            return batch
+        from .model_builder import get_preprocess_fn
+        preprocess = get_preprocess_fn()
+        return preprocess(batch)
 
     @property
     def is_ready(self) -> bool:
@@ -109,12 +137,9 @@ class CropDiseasePredictor:
                 "top_predictions": [],
             }
 
-        batch = prepare_for_model(image, remove_bg=True)
-        from .model_builder import get_preprocess_fn
-        preprocess = get_preprocess_fn()
-        batch_pp = preprocess(batch[0])
+        batch = prepare_for_model(image, remove_bg=True, size=self._input_size())
+        batch_pp = self._preprocess_batch(batch)
         import numpy as np
-        batch_pp = np.expand_dims(batch_pp, axis=0)
 
         probs = self.model.predict(batch_pp, verbose=0)[0]
         top_indices = np.argsort(probs)[::-1][:TOP_K]
@@ -141,7 +166,9 @@ class CropDiseasePredictor:
             "confidence": confidence,
             "confidence_percent": best["confidence_percent"],
             "top_predictions": top_predictions,
-            "model": "EfficientNet-B3",
+            "model": self.metadata.get("model") or "EfficientNet-B3",
+            "model_quality": self.metadata.get("quality", "unknown"),
+            "model_metrics": self.metadata,
             "threshold": CONFIDENCE_THRESHOLD,
         }
 

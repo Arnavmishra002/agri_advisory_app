@@ -228,6 +228,8 @@ class DiagnosticViewSet(viewsets.ViewSet):
                 "response": self._prediction_response_text(result),
                 "recommendation": self._prediction_response_text(result),
                 "model": result.get("model"),
+                "model_quality": result.get("model_quality"),
+                "model_metrics": result.get("model_metrics"),
                 "threshold": result.get("threshold"),
             }
             return Response(payload)

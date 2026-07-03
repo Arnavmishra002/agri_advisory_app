@@ -84,8 +84,9 @@ def resize_and_normalize(
 def prepare_for_model(
     image: Union[np.ndarray, bytes, str],
     remove_bg: bool = True,
+    size: Tuple[int, int] = IMG_SIZE,
 ) -> np.ndarray:
-    """Single image → batch-ready float tensor (1, H, W, 3) after EfficientNet preprocess."""
+    """Single image -> batch-ready float tensor (1, H, W, 3), unnormalized RGB."""
     if isinstance(image, bytes):
         arr = load_image_from_bytes(image)
     elif isinstance(image, str):
@@ -93,5 +94,5 @@ def prepare_for_model(
     else:
         arr = image
 
-    arr = resize_and_normalize(arr, remove_bg=remove_bg)
+    arr = resize_and_normalize(arr, size=size, remove_bg=remove_bg)
     return np.expand_dims(arr, axis=0)

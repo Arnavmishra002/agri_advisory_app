@@ -227,10 +227,14 @@ def readiness_check(request):
     # ── Crop disease ML model ────────────────────────────────────────────────
     try:
         from advisory.ml.config import DEFAULT_MODEL_DIR, MODEL_FILENAME, LABELS_FILENAME
+        from advisory.ml.labels import load_labels
+        from advisory.ml.model_metadata import load_model_metadata, readiness_summary
         model_path = DEFAULT_MODEL_DIR / MODEL_FILENAME
         labels_path = DEFAULT_MODEL_DIR / LABELS_FILENAME
         if model_path.exists() and labels_path.exists():
-            checks["crop_disease_model"] = "ok (EfficientNet-B3 ready)"
+            labels = load_labels(labels_path)
+            metadata = load_model_metadata(DEFAULT_MODEL_DIR, labels)
+            checks["crop_disease_model"] = readiness_summary(metadata)
         else:
             checks["crop_disease_model"] = (
                 f"missing ({model_path.name}); diagnostics use advisory_fallback"

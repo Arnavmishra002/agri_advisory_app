@@ -54,7 +54,12 @@ DATASET_SOURCES = (
 )
 
 # Class imbalance
-USE_CLASS_WEIGHTS = True
+USE_CLASS_WEIGHTS = os.getenv("ML_USE_CLASS_WEIGHTS", "true").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 # Checkpoint filenames
 MODEL_FILENAME = "efficientnetb3_crop_disease.keras"
