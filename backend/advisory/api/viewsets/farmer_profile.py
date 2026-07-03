@@ -4,11 +4,10 @@ KrishiMitra Farmer Profile API
 Manages persistent farmer profiles for personalized AI advisory.
 
 Endpoints:
-  GET  /api/farmer-profile/?phone=+919876543210
-  GET  /api/farmer-profile/?session_id=sess_abc
-  POST /api/farmer-profile/           — create / upsert by phone or session_id
+  GET  /api/farmer-profile/           — current farmer, redacted public shape
+  POST /api/farmer-profile/           — create / upsert current farmer profile
   POST /api/farmer-profile/add_crop/  — add crop history entry
-  GET  /api/farmer-profile/context/   — AI context dict for this farmer
+  GET  /api/farmer-profile/context/   — AI context dict for current farmer
 
 The profile feeds directly into chat_intelligence_service.answer() so the
 AI can say: "Last Rabi you grew wheat and had aphid issues. This season
@@ -21,7 +20,7 @@ from datetime import datetime, timezone
 from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..errors import safe_error_message
@@ -32,33 +31,57 @@ logger = logging.getLogger(__name__)
 class FarmerProfileViewSet(viewsets.ViewSet):
     """CRUD + helper actions for FarmerProfile."""
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def _phone_candidates(user) -> set[str]:
+        username = (getattr(user, "username", "") or "").strip()
+        digits = "".join(ch for ch in username if ch.isdigit())
+        candidates = {username} if username else set()
+        if digits:
+            candidates.add(digits)
+            candidates.add(f"+{digits}")
+            if len(digits) == 10:
+                candidates.add(f"+91{digits}")
+            elif len(digits) == 12 and digits.startswith("91"):
+                candidates.add(f"+{digits}")
+        return {c for c in candidates if c}
+
+    @classmethod
+    def _owned_filter(cls, user) -> Q:
+        q = Q(session_id=f"user:{user.id}")
+        for phone in cls._phone_candidates(user):
+            q |= Q(phone_number=phone)
+        return q
+
+    @classmethod
+    def _lookup_for_new_profile(cls, user) -> dict:
+        phones = sorted(
+            [p for p in cls._phone_candidates(user) if p.startswith("+91")],
+            key=len,
+        )
+        if phones:
+            return {"phone_number": phones[0]}
+        return {"session_id": f"user:{user.id}"}
+
+    @classmethod
+    def _get_owned_profile(cls, user):
+        from ...models import FarmerProfile
+        return FarmerProfile.objects.filter(cls._owned_filter(user)).first()
 
     # ── GET: fetch profile ────────────────────────────────────────────────────
     def list(self, request):
         """
-        GET /api/farmer-profile/?phone=+919876543210
-        GET /api/farmer-profile/?session_id=sess_abc123
-        """
-        phone      = (request.query_params.get("phone") or "").strip()
-        session_id = (request.query_params.get("session_id") or "").strip()
+        GET /api/farmer-profile/
 
-        if not phone and not session_id:
-            return Response(
-                {"error": "Provide phone or session_id query param"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        Client-supplied phone/session_id query params are intentionally ignored:
+        ownership is derived from the authenticated JWT user.
+        """
         try:
-            from ...models import FarmerProfile
-            q = Q()
-            if phone:
-                q |= Q(phone_number=phone)
-            if session_id:
-                q |= Q(session_id=session_id)
-            profile = FarmerProfile.objects.filter(q).first()
+            profile = self._get_owned_profile(request.user)
             if not profile:
                 return Response({"exists": False, "profile": None})
-            return Response({"exists": True, "profile": self._serialize(profile)})
+            return Response({"exists": True, "profile": self._serialize_public(profile)})
         except Exception as exc:
             return Response(
                 {"error": safe_error_message(exc, context="farmer_profile_get")},
@@ -70,8 +93,6 @@ class FarmerProfileViewSet(viewsets.ViewSet):
         """
         POST /api/farmer-profile/
         Body: {
-          "phone": "+919876543210",     // or "session_id"
-          "session_id": "sess_abc",
           "location_name": "Jaipur",
           "state": "Rajasthan",
           "district": "Jaipur",
@@ -85,25 +106,22 @@ class FarmerProfileViewSet(viewsets.ViewSet):
           "has_pm_kisan": true,
           "has_kcc": false
         }
-        Upserts by phone_number if provided, else session_id.
+        Upserts the current authenticated farmer's profile.
+        Client-supplied phone/session_id are not accepted as ownership proof.
         """
         d     = request.data
-        phone = (d.get("phone") or "").strip()
-        sid   = (d.get("session_id") or "").strip()
-
-        if not phone and not sid:
-            return Response(
-                {"error": "phone or session_id required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         try:
             from ...models import FarmerProfile
-            lookup = {"phone_number": phone} if phone else {"session_id": sid}
-            profile, created = FarmerProfile.objects.get_or_create(**lookup)
+            profile = self._get_owned_profile(request.user)
+            if profile:
+                created = False
+            else:
+                profile, created = FarmerProfile.objects.get_or_create(
+                    **self._lookup_for_new_profile(request.user)
+                )
 
             # Update all provided fields
             field_map = {
-                "session_id":        "session_id",
                 "location_name":     "location_name",
                 "state":             "state",
                 "district":          "district",
@@ -149,30 +167,26 @@ class FarmerProfileViewSet(viewsets.ViewSet):
         """
         POST /api/farmer-profile/add-crop/
         Body: {
-          "phone": "+91...",          // or session_id
           "season": "Rabi 2024-25",
           "crop": "wheat",
           "issue": "aphid"           // optional
         }
-        Appends to the farmer's crop_history list (max 6 entries kept).
+        Appends to the authenticated farmer's crop_history list (max 6 entries kept).
         """
         d      = request.data
-        phone  = (d.get("phone") or "").strip()
-        sid    = (d.get("session_id") or "").strip()
         season = d.get("season", "")
         crop   = d.get("crop", "")
 
         if not crop:
             return Response({"error": "crop is required"}, status=status.HTTP_400_BAD_REQUEST)
-        if not phone and not sid:
-            return Response({"error": "phone or session_id required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            from ...models import FarmerProfile
-            lookup  = {"phone_number": phone} if phone else {"session_id": sid}
-            profile = FarmerProfile.objects.filter(**lookup).first()
+            profile = self._get_owned_profile(request.user)
             if not profile:
-                return Response({"error": "Farmer profile not found — create it first"}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "Farmer profile not found — create it first"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
             entry  = {"season": season, "crop": crop}
             if d.get("issue"):
@@ -196,17 +210,11 @@ class FarmerProfileViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="context")
     def context(self, request):
         """
-        GET /api/farmer-profile/context/?phone=+91...
+        GET /api/farmer-profile/context/
         Returns the dict used to personalise the AI chatbot prompt.
         """
-        phone = (request.query_params.get("phone") or "").strip()
-        sid   = (request.query_params.get("session_id") or "").strip()
         try:
-            from ...models import FarmerProfile
-            q = Q()
-            if phone:   q |= Q(phone_number=phone)
-            if sid:     q |= Q(session_id=sid)
-            profile = FarmerProfile.objects.filter(q).first() if (phone or sid) else None
+            profile = self._get_owned_profile(request.user)
             ctx = profile.to_context_dict() if profile else {}
             return Response({"context": ctx, "has_profile": bool(profile)})
         except Exception as exc:
@@ -224,34 +232,24 @@ class FarmerProfileViewSet(viewsets.ViewSet):
         PUT   /api/farmer-profile/me/
         """
         user = getattr(request, "user", None)
-        phone = (request.query_params.get("phone") or request.data.get("phone") or "").strip()
-        sid = (request.query_params.get("session_id") or request.data.get("session_id") or "").strip()
 
         from ...models import FarmerProfile
-        profile = None
-        q = Q()
-        if phone:
-            q |= Q(phone_number=phone)
-        if sid:
-            q |= Q(session_id=sid)
-
-        if q:
-            profile = FarmerProfile.objects.filter(q).first()
+        profile = self._get_owned_profile(user)
 
         if not profile:
-            if request.method in ["PATCH", "PUT"] or (sid or phone):
-                lookup = {"phone_number": phone} if phone else {"session_id": sid or f"sess_{user.id if (user and user.is_authenticated) else 'anon'}"}
-                profile, created = FarmerProfile.objects.get_or_create(**lookup)
+            if request.method in ["PATCH", "PUT"]:
+                profile, created = FarmerProfile.objects.get_or_create(
+                    **self._lookup_for_new_profile(user)
+                )
             else:
                 return Response(
-                    {"exists": False, "profile": None, "message": "No profile matches your session_id or phone"},
+                    {"exists": False, "profile": None, "message": "No profile matches the authenticated user"},
                     status=status.HTTP_404_NOT_FOUND if request.method == "GET" else status.HTTP_400_BAD_REQUEST
                 )
 
         if request.method in ["PATCH", "PUT"]:
             d = request.data
             field_map = {
-                "session_id":        "session_id",
                 "location_name":     "location_name",
                 "state":             "state",
                 "district":          "district",
@@ -295,6 +293,30 @@ class FarmerProfileViewSet(viewsets.ViewSet):
             "district":           p.district,
             "latitude":           p.latitude,
             "longitude":          p.longitude,
+            "farm_size_bigha":    p.farm_size_bigha,
+            "farm_size_hectare":  p.farm_size_hectare,
+            "current_crop":       p.current_crop,
+            "current_season":     p.current_season,
+            "soil_ph":            p.soil_ph,
+            "soil_type":          p.soil_type,
+            "irrigation_type":    p.irrigation_type,
+            "crop_history":       p.crop_history,
+            "has_pm_kisan":       p.has_pm_kisan,
+            "has_kcc":            p.has_kcc,
+            "has_pmfby":          p.has_pmfby,
+            "pm_kisan_status":    p.pm_kisan_status,
+            "preferred_language": p.preferred_language,
+            "whatsapp_opt_in":    p.whatsapp_opt_in,
+            "created_at":         p.created_at.isoformat() if p.created_at else None,
+            "last_seen_at":       p.last_seen_at.isoformat() if p.last_seen_at else None,
+        }
+
+    @staticmethod
+    def _serialize_public(p) -> dict:
+        return {
+            "location_name":      p.location_name,
+            "state":              p.state,
+            "district":           p.district,
             "farm_size_bigha":    p.farm_size_bigha,
             "farm_size_hectare":  p.farm_size_hectare,
             "current_crop":       p.current_crop,
