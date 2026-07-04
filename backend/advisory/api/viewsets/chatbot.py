@@ -447,7 +447,7 @@ def _stream_generator(
     result_meta: Dict[str, Any] = {}
 
     try:
-        with sentry_sdk.start_span(op="ai.gemini", description="chatbot_stream"):
+        with sentry_sdk.start_span(op="ai.chat", description="chatbot_stream"):
             for chunk in chat_intelligence_service.answer_stream(
                 query, ctx,
                 language=language,
@@ -521,7 +521,7 @@ def stream_chat(request):
     """
     POST /api/chatbot/stream/
 
-    Streams Gemini response token-by-token via Server-Sent Events.
+    Streams the local-first chatbot response via Server-Sent Events.
     Same rate limiting, session memory, and interaction logging as
     the JSON endpoint — writes happen after the stream finishes.
 

@@ -3717,52 +3717,62 @@ def _answer_stream(
     now    = datetime.now(tz=timezone.utc)
     season = _current_season(now.month)
 
-    # ── Try Gemini streaming first ────────────────────────────────
-    has_gemini = _is_valid_gemini_key(gemini_service.api_key)
-    if has_gemini and not fast_mode:
-        try:
-            import google.generativeai as _genai
-            _genai.configure(api_key=gemini_service.api_key)
-            model = _genai.GenerativeModel("gemini-1.5-flash")
+    def _yield_answer_chunks(text: str, chunk_size: int = 80):
+        for idx in range(0, len(text), chunk_size):
+            yield text[idx:idx + chunk_size]
 
-            # Build a compact grounded prompt (reuse existing helper via answer())
-            # We call answer() only for prompt building — not for generating.
-            # Build minimal context inline for streaming to avoid double fetch.
-            lang_instr = get_gemini_language_instruction(lang)
-            compact_prompt = (
-                f"You are KrishiMitra AI — expert agricultural advisor for Indian farmers.\n"
-                f"Language rule: {lang_instr}\n\n"
-                f"Query: {query}\n\n"
-                f"Respond concisely in the farmer's language. "
-                f"Use bullet points for action steps."
+    def _done_payload(data_source: str):
+        return {
+            "__done__": True,
+            "intent": intent,
+            "language": lang,
+            "data_source": data_source,
+            "crops_detected": [c["name"] for c in crops_mentioned],
+            "season": season,
+        }
+
+    # ── Tier 0: Local KB first, matching the JSON path ─────────────
+    try:
+        from .knowledge_base import knowledge_base
+        crop_id = crops_mentioned[0].get("id") if crops_mentioned else None
+        kb_result = knowledge_base.answer(
+            query=query,
+            crop=crop_id,
+            state=getattr(ctx, "state", None),
+            language=lang,
+            weather_context=None,
+        )
+        kb_text = (kb_result.get("answer") or "").strip()
+        if kb_text:
+            for token in _yield_answer_chunks(kb_text):
+                yield token
+            source = kb_result.get("source", "knowledge_base")
+            data_source = (
+                "KrishiMitra KB (instant)"
+                if source == "knowledge_base"
+                else "krishimitra-llm (fine-tuned KCC model)"
             )
-            response = model.generate_content(compact_prompt, stream=True)
-            full_text = []
-            for chunk in response:
-                token = (chunk.text or "")
-                if token:
-                    full_text.append(token)
-                    yield token
-            yield {
-                "__done__": True,
-                "intent": intent,
-                "language": lang,
-                "data_source": "Gemini AI (stream)",
-                "crops_detected": [c["name"] for c in crops_mentioned],
-                "season": season,
-            }
+            yield _done_payload(data_source)
             return
-        except Exception as exc:
-            logger.warning("Gemini stream failed (%s) — falling back to answer()", exc)
+    except Exception as exc:
+        logger.warning("KB stream tier failed (%s) — trying Phase1 stream", exc)
 
-    # ── Try Phase 1 Ollama streaming ──────────────────────────────
+    # ── Tier 1: Phase 1 Ollama/RAG streaming ───────────────────────
     if not fast_mode:
         try:
             PHASE1_STREAM_URL = _phase1_endpoint("/chat/stream")
+            crop_hint = crops_mentioned[0].get("name") if crops_mentioned else None
             payload = _json.dumps({
-                "query": query, "language": lang,
+                "query": query,
+                "language": lang,
+                "location": getattr(ctx, "display_name", None),
+                "latitude": getattr(ctx, "latitude", None),
+                "longitude": getattr(ctx, "longitude", None),
+                "crop": crop_hint or (farmer_profile or {}).get("current_crop"),
+                "season": season,
                 "history": [{"role": m.get("role","user"), "content": m.get("content","")}
                              for m in (history or [])[-6:] if m.get("content")],
+                "farmer_profile": farmer_profile,
                 "stream": True,
             }, ensure_ascii=False).encode()
             req = _ureq.Request(
@@ -3786,17 +3796,40 @@ def _answer_stream(
                     except Exception:
                         continue
                 if full_text:
-                    yield {
-                        "__done__": True,
-                        "intent": intent,
-                        "language": lang,
-                        "data_source": "krishimitra-llm (stream)",
-                        "crops_detected": [c["name"] for c in crops_mentioned],
-                        "season": season,
-                    }
+                    yield _done_payload("krishimitra-llm (stream)")
                     return
         except Exception as exc:
             logger.debug("Phase1 stream unavailable (%s) — non-stream fallback", exc)
+
+    # ── Tier 2: Gemini streaming only after local tiers fail ───────
+    has_gemini = _is_valid_gemini_key(gemini_service.api_key)
+    if has_gemini and not fast_mode:
+        try:
+            import google.generativeai as _genai
+            _genai.configure(api_key=gemini_service.api_key)
+            model = _genai.GenerativeModel("gemini-1.5-flash")
+
+            lang_instr = get_gemini_language_instruction(lang)
+            compact_prompt = (
+                f"You are KrishiMitra AI — expert agricultural advisor for Indian farmers.\n"
+                f"Language rule: {lang_instr}\n\n"
+                f"Query: {query}\n\n"
+                f"If you do not have enough agricultural context, say so clearly. "
+                f"Respond concisely in the farmer's language. "
+                f"Use bullet points for action steps."
+            )
+            response = model.generate_content(compact_prompt, stream=True)
+            full_text = []
+            for chunk in response:
+                token = (chunk.text or "")
+                if token:
+                    full_text.append(token)
+                    yield token
+            if full_text:
+                yield _done_payload("Gemini AI (stream)")
+                return
+        except Exception as exc:
+            logger.warning("Gemini stream failed (%s) — falling back to answer()", exc)
 
     # ── Non-stream fallback: call answer() and yield as one chunk ─
     result = self.answer(
