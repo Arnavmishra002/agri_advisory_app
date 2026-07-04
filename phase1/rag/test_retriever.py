@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import Mock
 from unittest.mock import patch
 
 from . import retriever
@@ -60,6 +61,13 @@ class RetrieverRankingTests(unittest.TestCase):
         ranked = retriever._rerank(candidates, "polyhouse tomato cucumber subsidy", final_k=2)
 
         self.assertEqual(ranked[0]["source_file"], "polyhouse_greenhouse_farming.txt")
+
+    def test_is_available_degrades_when_chroma_count_fails(self):
+        broken_collection = Mock()
+        broken_collection.count.side_effect = RuntimeError("corrupt chroma metadata")
+
+        with patch.object(retriever, "_get_collection", return_value=broken_collection):
+            self.assertFalse(retriever.is_available())
 
 
 if __name__ == "__main__":

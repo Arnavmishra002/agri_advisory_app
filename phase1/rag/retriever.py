@@ -473,8 +473,12 @@ def retrieve_with_sources(
 
 
 def is_available() -> bool:
-    col = _get_collection()
-    return col is not None and col.count() > 0
+    try:
+        col = _get_collection()
+        return col is not None and col.count() > 0
+    except Exception as exc:
+        logger.error("RAG availability check failed: %s", exc)
+        return False
 
 
 def clear_cache() -> None:
