@@ -177,7 +177,11 @@ class KrishiRakshaPestService:
         advisory_fallback = False
         if raw_diagnosis is None:
             ml_status = (ml_result or {}).get("status")
-            if ml_status in ("model_unavailable", "tensorflow_missing") or ml_result is None:
+            if ml_status in (
+                "model_unavailable",
+                "model_unverified",
+                "tensorflow_missing",
+            ) or ml_result is None:
                 raw_diagnosis = self._model_unavailable_rule_diagnosis(
                     crop_name, catalog_entry
                 )
@@ -198,6 +202,7 @@ class KrishiRakshaPestService:
             "low_confidence",
             "not_plant",
             "model_unavailable",
+            "model_unverified",
             "tensorflow_missing",
             "error",
         ):
@@ -407,7 +412,7 @@ class KrishiRakshaPestService:
         if not ml_result:
             return None
         status = ml_result.get("status")
-        if status in ("model_unavailable", "tensorflow_missing", "error"):
+        if status in ("model_unavailable", "model_unverified", "tensorflow_missing", "error"):
             return None
         if status == "not_plant":
             return [

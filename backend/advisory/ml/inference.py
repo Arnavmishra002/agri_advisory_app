@@ -98,6 +98,19 @@ class CropDiseasePredictor:
     def is_ready(self) -> bool:
         return self.model is not None and bool(self.class_names)
 
+    @property
+    def is_production_ready(self) -> bool:
+        return self.metadata.get("quality") == "production_candidate"
+
+    @staticmethod
+    def _allow_unverified_model() -> bool:
+        return os.getenv("ML_ALLOW_UNVERIFIED_MODEL", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
     def predict(
         self,
         image: Union[str, bytes, Any],
@@ -135,6 +148,22 @@ class CropDiseasePredictor:
                 "disease_name": None,
                 "confidence": 0.0,
                 "top_predictions": [],
+            }
+
+        if not self.is_production_ready and not self._allow_unverified_model():
+            return {
+                "status": "model_unverified",
+                "message": (
+                    "Installed crop disease model is not validated for farmer production. "
+                    "Retrain and evaluate it before enabling image classification."
+                ),
+                "crop_name": None,
+                "disease_name": None,
+                "confidence": 0.0,
+                "top_predictions": [],
+                "model": self.metadata.get("model") or "EfficientNet-B3",
+                "model_quality": self.metadata.get("quality", "unknown"),
+                "model_metrics": self.metadata,
             }
 
         batch = prepare_for_model(image, remove_bg=True, size=self._input_size())
