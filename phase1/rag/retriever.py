@@ -60,6 +60,67 @@ _RETRIEVAL_POOL = ThreadPoolExecutor(max_workers=3, thread_name_prefix="rag-retr
 _result_cache: Dict[str, List[dict]] = {}
 _RESULT_CACHE_MAX = 256
 
+_DEFAULT_MIN_RELEVANCE = 0.50
+
+_QUERY_CROP_TERMS = {
+    "rice": ("rice", "paddy", "धान", "चावल"),
+    "wheat": ("wheat", "गेहूँ", "गेहू", "गेहुं"),
+    "maize": ("maize", "corn", "मक्का"),
+    "barley": ("barley", "जौ"),
+    "jowar": ("jowar", "sorghum", "ज्वार"),
+    "bajra": ("bajra", "pearl millet", "बाजरा"),
+    "ragi": ("ragi", "finger millet", "रागी"),
+    "mustard": ("mustard", "rapeseed", "सरसों"),
+    "soybean": ("soybean", "सोयाबीन"),
+    "groundnut": ("groundnut", "peanut", "मूंगफली", "मूँगफली"),
+    "sunflower": ("sunflower", "सूरजमुखी"),
+    "cotton": ("cotton", "कपास"),
+    "sugarcane": ("sugarcane", "गन्ना"),
+    "gram": ("gram", "chickpea", "चना"),
+    "arhar": ("arhar", "pigeonpea", "tur", "अरहर", "तूर"),
+    "moong": ("moong", "green gram", "मूंग", "मूँग"),
+    "urad": ("urad", "black gram", "उड़द"),
+    "lentil": ("lentil", "masoor", "मसूर"),
+    "tomato": ("tomato", "टमाटर"),
+    "potato": ("potato", "आलू"),
+    "onion": ("onion", "प्याज"),
+    "brinjal": ("brinjal", "eggplant", "बैंगन"),
+    "chilli": ("chilli", "chili", "pepper", "मिर्च"),
+    "okra": ("okra", "bhindi", "भिंडी"),
+    "mango": ("mango", "आम"),
+    "banana": ("banana", "केला"),
+    "pomegranate": ("pomegranate", "अनार"),
+    "turmeric": ("turmeric", "हल्दी"),
+    "ginger": ("ginger", "अदरक"),
+    "garlic": ("garlic", "लहसुन"),
+}
+
+_QUERY_TOPIC_TERMS = {
+    "disease": ("disease", "blast", "blight", "rust", "rot", "wilt", "smut", "रोग", "झुलसा", "रतुआ"),
+    "pest": ("pest", "aphid", "borer", "whitefly", "thrips", "weevil", "mite", "कीट", "माहू", "सुंडी"),
+    "irrigation": ("irrigation", "drip", "sprinkler", "rainfall", "water", "सिंचाई", "पानी"),
+    "fertilizer": ("fertilizer", "urea", "dap", "npk", "nutrient", "खाद", "उर्वरक"),
+    "seed": ("seed", "variety", "sowing", "planting", "बीज", "बुवाई"),
+    "market": ("msp", "mandi", "market", "price", "मंडी", "भाव", "एमएसपी"),
+    "scheme": ("scheme", "subsidy", "loan", "insurance", "yojana", "योजना", "सब्सिडी", "बीमा"),
+    "soil": ("soil", "ph", "organic carbon", "salinity", "मिट्टी"),
+    "weather": ("weather", "rain", "temperature", "humidity", "मौसम", "बारिश", "तापमान"),
+    "storage": ("storage", "warehouse", "cold storage", "fumigation", "भंडारण"),
+    "protected_cultivation": ("polyhouse", "greenhouse", "shade net", "cucumber", "protected cultivation"),
+}
+
+_TOPIC_SOURCE_HINTS = {
+    "market": ("msp", "market", "mandi", "fpo", "export"),
+    "scheme": ("scheme", "subsidy", "loan", "insurance", "kcc", "pmfby", "government"),
+    "storage": ("storage", "warehouse", "post_harvest"),
+    "disease": ("disease", "pest", "ipm"),
+    "pest": ("pest", "ipm", "disease"),
+    "soil": ("soil", "fertilizer", "irrigation"),
+    "fertilizer": ("fertilizer", "soil"),
+    "irrigation": ("irrigation", "drip", "sprinkler", "water"),
+    "protected_cultivation": ("polyhouse", "greenhouse", "protected"),
+}
+
 # ── Hindi → English keyword expansion (unchanged from v3) ─────────────────────
 _HI_EN: dict = {
     "गेहूँ": "wheat", "गेहू": "wheat", "गेहुं": "wheat",
@@ -108,8 +169,18 @@ def _augment(query: str) -> str:
     return (query + " " + " ".join(extras)) if extras else query
 
 
-def _cache_key(aug_query: str, k: int, category: Optional[str]) -> str:
-    raw = f"{aug_query}||{k}||{category or ''}"
+def _min_relevance() -> float:
+    raw = os.getenv("RAG_MIN_RELEVANCE", str(_DEFAULT_MIN_RELEVANCE))
+    try:
+        value = float(raw)
+    except ValueError:
+        logger.warning("Invalid RAG_MIN_RELEVANCE=%r; using %.2f", raw, _DEFAULT_MIN_RELEVANCE)
+        value = _DEFAULT_MIN_RELEVANCE
+    return max(0.0, min(value, 1.0))
+
+
+def _cache_key(aug_query: str, k: int, category: Optional[str], min_relevance: float) -> str:
+    raw = f"{aug_query}||{k}||{category or ''}||{min_relevance:.3f}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 
@@ -164,6 +235,66 @@ def _keyword_score(query_terms: set, doc: str) -> float:
     return hits / len(query_terms)
 
 
+def _extract_tags(text: str, taxonomy: dict) -> set:
+    lower = text.lower()
+    return {
+        tag
+        for tag, terms in taxonomy.items()
+        if any(term.lower() in lower for term in terms)
+    }
+
+
+def _split_meta_tags(value: object) -> set:
+    if not value:
+        return set()
+    return {part for part in str(value).split("|") if part and part != "general"}
+
+
+def _candidate_tag_sets(candidate: dict) -> tuple[set, set]:
+    text = candidate.get("text", "")
+    crops = _split_meta_tags(candidate.get("crops")) | _extract_tags(text, _QUERY_CROP_TERMS)
+    topics = _split_meta_tags(candidate.get("topics")) | _extract_tags(text, _QUERY_TOPIC_TERMS)
+    return crops, topics
+
+
+def _tag_alignment_score(query_tags: set, candidate_tags: set, *, mismatch_penalty: float = -0.35) -> float:
+    if not query_tags:
+        return 0.0
+    if not candidate_tags:
+        return 0.0
+    overlap = query_tags & candidate_tags
+    if overlap:
+        return len(overlap) / len(query_tags)
+    return mismatch_penalty
+
+
+def _source_alignment_score(query_topics: set, candidate: dict) -> float:
+    if not query_topics:
+        return 0.0
+    haystack = " ".join(
+        str(candidate.get(key, ""))
+        for key in ("source_file", "source_stem", "category", "topics")
+    ).lower()
+    matched = 0
+    for topic in query_topics:
+        hints = _TOPIC_SOURCE_HINTS.get(topic, ())
+        if any(hint in haystack for hint in hints):
+            matched += 1
+    return matched / len(query_topics)
+
+
+def _apply_relevance_threshold(results: List[dict], min_relevance: float) -> List[dict]:
+    if min_relevance <= 0:
+        return results
+    filtered = [r for r in results if r.get("score", 0.0) >= min_relevance]
+    if len(filtered) != len(results):
+        logger.info(
+            "RAG relevance filter kept %d/%d chunks at threshold %.2f",
+            len(filtered), len(results), min_relevance,
+        )
+    return filtered
+
+
 def _rerank(
     candidates: List[dict],
     query: str,
@@ -180,6 +311,8 @@ def _rerank(
     Also deduplicates near-identical chunks (first 80 chars as fingerprint).
     """
     query_terms = set(re.findall(r"\w+", query.lower()))
+    query_crops = _extract_tags(query, _QUERY_CROP_TERMS)
+    query_topics = _extract_tags(query, _QUERY_TOPIC_TERMS)
     seen: set = set()
     scored: List[Tuple[float, dict]] = []
 
@@ -192,7 +325,17 @@ def _rerank(
 
         vec_sim  = c.get("score", 0.0)
         kw_score = _keyword_score(query_terms, c["text"])
-        combined = 0.7 * vec_sim + 0.3 * kw_score
+        cand_crops, cand_topics = _candidate_tag_sets(c)
+        crop_score = _tag_alignment_score(query_crops, cand_crops)
+        topic_score = _tag_alignment_score(query_topics, cand_topics, mismatch_penalty=-0.15)
+        source_score = _source_alignment_score(query_topics, c)
+        combined = (
+            0.50 * vec_sim
+            + 0.25 * kw_score
+            + 0.15 * crop_score
+            + 0.05 * topic_score
+            + 0.05 * source_score
+        )
         scored.append((combined, c))
 
     scored.sort(key=lambda x: x[0], reverse=True)
@@ -234,6 +377,10 @@ def _vector_search(
             "text":        doc,
             "source_file": meta.get("source_file", "unknown"),
             "category":    meta.get("category", "general"),
+            "crops":       meta.get("crops", "general"),
+            "topics":      meta.get("topics", meta.get("category", "general")),
+            "language":    meta.get("language", "unknown"),
+            "chunk_index": meta.get("chunk_index"),
             "score":       round(1 - dist, 3),
         }
         for doc, meta, dist in zip(docs, metas, dists)
@@ -278,7 +425,8 @@ def retrieve_with_sources(
     aug = _augment(query)
 
     # ── RAG-3: result cache check ─────────────────────────────────
-    ck = _cache_key(aug, k, category)
+    min_relevance = _min_relevance()
+    ck = _cache_key(aug, k, category, min_relevance)
     if ck in _result_cache:
         logger.debug("RAG result cache HIT for '%s'", query[:40])
         return _result_cache[ck]
@@ -299,7 +447,7 @@ def retrieve_with_sources(
 
         # ── RAG-1+2: rerank + compress ────────────────────────────────────
         t_rerank = time.monotonic()
-        results = _rerank(candidates, aug, k)
+        results = _apply_relevance_threshold(_rerank(candidates, aug, k), min_relevance)
         logger.debug("RERANK_MS=%.0f", (time.monotonic() - t_rerank) * 1000)
 
         # ── RAG-3: store in result cache ──────────────────────────────────

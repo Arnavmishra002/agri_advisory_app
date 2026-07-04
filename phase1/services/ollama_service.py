@@ -133,7 +133,10 @@ def build_farming_prompt(
         parts.append(
             "[KNOWLEDGE BASE]\n"
             "No specific document matched this query. "
-            "Answer from general agricultural knowledge but flag that you are not citing a specific source."
+            "Say the knowledge base does not contain enough matched detail. "
+            "Do not provide exact chemical doses, legal eligibility, market prices, or disease certainty "
+            "unless they are present in another supplied live-data section. Give safe general next steps "
+            "and recommend Kisan Helpline 1800-180-1551 for expert confirmation."
         )
 
     # 2. Live sensor data

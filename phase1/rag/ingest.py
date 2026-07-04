@@ -76,6 +76,7 @@ _TOPIC_TERMS = {
     "soil": ("soil", "ph", "organic carbon", "salinity", "मिट्टी"),
     "weather": ("weather", "rain", "temperature", "humidity", "मौसम", "बारिश", "तापमान"),
     "storage": ("storage", "warehouse", "cold storage", "fumigation", "भंडारण"),
+    "protected_cultivation": ("polyhouse", "greenhouse", "shade net", "cucumber", "protected cultivation"),
 }
 
 
