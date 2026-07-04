@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import socket
 import urllib.request
 import urllib.error
 from typing import Iterator, List, Optional
@@ -247,12 +248,12 @@ def chat(
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data["message"]["content"].strip()
-    except urllib.error.URLError as exc:
+    except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
         logger.error("Ollama request failed: %s", exc)
         return "AI सेवा में त्रुटि। Kisan Helpline: 1800-180-1551 पर कॉल करें।"
     except Exception as exc:
         logger.error("Unexpected chat error: %s", exc)
-        raise
+        return "AI सेवा में त्रुटि। Kisan Helpline: 1800-180-1551 पर कॉल करें।"
 
 
 def stream_chat(
