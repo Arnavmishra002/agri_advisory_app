@@ -330,7 +330,23 @@ def data_freshness(request):
     except Exception:
         result["rag"] = {"note": "Phase1 RAG not loaded (offline mode)"}
 
+    # ── Crop Recommendation Source Health ───────────────────────
+    try:
+        from django.core.cache import cache
+        from advisory.services.crop_recommendation_engine import CROP_REC_HEALTH_CACHE_KEY
+
+        latest = cache.get(CROP_REC_HEALTH_CACHE_KEY)
+        result["crop_recommendation"] = latest or {
+            "status": "not_loaded",
+            "alerts": ["No crop recommendation request has recorded source health yet."],
+            "sources": {},
+        }
+    except Exception as exc:
+        result["crop_recommendation"] = {"error": str(exc)}
+
     return JsonResponse(result)
+
+
 @csrf_exempt
 def sentry_test(request):
     """

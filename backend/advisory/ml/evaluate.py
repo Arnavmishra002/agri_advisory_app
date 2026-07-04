@@ -11,7 +11,9 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import random
 from pathlib import Path
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -31,12 +33,49 @@ from .config import (
     LABELS_FILENAME,
     METRICS_FILENAME,
     MODEL_FILENAME,
+    SEED,
 )
 from .dataset_loader import build_splits
 from .labels import load_labels
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _limit_test_samples(
+    paths: Sequence[str],
+    labels: Sequence[int],
+    max_samples: Optional[int],
+    seed: int = SEED,
+) -> Tuple[List[str], List[int]]:
+    if not max_samples or max_samples <= 0 or max_samples >= len(paths):
+        return list(paths), [int(label) for label in labels]
+
+    rng = random.Random(seed)
+    by_label = {}
+    for idx, (path, label) in enumerate(zip(paths, labels)):
+        by_label.setdefault(int(label), []).append((idx, path, int(label)))
+
+    selected = []
+    per_class = max(1, max_samples // max(1, len(by_label)))
+    for label in sorted(by_label):
+        items = by_label[label][:]
+        rng.shuffle(items)
+        selected.extend(items[:per_class])
+
+    selected_idx = {idx for idx, _, _ in selected}
+    if len(selected) < max_samples:
+        remaining = [
+            (idx, path, int(label))
+            for idx, (path, label) in enumerate(zip(paths, labels))
+            if idx not in selected_idx
+        ]
+        rng.shuffle(remaining)
+        selected.extend(remaining[: max_samples - len(selected)])
+
+    rng.shuffle(selected)
+    selected = selected[:max_samples]
+    return [path for _, path, _ in selected], [label for _, _, label in selected]
 
 
 def _load_test_batch(paths, labels, batch_size=32):
@@ -52,7 +91,11 @@ def _load_test_batch(paths, labels, batch_size=32):
     return np.array(images), np.array(ys)
 
 
-def evaluate(model_dir: Path, data_dir: Path) -> dict:
+def evaluate(
+    model_dir: Path,
+    data_dir: Path,
+    max_test_samples: Optional[int] = None,
+) -> dict:
     model_path = model_dir / MODEL_FILENAME
     if not model_path.exists():
         model_path = model_dir / "checkpoints" / "best.keras"
@@ -68,6 +111,12 @@ def evaluate(model_dir: Path, data_dir: Path) -> dict:
     dataset = build_splits(data_dir)
     test_paths = [str(p) for p in dataset.test.paths]
     test_labels = dataset.test.labels
+    available_test_samples = len(test_paths)
+    test_paths, test_labels = _limit_test_samples(
+        test_paths,
+        test_labels,
+        max_test_samples,
+    )
 
     all_preds = []
     all_true = []
@@ -115,6 +164,11 @@ def evaluate(model_dir: Path, data_dir: Path) -> dict:
         "confusion_matrix": cm,
         "classification_report": report,
         "num_test_samples": len(all_true),
+        "available_test_samples": available_test_samples,
+        "max_test_samples": max_test_samples,
+        "evaluation_limited": bool(
+            max_test_samples and len(all_true) < available_test_samples
+        ),
     }
 
     metrics_path = model_dir / METRICS_FILENAME
@@ -152,8 +206,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-dir", type=Path, default=DEFAULT_MODEL_DIR)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument(
+        "--max-test-samples",
+        type=int,
+        default=None,
+        help="Evaluate a deterministic subset for quick local/CI smoke checks.",
+    )
     args = parser.parse_args()
-    evaluate(args.model_dir, args.data_dir)
+    evaluate(args.model_dir, args.data_dir, max_test_samples=args.max_test_samples)
 
 
 if __name__ == "__main__":

@@ -34,6 +34,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+import requests
+
 from .crop_catalog import crop_catalog
 from .crop_recommendation_engine import crop_recommendation_engine
 from .language_service import (
@@ -48,7 +50,6 @@ from .unified_realtime_service import (
     MSP_2024_25,
     _is_valid_gemini_key,
     gemini_service,
-    iot_blockchain,
     market_service,
     schemes_service,
     weather_service,
@@ -99,9 +100,39 @@ def _safe_temp(temp_str: str, fallback: float = 25.0) -> float:
     except (TypeError, ValueError):
         return fallback
 
-_PHASE1_TIMEOUT_S:       int   = int(_os.environ.get("PHASE1_TIMEOUT_S", "12"))
-_OLLAMA_DIRECT_TIMEOUT_S:int   = int(_os.environ.get("OLLAMA_DIRECT_TIMEOUT_S", "20"))
-_CHAT_REALTIME_TIMEOUT_S:float = float(_os.environ.get("CHAT_REALTIME_TIMEOUT_S", "5"))
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(_os.environ.get(name, str(default)))
+    except (TypeError, ValueError):
+        logger.warning("Invalid %s; using %.1fs", name, default)
+        return default
+
+
+_PHASE1_TIMEOUT_S:       float = _env_float("PHASE1_TIMEOUT_S", 12.0)
+_PHASE1_CONNECT_TIMEOUT_S: float = _env_float("PHASE1_CONNECT_TIMEOUT_S", min(2.0, _PHASE1_TIMEOUT_S))
+_PHASE1_READ_TIMEOUT_S:    float = _env_float("PHASE1_READ_TIMEOUT_S", _PHASE1_TIMEOUT_S)
+_PHASE1_TIMEOUT: Tuple[float, float] = (_PHASE1_CONNECT_TIMEOUT_S, _PHASE1_READ_TIMEOUT_S)
+_PHASE1_STREAM_CONNECT_TIMEOUT_S: float = _env_float("PHASE1_STREAM_CONNECT_TIMEOUT_S", _PHASE1_CONNECT_TIMEOUT_S)
+_PHASE1_STREAM_READ_TIMEOUT_S:    float = _env_float("PHASE1_STREAM_READ_TIMEOUT_S", 15.0)
+_PHASE1_STREAM_TOTAL_TIMEOUT_S:   float = _env_float("PHASE1_STREAM_TOTAL_TIMEOUT_S", 30.0)
+_PHASE1_STREAM_TIMEOUT: Tuple[float, float] = (
+    _PHASE1_STREAM_CONNECT_TIMEOUT_S,
+    _PHASE1_STREAM_READ_TIMEOUT_S,
+)
+_OLLAMA_DIRECT_TIMEOUT_S:float = _env_float("OLLAMA_DIRECT_TIMEOUT_S", 20.0)
+_OLLAMA_DIRECT_CONNECT_TIMEOUT_S: float = _env_float(
+    "OLLAMA_DIRECT_CONNECT_TIMEOUT_S",
+    _env_float("OLLAMA_CONNECT_TIMEOUT_S", 2.0),
+)
+_OLLAMA_DIRECT_READ_TIMEOUT_S: float = _env_float(
+    "OLLAMA_DIRECT_READ_TIMEOUT_S",
+    _OLLAMA_DIRECT_TIMEOUT_S,
+)
+_OLLAMA_DIRECT_TIMEOUT: Tuple[float, float] = (
+    _OLLAMA_DIRECT_CONNECT_TIMEOUT_S,
+    _OLLAMA_DIRECT_READ_TIMEOUT_S,
+)
+_CHAT_REALTIME_TIMEOUT_S:float = _env_float("CHAT_REALTIME_TIMEOUT_S", 5.0)
 _PHASE1_CB_MAX_FAILS:    int   = 3   # open circuit after 3 consecutive failures
 _PHASE1_CB_RESET_S:      int   = 60  # retry after 60 s cooldown
 
@@ -247,7 +278,7 @@ from .city_catalog import _INDIAN_CITY_CATALOG, _WEATHER_STOPWORDS
 
 
 
-# ── Lightweight sensor context (simulator-only for now; swap DB tier later) ──
+# ── Lightweight sensor context from verified field devices, if available ──
 
 @dataclass
 class SensorContext:
@@ -267,7 +298,7 @@ class SensorContext:
 
     def moisture_label(self) -> str:
         if self.soil_moisture_pct is None:
-            return "N/A — sensor data unavailable"
+            return "N/A - sensor data unavailable"
         pct = self.soil_moisture_pct
         if pct < 35:
             return f"{pct:.1f}% — ⚠️ CRITICAL: Irrigate immediately"
@@ -600,7 +631,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         "live weather, official government guidelines, and real-time mandi prices.\n\n"
 
         "### OPERATIONAL FRAMEWORK\n"
-        "1. PERCEIVE: Read [LIVE SENSOR DATA] first — flag any critical alerts.\n"
+        "1. PERCEIVE: Read [FIELD SENSOR DATA] first, if available — flag any "
+        "critical alerts. If unavailable, do not infer soil moisture/NPK/pH.\n"
         "2. GROUND: Cross-reference with [GOVERNMENT & WEATHER DATA]. Advice MUST comply "
         "with official data, planting calendars, and active weather threats.\n"
         "3. DECIDE & ACT: Provide a tailored, step-by-step action plan.\n\n"
@@ -616,7 +648,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         "Emojis where natural. Address farmer as 'किसान भाई' when responding in Hindi.\n\n"
 
         "---\n\n"
-        "[LIVE SENSOR DATA] (source: {sensor_source})\n"
+        "[FIELD SENSOR DATA] (source: {sensor_source})\n"
         "Soil Moisture  : {soil_moisture_label}\n"
         "Soil Temp      : {soil_temp_c}\n"
         "Ambient Temp   : {air_temp_c}\n"
@@ -852,11 +884,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     except Exception as exc:
                         logger.warning("Fetch failed for %s: %s", key, exc)
             except FuturesTimeout:
-                # Bug 3 fix: cancel still-running futures immediately so the
-                # thread pool slots are returned and any held DB connections are
-                # released.  Without this, abandoned futures keep their Django ORM
-                # connection open until the OS timeout (up to 60 s), exhausting
-                # the DB connection pool under load.
+                pending = []
                 for fut, key in futures.items():
                     if fut.done() and not fut.cancelled():
                         try:
@@ -870,11 +898,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         except Exception:
                             pass
                     elif not fut.done():
-                        fut.cancel()  # releases thread pool slot
+                        pending.append(key)
                 logger.warning(
-                    "Concurrent fetch timed out after %.1fs for %s — using partial data",
+                    "Concurrent fetch timed out after %.1fs for %s — using partial data; "
+                    "pending=%s will finish under service HTTP timeouts",
                     _CHAT_REALTIME_TIMEOUT_S,
                     ctx.display_name,
+                    ",".join(pending) or "none",
                 )
 
         # Merge ambient readings from weather into sensor context
@@ -1124,28 +1154,33 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         }, ensure_ascii=False).encode("utf-8")
 
         try:
-            req = urllib.request.Request(
+            resp = requests.post(
                 PHASE1_URL,
                 data=payload,
                 headers={"Content-Type": "application/json"},
-                method="POST",
+                timeout=_PHASE1_TIMEOUT,
             )
-            with urllib.request.urlopen(req, timeout=_PHASE1_TIMEOUT_S) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                text = (data.get("response") or "").strip()
-                if text:
-                    _cb_reset()
-                    logger.info(
-                        "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
-                        query[:40], data.get("rag_chunks", 0),
-                    )
-                    return text
-                logger.warning("Phase 1 returned empty for: %s", query[:40])
-                # Fall through to Path B
-        except urllib.error.URLError:
-            logger.debug("Phase 1 offline — trying direct Ollama path")
+            resp.raise_for_status()
+            data = resp.json()
+            text = (data.get("response") or "").strip()
+            if text:
+                _cb_reset()
+                logger.info(
+                    "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
+                    query[:40], data.get("rag_chunks", 0),
+                )
+                return text
+            logger.warning("Phase 1 returned empty for: %s", query[:40])
+            # Fall through to Path B
+        except requests.Timeout:
+            _cb_increment()
+            logger.info("Phase 1 timed out after %ss — trying direct Ollama", _PHASE1_TIMEOUT)
+        except requests.RequestException as exc:
+            _cb_increment()
+            logger.debug("Phase 1 offline/error (%s) — trying direct Ollama", type(exc).__name__)
         except Exception as exc:
-            logger.info("Phase 1 timeout/error (%s) — trying direct Ollama", type(exc).__name__)
+            _cb_increment()
+            logger.info("Phase 1 error (%s) — trying direct Ollama", type(exc).__name__)
 
         # ── Path B: Direct Ollama — Ultra-Rich Context (all real-time data) ─────
         OLLAMA_BASE  = _os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -1327,7 +1362,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "7. ICAR FIRST: For pesticide doses, always cite ICAR POP. Never exceed label dose.\n"
             "8. FORMAT: Bullet points for action steps. Bold key numbers. End with ONE next step today.\n"
             "9. SENSOR CONFLICT: If farmer asks to irrigate but sensor says Adequate → explain why not.\n"
-            "10. MARKET: If farmer asks selling price, compare current mandi rate vs MSP. Advise when to sell."
+            "10. MARKET: If farmer asks selling price, compare current mandi rate vs MSP. Advise when to sell.\n"
+            "11. THIN CONTEXT: If the supplied weather, market, sensor, or ICAR/GOVERNMENT ADVISORY sections "
+            "do not contain enough verified facts for a dose, disease certainty, eligibility, or price claim, "
+            "say you do not have enough verified context and suggest the nearest KVK/agriculture officer."
         )
 
         ollama_payload = json.dumps({
@@ -1347,26 +1385,28 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         }, ensure_ascii=False).encode("utf-8")
 
         try:
-            ollama_req = urllib.request.Request(
+            resp = requests.post(
                 OLLAMA_URL,
                 data=ollama_payload,
                 headers={"Content-Type": "application/json"},
-                method="POST",
+                timeout=_OLLAMA_DIRECT_TIMEOUT,
             )
-            # Direct Ollama must be bounded so one slow model call does not
-            # block farmer-facing fallback responses.
-            with urllib.request.urlopen(ollama_req, timeout=_OLLAMA_DIRECT_TIMEOUT_S) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                text = (data.get("message", {}).get("content") or "").strip()
-                if text:
-                    _cb_reset()
-                    logger.info(
-                        "krishimitra-llm direct Ollama: '%s...' — %d chars",
-                        query[:40], len(text),
-                    )
-                    return text
-                return None
-        except urllib.error.URLError:
+            resp.raise_for_status()
+            data = resp.json()
+            text = (data.get("message", {}).get("content") or "").strip()
+            if text:
+                _cb_reset()
+                logger.info(
+                    "krishimitra-llm direct Ollama: '%s...' — %d chars",
+                    query[:40], len(text),
+                )
+                return text
+            return None
+        except requests.Timeout:
+            _cb_increment()
+            logger.warning("Direct Ollama timeout after %ss — falling back", _OLLAMA_DIRECT_TIMEOUT)
+            return None
+        except requests.RequestException:
             _cb_increment()
             logger.debug("Direct Ollama also offline — falling back to rule-based")
             return None
@@ -1435,18 +1475,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         return None
 
-    # ── Sensor context: simulator only (no real hardware yet) ────
+    # ── Sensor context: verified field hardware only ────
 
     def _resolve_sensor_context(self, ctx: LocationContext) -> SensorContext:
         """
-        Tier 1: Real IoTSensorReading DB (live ESP32 MQTT hardware).
-        Tier 2: BlockchainIoTSimulator fallback.
-
-        FIX: The old implementation always used the simulator, silently
-        ignoring real sensor readings collected by mqtt_sensor_subscriber.py.
-        Farmers with actual ESP32 sensors were getting fake simulated data.
+        Use only fresh IoTSensorReading DB rows from real ESP32/MQTT hardware.
+        If none exists, return an empty SensorContext. Demo simulation must not
+        influence farmer advice.
         """
-        # ── Tier 1: Real hardware readings from DB ────────────────────────────
         if ctx.latitude is not None and ctx.longitude is not None:
             try:
                 import django
@@ -1488,29 +1524,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             except Exception as exc:
                 logger.debug("DB sensor lookup skipped: %s", exc)
 
-        # ── Tier 2: Simulator fallback ────────────────────────────────────────
-        try:
-            sim      = iot_blockchain.get_iot_sensor_data(ctx.query_label)
-            readings = sim.get("readings", {})
-            npk      = readings.get("npk", {})
-            health   = sim.get("soil_health_score", {})
-            pct      = readings.get("soil_moisture_pct")
-            sc = SensorContext(
-                soil_moisture_pct=pct,
-                soil_temp_c=readings.get("soil_temperature_c"),
-                nitrogen_kg_ha=npk.get("nitrogen_kg_ha"),
-                phosphorus_kg_ha=npk.get("phosphorus_kg_ha"),
-                potassium_kg_ha=npk.get("potassium_kg_ha"),
-                soil_ph=readings.get("soil_ph"),
-                soil_health_score=health.get("score") if isinstance(health, dict) else None,
-                soil_health_grade=health.get("grade", "—") if isinstance(health, dict) else "—",
-                source="simulated",
-            )
-            sc.moisture_status = _classify_moisture(pct)
-            return sc
-        except Exception as exc:
-            logger.warning("IoT simulator fetch failed: %s", exc)
-            return SensorContext(source="none")
+        return SensorContext(source="none")
 
     # ── Weather constraints ───────────────────────────────────────
 
@@ -3701,8 +3715,6 @@ def _answer_stream(
     before the done sentinel.
     """
     import json as _json
-    import os as _os
-    import urllib.request as _ureq
 
     query = (query or "").strip()
     lang  = normalise_language_code(language)
@@ -3717,61 +3729,81 @@ def _answer_stream(
     now    = datetime.now(tz=timezone.utc)
     season = _current_season(now.month)
 
-    # ── Try Gemini streaming first ────────────────────────────────
-    has_gemini = _is_valid_gemini_key(gemini_service.api_key)
-    if has_gemini and not fast_mode:
-        try:
-            import google.generativeai as _genai
-            _genai.configure(api_key=gemini_service.api_key)
-            model = _genai.GenerativeModel("gemini-1.5-flash")
+    def _yield_answer_chunks(text: str, chunk_size: int = 80):
+        for idx in range(0, len(text), chunk_size):
+            yield text[idx:idx + chunk_size]
 
-            # Build a compact grounded prompt (reuse existing helper via answer())
-            # We call answer() only for prompt building — not for generating.
-            # Build minimal context inline for streaming to avoid double fetch.
-            lang_instr = get_gemini_language_instruction(lang)
-            compact_prompt = (
-                f"You are KrishiMitra AI — expert agricultural advisor for Indian farmers.\n"
-                f"Language rule: {lang_instr}\n\n"
-                f"Query: {query}\n\n"
-                f"Respond concisely in the farmer's language. "
-                f"Use bullet points for action steps."
+    def _done_payload(data_source: str):
+        return {
+            "__done__": True,
+            "intent": intent,
+            "language": lang,
+            "data_source": data_source,
+            "crops_detected": [c["name"] for c in crops_mentioned],
+            "season": season,
+        }
+
+    # ── Tier 0: Local KB first, matching the JSON path ─────────────
+    try:
+        from .knowledge_base import knowledge_base
+        crop_id = crops_mentioned[0].get("id") if crops_mentioned else None
+        kb_result = knowledge_base.answer(
+            query=query,
+            crop=crop_id,
+            state=getattr(ctx, "state", None),
+            language=lang,
+            weather_context=None,
+        )
+        kb_text = (kb_result.get("answer") or "").strip()
+        if kb_text:
+            for token in _yield_answer_chunks(kb_text):
+                yield token
+            source = kb_result.get("source", "knowledge_base")
+            data_source = (
+                "KrishiMitra KB (instant)"
+                if source == "knowledge_base"
+                else "krishimitra-llm (fine-tuned KCC model)"
             )
-            response = model.generate_content(compact_prompt, stream=True)
-            full_text = []
-            for chunk in response:
-                token = (chunk.text or "")
-                if token:
-                    full_text.append(token)
-                    yield token
-            yield {
-                "__done__": True,
-                "intent": intent,
-                "language": lang,
-                "data_source": "Gemini AI (stream)",
-                "crops_detected": [c["name"] for c in crops_mentioned],
-                "season": season,
-            }
+            yield _done_payload(data_source)
             return
-        except Exception as exc:
-            logger.warning("Gemini stream failed (%s) — falling back to answer()", exc)
+    except Exception as exc:
+        logger.warning("KB stream tier failed (%s) — trying Phase1 stream", exc)
 
-    # ── Try Phase 1 Ollama streaming ──────────────────────────────
+    # ── Tier 1: Phase 1 Ollama/RAG streaming ───────────────────────
     if not fast_mode:
         try:
             PHASE1_STREAM_URL = _phase1_endpoint("/chat/stream")
+            crop_hint = crops_mentioned[0].get("name") if crops_mentioned else None
             payload = _json.dumps({
-                "query": query, "language": lang,
+                "query": query,
+                "language": lang,
+                "location": getattr(ctx, "display_name", None),
+                "latitude": getattr(ctx, "latitude", None),
+                "longitude": getattr(ctx, "longitude", None),
+                "crop": crop_hint or (farmer_profile or {}).get("current_crop"),
+                "season": season,
                 "history": [{"role": m.get("role","user"), "content": m.get("content","")}
                              for m in (history or [])[-6:] if m.get("content")],
+                "farmer_profile": farmer_profile,
                 "stream": True,
             }, ensure_ascii=False).encode()
-            req = _ureq.Request(
-                PHASE1_STREAM_URL, data=payload,
-                headers={"Content-Type": "application/json"}, method="POST"
-            )
-            with _ureq.urlopen(req, timeout=30) as resp:
+            with requests.post(
+                PHASE1_STREAM_URL,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                stream=True,
+                timeout=_PHASE1_STREAM_TIMEOUT,
+            ) as resp:
+                resp.raise_for_status()
+                stream_started = _time.monotonic()
                 full_text = []
-                for raw in resp:
+                for raw in resp.iter_lines():
+                    if _time.monotonic() - stream_started > _PHASE1_STREAM_TOTAL_TIMEOUT_S:
+                        raise TimeoutError(
+                            f"Phase1 stream exceeded {_PHASE1_STREAM_TOTAL_TIMEOUT_S:.1f}s total budget"
+                        )
+                    if not raw:
+                        continue
                     line = raw.decode("utf-8").strip()
                     if not line:
                         continue
@@ -3786,17 +3818,40 @@ def _answer_stream(
                     except Exception:
                         continue
                 if full_text:
-                    yield {
-                        "__done__": True,
-                        "intent": intent,
-                        "language": lang,
-                        "data_source": "krishimitra-llm (stream)",
-                        "crops_detected": [c["name"] for c in crops_mentioned],
-                        "season": season,
-                    }
+                    yield _done_payload("krishimitra-llm (stream)")
                     return
         except Exception as exc:
             logger.debug("Phase1 stream unavailable (%s) — non-stream fallback", exc)
+
+    # ── Tier 2: Gemini streaming only after local tiers fail ───────
+    has_gemini = _is_valid_gemini_key(gemini_service.api_key)
+    if has_gemini and not fast_mode:
+        try:
+            import google.generativeai as _genai
+            _genai.configure(api_key=gemini_service.api_key)
+            model = _genai.GenerativeModel("gemini-1.5-flash")
+
+            lang_instr = get_gemini_language_instruction(lang)
+            compact_prompt = (
+                f"You are KrishiMitra AI — expert agricultural advisor for Indian farmers.\n"
+                f"Language rule: {lang_instr}\n\n"
+                f"Query: {query}\n\n"
+                f"If you do not have enough agricultural context, say so clearly. "
+                f"Respond concisely in the farmer's language. "
+                f"Use bullet points for action steps."
+            )
+            response = model.generate_content(compact_prompt, stream=True)
+            full_text = []
+            for chunk in response:
+                token = (chunk.text or "")
+                if token:
+                    full_text.append(token)
+                    yield token
+            if full_text:
+                yield _done_payload("Gemini AI (stream)")
+                return
+        except Exception as exc:
+            logger.warning("Gemini stream failed (%s) — falling back to answer()", exc)
 
     # ── Non-stream fallback: call answer() and yield as one chunk ─
     result = self.answer(

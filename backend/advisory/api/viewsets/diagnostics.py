@@ -257,29 +257,55 @@ class DiagnosticViewSet(viewsets.ViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            user = getattr(request, "user", None)
+            if not (user and user.is_authenticated):
+                return Response(
+                    {
+                        'status': 'error',
+                        'message': 'Authentication required to submit diagnostic feedback',
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
             # Persist feedback to ExpertVerification for Active Learning
             try:
                 diagnostic = DiagnosticSession.objects.filter(session_id=session_id).first()
-                if diagnostic:
-                    from ...models import ExpertVerification
-                    from django.utils import timezone
-                    ExpertVerification.objects.update_or_create(
-                        diagnostic_session=diagnostic,
-                        defaults={
-                            'is_verified': True,
-                            'expert_diagnosis': correct_diagnosis if not is_correct else diagnostic.final_diagnosis,
-                            'expert_notes': f"User feedback: is_correct={is_correct}",
-                            'verified_at': timezone.now(),
-                        }
-                    )
-                    logger.info(
-                        "Feedback recorded for session %s — is_correct=%s correction='%s'",
-                        session_id, is_correct, correct_diagnosis,
-                    )
-                else:
+                if not diagnostic:
                     logger.warning("Feedback: no DiagnosticSession found for session_id=%s", session_id)
+                    return Response(
+                        {'status': 'error', 'message': 'Diagnostic session not found'},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+                if not (
+                    getattr(user, "is_staff", False)
+                    or getattr(user, "is_superuser", False)
+                    or diagnostic.user_id == str(user.id)
+                ):
+                    return Response(
+                        {'status': 'error', 'message': 'You cannot submit feedback for this diagnostic session'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                from ...models import ExpertVerification
+                from django.utils import timezone
+                ExpertVerification.objects.update_or_create(
+                    diagnostic_session=diagnostic,
+                    defaults={
+                        'is_verified': True,
+                        'expert_diagnosis': correct_diagnosis if not is_correct else diagnostic.final_diagnosis,
+                        'expert_notes': f"User feedback: is_correct={is_correct}",
+                        'verified_at': timezone.now(),
+                    }
+                )
+                logger.info(
+                    "Feedback recorded for session %s — is_correct=%s correction='%s'",
+                    session_id, is_correct, correct_diagnosis,
+                )
             except Exception as db_err:
                 logger.warning("Failed to persist feedback: %s", db_err)
+                return Response(
+                    {'status': 'error', 'message': 'Unable to save feedback'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
             return Response({
                 'status': 'success',

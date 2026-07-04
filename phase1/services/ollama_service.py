@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import socket
 import urllib.request
 import urllib.error
 from typing import Iterator, List, Optional
@@ -57,9 +58,10 @@ STRICT RULES:
    If mixed Hindi-English (Hinglish), reply in Hinglish.
 7. Use bullet points for action steps. Bold important numbers (MSP, doses, dates).
 8. End every response with ONE concrete next step the farmer should take today.
-9. SENSOR DATA RULE: If [LIVE FIELD SENSOR DATA] shows soil moisture is Adequate (50-65%)
-   or High (>65%), never recommend irrigation. State the actual % and say irrigation is
-   not needed.
+9. SENSOR DATA RULE: Use soil moisture only when [LIVE FIELD SENSOR DATA] contains
+   an explicit "Soil Moisture" value from a sensor. Air humidity or weather humidity
+   is NOT soil moisture. If field sensor data is not provided, never invent soil
+   moisture, NPK, pH, or live field readings.
 10. Never recommend a pesticide dose higher than label-approved amount.
 """
 
@@ -133,7 +135,10 @@ def build_farming_prompt(
         parts.append(
             "[KNOWLEDGE BASE]\n"
             "No specific document matched this query. "
-            "Answer from general agricultural knowledge but flag that you are not citing a specific source."
+            "Say the knowledge base does not contain enough matched detail. "
+            "Do not provide exact chemical doses, legal eligibility, market prices, or disease certainty "
+            "unless they are present in another supplied live-data section. Give safe general next steps "
+            "and recommend Kisan Helpline 1800-180-1551 for expert confirmation."
         )
 
     # 2. Live sensor data
@@ -150,6 +155,13 @@ def build_farming_prompt(
             f"Data source    : {sensor_data.get('source', 'simulated')}",
         ]
         parts.append("[LIVE FIELD SENSOR DATA]\n" + "\n".join(lines))
+    else:
+        parts.append(
+            "[LIVE FIELD SENSOR DATA]\n"
+            "Not provided for this request. Do not infer soil moisture, NPK, pH, "
+            "or field sensor readings from weather, air humidity, crop profile, "
+            "or general farming knowledge."
+        )
 
     # 3. Weather
     if weather_summary:
@@ -189,7 +201,8 @@ def build_farming_prompt(
     parts.append(
         "[YOUR RESPONSE — follow these checks before writing]\n"
         "1. Does the question CONFLICT with sensor data? "
-        "(e.g. asking to water but moisture is Adequate → explain no irrigation needed)\n"
+        "(Only check this if [LIVE FIELD SENSOR DATA] contains a real Soil Moisture value; "
+        "air humidity is not soil moisture.)\n"
         "2. Is there a weather alert that affects this advice? Mention it FIRST.\n"
         "3. Is your chemical recommendation backed by the knowledge base? "
         "If not, defer to Kisan Helpline 1800-180-1551.\n"
@@ -244,12 +257,12 @@ def chat(
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data["message"]["content"].strip()
-    except urllib.error.URLError as exc:
+    except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
         logger.error("Ollama request failed: %s", exc)
         return "AI सेवा में त्रुटि। Kisan Helpline: 1800-180-1551 पर कॉल करें।"
     except Exception as exc:
         logger.error("Unexpected chat error: %s", exc)
-        raise
+        return "AI सेवा में त्रुटि। Kisan Helpline: 1800-180-1551 पर कॉल करें।"
 
 
 def stream_chat(

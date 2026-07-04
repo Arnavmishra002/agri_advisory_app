@@ -54,6 +54,11 @@ OPENWEATHER_KEY   = os.getenv("OPENWEATHER_API_KEY", "")
 GEMINI_MODEL      = os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
 GEMINI_FLASH      = os.getenv("GEMINI_FLASH_MODEL", "gemini-1.5-flash")
 GEMINI_MODELS_CHAIN = [GEMINI_MODEL, GEMINI_FLASH, "gemini-pro"]  # Fallback chain
+IOT_DEMO_ENV      = "KRISHIMITRA_ENABLE_IOT_DEMO"
+
+
+def _env_flag_enabled(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 # ─── Gemini key validation ────────────────────────────────────────────────────
 _PLACEHOLDER_FRAGMENTS = frozenset({
@@ -2522,12 +2527,37 @@ class GovernmentSchemesService:
 # ─────────────────────────────────────────────────────────────────────────────
 class BlockchainIoTSimulator:
     """
-    Simulates IoT sensor → Blockchain → Smart Advisory pipeline
-    Required by project proposal: IoT, Blockchain, Cloud, AI System
+    Demo-only IoT sensor → ledger pipeline.
+
+    Production farmer advice must use IoTSensorReading rows from verified
+    hardware, not this generator. The demo output is disabled by default and,
+    when enabled, is explicitly marked as non-live and unverified.
     """
 
     def get_iot_sensor_data(self, location: str) -> Dict:
-        """Simulated IoT sensor readings (soil, weather, moisture)"""
+        """Return demo sensor readings only when explicitly enabled."""
+        if not _env_flag_enabled(IOT_DEMO_ENV):
+            return {
+                "status": "unavailable",
+                "is_live": False,
+                "simulation": False,
+                "data_source": "iot_hardware_not_configured",
+                "location": location,
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                "readings_available": False,
+                "message": (
+                    "No verified IoT hardware feed is configured for this "
+                    "location. Soil sensor readings are unavailable."
+                ),
+                "blockchain": {
+                    "verified": False,
+                    "network": None,
+                    "transaction_hash": None,
+                    "block_number": None,
+                    "timestamp_immutable": False,
+                },
+            }
+
         import random, hashlib
         seed = hash(location) % 1000
         random.seed(seed + datetime.now(tz=timezone.utc).hour)  # Vary by hour for realism
@@ -2540,6 +2570,10 @@ class BlockchainIoTSimulator:
         npk_k = random.uniform(100, 200)
 
         sensor_data = {
+            "status": "demo",
+            "is_live": False,
+            "simulation": True,
+            "data_source": "demo_iot_simulator",
             "sensor_id": f"KM-IOT-{abs(hash(location)) % 9999:04d}",
             "location": location,
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
@@ -2562,11 +2596,12 @@ class BlockchainIoTSimulator:
         data_str = json.dumps(sensor_data["readings"], sort_keys=True)
         sensor_data["blockchain"] = {
             "transaction_hash": "0x" + hashlib.sha256(data_str.encode()).hexdigest()[:40],
-            "block_number": 18500000 + (abs(hash(location)) % 100000),
-            "network": "Ethereum Testnet (Goerli)",
-            "smart_contract": "0xKrishiMitra...AgriChain",
-            "verified": True,
-            "timestamp_immutable": True,
+            "block_number": None,
+            "network": "Demo ledger (not a live blockchain)",
+            "smart_contract": None,
+            "verified": False,
+            "timestamp_immutable": False,
+            "simulation": True,
         }
 
         return sensor_data

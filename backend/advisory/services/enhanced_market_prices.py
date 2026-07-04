@@ -6,8 +6,10 @@ Real Government API Integration for Mandi Prices
 
 import requests
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
+from urllib.parse import urlencode
 
 from .msp_data import MSP_2024_25
 
@@ -97,22 +99,21 @@ class EnhancedMarketPricesService:
         
         # SSL verification: enabled by default for security
         # Only disable for specific government sites with cert issues if needed
+
+    @staticmethod
+    def _coerce_float(value: Any) -> Optional[float]:
+        if value is None or value == "":
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
         
     def get_market_prices(self, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Get REAL-TIME market prices from government APIs with live mandi data"""
         try:
-            # Convert string parameters to float if needed
-            if latitude and isinstance(latitude, str):
-                try:
-                    latitude = float(latitude)
-                except (ValueError, TypeError):
-                    latitude = None
-            
-            if longitude and isinstance(longitude, str):
-                try:
-                    longitude = float(longitude)
-                except (ValueError, TypeError):
-                    longitude = None
+            latitude = self._coerce_float(latitude)
+            longitude = self._coerce_float(longitude)
             
             # Get state for API calls
             state = self._get_state_from_location(location)
@@ -211,18 +212,8 @@ class EnhancedMarketPricesService:
     def get_mandi_specific_prices(self, mandi_name: str, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Get mandi-specific market prices from government APIs"""
         try:
-            # Convert string parameters to float if needed
-            if latitude and isinstance(latitude, str):
-                try:
-                    latitude = float(latitude)
-                except (ValueError, TypeError):
-                    latitude = None
-            
-            if longitude and isinstance(longitude, str):
-                try:
-                    longitude = float(longitude)
-                except (ValueError, TypeError):
-                    longitude = None
+            latitude = self._coerce_float(latitude)
+            longitude = self._coerce_float(longitude)
             
             logger.info(f"Fetching mandi-specific prices for {mandi_name} in {location}")
             
@@ -1224,18 +1215,23 @@ class EnhancedMarketPricesService:
                 crops.append({
                     'name': crop_name,
                     'current_price': current_price,
+                    'estimated_price': current_price,
                     'msp': msp_data['msp'],
                     'mandi': mandi_name,
                     'state': state,
                     'date': datetime.now().strftime('%Y-%m-%d'),
-                    'source': f'Government MSP Data + {mandi_name} Analysis',
+                    'source': 'MSP reference estimate (not live mandi price)',
+                    'data_source': 'msp_reference_estimate',
+                    'price_status': 'estimated',
+                    'is_live': False,
+                    'live': False,
                     'profit_margin': profit_margin,
                     'profit_percentage': profit_percentage,
                     'unit': msp_data.get('unit', '/quintal'),
                     'season': msp_data.get('season', 'All Season'),
                     'location_factor': round(region_multiplier, 2),
                     'mandi_multiplier': round(mandi_multiplier, 2),
-                    'api_source': 'mandi_specific_fallback'
+                    'api_source': 'mandi_specific_estimate'
                 })
                 
                 crop_index += 1
@@ -1244,16 +1240,22 @@ class EnhancedMarketPricesService:
             crops.sort(key=lambda x: x['current_price'], reverse=True)
             
             return {
-                'status': 'success',
+                'status': 'fallback',
+                'is_live': False,
+                'data_status': 'estimated',
                 'crops': crops,
-                'sources': ['Government MSP Data', f'{mandi_name} Analysis', 'Dynamic Pricing'],
+                'sources': ['MSP 2024-25 reference', f'{mandi_name} estimate'],
                 'location': location,
                 'mandi': mandi_name,
                 'state': state,
                 'nearest_mandis': [m['name'] for m in nearest_mandis[:3]],
                 'timestamp': datetime.now().isoformat(),
-                'data_reliability': 0.90,
-                'note': f'Mandi-specific pricing for {mandi_name}, {location} using real government MSP data with mandi-specific variations'
+                'data_reliability': 0.35,
+                'data_source': 'MSP reference estimate (not live mandi price)',
+                'note': (
+                    f'Estimated mandi reference for {mandi_name}, {location}; '
+                    'not live market data. Verify on Agmarknet/e-NAM or local mandi before trading.'
+                )
             }
             
         except Exception as e:
@@ -1276,7 +1278,7 @@ class EnhancedMarketPricesService:
         
         crops = []
         
-        # Process each crop with real government data and different prices
+        # Process each crop as an explicitly labeled MSP-based estimate.
         import random
         import hashlib
         
@@ -1315,49 +1317,55 @@ class EnhancedMarketPricesService:
             crops.append({
                 'name': crop_name,
                 'current_price': current_price,
+                'estimated_price': current_price,
                 'msp': base_msp,
                 'mandi': primary_mandi,
                 'state': state,
                 'date': datetime.now().strftime('%Y-%m-%d'),
-                'source': 'Government MSP Data + Location Analysis',
+                'source': 'MSP reference estimate (not live mandi price)',
+                'data_source': 'msp_reference_estimate',
+                'price_status': 'estimated',
+                'is_live': False,
+                'live': False,
                 'profit_margin': profit_margin,
                 'profit_percentage': profit_percentage,
                 'unit': msp_data.get('unit', '/quintal'),
                 'season': msp_data.get('season', 'All Season'),
                 'location_factor': round(location_factor, 2),
                 'region_multiplier': round(region_multiplier, 2),
-                    'api_source': 'government_msp_with_estimated_prices'
+                'api_source': 'msp_reference_estimate'
             })
         
         # Sort crops by price to show variety
         crops.sort(key=lambda x: x['current_price'], reverse=True)
         
         return {
-            'status': 'success',
+            'status': 'fallback',
+            'is_live': False,
+            'data_status': 'estimated',
             'crops': crops,
-            'sources': ['Government MSP Data', 'Location-based Analysis', 'Dynamic Pricing'],
+            'sources': ['MSP 2024-25 reference', 'Location estimate'],
             'location': location,
             'state': state,
             'nearest_mandis': [m['name'] for m in nearest_mandis[:3]],
             'nearest_mandis_data': nearest_mandis,  # Full data for frontend
             'auto_selected_mandi': nearest_mandis[0]['name'] if nearest_mandis else None,
             'timestamp': datetime.now().isoformat(),
-            'data_reliability': 0.90,
-            'note': f'Dynamic location-based pricing for {location}, {state} using real government MSP data with location-specific variations'
+            'data_reliability': 0.35,
+            'data_source': 'MSP reference estimate (not live mandi price)',
+            'note': (
+                f'Estimated reference prices for {location}, {state}; not live market data. '
+                'Verify on Agmarknet/e-NAM or the local mandi before trading.'
+            )
         }
     
     def _get_region_multiplier(self, location: str, latitude: float = None, longitude: float = None) -> float:
         """Get region-based price multiplier"""
         # Regional price variations based on government data
         if latitude and longitude:
-            # Convert to float if they are strings
-            try:
-                lat = float(latitude)
-                lon = float(longitude)
-            except (ValueError, TypeError):
-                lat = None
-                lon = None
-            
+            lat = self._coerce_float(latitude)
+            lon = self._coerce_float(longitude)
+
             if lat and lon:
                 if 18.0 <= lat <= 20.0 and 72.0 <= lon <= 74.0:  # Mumbai region
                     return 1.15
@@ -1847,13 +1855,17 @@ class EnhancedMarketPricesService:
         try:
             import math
 
+            latitude = self._coerce_float(latitude)
+            longitude = self._coerce_float(longitude)
             if latitude is None or longitude is None:
                 latitude, longitude = 28.7041, 77.1025
 
             mandis_with_distance = []
             for mandi in all_mandis:
-                mandi_lat = mandi.get('latitude', latitude)
-                mandi_lon = mandi.get('longitude', longitude)
+                mandi_lat = self._coerce_float(mandi.get('latitude', latitude))
+                mandi_lon = self._coerce_float(mandi.get('longitude', longitude))
+                if mandi_lat is None or mandi_lon is None:
+                    continue
 
                 R = 6371
                 dlat = math.radians(mandi_lat - latitude)
@@ -1874,6 +1886,9 @@ class EnhancedMarketPricesService:
                 mandi_copy.setdefault('live', False)
                 mandis_with_distance.append(mandi_copy)
 
+            if not mandis_with_distance:
+                return self._fallback_mandis_for_location(location, state, limit)
+
             mandis_with_distance.sort(key=lambda x: x['distance_km'])
             cap = limit if limit and limit > 0 else len(mandis_with_distance)
             nearest_mandis = mandis_with_distance[:cap]
@@ -1886,12 +1901,53 @@ class EnhancedMarketPricesService:
             
         except Exception as e:
             logger.error(f"Error filtering mandis by location: {e}")
-            # Return default mandis for the location
-            return [
-                {'name': f'{location} Main Mandi', 'distance': '0 km', 'specialty': 'All Crops', 'state': state or 'Unknown', 'location': location, 'auto_selected': True, 'is_nearest': True},
-                {'name': f'{location} APMC', 'distance': '5 km', 'specialty': 'Grains & Pulses', 'state': state or 'Unknown', 'location': location},
-                {'name': f'{location} Vegetable Market', 'distance': '8 km', 'specialty': 'Fruits & Vegetables', 'state': state or 'Unknown', 'location': location}
-            ]
+            return self._fallback_mandis_for_location(location, state, limit)
+
+    def _fallback_mandis_for_location(
+        self,
+        location: str,
+        state: str = None,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """Return clearly labeled synthetic mandi fallbacks for the location."""
+        fallback_common = {
+            'source': 'synthetic_fallback',
+            'live': False,
+            'is_live': False,
+            'status': 'fallback',
+            'data_source': 'synthetic_fallback',
+            'note': 'Synthetic fallback mandi; verify locally before trading.',
+        }
+        fallbacks = [
+            {
+                **fallback_common,
+                'name': f'{location} Main Mandi',
+                'distance': '0 km',
+                'specialty': 'All Crops',
+                'state': state or 'Unknown',
+                'location': location,
+                'auto_selected': True,
+                'is_nearest': True,
+            },
+            {
+                **fallback_common,
+                'name': f'{location} APMC',
+                'distance': '5 km',
+                'specialty': 'Grains & Pulses',
+                'state': state or 'Unknown',
+                'location': location,
+            },
+            {
+                **fallback_common,
+                'name': f'{location} Vegetable Market',
+                'distance': '8 km',
+                'specialty': 'Fruits & Vegetables',
+                'state': state or 'Unknown',
+                'location': location,
+            },
+        ]
+        cap = limit if limit and limit > 0 else len(fallbacks)
+        return fallbacks[:cap]
 
     def _fetch_from_data_gov_in(self, location: str, state: str) -> Dict[str, Any]:
         """Fetch from Data.gov.in - working government data portal"""
@@ -1900,8 +1956,18 @@ class EnhancedMarketPricesService:
             endpoints = [
                 "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
                 "https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69",
-                "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=579b464db66ec23bdd000001cdd3946e44c4a1747200ff293b68cc36&format=json&limit=100"
             ]
+            api_key = os.getenv("DATA_GOV_IN_API_KEY", "").strip()
+            if api_key:
+                query = urlencode({
+                    "api-key": api_key,
+                    "format": "json",
+                    "limit": 100,
+                })
+                endpoints.append(
+                    "https://api.data.gov.in/resource/"
+                    f"9ef84268-d588-465a-a308-a864a43d0070?{query}"
+                )
             
             for endpoint in endpoints:
                 try:

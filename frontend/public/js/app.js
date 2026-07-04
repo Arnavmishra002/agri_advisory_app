@@ -249,9 +249,10 @@
     // ── Farmer profile helpers ────────────────────────────────────────────────
     function _upsertFarmerProfile(extraData = {}) {
         try {
+            if (!(window.KM_Auth && KM_Auth.isLoggedIn())) return;
+            const authHeaders = KM_Auth.getAuthHeaders();
             const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
             const payload = {
-                session_id:        sessionId,
                 preferred_language: lang,
                 ...extraData,
             };
@@ -266,7 +267,7 @@
             // Fire-and-forget — never blocks the UI
             fetch(apiFetch('/api/farmer-profile/'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
                 body: JSON.stringify(payload),
             }).then(() => {
                 // Show save indicator briefly
@@ -281,10 +282,12 @@
 
     function saveFarmerCropHistory(crop, season, issue = '') {
         try {
+            if (!(window.KM_Auth && KM_Auth.isLoggedIn())) return;
+            const authHeaders = KM_Auth.getAuthHeaders();
             fetch(apiFetch('/api/farmer-profile/add-crop/'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: sessionId, crop, season, issue }),
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                body: JSON.stringify({ crop, season, issue }),
             }).catch(() => {});
         } catch (e) {}
     }

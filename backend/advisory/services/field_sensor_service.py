@@ -469,6 +469,7 @@ class FieldSensorService:
 
         # Layer 3: IoT sensor data — overrides everything (highest accuracy)
         sensors = (sensor_data or {}).get("sensors", sensor_data or {})
+        sensor_meta = (sensor_data or {}).get("_sensor_meta", {})
         if sensors:
             if sensors.get("nitrogen_kg_ha") is not None:
                 merged["nitrogen_kg_ha"]  = sensors["nitrogen_kg_ha"]
@@ -488,8 +489,15 @@ class FieldSensorService:
                 merged["soil_temp_c"]     = sensors["soil_temp_c"]
             if sensors.get("bulk_density") is not None:
                 merged["bulk_density"]    = sensors["bulk_density"]
-            merged["data_sources"].append("IoT Field Sensor (real-time, field-level)")
-            merged["sensor_timestamp"] = datetime.now().isoformat()
+            source_label = self._sensor_source_label(sensor_meta)
+            merged["data_sources"].append(source_label)
+            merged["sensor_timestamp"] = (
+                sensor_meta.get("recorded_at") or datetime.now().isoformat()
+            )
+            merged["sensor_freshness"] = sensor_meta or {
+                "status": "unknown",
+                "message": "Sensor age metadata unavailable.",
+            }
 
         # Add crop history
         if sensor_data:
@@ -1014,7 +1022,7 @@ class FieldSensorService:
         if govt_soil.get("is_live"):
             sources.append("Soil Health Card — soilhealth.dac.gov.in")
         if sensor_data:
-            sources.append("IoT Field Sensor (field-level, real-time)")
+            sources.append(self._sensor_source_label(sensor_data.get("_sensor_meta", {})))
         return sources
 
     def _assess_sensor_quality(self, sensor_data: Optional[Dict]) -> Dict[str, Any]:
@@ -1022,6 +1030,7 @@ class FieldSensorService:
             return {"quality": "None", "completeness_pct": 0,
                     "message": "No sensor data — using government + satellite sources"}
         sensors = sensor_data.get("sensors", sensor_data)
+        sensor_meta = sensor_data.get("_sensor_meta", {})
         fields = ["nitrogen_kg_ha","phosphorus_kg_ha","potassium_kg_ha",
                   "ph","ec_ds_m","moisture_pct","organic_carbon","soil_temp_c"]
         present = sum(1 for f in fields if sensors.get(f) is not None)
@@ -1033,7 +1042,19 @@ class FieldSensorService:
             "fields_provided": present,
             "fields_total": len(fields),
             "missing": [f for f in fields if sensors.get(f) is None],
+            "freshness": sensor_meta or {"status": "unknown"},
         }
+
+    @staticmethod
+    def _sensor_source_label(sensor_meta: Dict[str, Any]) -> str:
+        status = (sensor_meta or {}).get("status")
+        if status == "live_request":
+            return "IoT Field Sensor (live request, field-level)"
+        if status == "fresh_saved":
+            age = sensor_meta.get("age_minutes")
+            age_text = f", {age} min old" if age is not None else ""
+            return f"IoT Field Sensor (fresh saved reading{age_text})"
+        return "IoT Field Sensor (age unknown; verify freshness)"
 
     def _generate_summary(
         self, soil: Dict, top3: List[Dict], weather: Dict, lang: str

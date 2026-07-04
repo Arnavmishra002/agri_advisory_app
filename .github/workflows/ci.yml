@@ -128,6 +128,10 @@ jobs:
           print('✅ All services + new modules imported successfully')
           "
 
+      - name: Phase 1 RAG static regression
+        working-directory: ${{ github.workspace }}
+        run: python3 phase1/rag/eval_retrieval.py --static
+
       # ── Farmer-critical API contracts ────────────────────────
       - name: Farmer-critical API behavior
         working-directory: ${{ github.workspace }}
