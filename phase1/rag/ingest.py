@@ -14,6 +14,7 @@ Re-run whenever new documents are added.
 """
 
 import json
+import os
 import re
 import sys
 import time
@@ -25,7 +26,7 @@ KB_DIR     = ROOT / "knowledge_base"
 CHROMA_DIR = ROOT / "chroma_db"
 COLLECTION = "krishimitra_kb"
 EMBED_MODEL = "nomic-embed-text"
-OLLAMA_URL  = "http://localhost:11434"
+OLLAMA_URL  = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 
 # Chunk settings
 CHUNK_SIZE    = 800   # characters (~600 words)

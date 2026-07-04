@@ -149,9 +149,9 @@
   - Wheat: Irrigate at tillering and jointing stages.
 
 #### MSP 2024-25 Values
-1. **Wheat**: Rs 1875/mt
-2. **Paddy (Basmati)**: Rs 1639/mt
-3. **Ragi**: Rs 1400/mt
+1. **Wheat**: Rs 2425/q
+2. **Paddy/Rice**: Rs 2369/q
+3. **Ragi**: Rs 4290/q
 
 ---
 

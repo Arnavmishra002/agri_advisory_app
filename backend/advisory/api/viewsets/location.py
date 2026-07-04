@@ -29,7 +29,11 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
             if too_long:
                 return too_long
 
-            results = location_resolver.search(query)
+            try:
+                limit = min(max(int(request.query_params.get("limit", 12)), 1), 20)
+            except (TypeError, ValueError):
+                limit = 12
+            results = location_resolver.search(query, limit=limit)[:limit]
             return Response({
                 "query": query,
                 "results": results,

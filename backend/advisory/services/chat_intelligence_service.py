@@ -99,12 +99,26 @@ def _safe_temp(temp_str: str, fallback: float = 25.0) -> float:
     except (TypeError, ValueError):
         return fallback
 
-_PHASE1_TIMEOUT_S:       int   = int(_os.environ.get("PHASE1_TIMEOUT_S", "45"))
+_PHASE1_TIMEOUT_S:       int   = int(_os.environ.get("PHASE1_TIMEOUT_S", "12"))
+_OLLAMA_DIRECT_TIMEOUT_S:int   = int(_os.environ.get("OLLAMA_DIRECT_TIMEOUT_S", "20"))
+_CHAT_REALTIME_TIMEOUT_S:float = float(_os.environ.get("CHAT_REALTIME_TIMEOUT_S", "5"))
 _PHASE1_CB_MAX_FAILS:    int   = 3   # open circuit after 3 consecutive failures
 _PHASE1_CB_RESET_S:      int   = 60  # retry after 60 s cooldown
 
 _CB_KEY_FAILS = "krishimitra:phase1:cb:fails"
 _CB_KEY_TS    = "krishimitra:phase1:cb:ts"
+
+def _phase1_base_url() -> str:
+    base = _os.environ.get("PHASE1_BASE_URL") or _os.environ.get("PHASE1_URL", "http://127.0.0.1:8001")
+    if base.rstrip("/").endswith("/chat"):
+        base = base.rstrip("/")[:-5]
+    return base.rstrip("/")
+
+def _phase1_endpoint(path: str) -> str:
+    explicit = _os.environ.get("PHASE1_URL") if path == "/chat" else None
+    if explicit and explicit.rstrip("/").endswith(path):
+        return explicit.rstrip("/")
+    return _phase1_base_url() + path
 
 def _cb_is_open() -> bool:
     import time
@@ -718,6 +732,36 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         if not crops_mentioned and prior_crops:
                             crops_mentioned = prior_crops
 
+        # Plain greetings should be instant and should not spend time/credits on
+        # KB, RAG, LLM, weather, or mandi calls. The greeting formatter also
+        # avoids showing placeholder weather when no weather was requested.
+        if intent == INTENT_GREETING and not crops_mentioned:
+            now = datetime.now(tz=timezone.utc)
+            response_text = self._smart_rule_response(
+                query=query,
+                intent=intent,
+                crops=crops_mentioned,
+                ctx=ctx,
+                context_block="",
+                lang=lang,
+                history=history,
+                sc=SensorContext(),
+                wc=WeatherConstraints(),
+            )
+            return {
+                "response": response_text,
+                "intent": intent,
+                "sources": [],
+                "crops_detected": [],
+                "crop_suggestions": self._crop_suggestions_for_intent(
+                    ctx, intent, crops_mentioned, lang=lang
+                ),
+                "language": lang,
+                "data_source": "KrishiMitra Advisory Engine",
+                "timestamp": now.isoformat(),
+                "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
+            }
+
         # ── Named-location override ───────────────────────────────────────────
         # E.g. "rampur ka mausam" or "rampur crop suggestion"
         # Overrides location context if a known city/district is mentioned in the query.
@@ -735,6 +779,32 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         weather_data: Dict[str, Any] = {}
         prices_data:  Dict[str, Any] = {}
         sc = SensorContext()
+        needs_weather = intent in {
+            INTENT_WEATHER,
+            INTENT_IRRIGATION,
+            INTENT_PEST_DISEASE,
+            INTENT_CROP_RECOMMENDATION,
+            INTENT_FERTILIZER,
+            INTENT_SOIL,
+            INTENT_SOWING,
+            INTENT_HARVEST,
+            INTENT_ORGANIC,
+            INTENT_GENERAL,
+            INTENT_CROP_INFO,
+        }
+        needs_prices = intent in {
+            INTENT_MARKET_PRICE,
+            INTENT_CROP_RECOMMENDATION,
+            INTENT_PROFIT_CALC,
+            INTENT_STORAGE,
+        }
+        needs_iot = intent in {
+            INTENT_IRRIGATION,
+            INTENT_FERTILIZER,
+            INTENT_SOIL,
+            INTENT_CROP_RECOMMENDATION,
+            INTENT_PEST_DISEASE,
+        }
 
         def _fetch_weather():
             return weather_service.get_weather(
@@ -761,13 +831,15 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             )
         else:
             # FIX 4: use the module-level pool (no thread create/destroy overhead)
-            futures = {
-                _DATA_FETCH_POOL.submit(_fetch_weather): "weather",
-                _DATA_FETCH_POOL.submit(_fetch_prices):  "prices",
-                _DATA_FETCH_POOL.submit(_fetch_iot):     "iot",
-            }
+            futures = {}
+            if needs_weather:
+                futures[_DATA_FETCH_POOL.submit(_fetch_weather)] = "weather"
+            if needs_prices:
+                futures[_DATA_FETCH_POOL.submit(_fetch_prices)] = "prices"
+            if needs_iot:
+                futures[_DATA_FETCH_POOL.submit(_fetch_iot)] = "iot"
             try:
-                for fut in as_completed(futures, timeout=6):
+                for fut in as_completed(futures, timeout=_CHAT_REALTIME_TIMEOUT_S):
                     key = futures[fut]
                     try:
                         result = fut.result()
@@ -800,7 +872,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     elif not fut.done():
                         fut.cancel()  # releases thread pool slot
                 logger.warning(
-                    "Concurrent fetch timed out after 6s for %s — using partial data",
+                    "Concurrent fetch timed out after %.1fs for %s — using partial data",
+                    _CHAT_REALTIME_TIMEOUT_S,
                     ctx.display_name,
                 )
 
@@ -816,7 +889,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # ── Gov RAG snippets + market price string ────────────────
         rag        = self._fetch_gov_rag_snippets(query, intent, crops_mentioned)
-        market_str = self._build_market_price_str(prices_data, crops_mentioned)
+        market_str = self._build_market_price_str(prices_data, crops_mentioned) if needs_prices else ""
 
         # ── Build legacy context_block (for rule-based fallback + crop recs) ─
         context_block, sources = self._build_official_context(
@@ -1035,7 +1108,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         ]
 
         # ── Path A: Phase 1 server (RAG + Ollama, best quality) ──────────────
-        PHASE1_URL = _os.environ.get("PHASE1_URL", "http://127.0.0.1:8001/chat")
+        PHASE1_URL = _phase1_endpoint("/chat")
         payload = json.dumps({
             "query":          query,
             "language":       lang,
@@ -1280,8 +1353,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            # Direct Ollama calls can take 20-40s on consumer hardware
-            with urllib.request.urlopen(ollama_req, timeout=120) as resp:
+            # Direct Ollama must be bounded so one slow model call does not
+            # block farmer-facing fallback responses.
+            with urllib.request.urlopen(ollama_req, timeout=_OLLAMA_DIRECT_TIMEOUT_S) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 text = (data.get("message", {}).get("content") or "").strip()
                 if text:
@@ -1575,9 +1649,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             modal  = c.get("modal_price")
             msp    = c.get("msp")
             mandi  = c.get("mandi_name", "N/A")
+            try:
+                profit_vs_msp = float(c.get("profit_vs_msp") or 0)
+            except (TypeError, ValueError):
+                profit_vs_msp = 0
             profit = (
-                f"+{c['profit_vs_msp']}% above MSP"
-                if c.get("profit_vs_msp", 0) > 0
+                f"+{profit_vs_msp:g}% above MSP"
+                if profit_vs_msp > 0
                 else "below MSP"
             )
             lines.append(f"{c.get('crop_name')} ₹{modal}/q (MSP ₹{msp}) @ {mandi} — {profit}")
@@ -1935,9 +2013,32 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         """
         lines: List[str] = []
         sources: List[str] = []
+        weather_relevant = intent in {
+            INTENT_WEATHER,
+            INTENT_IRRIGATION,
+            INTENT_PEST_DISEASE,
+            INTENT_CROP_RECOMMENDATION,
+            INTENT_FERTILIZER,
+            INTENT_SOIL,
+            INTENT_SOWING,
+            INTENT_HARVEST,
+            INTENT_ORGANIC,
+            INTENT_GENERAL,
+            INTENT_CROP_INFO,
+        }
+        market_relevant = intent in {
+            INTENT_MARKET_PRICE,
+            INTENT_CROP_RECOMMENDATION,
+            INTENT_PROFIT_CALC,
+            INTENT_STORAGE,
+            INTENT_GENERAL,
+            INTENT_CROP_INFO,
+        }
 
-        # 1. Live weather (always)
-        if ctx.latitude is None or ctx.longitude is None:
+        # 1. Live weather for weather-sensitive intents
+        if not weather_relevant:
+            pass
+        elif ctx.latitude is None or ctx.longitude is None:
             logger.warning(
                 "Missing coordinates for %s — skipping weather fetch",
                 ctx.display_name,
@@ -1995,17 +2096,17 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 )
                 lines.append("[WEATHER] Temporarily unavailable — check mausam.imd.gov.in")
 
-        # 2. Market prices
-        try:
-            prices = _prices if _prices else market_service.get_prices(
-                ctx.query_label,
-                lat=ctx.latitude,
-                lon=ctx.longitude,
-                state=ctx.state or None,
-            )
-            sources.append(prices.get("data_source", "Agmarknet/data.gov.in"))
+        # 2. Market prices for mandi/crop economics intents only
+        if market_relevant:
+            try:
+                prices = _prices if _prices else market_service.get_prices(
+                    ctx.query_label,
+                    lat=ctx.latitude,
+                    lon=ctx.longitude,
+                    state=ctx.state or None,
+                )
+                sources.append(prices.get("data_source", "Agmarknet/data.gov.in"))
 
-            if intent in (INTENT_MARKET_PRICE, INTENT_GENERAL, INTENT_CROP_INFO, INTENT_CROP_RECOMMENDATION) or crops:
                 if prices.get("is_live"):
                     top = [c for c in (prices.get("top_crops") or []) if c.get("is_live")]
                     if crops:
@@ -2029,8 +2130,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 else:
                     lines.append("[MANDI PRICES] Live feed unavailable. Set DATA_GOV_IN_API_KEY for live data.")
                     lines.append("  Register free at data.gov.in/user/register")
-        except Exception as e:
-            logger.warning("Market fetch failed in chat context: %s", e)
+            except Exception as e:
+                logger.warning("Market fetch failed in chat context: %s", e)
 
         # 3. Crop recommendations (for crop/general queries)
         if intent in (INTENT_CROP_RECOMMENDATION, INTENT_GENERAL, INTENT_CROP_INFO) or \
@@ -2187,37 +2288,29 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # ── GREETING ──────────────────────────────────────────────
         if intent == INTENT_GREETING:
+            location_line_hi = f"📍 आपकी लोकेशन: **{loc}**\n" if loc else ""
+            location_line_en = f"📍 Your location: **{loc}**\n" if loc else ""
             msgs = {
                 "hi": (
                     f"नमस्ते किसान भाई! 🌾 मैं **KrishiMitra AI** हूँ — आपका स्मार्ट कृषि सहायक।\n\n"
-                    f"📍 आपकी लोकेशन: **{loc}**\n"
-                    f"🌡️ अभी का मौसम: **{temp}°C**, {cond}\n"
+                    f"{location_line_hi}"
                     f"🗓️ सीजन: **{season}**\n"
-                    f"💡 {farming_advice or 'सामान्य कृषि कार्य जारी रखें'}\n\n"
-                    f"मैं इन सभी विषयों में मदद कर सकता हूँ:\n"
-                    f"🌱 फसल सुझाव — कौन सी फसल उगाऊं?\n"
-                    f"💰 मंडी भाव — आज का गेहूँ/धान का भाव?\n"
-                    f"🌦️ मौसम — सिंचाई कब करूँ?\n"
-                    f"🏛️ योजनाएं — PM-Kisan, PMFBY, KCC\n"
-                    f"🐛 कीट-रोग — फसल में रोग क्यों?\n"
-                    f"🧪 खाद — कितनी Urea डालूँ?\n\n"
-                    f"💬 Hindi, English या Hinglish — किसी भी भाषा में पूछें!\n"
+                    f"💬 अपना सवाल भेजें, जैसे:\n"
+                    f"• आज गेहूं का मंडी भाव क्या है?\n"
+                    f"• मेरी लोकेशन पर कौन सी फसल लगाऊं?\n"
+                    f"• अगले 3 दिन बारिश होगी क्या?\n"
+                    f"• टमाटर के पत्ते पीले क्यों हो रहे हैं?\n\n"
                     f"📞 Kisan Call Centre: **1800-180-1551** (Free, 24x7)"
                 ),
                 "en": (
-                    f"Hello Farmer! 🌾 I'm **KrishiMitra AI** — your intelligent farming assistant.\n\n"
-                    f"📍 Your location: **{loc}**\n"
-                    f"🌡️ Current weather: **{temp}°C**, {cond}\n"
+                    f"Hello Farmer! 🌾 I'm **KrishiMitra AI** — your farming assistant.\n\n"
+                    f"{location_line_en}"
                     f"🗓️ Season: **{season}**\n"
-                    f"💡 {farming_advice or 'Suitable for normal farming activities'}\n\n"
-                    f"I can help with:\n"
-                    f"🌱 Crop recommendations for your location\n"
-                    f"💰 Live mandi prices (Agmarknet/eNAM)\n"
-                    f"🌦️ 16-day weather forecast + irrigation schedule\n"
-                    f"🏛️ Government schemes (PM-Kisan, PMFBY, KCC)\n"
-                    f"🐛 Pest & disease identification\n"
-                    f"🧪 Fertiliser recommendations\n\n"
-                    f"Ask in any Indian language or English!\n"
+                    f"Ask a farming question, for example:\n"
+                    f"• What is today's wheat mandi price?\n"
+                    f"• Which crop should I grow here?\n"
+                    f"• Will it rain in the next 3 days?\n"
+                    f"• Why are tomato leaves turning yellow?\n\n"
                     f"📞 Kisan Helpline: **1800-180-1551** (Free, 24x7)"
                 ),
             }
@@ -2289,13 +2382,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         body += f"• {line.strip().lstrip('- ')}\n"
             else:
                 body = (
-                    "• 🟢 **गेहूँ** — रबी सीजन, MSP ₹2,275/q\n"
-                    "• 🟢 **सरसों** — कम पानी, MSP ₹5,650/q\n"
-                    "• 🟡 **चना** — हल्की मिट्टी, MSP ₹5,440/q\n"
+                    "• 🟢 **गेहूँ** — रबी सीजन, MSP ₹2,425/q\n"
+                    "• 🟢 **सरसों** — कम पानी, MSP ₹5,950/q\n"
+                    "• 🟡 **चना** — हल्की मिट्टी, MSP ₹5,650/q\n"
                     if lang == "hi" else
-                    "• 🟢 **Wheat** — Rabi season, MSP ₹2,275/q\n"
-                    "• 🟢 **Mustard** — low water, MSP ₹5,650/q\n"
-                    "• 🟡 **Gram** — light soil, MSP ₹5,440/q\n"
+                    "• 🟢 **Wheat** — Rabi season, MSP ₹2,425/q\n"
+                    "• 🟢 **Mustard** — low water, MSP ₹5,950/q\n"
+                    "• 🟡 **Gram** — light soil, MSP ₹5,650/q\n"
                 )
 
             footer = {
@@ -2344,11 +2437,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         msp_body += f"• {line.replace('[MSP 2024-25]', '').strip()}\n"
                 else:
                     msp_body = (
-                        "• गेहूँ: ₹2,275/q\n• धान: ₹2,300/q\n• सरसों: ₹5,650/q\n"
-                        "• मक्का: ₹2,090/q\n• सोयाबीन: ₹4,892/q"
+                        "• गेहूँ: ₹2,425/q\n• धान: ₹2,369/q\n• सरसों: ₹5,950/q\n"
+                        "• मक्का: ₹2,400/q\n• सोयाबीन: ₹4,892/q"
                         if lang == "hi" else
-                        "• Wheat: ₹2,275/q\n• Rice: ₹2,300/q\n• Mustard: ₹5,650/q\n"
-                        "• Maize: ₹2,090/q\n• Soybean: ₹4,892/q"
+                        "• Wheat: ₹2,425/q\n• Rice: ₹2,369/q\n• Mustard: ₹5,950/q\n"
+                        "• Maize: ₹2,400/q\n• Soybean: ₹4,892/q"
                     )
                 no_live = {
                     "hi": (
@@ -3274,11 +3367,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             crop_name_display = crops[0]["name"] if crops else ""
             # Use comprehensive DB data if available
             _PROFIT_TABLE = {
-                "wheat":     (25000, 45, 2275, "Rs.77,000/ha"),
-                "rice":      (30000, 40, 2300, "Rs.62,000/ha"),
-                "maize":     (22000, 35, 2090, "Rs.51,000/ha"),
-                "mustard":   (18000, 15, 5650, "Rs.66,750/ha"),
-                "gram":      (20000, 12, 5440, "Rs.45,280/ha"),
+                "wheat":     (25000, 45, 2425, "Rs.84,125/ha"),
+                "rice":      (30000, 40, 2369, "Rs.64,760/ha"),
+                "maize":     (22000, 35, 2400, "Rs.62,000/ha"),
+                "mustard":   (18000, 15, 5950, "Rs.71,250/ha"),
+                "gram":      (20000, 12, 5650, "Rs.47,800/ha"),
                 "soybean":   (22000, 20, 4892, "Rs.75,840/ha"),
                 "cotton":    (35000, 20, 7121, "Rs.107,420/ha (lint+seed)"),
                 "tomato":    (80000, 400,0,    "Rs.3,20,000/ha (peak price)"),
@@ -3318,11 +3411,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"💰 **प्रमुख फसलों का लाभ (प्रति हेक्टेयर)**\n\n"
                         f"| फसल     | लागत    | उपज   | MSP    | शुद्ध लाभ |\n"
                         f"|----------|---------|-------|--------|----------|\n"
-                        f"| गेहूँ    | ₹25,000 | 45 q  | ₹2,275 | ₹77,000  |\n"
-                        f"| सरसों   | ₹18,000 | 15 q  | ₹5,650 | ₹67,000  |\n"
-                        f"| चना     | ₹20,000 | 12 q  | ₹5,440 | ₹45,000  |\n"
+                        f"| गेहूँ    | ₹25,000 | 45 q  | ₹2,425 | ₹84,125  |\n"
+                        f"| सरसों   | ₹18,000 | 15 q  | ₹5,950 | ₹71,250  |\n"
+                        f"| चना     | ₹20,000 | 12 q  | ₹5,650 | ₹47,800  |\n"
                         f"| सोयाबीन | ₹22,000 | 20 q  | ₹4,892 | ₹76,000  |\n"
-                        f"| मक्का   | ₹22,000 | 35 q  | ₹2,090 | ₹51,000  |\n\n"
+                        f"| मक्का   | ₹22,000 | 35 q  | ₹2,400 | ₹62,000  |\n\n"
                         f"*1 हेक्टेयर = 2.47 एकड़ = 6.17 बीघा (UP)*\n"
                         f"📞 ICAR: 1800-180-1551"
                     ),
@@ -3330,15 +3423,15 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"💰 **Crop Profit Summary (per hectare)**\n\n"
                         f"| Crop    | Cost    | Yield | MSP    | Net Profit |\n"
                         f"|---------|---------|-------|--------|------------|\n"
-                        f"| Wheat   | ₹25,000 | 45 q  | ₹2,275 | ₹77,000    |\n"
-                        f"| Mustard | ₹18,000 | 15 q  | ₹5,650 | ₹67,000    |\n"
-                        f"| Gram    | ₹20,000 | 12 q  | ₹5,440 | ₹45,000    |\n"
+                        f"| Wheat   | ₹25,000 | 45 q  | ₹2,425 | ₹84,125    |\n"
+                        f"| Mustard | ₹18,000 | 15 q  | ₹5,950 | ₹71,250    |\n"
+                        f"| Gram    | ₹20,000 | 12 q  | ₹5,650 | ₹47,800    |\n"
                         f"| Soybean | ₹22,000 | 20 q  | ₹4,892 | ₹76,000    |\n"
-                        f"| Maize   | ₹22,000 | 35 q  | ₹2,090 | ₹51,000    |\n\n"
+                        f"| Maize   | ₹22,000 | 35 q  | ₹2,400 | ₹62,000    |\n\n"
                         f"*1 ha = 2.47 acres = 6.17 bigha (UP standard)*\n"
                         f"📞 ICAR: 1800-180-1551"
                     ),
-                }.get(lang, "Profit per ha: Wheat ₹77k, Mustard ₹67k, Gram ₹45k, Soybean ₹76k, Maize ₹51k.")
+                }.get(lang, "Profit per ha: Wheat ₹84k, Mustard ₹71k, Gram ₹48k, Soybean ₹76k, Maize ₹62k.")
             return alert_prefix + body
 
         # ── SOIL ─────────────────────────────────────────────────
@@ -3665,7 +3758,7 @@ def _answer_stream(
     # ── Try Phase 1 Ollama streaming ──────────────────────────────
     if not fast_mode:
         try:
-            PHASE1_STREAM_URL = "http://127.0.0.1:8001/chat/stream"
+            PHASE1_STREAM_URL = _phase1_endpoint("/chat/stream")
             payload = _json.dumps({
                 "query": query, "language": lang,
                 "history": [{"role": m.get("role","user"), "content": m.get("content","")}
@@ -3730,4 +3823,3 @@ ChatIntelligenceService.answer_stream = _answer_stream
 
 # Module-level singleton
 chat_intelligence_service = ChatIntelligenceService()
-

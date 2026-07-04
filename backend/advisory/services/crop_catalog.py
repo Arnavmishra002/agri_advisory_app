@@ -72,6 +72,23 @@ _CROP_ROWS: List[Dict[str, Any]] = [
     {"id": "rubber", "name": "Rubber", "hindi": "रबड़", "aliases": [], "category": "plantation"},
     {"id": "tobacco", "name": "Tobacco", "hindi": "तंबाकू", "aliases": ["tambaku"], "category": "cash"},
     {"id": "jute", "name": "Jute", "hindi": "जूट", "aliases": [], "category": "fiber"},
+    {"id": "makhana", "name": "Makhana", "hindi": "मखाना", "aliases": ["fox nut", "gorgon nut"], "category": "aquatic"},
+    {"id": "betel_leaf", "name": "Betel Leaf", "hindi": "पान", "aliases": ["paan", "pan"], "category": "leaf"},
+    {"id": "isabgol", "name": "Isabgol", "hindi": "इसबगोल", "aliases": ["psyllium"], "category": "medicinal"},
+    {"id": "senna", "name": "Senna", "hindi": "सनाय", "aliases": ["sonamukhi"], "category": "medicinal"},
+    {"id": "henna", "name": "Henna", "hindi": "मेहंदी", "aliases": ["mehndi"], "category": "medicinal"},
+    {"id": "buckwheat", "name": "Buckwheat", "hindi": "कुट्टू", "aliases": ["kuttu"], "category": "cereal"},
+    {"id": "quinoa", "name": "Quinoa", "hindi": "क्विनोआ", "aliases": [], "category": "cereal"},
+    {"id": "dragon_fruit", "name": "Dragon Fruit", "hindi": "ड्रैगन फ्रूट", "aliases": ["pitaya", "kamalam"], "category": "fruit"},
+    {"id": "kiwifruit", "name": "Kiwifruit", "hindi": "कीवी", "aliases": ["kiwi"], "category": "fruit"},
+    {"id": "walnut", "name": "Walnut", "hindi": "अखरोट", "aliases": ["akhrot"], "category": "nut"},
+    {"id": "almond", "name": "Almond", "hindi": "बादाम", "aliases": ["badam"], "category": "nut"},
+    {"id": "cherry", "name": "Cherry", "hindi": "चेरी", "aliases": [], "category": "fruit"},
+    {"id": "lavender", "name": "Lavender", "hindi": "लैवेंडर", "aliases": [], "category": "aromatic"},
+    {"id": "large_cardamom", "name": "Large Cardamom", "hindi": "बड़ी इलायची", "aliases": ["badi elaichi"], "category": "spice"},
+    {"id": "cinnamon", "name": "Cinnamon", "hindi": "दालचीनी", "aliases": ["dalchini"], "category": "spice"},
+    {"id": "kokum", "name": "Kokum", "hindi": "कोकम", "aliases": [], "category": "fruit"},
+    {"id": "tamarind", "name": "Tamarind", "hindi": "इमली", "aliases": ["imli"], "category": "fruit"},
 ]
 
 
@@ -85,18 +102,54 @@ class CropCatalog:
     def __init__(self):
         self._crops: List[Dict[str, Any]] = []
         self._by_id: Dict[str, Dict[str, Any]] = {}
-        for row in _CROP_ROWS:
+        rows = self._rows_with_recommendation_crops()
+        for row in rows:
             entry = {
                 "id": row["id"],
                 "name": row["name"],
                 "hindi": row.get("hindi") or CROP_HINDI.get(row["id"], ""),
                 "aliases": list(row.get("aliases") or []),
                 "category": row.get("category", "general"),
-                "msp": MSP_2024_25.get(row["id"]),
-                "has_msp": row["id"] in MSP_2024_25,
+                "msp": row.get("msp", MSP_2024_25.get(row["id"])),
+                "has_msp": bool(row.get("msp")) or row["id"] in MSP_2024_25,
             }
             self._crops.append(entry)
             self._by_id[row["id"]] = entry
+
+    @staticmethod
+    def _display_name(crop_id: str) -> str:
+        return str(crop_id or "").replace("_", " ").replace("-", " ").title()
+
+    @classmethod
+    def _rows_with_recommendation_crops(cls) -> List[Dict[str, Any]]:
+        """Keep autocomplete/dropdowns aligned with the recommendation database."""
+        rows = list(_CROP_ROWS)
+        known = {row["id"] for row in rows}
+        try:
+            from .comprehensive_crop_database import ALL_CROP_DATA
+        except Exception:
+            ALL_CROP_DATA = {}
+
+        for crop_id, profile in ALL_CROP_DATA.items():
+            if crop_id in known:
+                continue
+            name = cls._display_name(crop_id)
+            aliases = [crop_id.replace("_", " ")]
+            aliases.extend(
+                str(value)
+                for value in (profile.get("name_local") or {}).values()
+                if value
+            )
+            rows.append({
+                "id": crop_id,
+                "name": name,
+                "hindi": profile.get("name_hindi", ""),
+                "aliases": aliases,
+                "category": str(profile.get("category", "general")).lower(),
+                "msp": profile.get("msp_per_quintal") or None,
+            })
+            known.add(crop_id)
+        return rows
 
     def get(self, crop_id: str) -> Optional[Dict[str, Any]]:
         return self._by_id.get((crop_id or "").lower().strip())
@@ -139,6 +192,15 @@ class CropCatalog:
             return self.popular(limit)
 
         q_lower = query.lower()
+        _query_stopwords = {
+            "में", "और", "लिए", "क्या", "बारे", "सब", "को", "से", "की", "के", "का",
+            "मेरी", "मेरे", "मेरा", "हमारी", "हमारे", "meri", "mera", "mere",
+            "he", "she", "it", "they", "the", "and", "for", "with", "this",
+            "that", "you", "your", "my", "our", "is", "are", "was", "has",
+            "ki", "ke", "ka", "se", "ko", "me", "kya", "kab", "kaise",
+        }
+        if q_lower in _query_stopwords:
+            return []
         q_tokens = _tokenize(query)
         scored: List[tuple] = []
 
@@ -150,9 +212,12 @@ class CropCatalog:
 
             if name_l == q_lower or crop["id"] == q_lower:
                 score = 100.0
-            elif q_lower in name_l or name_l.startswith(q_lower):
-                # Prevent false positives: "meri" in "turmeric" — require meaningful overlap
-                score = 85.0 if len(q_lower) >= 4 else 0.0
+            elif name_l.startswith(q_lower) or crop["id"].startswith(q_lower):
+                # Autocomplete should work from three useful letters: tom → tomato.
+                score = 85.0 if len(q_lower) >= 3 else 0.0
+            elif q_lower in name_l:
+                # Prevent false positives: "meri" in "turmeric" — require a longer infix.
+                score = 65.0 if len(q_lower) >= 4 else 0.0
             elif hindi_l and (q_lower in hindi_l or hindi_l.startswith(q_lower)):
                 score = 80.0 if len(q_lower) >= 3 else 0.0
             elif any(q_lower in a or a.startswith(q_lower) for a in aliases_l):

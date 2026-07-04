@@ -68,6 +68,20 @@ def _is_valid_gemini_key(key: str) -> bool:
     lower = key.lower()
     return not any(frag in lower for frag in _PLACEHOLDER_FRAGMENTS)
 
+def _cache_token(value: Any) -> str:
+    """Memcached-safe token for cache keys while preserving readable hints."""
+    if value is None:
+        return ""
+    return (
+        str(value)
+        .strip()
+        .lower()
+        .replace(" ", "_")
+        .replace(":", "_")
+        .replace("/", "_")
+        .replace("\\", "_")
+    )
+
 # ─── Correct data.gov.in Resource IDs ────────────────────────────────────────
 DATA_GOV_RESOURCES = {
     "agmarknet_mandi":   "9ef84268-d588-465a-a308-a864a43d0070",
@@ -654,7 +668,15 @@ class MarketPricesService:
         coord_key = (
             f"{round(lat, 4)}:{round(lon, 4)}" if lat is not None and lon is not None else ""
         )
-        cache_key = f"{coord_key}:{location}:{state}:{mandi}:{crop}:{include_estimates}"
+        cache_key = ":".join([
+            "prices",
+            _cache_token(coord_key),
+            _cache_token(location),
+            _cache_token(state),
+            _cache_token(mandi),
+            _cache_token(crop),
+            "est" if include_estimates else "live",
+        ])
         if cache_key in self._cache:
             age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
             cached = self._cache[cache_key]

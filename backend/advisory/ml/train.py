@@ -12,6 +12,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
+from typing import Optional
 
 import tensorflow as tf
 
@@ -24,11 +25,12 @@ from .config import (
     HISTORY_FILENAME,
     LABELS_FILENAME,
     LEARNING_RATE,
+    METRICS_FILENAME,
     MODEL_FILENAME,
     USE_CLASS_WEIGHTS,
 )
 from .dataset_loader import build_splits, save_dataset_artifacts
-from .model_builder import build_model
+from .model_builder import build_model, get_architecture_settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,8 +43,14 @@ def train(
     batch_size: int = BATCH_SIZE,
     learning_rate: float = LEARNING_RATE,
     max_samples_per_class: Optional[int] = None,
+    architecture: str = "efficientnetb3",
+    augment: bool = True,
+    use_class_weights: bool = USE_CLASS_WEIGHTS,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
+    model_settings = get_architecture_settings(architecture)
+    image_size = tuple(model_settings["input_size"])
+    preprocess_mode = model_settings["preprocess"]
 
     dataset = build_splits(data_dir, max_samples_per_class=max_samples_per_class)
     save_dataset_artifacts(output_dir, dataset.class_names)
@@ -56,11 +64,18 @@ def train(
         val_paths,
         dataset.val.labels,
         batch_size,
+        image_size=image_size,
+        preprocess_mode=preprocess_mode,
+        augment=augment,
     )
 
-    model = build_model(len(dataset.class_names), learning_rate=learning_rate)
+    model = build_model(
+        len(dataset.class_names),
+        learning_rate=learning_rate,
+        architecture=model_settings["architecture"],
+    )
 
-    class_weight = dataset.class_weights if USE_CLASS_WEIGHTS else None
+    class_weight = dataset.class_weights if use_class_weights else None
 
     checkpoint_path = output_dir / "checkpoints" / "best.keras"
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
@@ -114,6 +129,39 @@ def train(
         encoding="utf-8",
     )
 
+    hist = history.history
+    metrics = {
+        "model": model_settings["display_name"],
+        "architecture": model_settings["architecture"],
+        "input_size": list(image_size),
+        "preprocess": preprocess_mode,
+        "class_count": len(dataset.class_names),
+        "train_samples": len(train_paths),
+        "val_samples": len(val_paths),
+        "test_samples": len(dataset.test.paths),
+        "epochs_requested": epochs,
+        "epochs_trained": len(hist.get("loss", [])),
+        "batch_size": batch_size,
+        "learning_rate": learning_rate,
+        "max_samples_per_class": max_samples_per_class,
+        "augmentation": augment,
+        "class_weights": use_class_weights,
+        "best_val_accuracy": max(
+            [float(x) for x in hist.get("val_accuracy", [])],
+            default=None,
+        ),
+        "best_val_top3_accuracy": max(
+            [float(x) for x in hist.get("val_top3_accuracy", [])],
+            default=None,
+        ),
+        "final_train_accuracy": float(hist["accuracy"][-1]) if hist.get("accuracy") else None,
+        "final_val_loss": float(hist["val_loss"][-1]) if hist.get("val_loss") else None,
+    }
+    (output_dir / METRICS_FILENAME).write_text(
+        json.dumps(metrics, indent=2),
+        encoding="utf-8",
+    )
+
     return final_path
 
 
@@ -125,10 +173,26 @@ def main():
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     parser.add_argument("--lr", type=float, default=LEARNING_RATE)
     parser.add_argument(
+        "--architecture",
+        default="efficientnetb3",
+        choices=["efficientnetb3", "plantvillage_cnn", "cnn"],
+        help="Model architecture to train",
+    )
+    parser.add_argument(
         "--max-per-class",
         type=int,
         default=None,
         help="Cap images per class for faster training (e.g. 200)",
+    )
+    parser.add_argument(
+        "--no-augmentation",
+        action="store_true",
+        help="Use clean preprocessing for train images; useful for Kaggle-style CNN baselines.",
+    )
+    parser.add_argument(
+        "--no-class-weights",
+        action="store_true",
+        help="Disable class weights for balanced/capped datasets.",
     )
     args = parser.parse_args()
 
@@ -139,6 +203,9 @@ def main():
         batch_size=args.batch_size,
         learning_rate=args.lr,
         max_samples_per_class=args.max_per_class,
+        architecture=args.architecture,
+        augment=not args.no_augmentation,
+        use_class_weights=not args.no_class_weights,
     )
 
 

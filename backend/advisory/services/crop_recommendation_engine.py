@@ -16,14 +16,24 @@ Scoring factors (total 100 points):
 from __future__ import annotations
 
 import logging
+import os
 import re
+import atexit
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeout
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from .location_context import LocationContext
 from .unified_realtime_service import market_service, weather_service
+try:
+    from .comprehensive_crop_database import ALL_CROP_DATA
+except Exception:
+    ALL_CROP_DATA = {}
 
 logger = logging.getLogger(__name__)
+
+_REC_FETCH_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="crop-rec-fetch")
+atexit.register(_REC_FETCH_POOL.shutdown, wait=False, cancel_futures=True)
 
 # Rainfall category boundaries (mm/year)
 RAINFALL_BANDS = {
@@ -116,18 +126,17 @@ class CropRecommendationEngine:
     ) -> Dict[str, Any]:
         """Full recommendation pipeline with live weather and market data."""
 
-        # 1. Resolve location profile
-        profile = self._resolve_location_profile(location, state)
+        # 1. Resolve location profile — GPS-first in v4.0
+        profile = self._resolve_location_profile(location, state, latitude, longitude)
 
-        # 2. Get live weather (Open-Meteo, no key needed)
-        weather = weather_service.get_weather(location, latitude, longitude, lang=language)
+        # 2. Get live weather + mandi prices concurrently with partial fallback
+        weather, live_market, realtime_status = self._fetch_realtime_context(
+            location, latitude, longitude, state, language
+        )
         current_weather = weather.get("current") or {}
         forecast = weather.get("forecast_7day") or weather.get("forecast_7_days") or []
 
-        # 3. Get live market prices
-        live_market = market_service.get_prices(
-            location, lat=latitude, lon=longitude, state=state
-        )
+        # 3. Build live market signal map
         market_price_map = self._build_market_price_map(live_market)
 
         # 4. Score all crops
@@ -140,6 +149,7 @@ class CropRecommendationEngine:
         return {
             "location": location,
             "state": state or profile.get("state", ""),
+            "coordinates": {"lat": latitude, "lon": longitude},
             "region": profile.get("region", "India"),
             "agro_zone": profile.get("agro_zone", ""),
             "season": _season_label(season_key),
@@ -149,9 +159,16 @@ class CropRecommendationEngine:
             "recommendations": recommendations,
             "top_4_recommendations": recommendations[:4],
             "weather_snapshot": current_weather,
+            "weather_status": weather.get("status", "success"),
+            "weather_is_live": bool(weather.get("is_live", bool(current_weather))),
+            "weather_data_source": weather.get("data_source", ""),
+            "weather_fetched_at": weather.get("fetched_at"),
             "market_is_live": bool(live_market.get("is_live")),
             "market_status": live_market.get("status"),
+            "market_data_source": live_market.get("data_source_short") or live_market.get("data_source", ""),
+            "market_fetched_at": live_market.get("fetched_at") or live_market.get("timestamp"),
             "market_snapshot": (live_market.get("top_crops") or [])[:5],
+            "realtime_status": realtime_status,
             "data_source": "KrishiMitra Agro-Climatic Engine v3 + Open-Meteo + Agmarknet",
             "analysis_method": "multi_factor_scoring_v3",
             "factors_analyzed": [
@@ -161,13 +178,95 @@ class CropRecommendationEngine:
                 f"Irrigation: {profile.get('irrigation', 'Medium')}",
                 "Live 7-day weather forecast",
                 "Live mandi modal prices vs MSP",
-                "150+ crop agro-climatic profiles",
+                f"{len(ALL_CROP_DATA)} crop agro-climatic profiles",
                 "District-level priority crops",
             ],
             "profile_source": profile.get("_source", "state_default"),
             "timestamp": datetime.now().isoformat(),
             "language": language,
         }
+
+    def _fetch_realtime_context(
+        self,
+        location: str,
+        latitude: float,
+        longitude: float,
+        state: Optional[str],
+        language: str,
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, str]]:
+        """Fetch weather and mandi signals without letting either block scoring."""
+        timeout_s = float(os.getenv("CROP_REC_REALTIME_TIMEOUT_S", "5"))
+        weather: Dict[str, Any] = {
+            "status": "unavailable",
+            "is_live": False,
+            "current": {},
+            "forecast_7day": [],
+            "data_source": "not fetched",
+        }
+        market: Dict[str, Any] = {
+            "status": "unavailable",
+            "is_live": False,
+            "top_crops": [],
+            "data_source": "not fetched",
+        }
+        status_map = {"weather": "pending", "market": "pending"}
+
+        futures = {
+            _REC_FETCH_POOL.submit(
+                weather_service.get_weather,
+                location,
+                latitude,
+                longitude,
+                lang=language,
+            ): "weather",
+            _REC_FETCH_POOL.submit(
+                market_service.get_prices,
+                location,
+                lat=latitude,
+                lon=longitude,
+                state=state,
+            ): "market",
+        }
+
+        try:
+            for fut in as_completed(futures, timeout=timeout_s):
+                key = futures[fut]
+                try:
+                    result = fut.result() or {}
+                    if key == "weather":
+                        weather = result
+                    else:
+                        market = result
+                    status_map[key] = result.get("status") or (
+                        "live" if result.get("is_live") else "success"
+                    )
+                except Exception as exc:
+                    logger.warning("Crop rec %s fetch failed: %s", key, exc)
+                    status_map[key] = "error"
+        except FuturesTimeout:
+            for fut, key in futures.items():
+                if fut.done() and not fut.cancelled():
+                    try:
+                        result = fut.result(timeout=0) or {}
+                        if key == "weather":
+                            weather = result
+                        else:
+                            market = result
+                        status_map[key] = result.get("status") or (
+                            "live" if result.get("is_live") else "success"
+                        )
+                    except Exception:
+                        status_map[key] = "error"
+                elif not fut.done():
+                    fut.cancel()
+                    status_map[key] = "timeout"
+            logger.warning(
+                "Crop recommendation realtime fetch timed out after %.1fs for %s",
+                timeout_s,
+                location,
+            )
+
+        return weather, market, status_map
 
     @classmethod
     def recommend_from_context(cls, ctx: LocationContext, language: str = "hi") -> Dict[str, Any]:
@@ -182,8 +281,22 @@ class CropRecommendationEngine:
 
     # ── Location profile resolution ────────────────────────────────────
 
-    def _resolve_location_profile(self, location: str, state: Optional[str]) -> Dict[str, Any]:
-        """Return the best agro-climatic profile for the location."""
+    def _resolve_location_profile(
+        self,
+        location: str,
+        state: Optional[str],
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Return the best agro-climatic profile for the location.
+
+        Priority order (v4.0 — GPS-first):
+          1. Exact district match in DISTRICT_PROFILES
+          2. Fuzzy district match
+          3. GPS coordinate → nearest district (haversine, < 100 km radius)
+          4. State-level match (first district in state)
+          5. Keyword fallback
+        """
         try:
             from .district_data import DISTRICT_PROFILES
         except ImportError:
@@ -198,7 +311,7 @@ class CropRecommendationEngine:
             p["region"] = p.get("state", "India")
             return p
 
-        # 2. Partial district match (city name inside district key)
+        # 2. Partial district match
         for district_key, profile in DISTRICT_PROFILES.items():
             if district_key in loc_lower or loc_lower in district_key:
                 p = dict(profile)
@@ -206,7 +319,137 @@ class CropRecommendationEngine:
                 p["region"] = p.get("state", "India")
                 return p
 
-        # 3. State-level match
+        # 3. GPS coordinate → nearest district (NEW — uses lat/lon passed from recommend())
+        if latitude is not None and longitude is not None:
+            best_key, best_dist = None, float("inf")
+            # District coordinate centroids (lat, lon) for closest-district lookup
+            _DISTRICT_CENTROIDS = {
+                # Punjab
+                "amritsar": (31.634, 74.872), "ludhiana": (30.901, 75.857),
+                "jalandhar": (31.326, 75.576), "patiala": (30.339, 76.386),
+                "bathinda": (30.211, 74.946), "firozpur": (30.925, 74.614),
+                # Haryana
+                "karnal": (29.686, 76.990), "hisar": (29.151, 75.722),
+                "rohtak": (28.895, 76.607), "gurgaon": (28.459, 77.027),
+                "sirsa": (29.533, 75.022),
+                # Uttar Pradesh
+                "lucknow": (26.847, 80.946), "kanpur": (26.450, 80.332),
+                "agra": (27.176, 78.008), "varanasi": (25.318, 82.974),
+                "allahabad": (25.435, 81.846), "meerut": (28.984, 77.706),
+                "moradabad": (28.839, 78.777), "bareilly": (28.367, 79.430),
+                "gorakhpur": (26.760, 83.373), "noida": (28.535, 77.391),
+                "mathura": (27.492, 77.673), "ayodhya": (26.795, 82.195),
+                "jhansi": (25.448, 78.568), "sitapur": (27.564, 80.682),
+                # Rajasthan
+                "jaipur": (26.912, 75.787), "jodhpur": (26.239, 73.024),
+                "barmer": (25.745, 71.395), "bikaner": (28.013, 73.312),
+                "kota": (25.183, 75.838), "ajmer": (26.453, 74.639),
+                "udaipur": (24.571, 73.691), "chittorgarh": (24.879, 74.623),
+                "alwar": (27.554, 76.597), "sikar": (27.614, 75.140),
+                # Madhya Pradesh
+                "bhopal": (23.260, 77.413), "indore": (22.719, 75.858),
+                "jabalpur": (23.181, 79.987), "gwalior": (26.214, 78.183),
+                "rewa": (24.531, 81.296), "sagar": (23.838, 78.739),
+                "ujjain": (23.182, 75.783), "dewas": (22.963, 76.053),
+                "satna": (24.601, 80.832), "chhindwara": (22.057, 78.934),
+                # Maharashtra
+                "pune": (18.520, 73.857), "nashik": (19.998, 73.790),
+                "nagpur": (21.146, 79.088), "aurangabad": (19.877, 75.343),
+                "solapur": (17.686, 75.905), "kolhapur": (16.705, 74.243),
+                "amravati": (20.933, 77.757), "latur": (18.400, 76.560),
+                "nanded": (19.160, 77.317), "jalgaon": (21.000, 75.563),
+                "satara": (17.686, 74.000), "ratnagiri": (17.000, 73.300),
+                # Karnataka
+                "bangalore": (12.972, 77.595), "mysore": (12.296, 76.638),
+                "hubli": (15.364, 75.124), "gulbarga": (17.329, 76.820),
+                "shimoga": (13.930, 75.568), "bellary": (15.139, 76.920),
+                "mangalore": (12.870, 74.843), "tumkur": (13.342, 77.102),
+                "dharwad": (15.458, 75.007), "davangere": (14.466, 75.921),
+                # Andhra Pradesh
+                "guntur": (16.307, 80.437), "vijayawada": (16.507, 80.648),
+                "visakhapatnam": (17.686, 83.218), "kakinada": (16.946, 82.237),
+                "nellore": (14.443, 79.987), "tirupati": (13.629, 79.420),
+                "kurnool": (15.828, 78.037), "anantapur": (14.683, 77.601),
+                "chittoor": (13.212, 79.100), "kadapa": (14.474, 78.824),
+                # Telangana
+                "hyderabad": (17.385, 78.487), "warangal": (17.977, 79.598),
+                "karimnagar": (18.438, 79.129), "nizamabad": (18.672, 78.094),
+                "khammam": (17.247, 80.152), "adilabad": (19.664, 78.531),
+                # Tamil Nadu
+                "chennai": (13.083, 80.271), "coimbatore": (11.017, 76.956),
+                "madurai": (9.925, 78.119), "salem": (11.664, 78.147),
+                "tirunelveli": (8.729, 77.702), "tiruchirappalli": (10.805, 78.687),
+                "vellore": (12.916, 79.133), "erode": (11.341, 77.717),
+                "dindigul": (10.362, 77.972), "thoothukudi": (8.764, 78.135),
+                # Kerala
+                "thiruvananthapuram": (8.524, 76.937), "kochi": (9.931, 76.267),
+                "kozhikode": (11.258, 75.780), "thrissur": (10.527, 76.214),
+                "palakkad": (10.776, 76.654), "malappuram": (11.040, 76.076),
+                "kannur": (11.869, 75.370), "kollam": (8.887, 76.587),
+                # West Bengal
+                "kolkata": (22.573, 88.364), "howrah": (22.595, 88.258),
+                "bardhaman": (23.233, 87.851), "midnapore": (22.423, 87.324),
+                "siliguri": (26.726, 88.427), "murshidabad": (24.177, 88.249),
+                "nadia": (23.462, 88.560), "north 24 parganas": (22.775, 88.400),
+                # Bihar
+                "patna": (25.594, 85.138), "muzaffarpur": (26.121, 85.391),
+                "gaya": (24.797, 85.001), "bhagalpur": (25.253, 87.014),
+                "darbhanga": (26.152, 85.896), "purnia": (25.778, 87.477),
+                # Odisha
+                "bhubaneswar": (20.296, 85.825), "cuttack": (20.463, 85.883),
+                "berhampur": (19.314, 84.791), "sambalpur": (21.467, 83.975),
+                "rourkela": (22.260, 84.853),
+                # Assam
+                "guwahati": (26.145, 91.736), "silchar": (24.827, 92.793),
+                "dibrugarh": (27.484, 94.909), "jorhat": (26.751, 94.207),
+                "nagaon": (26.346, 92.686), "tezpur": (26.633, 92.801),
+                # Gujarat
+                "ahmedabad": (23.023, 72.571), "surat": (21.170, 72.831),
+                "rajkot": (22.291, 70.794), "vadodara": (22.307, 73.181),
+                "bhavnagar": (21.765, 72.143), "jamnagar": (22.471, 70.057),
+                "junagadh": (21.521, 70.457), "anand": (22.557, 72.951),
+                "surendranagar": (22.728, 71.648), "amreli": (21.600, 71.217),
+                # Himachal Pradesh
+                "shimla": (31.105, 77.173), "dharamsala": (32.219, 76.324),
+                "mandi": (31.708, 76.932), "kullu": (31.958, 77.110),
+                "kangra": (32.099, 76.268), "solan": (30.908, 77.099),
+                # Uttarakhand
+                "dehradun": (30.317, 78.032), "haridwar": (29.946, 78.163),
+                "nainital": (29.380, 79.463), "roorkee": (29.852, 77.889),
+                # Jharkhand
+                "ranchi": (23.344, 85.310), "jamshedpur": (22.805, 86.203),
+                "dhanbad": (23.798, 86.434), "bokaro": (23.666, 85.996),
+                # Chhattisgarh
+                "raipur": (21.251, 81.630), "bilaspur": (22.090, 82.148),
+                "durg": (21.190, 81.283), "korba": (22.365, 82.686),
+                # Goa
+                "panaji": (15.491, 73.828), "margao": (15.274, 73.957),
+                # Northeast
+                "imphal": (24.818, 93.944), "kohima": (25.667, 94.108),
+                "aizawl": (23.727, 92.718), "agartala": (23.831, 91.287),
+                "shillong": (25.578, 91.883), "gangtok": (27.331, 88.614),
+                "itanagar": (27.084, 93.605), "dispur": (26.145, 91.736),
+            }
+            for dist_key, (dlat, dlon) in _DISTRICT_CENTROIDS.items():
+                if dist_key not in DISTRICT_PROFILES:
+                    continue
+                # Haversine approximation (fast, no imports needed)
+                import math
+                dlat_r = math.radians(abs(latitude - dlat))
+                dlon_r = math.radians(abs(longitude - dlon))
+                a = math.sin(dlat_r/2)**2 + math.cos(math.radians(latitude)) * math.cos(math.radians(dlat)) * math.sin(dlon_r/2)**2
+                dist_km = 6371 * 2 * math.asin(math.sqrt(a))
+                if dist_km < best_dist:
+                    best_dist = dist_km
+                    best_key = dist_key
+            if best_key and best_dist < 120:  # within 120 km → use that district
+                p = dict(DISTRICT_PROFILES[best_key])
+                p["_source"] = f"gps_nearest_district_{int(best_dist)}km"
+                p["region"] = p.get("state", "India")
+                logger.info("GPS zone: %s → nearest district %s (%.0f km)", f"{latitude},{longitude}", best_key, best_dist)
+                return p
+
+        # 4. State-level match
         state_name = state or ""
         state_lower = state_name.lower()
         for district_key, profile in DISTRICT_PROFILES.items():
@@ -216,7 +459,7 @@ class CropRecommendationEngine:
                 p["region"] = p.get("state", "India")
                 return p
 
-        # 4. Generic defaults by state name keywords
+        # 5. Keyword fallback
         return self._state_keyword_profile(loc_lower, state_lower)
 
     def _state_keyword_profile(self, loc: str, state: str) -> Dict[str, Any]:

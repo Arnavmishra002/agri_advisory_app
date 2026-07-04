@@ -108,9 +108,9 @@ This guide provides detailed information and practical steps to manage stored gr
   - The ETL is the level of pest population or damage that justifies control measures. For stored grain pests, this can vary based on the type of pest and the specific storage conditions.
   
 - **Minimum Support Price (MSP) for 2024-25:**
-  - Rice: Rs. 1875 per quintal
-  - Wheat: Rs. 1635 per quintal
-  - Pulses (e.g., Pigeon Pea, Gram): MSP varies by state and variety; check local agricultural department for specific values.
+  - Rice: Rs. 2369 per quintal
+  - Wheat: Rs. 2425 per quintal
+  - Pulses: Tur/Arhar Rs. 8000 per quintal; Gram Rs. 5650 per quintal.
 
 ---
 

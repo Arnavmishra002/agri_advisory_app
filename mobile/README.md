@@ -35,11 +35,12 @@ flutter pub get
 ```
 
 ### 3. Configure API URL
-Edit `lib/utils/constants.dart`:
-```dart
-static const String baseUrl = 'https://your-render-url.onrender.com';
-// For local dev:
-// static const String baseUrl = 'http://10.0.2.2:8000'; // Android emulator
+Use `--dart-define` for release builds so the same source works across dev,
+staging, and production:
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+flutter build apk --release --dart-define=API_BASE_URL=https://your-render-url.onrender.com
+flutter build appbundle --release --dart-define=API_BASE_URL=https://your-render-url.onrender.com
 ```
 
 ### 4. Android permissions
@@ -72,6 +73,7 @@ flutter build ios --release    # release for iOS (needs Xcode)
 ## Production APK
 ```bash
 flutter build apk --release --dart-define=API_BASE_URL=https://agri-advisory-app.onrender.com
+flutter build appbundle --release --dart-define=API_BASE_URL=https://agri-advisory-app.onrender.com
 ```
 APK will be at: `build/app/outputs/flutter-apk/app-release.apk`
 

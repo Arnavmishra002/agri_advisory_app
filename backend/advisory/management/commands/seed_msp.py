@@ -14,27 +14,35 @@ After running this command, use get_msp(crop_id) in services to read from DB.
 
 from django.core.management.base import BaseCommand
 
+from advisory.services.msp_data import MSP_2024_25
+
 
 # ── MSP 2024-25 (Cabinet approved — update here annually) ────────────────────
-MSP_DATA = {
+_MSP_META = {
     # crop_name (lowercase, matches Crop.name in DB): (msp_per_quintal, name_hindi, season)
-    "wheat":      (2275, "गेहूँ",     "rabi"),
-    "rice":       (2300, "धान",       "kharif"),
-    "maize":      (2090, "मक्का",     "kharif"),
-    "soybean":    (4892, "सोयाबीन",   "kharif"),
-    "cotton":     (7121, "कपास",      "kharif"),    # medium staple
-    "mustard":    (5650, "सरसों",     "rabi"),
-    "gram":       (5440, "चना",       "rabi"),
-    "lentil":     (6425, "मसूर",      "rabi"),
-    "groundnut":  (6783, "मूँगफली",   "kharif"),
-    "sunflower":  (7280, "सूरजमुखी",  "rabi"),
-    "jowar":      (3371, "ज्वार",      "kharif"),
-    "bajra":      (2625, "बाजरा",     "kharif"),
-    "ragi":       (3846, "रागी",      "kharif"),
-    "barley":     (1735, "जौ",         "rabi"),
-    "arhar":      (7000, "अरहर",      "kharif"),
-    "moong":      (8682, "मूँग",       "kharif"),
-    "urad":       (7400, "उड़द",       "kharif"),
+    "wheat":      ("गेहूँ",     "rabi"),
+    "rice":       ("धान",       "kharif"),
+    "maize":      ("मक्का",     "kharif"),
+    "soybean":    ("सोयाबीन",   "kharif"),
+    "cotton":     ("कपास",      "kharif"),
+    "mustard":    ("सरसों",     "rabi"),
+    "gram":       ("चना",       "rabi"),
+    "lentil":     ("मसूर",      "rabi"),
+    "groundnut":  ("मूँगफली",   "kharif"),
+    "sunflower":  ("सूरजमुखी",  "rabi"),
+    "jowar":      ("ज्वार",     "kharif"),
+    "bajra":      ("बाजरा",     "kharif"),
+    "ragi":       ("रागी",      "kharif"),
+    "barley":     ("जौ",        "rabi"),
+    "arhar":      ("अरहर",      "kharif"),
+    "moong":      ("मूँग",      "kharif"),
+    "urad":       ("उड़द",      "kharif"),
+}
+
+MSP_DATA = {
+    crop_name: (MSP_2024_25[crop_name], hindi, season)
+    for crop_name, (hindi, season) in _MSP_META.items()
+    if crop_name in MSP_2024_25
 }
 
 

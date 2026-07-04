@@ -25,6 +25,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import re
 import time
 import urllib.request
@@ -38,7 +39,7 @@ logger = logging.getLogger(__name__)
 CHROMA_DIR   = Path(__file__).parent.parent / "chroma_db"
 COLLECTION   = "krishimitra_kb"
 EMBED_MODEL  = "nomic-embed-text"
-OLLAMA_URL   = "http://localhost:11434"
+OLLAMA_URL   = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 
 # How many raw candidates to retrieve before reranking
 _RETRIEVAL_CANDIDATES = 20

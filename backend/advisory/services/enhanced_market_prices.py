@@ -9,6 +9,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
+from .msp_data import MSP_2024_25
+
 logger = logging.getLogger(__name__)
 
 class EnhancedMarketPricesService:
@@ -382,9 +384,9 @@ class EnhancedMarketPricesService:
                          logger.info(f"✅ Verified Real-Time Market Activity for WHEAT on {today_str}")
                          return {'crops': [{
                             'name': 'Wheat',
-                            'current_price': 2275.0, # Validated from browser observation
-                            'min_price': 2250.0,
-                            'max_price': 2300.0,
+                            'current_price': float(MSP_2024_25['wheat']),
+                            'min_price': 2400.0,
+                            'max_price': 2500.0,
                             'mandi': 'Verified Market',
                             'district': location,
                             'state': state,
@@ -410,19 +412,19 @@ class EnhancedMarketPricesService:
     def _get_crops_for_state(self, state: str) -> Dict[str, float]:
         """Get realistic base prices for crops based on state"""
         common_crops = {
-            'Wheat': 2275, 'Rice': 2300, 'Maize': 2090, 
+            'Wheat': MSP_2024_25['wheat'], 'Rice': MSP_2024_25['rice'], 'Maize': MSP_2024_25['maize'],
             'Onion': 1500, 'Potato': 1200, 'Tomato': 1800
         }
         
         state = state.lower()
         if 'maharashtra' in state or 'pune' in state:
-            common_crops.update({'Cotton': 6620, 'Soybean': 4600, 'Sugarcane': 315, 'Turmeric': 7500, 'Pomegranate': 6000})
+            common_crops.update({'Cotton': MSP_2024_25['cotton'], 'Soybean': MSP_2024_25['soybean'], 'Sugarcane': MSP_2024_25['sugarcane'], 'Turmeric': 7500, 'Pomegranate': 6000})
         elif 'delhi' in state:
-            common_crops.update({'Mustard': 5650, 'Cauliflower': 1500, 'Carrot': 1800})
+            common_crops.update({'Mustard': MSP_2024_25['mustard'], 'Cauliflower': 1500, 'Carrot': 1800})
         elif 'karnataka' in state or 'bangalore' in state:
-            common_crops.update({'Ragi': 3846, 'Coconut': 11000, 'Arecanut': 45000, 'Coffee': 15000})
+            common_crops.update({'Ragi': MSP_2024_25['ragi'], 'Coconut': 11000, 'Arecanut': 45000, 'Coffee': 15000})
         elif 'punjab' in state:
-            common_crops.update({'Wheat': 2400, 'Rice': 2500, 'Cotton': 6800})
+            common_crops.update({'Wheat': MSP_2024_25['wheat'], 'Rice': MSP_2024_25['rice'], 'Cotton': MSP_2024_25['cotton']})
             
         return common_crops
     
@@ -1497,17 +1499,17 @@ class EnhancedMarketPricesService:
     def _get_real_government_msp_data(self) -> Dict[str, Any]:
         """Get real government MSP data from official sources"""
         return {
-            'Wheat': {'msp': 2275, 'unit': '/quintal', 'season': 'Rabi'},
-            'Rice': {'msp': 2240, 'unit': '/quintal', 'season': 'Kharif'},
-            'Maize': {'msp': 2090, 'unit': '/quintal', 'season': 'Kharif'},
-            'Mustard': {'msp': 5050, 'unit': '/quintal', 'season': 'Rabi'},
-            'Cotton': {'msp': 6620, 'unit': '/quintal', 'season': 'Kharif'},
-            'Sugarcane': {'msp': 315, 'unit': '/quintal', 'season': 'All Season'},
+            'Wheat': {'msp': MSP_2024_25['wheat'], 'unit': '/quintal', 'season': 'Rabi'},
+            'Rice': {'msp': MSP_2024_25['rice'], 'unit': '/quintal', 'season': 'Kharif'},
+            'Maize': {'msp': MSP_2024_25['maize'], 'unit': '/quintal', 'season': 'Kharif'},
+            'Mustard': {'msp': MSP_2024_25['mustard'], 'unit': '/quintal', 'season': 'Rabi'},
+            'Cotton': {'msp': MSP_2024_25['cotton'], 'unit': '/quintal', 'season': 'Kharif'},
+            'Sugarcane': {'msp': MSP_2024_25['sugarcane'], 'unit': '/quintal', 'season': 'All Season'},
             'Potato': {'msp': 800, 'unit': '/quintal', 'season': 'All Season'},
             'Onion': {'msp': 1200, 'unit': '/quintal', 'season': 'All Season'},
             'Tomato': {'msp': 900, 'unit': '/quintal', 'season': 'All Season'},
-            'Bajra': {'msp': 2500, 'unit': '/quintal', 'season': 'Kharif'},
-            'Jowar': {'msp': 2970, 'unit': '/quintal', 'season': 'Kharif'},
+            'Bajra': {'msp': MSP_2024_25['bajra'], 'unit': '/quintal', 'season': 'Kharif'},
+            'Jowar': {'msp': MSP_2024_25['jowar'], 'unit': '/quintal', 'season': 'Kharif'},
             'Tur': {'msp': 7000, 'unit': '/quintal', 'season': 'Kharif'},
             'Moong': {'msp': 7755, 'unit': '/quintal', 'season': 'Kharif'},
             'Urad': {'msp': 6975, 'unit': '/quintal', 'season': 'Kharif'}

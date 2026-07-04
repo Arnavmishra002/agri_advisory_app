@@ -43,6 +43,8 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
+from .msp_data import MSP_2024_25 as _CANONICAL_MSP
+
 # ── Configuration ─────────────────────────────────────────────────────────────
 _DATA_GOV_BASE    = "https://api.data.gov.in/resource"
 _RESOURCE_ID      = "9ef84268-d588-465a-a308-a864a43d0070"  # Agmarknet daily prices
@@ -120,12 +122,10 @@ _CROP_HINDI: Dict[str, str] = {
     "banana": "केला",      "mango": "आम",
 }
 
-# MSP 2024-25 (₹/quintal) — used for profit-vs-MSP calculation
+# MSP table used for profit-vs-MSP calculation. Keep this delegated to
+# msp_data.py so market, crop, chatbot, and DB seeding cannot drift apart.
 _MSP_2024_25: Dict[str, float] = {
-    "wheat": 2425, "rice": 2369, "maize": 2400, "jowar": 3699, "bajra": 2775,
-    "ragi": 4290, "barley": 2150, "mustard": 5950, "groundnut": 6783,
-    "soybean": 4892, "sunflower": 7280, "sesame": 9267, "cotton": 7121,
-    "gram": 5650, "arhar": 8000, "moong": 8682, "urad": 7400, "lentil": 6425,
+    crop_id: float(value) for crop_id, value in _CANONICAL_MSP.items()
 }
 
 
@@ -420,7 +420,19 @@ class DataGovMandiClient:
 
     @staticmethod
     def _cache_key(commodity: Optional[str], state: Optional[str]) -> str:
-        parts = f"{commodity or 'all'}:{state or 'national'}"
+        def token(value: Optional[str], fallback: str) -> str:
+            if not value:
+                return fallback
+            return (
+                str(value)
+                .strip()
+                .lower()
+                .replace(" ", "_")
+                .replace(":", "_")
+                .replace("/", "_")
+                .replace("\\", "_")
+            )
+        parts = f"{token(commodity, 'all')}:{token(state, 'national')}"
         return f"km:mandi:{parts}"
 
     @staticmethod

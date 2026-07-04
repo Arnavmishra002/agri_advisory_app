@@ -58,7 +58,7 @@ This guide provides detailed information on managing common wheat diseases, incl
 
 ### Additional Information
 - **Economic Threshold Levels (ETL)**: These are the levels at which action should be taken to control a pest or disease.
-- **MSP 2024-25**: The Minimum Support Price for wheat is ₹2,390 per quintal as of the current policy period.
+- **MSP 2024-25**: The Minimum Support Price for wheat is ₹2,425 per quintal as of the current policy period.
 
 ### Conclusion
 Proper management of these diseases through timely application of fungicides and use of resistant varieties can significantly reduce crop losses. Always follow local guidelines and recommendations from your state agricultural department to ensure effective disease control.

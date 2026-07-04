@@ -9,6 +9,7 @@ Start:
     uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 
 Endpoints:
+    GET  /              — service summary for browser checks
     POST /chat          — main chat endpoint
     POST /chat/stream   — streaming chat (tokens arrive in real-time)
     GET  /health        — system health check
@@ -63,6 +64,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/")
+def root():
+    """Friendly browser landing response for the Phase 1 service."""
+    return {
+        "service": "KrishiMitra Phase 1 Local AI/RAG",
+        "status": "running",
+        "message": "This is the AI/RAG service. Use the main web app on port 8001.",
+        "main_app": "http://localhost:8001",
+        "endpoints": {
+            "health": "/health",
+            "docs": "/docs",
+            "chat": "POST /chat",
+            "stream": "POST /chat/stream",
+            "rag_status": "/rag/status",
+            "rag_search": "/rag/search?q=wheat",
+        },
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 # ── Request / Response models ─────────────────────────────────────────────────

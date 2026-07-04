@@ -130,10 +130,10 @@ This guide provides detailed recommendations for crop rotation, intercropping, a
   - DAP: 40 kg
   - MOP: 20 kg
 
-#### MSP 2024-25 Values (₹/kg)
-- **Maize**: 1,700
-- **Soybean**: 3,000
-- **Wheat**: 1,900
+#### MSP 2024-25 Values (₹/q)
+- **Maize**: 2,400
+- **Soybean**: 4,892
+- **Wheat**: 2,425
 
 ---
 

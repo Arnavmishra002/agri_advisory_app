@@ -122,10 +122,8 @@ For potato:
 
 #### 10. Minimum Support Price (MSP) for 2024-25
 
-- **Tomato:** MSP: ₹36 per kg
-- **Brinjal:** MSP: ₹38 per kg
-- **Okra:** MSP: ₹35 per kg
-- **Potato:** MSP: ₹17.50 per kg
+- No official MSP is listed in this catalog for tomato, brinjal, okra, or potato.
+- Use live mandi/eNAM prices and FPO aggregation for price discovery.
 
 ---
 

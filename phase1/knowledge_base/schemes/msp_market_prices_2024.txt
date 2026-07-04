@@ -19,31 +19,25 @@
 ## 1. MSP 2024-25 Complete List
 
 ### Wheat
-- **MSP**: Rs 2275/q
+- **MSP**: Rs 2425/q
 
-### Rice/Paddy Common
-- **MSP**: Rs 2300/q
-
-### Rice/Paddy Grade A
-- **MSP**: Rs 2320/q
+### Rice/Paddy
+- **MSP**: Rs 2369/q
 
 ### Maize
-- **MSP**: Rs 2090/q
+- **MSP**: Rs 2400/q
 
-### Jowar Hybrid
-- **MSP**: Rs 3371/q
-
-### Jowar Maldandi
-- **MSP**: Rs 3421/q
+### Jowar
+- **MSP**: Rs 3699/q
 
 ### Bajra
-- **MSP**: Rs 2625/q
+- **MSP**: Rs 2775/q
 
 ### Ragi
-- **MSP**: Rs 3846/q
+- **MSP**: Rs 4290/q
 
 ### Arhar/Tur
-- **MSP**: Rs 7000/q
+- **MSP**: Rs 8000/q
 
 ### Moong
 - **MSP**: Rs 8682/q
@@ -52,13 +46,13 @@
 - **MSP**: Rs 7400/q
 
 ### Gram
-- **MSP**: Rs 5440/q
+- **MSP**: Rs 5650/q
 
 ### Lentil
 - **MSP**: Rs 6425/q
 
 ### Mustard/Rapeseed
-- **MSP**: Rs 5650/q
+- **MSP**: Rs 5950/q
 
 ### Groundnut
 - **MSP**: Rs 6783/q
@@ -69,11 +63,8 @@
 ### Soybean
 - **MSP**: Rs 4892/q
 
-### Cotton Medium Staple
-- **MSP**: Rs 6620/q
-
-### Cotton Long Staple
-- **MSP**: Rs 7020/q
+### Cotton
+- **MSP**: Rs 7121/q
 
 ### Sugarcane FRP
 - **MSP**: Rs 340/q

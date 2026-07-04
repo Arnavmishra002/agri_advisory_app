@@ -42,7 +42,10 @@ logger = logging.getLogger(__name__)
 # ── KrishiMitra LLM / Ollama config ───────────────────────────────────────────
 _OLLAMA_BASE    = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 _OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "krishimitra-llm")
-_OLLAMA_TIMEOUT = (3, 45)  # (connect, read) seconds
+_OLLAMA_TIMEOUT = (
+    float(os.getenv("OLLAMA_CONNECT_TIMEOUT_S", "2")),
+    float(os.getenv("OLLAMA_READ_TIMEOUT_S", "12")),
+)  # (connect, read) seconds
 
 from .msp_data import MSP_2024_25
 
