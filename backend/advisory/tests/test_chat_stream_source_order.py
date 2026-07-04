@@ -159,4 +159,8 @@ class ChatLocalLLMTimeoutTests(SimpleTestCase):
         self.assertEqual(answer, "direct answer")
         self.assertEqual(requests_post.call_args_list[0].kwargs["timeout"], chat_module._PHASE1_TIMEOUT)
         self.assertEqual(requests_post.call_args_list[1].kwargs["timeout"], chat_module._OLLAMA_DIRECT_TIMEOUT)
+        direct_payload = json.loads(requests_post.call_args_list[1].kwargs["data"].decode("utf-8"))
+        system_prompt = direct_payload["messages"][0]["content"]
+        self.assertIn("not have enough verified context", system_prompt)
+        self.assertIn("KVK/agriculture officer", system_prompt)
         _cb_increment.assert_called_once()

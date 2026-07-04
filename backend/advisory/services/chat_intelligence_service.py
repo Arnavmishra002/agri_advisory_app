@@ -1362,7 +1362,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "7. ICAR FIRST: For pesticide doses, always cite ICAR POP. Never exceed label dose.\n"
             "8. FORMAT: Bullet points for action steps. Bold key numbers. End with ONE next step today.\n"
             "9. SENSOR CONFLICT: If farmer asks to irrigate but sensor says Adequate → explain why not.\n"
-            "10. MARKET: If farmer asks selling price, compare current mandi rate vs MSP. Advise when to sell."
+            "10. MARKET: If farmer asks selling price, compare current mandi rate vs MSP. Advise when to sell.\n"
+            "11. THIN CONTEXT: If the supplied weather, market, sensor, or ICAR/GOVERNMENT ADVISORY sections "
+            "do not contain enough verified facts for a dose, disease certainty, eligibility, or price claim, "
+            "say you do not have enough verified context and suggest the nearest KVK/agriculture officer."
         )
 
         ollama_payload = json.dumps({
