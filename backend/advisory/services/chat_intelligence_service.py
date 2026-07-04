@@ -884,11 +884,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     except Exception as exc:
                         logger.warning("Fetch failed for %s: %s", key, exc)
             except FuturesTimeout:
-                # Bug 3 fix: cancel still-running futures immediately so the
-                # thread pool slots are returned and any held DB connections are
-                # released.  Without this, abandoned futures keep their Django ORM
-                # connection open until the OS timeout (up to 60 s), exhausting
-                # the DB connection pool under load.
+                pending = []
                 for fut, key in futures.items():
                     if fut.done() and not fut.cancelled():
                         try:
@@ -902,11 +898,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         except Exception:
                             pass
                     elif not fut.done():
-                        fut.cancel()  # releases thread pool slot
+                        pending.append(key)
                 logger.warning(
-                    "Concurrent fetch timed out after %.1fs for %s — using partial data",
+                    "Concurrent fetch timed out after %.1fs for %s — using partial data; "
+                    "pending=%s will finish under service HTTP timeouts",
                     _CHAT_REALTIME_TIMEOUT_S,
                     ctx.display_name,
+                    ",".join(pending) or "none",
                 )
 
         # Merge ambient readings from weather into sensor context
