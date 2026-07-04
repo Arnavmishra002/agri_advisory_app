@@ -50,7 +50,6 @@ from .unified_realtime_service import (
     MSP_2024_25,
     _is_valid_gemini_key,
     gemini_service,
-    iot_blockchain,
     market_service,
     schemes_service,
     weather_service,
@@ -279,7 +278,7 @@ from .city_catalog import _INDIAN_CITY_CATALOG, _WEATHER_STOPWORDS
 
 
 
-# ── Lightweight sensor context (simulator-only for now; swap DB tier later) ──
+# ── Lightweight sensor context from verified field devices, if available ──
 
 @dataclass
 class SensorContext:
@@ -299,7 +298,7 @@ class SensorContext:
 
     def moisture_label(self) -> str:
         if self.soil_moisture_pct is None:
-            return "N/A — sensor data unavailable"
+            return "N/A - sensor data unavailable"
         pct = self.soil_moisture_pct
         if pct < 35:
             return f"{pct:.1f}% — ⚠️ CRITICAL: Irrigate immediately"
@@ -632,7 +631,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         "live weather, official government guidelines, and real-time mandi prices.\n\n"
 
         "### OPERATIONAL FRAMEWORK\n"
-        "1. PERCEIVE: Read [LIVE SENSOR DATA] first — flag any critical alerts.\n"
+        "1. PERCEIVE: Read [FIELD SENSOR DATA] first, if available — flag any "
+        "critical alerts. If unavailable, do not infer soil moisture/NPK/pH.\n"
         "2. GROUND: Cross-reference with [GOVERNMENT & WEATHER DATA]. Advice MUST comply "
         "with official data, planting calendars, and active weather threats.\n"
         "3. DECIDE & ACT: Provide a tailored, step-by-step action plan.\n\n"
@@ -648,7 +648,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         "Emojis where natural. Address farmer as 'किसान भाई' when responding in Hindi.\n\n"
 
         "---\n\n"
-        "[LIVE SENSOR DATA] (source: {sensor_source})\n"
+        "[FIELD SENSOR DATA] (source: {sensor_source})\n"
         "Soil Moisture  : {soil_moisture_label}\n"
         "Soil Temp      : {soil_temp_c}\n"
         "Ambient Temp   : {air_temp_c}\n"
@@ -1475,18 +1475,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         return None
 
-    # ── Sensor context: simulator only (no real hardware yet) ────
+    # ── Sensor context: verified field hardware only ────
 
     def _resolve_sensor_context(self, ctx: LocationContext) -> SensorContext:
         """
-        Tier 1: Real IoTSensorReading DB (live ESP32 MQTT hardware).
-        Tier 2: BlockchainIoTSimulator fallback.
-
-        FIX: The old implementation always used the simulator, silently
-        ignoring real sensor readings collected by mqtt_sensor_subscriber.py.
-        Farmers with actual ESP32 sensors were getting fake simulated data.
+        Use only fresh IoTSensorReading DB rows from real ESP32/MQTT hardware.
+        If none exists, return an empty SensorContext. Demo simulation must not
+        influence farmer advice.
         """
-        # ── Tier 1: Real hardware readings from DB ────────────────────────────
         if ctx.latitude is not None and ctx.longitude is not None:
             try:
                 import django
@@ -1528,29 +1524,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             except Exception as exc:
                 logger.debug("DB sensor lookup skipped: %s", exc)
 
-        # ── Tier 2: Simulator fallback ────────────────────────────────────────
-        try:
-            sim      = iot_blockchain.get_iot_sensor_data(ctx.query_label)
-            readings = sim.get("readings", {})
-            npk      = readings.get("npk", {})
-            health   = sim.get("soil_health_score", {})
-            pct      = readings.get("soil_moisture_pct")
-            sc = SensorContext(
-                soil_moisture_pct=pct,
-                soil_temp_c=readings.get("soil_temperature_c"),
-                nitrogen_kg_ha=npk.get("nitrogen_kg_ha"),
-                phosphorus_kg_ha=npk.get("phosphorus_kg_ha"),
-                potassium_kg_ha=npk.get("potassium_kg_ha"),
-                soil_ph=readings.get("soil_ph"),
-                soil_health_score=health.get("score") if isinstance(health, dict) else None,
-                soil_health_grade=health.get("grade", "—") if isinstance(health, dict) else "—",
-                source="simulated",
-            )
-            sc.moisture_status = _classify_moisture(pct)
-            return sc
-        except Exception as exc:
-            logger.warning("IoT simulator fetch failed: %s", exc)
-            return SensorContext(source="none")
+        return SensorContext(source="none")
 
     # ── Weather constraints ───────────────────────────────────────
 
