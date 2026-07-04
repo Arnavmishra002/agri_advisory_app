@@ -11,9 +11,11 @@ Endpoints:
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
+from django.utils import timezone as django_timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -26,6 +28,8 @@ from ...services.field_sensor_service import field_sensor_service, CROP_SOIL_REQ
 from ...services.language_service import normalise_language_code
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_IOT_SENSOR_MAX_AGE_MINUTES = 60
 
 
 class FieldAdvisoryViewSet(viewsets.ViewSet):
@@ -75,6 +79,7 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
             lang        = normalise_language_code(data.get("language", "hi"))
             field_id    = data.get("field_id")
             sensor_data = None
+            sensor_freshness = None
 
             if request.method == "POST":
                 # Accept sensor data either nested under "sensors" or flat
@@ -93,7 +98,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                         "previous_crop":  data.get("previous_crop"),
                         "irrigation_type": data.get("irrigation_type", "unknown"),
                         "field_area_ha":  _safe_float(data.get("field_area_ha")),
+                        "_sensor_meta":   _live_request_sensor_meta(),
                     }
+                    sensor_freshness = sensor_data["_sensor_meta"]
 
             if not sensor_data:
                 try:
@@ -110,6 +117,8 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                         ).first()
 
                     if iot_reading:
+                        sensor_freshness = _sensor_freshness_from_reading(iot_reading)
+                    if iot_reading and sensor_freshness["status"] == "fresh_saved":
                         sensors = {
                             "nitrogen_kg_ha": iot_reading.nitrogen_kg_ha,
                             "phosphorus_kg_ha": iot_reading.phosphorus_kg_ha,
@@ -128,6 +137,7 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                             "previous_crop":  data.get("previous_crop"),
                             "irrigation_type": data.get("irrigation_type") or "unknown",
                             "field_area_ha":  _safe_float(data.get("field_area_ha")),
+                            "_sensor_meta":   sensor_freshness,
                         }
                 except Exception as iot_err:
                     logger.warning("Database fallback for field sensor reading failed: %s", iot_err)
@@ -141,6 +151,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 state=ctx.state or None,
                 language=lang,
             )
+
+            if sensor_freshness:
+                result["sensor_freshness"] = sensor_freshness
 
             return Response(attach_location_metadata(result, ctx))
 
@@ -401,6 +414,47 @@ def _safe_float(val) -> Optional[float]:
         return float(val) if val is not None else None
     except (TypeError, ValueError):
         return None
+
+def _iot_sensor_max_age_minutes() -> int:
+    try:
+        return max(1, int(os.getenv("IOT_SENSOR_MAX_AGE_MINUTES", DEFAULT_IOT_SENSOR_MAX_AGE_MINUTES)))
+    except (TypeError, ValueError):
+        return DEFAULT_IOT_SENSOR_MAX_AGE_MINUTES
+
+def _live_request_sensor_meta() -> dict:
+    now = django_timezone.now()
+    return {
+        "status": "live_request",
+        "source": "request_payload",
+        "recorded_at": now.isoformat(),
+        "age_minutes": 0,
+        "max_age_minutes": _iot_sensor_max_age_minutes(),
+        "message": "Sensor values came with this request.",
+    }
+
+def _sensor_freshness_from_reading(reading) -> dict:
+    max_age = _iot_sensor_max_age_minutes()
+    now = django_timezone.now()
+    recorded_at = reading.created_at
+    if recorded_at and django_timezone.is_naive(recorded_at):
+        recorded_at = django_timezone.make_aware(recorded_at, django_timezone.get_current_timezone())
+    age_seconds = max(0, (now - recorded_at).total_seconds()) if recorded_at else None
+    age_minutes = round(age_seconds / 60) if age_seconds is not None else None
+    is_fresh = age_minutes is not None and age_minutes <= max_age
+    status_label = "fresh_saved" if is_fresh else "stale_ignored"
+    return {
+        "status": status_label,
+        "source": "database",
+        "field_id": reading.field_id,
+        "recorded_at": recorded_at.isoformat() if recorded_at else None,
+        "age_minutes": age_minutes,
+        "max_age_minutes": max_age,
+        "message": (
+            "Fresh saved sensor reading used for scoring."
+            if is_fresh
+            else "Sensor reading is stale and was ignored for crop scoring."
+        ),
+    }
 
 def _save_sensor_reading(ctx, sensors: dict, field_id=None):
     """Persist sensor reading to IoT sensor model if available."""
