@@ -23,6 +23,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from ...models import FarmerProfile, IoTSensorReading
 from ..errors import safe_error_message
@@ -206,17 +207,50 @@ def _build_history_and_context(request, session_id, language):
     return history, session_ctx, language
 
 
+def _authenticated_user_for_profile(request):
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated:
+        return user
+    try:
+        auth = JWTAuthentication().authenticate(request)
+        if auth:
+            user, _token = auth
+            if user and user.is_authenticated:
+                return user
+    except Exception as exc:
+        logger.debug("JWT profile authentication failed: %s", exc)
+    return None
+
+
+def _phone_candidates_for_user(user) -> set[str]:
+    username = (getattr(user, "username", "") or "").strip()
+    digits = "".join(ch for ch in username if ch.isdigit())
+    candidates = {username} if username else set()
+    if digits:
+        candidates.add(digits)
+        candidates.add(f"+{digits}")
+        if len(digits) == 10:
+            candidates.add(f"+91{digits}")
+        elif len(digits) == 12 and digits.startswith("91"):
+            candidates.add(f"+{digits}")
+    return {c for c in candidates if c}
+
+
+def _owned_farmer_filter(user) -> Q:
+    owned = Q(session_id=f"user:{user.id}")
+    for phone in _phone_candidates_for_user(user):
+        owned |= Q(phone_number=phone)
+    return owned
+
+
 def _load_farmer_context(request, session_id, session_ctx) -> dict:
     """Load FarmerProfile + IoT sensor reading for chatbot personalisation."""
     farmer_ctx: dict = {}
-    phone = (request.data.get("phone") or "").strip() or None
-    if not (phone or session_id):
+    user = _authenticated_user_for_profile(request)
+    if not user:
         return farmer_ctx
     try:
-        q_filter = Q()
-        if phone:      q_filter |= Q(phone_number=phone)
-        if session_id: q_filter |= Q(session_id=session_id)
-        profile = FarmerProfile.objects.filter(q_filter).first()
+        profile = FarmerProfile.objects.filter(_owned_farmer_filter(user)).first()
         if not profile:
             return farmer_ctx
         farmer_ctx = profile.to_context_dict()
