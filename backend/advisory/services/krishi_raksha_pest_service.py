@@ -218,7 +218,7 @@ class KrishiRakshaPestService:
                 "specialist_model": (
                     "ML active"
                     if ml_result and ml_result.get("status") == "success"
-                    else "Crop/weather advisory fallback"
+                    else "ML unavailable: safety advisory only"
                     if advisory_fallback
                     else "Blocked (no fake expert fallback)"
                 ),
@@ -226,8 +226,6 @@ class KrishiRakshaPestService:
                 "severity_analysis": (
                     "From model confidence"
                     if ml_result and ml_result.get("status") == "success"
-                    else "From advisory confidence"
-                    if advisory_fallback
                     else "N/A"
                 ),
             },
@@ -381,31 +379,29 @@ class KrishiRakshaPestService:
     def _model_unavailable_rule_diagnosis(
         self, crop_name: str, catalog_entry: Optional[Dict] = None
     ) -> List[Dict[str, Any]]:
-        """Useful but honest fallback when a plant image is present but ML is unavailable."""
+        """Neutral fallback when a plant image is present but ML is unavailable."""
         crop_id = catalog_entry["id"] if catalog_entry else (crop_name or "crop")
         crop_label = catalog_entry["name"] if catalog_entry else str(crop_id).title()
-        candidates = self._catalog_expert_logic(str(crop_id), catalog_entry)
-        out: List[Dict[str, Any]] = []
-        for item in candidates[:3]:
-            copy = dict(item)
-            base_conf = float(copy.get("confidence", 0.45) or 0.45)
-            copy["confidence"] = round(min(base_conf, 0.48), 2)
-            copy["name"] = f"{copy.get('name', 'Crop stress')} (advisory fallback)"
-            copy["source"] = "crop_weather_rule_fallback"
-            copy["explanation"] = (
-                "A leaf image was uploaded, but the trained ML classifier is not installed. "
-                f"This advisory is based on the selected crop ({crop_label}), crop category, "
-                "and local weather checks; it is not an image-classification result. "
-                + str(copy.get("explanation", ""))
-            ).strip()
-            treatments = list(copy.get("treatment") or [])
-            copy["treatment"] = [
-                "Use this as a precautionary advisory until ML/expert diagnosis is available",
-                "Take one close-up leaf photo and one whole-plant photo for KVK confirmation",
-                *treatments[:3],
-            ]
-            out.append(copy)
-        return out or self._ml_unavailable_diagnosis(crop_name)
+        return [
+            {
+                "name": "Disease model unavailable",
+                "confidence": 0.0,
+                "symptoms": [],
+                "treatment": [
+                    "Do not treat this response as a disease diagnosis",
+                    "Take one close-up affected-leaf photo and one whole-plant photo",
+                    "Share the photos with a local KVK or agriculture officer for confirmation",
+                    f"Selected crop ({crop_label}) is used only as context, not as proof of disease",
+                ],
+                "explanation": (
+                    "A plant image was uploaded, but the trained ML classifier is not installed. "
+                    "This is a safety advisory only, not image classification, and no disease "
+                    "confidence is available."
+                ),
+                "source": "safety",
+                "crop_hint": crop_label,
+            }
+        ]
 
     def _diagnosis_from_ml(self, ml_result: Optional[Dict[str, Any]]) -> Optional[List[Dict]]:
         if not ml_result:
@@ -519,7 +515,6 @@ class KrishiRakshaPestService:
                     "plant_validation",
                     "safety",
                     "EfficientNet-B3",
-                    "crop_weather_rule_fallback",
                 ):
                     verified.append(d)
             return sorted(verified, key=lambda x: x["confidence"], reverse=True)
