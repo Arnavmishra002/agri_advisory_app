@@ -6,8 +6,10 @@ Real Government API Integration for Mandi Prices
 
 import requests
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
+from urllib.parse import urlencode
 
 from .msp_data import MSP_2024_25
 
@@ -1886,11 +1888,42 @@ class EnhancedMarketPricesService:
             
         except Exception as e:
             logger.error(f"Error filtering mandis by location: {e}")
-            # Return default mandis for the location
+            # Return clearly labeled synthetic fallbacks for the location.
+            fallback_common = {
+                'source': 'synthetic_fallback',
+                'live': False,
+                'is_live': False,
+                'status': 'fallback',
+                'data_source': 'synthetic_fallback',
+                'note': 'Synthetic fallback mandi; verify locally before trading.',
+            }
             return [
-                {'name': f'{location} Main Mandi', 'distance': '0 km', 'specialty': 'All Crops', 'state': state or 'Unknown', 'location': location, 'auto_selected': True, 'is_nearest': True},
-                {'name': f'{location} APMC', 'distance': '5 km', 'specialty': 'Grains & Pulses', 'state': state or 'Unknown', 'location': location},
-                {'name': f'{location} Vegetable Market', 'distance': '8 km', 'specialty': 'Fruits & Vegetables', 'state': state or 'Unknown', 'location': location}
+                {
+                    **fallback_common,
+                    'name': f'{location} Main Mandi',
+                    'distance': '0 km',
+                    'specialty': 'All Crops',
+                    'state': state or 'Unknown',
+                    'location': location,
+                    'auto_selected': True,
+                    'is_nearest': True,
+                },
+                {
+                    **fallback_common,
+                    'name': f'{location} APMC',
+                    'distance': '5 km',
+                    'specialty': 'Grains & Pulses',
+                    'state': state or 'Unknown',
+                    'location': location,
+                },
+                {
+                    **fallback_common,
+                    'name': f'{location} Vegetable Market',
+                    'distance': '8 km',
+                    'specialty': 'Fruits & Vegetables',
+                    'state': state or 'Unknown',
+                    'location': location,
+                },
             ]
 
     def _fetch_from_data_gov_in(self, location: str, state: str) -> Dict[str, Any]:
@@ -1900,8 +1933,18 @@ class EnhancedMarketPricesService:
             endpoints = [
                 "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
                 "https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69",
-                "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=579b464db66ec23bdd000001cdd3946e44c4a1747200ff293b68cc36&format=json&limit=100"
             ]
+            api_key = os.getenv("DATA_GOV_IN_API_KEY", "").strip()
+            if api_key:
+                query = urlencode({
+                    "api-key": api_key,
+                    "format": "json",
+                    "limit": 100,
+                })
+                endpoints.append(
+                    "https://api.data.gov.in/resource/"
+                    f"9ef84268-d588-465a-a308-a864a43d0070?{query}"
+                )
             
             for endpoint in endpoints:
                 try:
