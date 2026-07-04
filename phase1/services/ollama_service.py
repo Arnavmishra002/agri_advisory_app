@@ -58,9 +58,10 @@ STRICT RULES:
    If mixed Hindi-English (Hinglish), reply in Hinglish.
 7. Use bullet points for action steps. Bold important numbers (MSP, doses, dates).
 8. End every response with ONE concrete next step the farmer should take today.
-9. SENSOR DATA RULE: If [LIVE FIELD SENSOR DATA] shows soil moisture is Adequate (50-65%)
-   or High (>65%), never recommend irrigation. State the actual % and say irrigation is
-   not needed.
+9. SENSOR DATA RULE: Use soil moisture only when [LIVE FIELD SENSOR DATA] contains
+   an explicit "Soil Moisture" value from a sensor. Air humidity or weather humidity
+   is NOT soil moisture. If field sensor data is not provided, never invent soil
+   moisture, NPK, pH, or live field readings.
 10. Never recommend a pesticide dose higher than label-approved amount.
 """
 
@@ -154,6 +155,13 @@ def build_farming_prompt(
             f"Data source    : {sensor_data.get('source', 'simulated')}",
         ]
         parts.append("[LIVE FIELD SENSOR DATA]\n" + "\n".join(lines))
+    else:
+        parts.append(
+            "[LIVE FIELD SENSOR DATA]\n"
+            "Not provided for this request. Do not infer soil moisture, NPK, pH, "
+            "or field sensor readings from weather, air humidity, crop profile, "
+            "or general farming knowledge."
+        )
 
     # 3. Weather
     if weather_summary:
@@ -193,7 +201,8 @@ def build_farming_prompt(
     parts.append(
         "[YOUR RESPONSE — follow these checks before writing]\n"
         "1. Does the question CONFLICT with sensor data? "
-        "(e.g. asking to water but moisture is Adequate → explain no irrigation needed)\n"
+        "(Only check this if [LIVE FIELD SENSOR DATA] contains a real Soil Moisture value; "
+        "air humidity is not soil moisture.)\n"
         "2. Is there a weather alert that affects this advice? Mention it FIRST.\n"
         "3. Is your chemical recommendation backed by the knowledge base? "
         "If not, defer to Kisan Helpline 1800-180-1551.\n"

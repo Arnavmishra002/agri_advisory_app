@@ -156,7 +156,7 @@ def _get_weather_summary(location: str, lat: float, lon: float, lang: str) -> st
         forecast = (w.get("forecast_7day") or [])[:3]
         lines = [
             f"Current: {cur.get('temperature')}°C, {cur.get('condition', '')}",
-            f"Humidity: {cur.get('humidity')}%",
+            f"Air humidity: {cur.get('humidity')}% (not soil moisture)",
         ]
         if alerts:
             lines.append(f"ALERT: {' | '.join(str(a) for a in alerts[:2])}")
