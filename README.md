@@ -224,8 +224,20 @@ PYTHONPATH=backend python -m advisory.ml.evaluate \
   --data-dir data/datasets
 ```
 
+For quick local/CI smoke checks on constrained hardware:
+
+```bash
+PYTHONPATH=backend python -m advisory.ml.evaluate \
+  --model-dir models/crop_disease \
+  --data-dir data/datasets \
+  --max-test-samples 390
+```
+
 `/api/health/readiness/` reports whether the model is missing, needs retraining,
-or is a production candidate.
+or is a production candidate. Models marked `needs_retraining` or `unknown` are
+blocked from farmer-facing predictions by default; use
+`ML_ALLOW_UNVERIFIED_MODEL=true` only for offline evaluation, never for a farmer
+production deployment.
 
 ## Flutter Mobile
 
@@ -265,6 +277,7 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `OLLAMA_MODEL` | Optional | Local LLM model name |
 | `CROP_DISEASE_MODEL_DIR` | Optional | Directory containing disease model artifacts |
 | `ML_CONFIDENCE_THRESHOLD` | Optional | Minimum confidence for image classification |
+| `ML_ALLOW_UNVERIFIED_MODEL` | Development only | Allows low-quality/unverified disease model predictions for offline testing |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | Optional | WhatsApp integration |
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | Optional | SMS/IVR integration |
 | `GROQ_API_KEY` | Optional | Voice transcription for WhatsApp audio |
