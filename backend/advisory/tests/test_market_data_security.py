@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 from django.test import TestCase
 
 from advisory.services.enhanced_market_prices import EnhancedMarketPricesService
+from advisory.services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
 
 
 class MarketDataSecurityTests(TestCase):
@@ -54,3 +55,43 @@ class MarketDataSecurityTests(TestCase):
             self.assertFalse(mandi["live"])
             self.assertFalse(mandi["is_live"])
             self.assertEqual(mandi["status"], "fallback")
+
+    @patch.object(EnhancedMarketPricesService, "_fetch_agmarknet_data", return_value=None)
+    @patch.object(EnhancedMarketPricesService, "_fetch_enam_data", return_value=None)
+    @patch.object(EnhancedMarketPricesService, "_fetch_fci_data", return_value=None)
+    @patch.object(EnhancedMarketPricesService, "_try_alternative_government_sources", return_value=None)
+    def test_market_price_fallback_is_estimated_not_success(
+        self,
+        _alternative,
+        _fci,
+        _enam,
+        _agmarknet,
+    ):
+        service = EnhancedMarketPricesService()
+
+        response = service.get_market_prices("Lucknow", latitude=26.8467, longitude=80.9462)
+
+        self.assertEqual(response["status"], "fallback")
+        self.assertFalse(response["is_live"])
+        self.assertLessEqual(response["data_reliability"], 0.5)
+        self.assertIn("not live", response["note"].lower())
+        self.assertTrue(response["crops"])
+        for crop in response["crops"]:
+            self.assertFalse(crop["is_live"])
+            self.assertEqual(crop["price_status"], "estimated")
+            self.assertEqual(crop["data_source"], "msp_reference_estimate")
+
+    @patch.object(EnhancedMarketPricesService, "_fetch_agmarknet_data", return_value=None)
+    @patch.object(EnhancedMarketPricesService, "_fetch_enam_data", return_value=None)
+    @patch.object(EnhancedMarketPricesService, "_fetch_fci_data", return_value=None)
+    @patch.object(EnhancedMarketPricesService, "_try_alternative_government_sources", return_value=None)
+    def test_ultra_government_api_does_not_promote_estimated_prices(
+        self,
+        _alternative,
+        _fci,
+        _enam,
+        _agmarknet,
+    ):
+        result = UltraDynamicGovernmentAPI()._fetch_market_prices("Lucknow")
+
+        self.assertIsNone(result)

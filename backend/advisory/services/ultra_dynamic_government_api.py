@@ -528,11 +528,20 @@ class UltraDynamicGovernmentAPI:
             result = market_service.get_market_prices(location)
             
             if result and result.get('status') == 'success' and result.get('crops'):
+                if result.get('is_live') is False or result.get('data_status') in {'estimated', 'fallback'}:
+                    logger.warning(
+                        "Ignoring estimated market fallback for government feed: %s",
+                        result.get('data_source') or result.get('note'),
+                    )
+                    return None
+
                 # Transform to the format expected by UltraDynamicGovernmentAPI
                 # EnhancedService returns list of dicts, UltraDynamic expects dict of dicts (name -> data)
                 
                 market_data = {}
                 for crop in result.get('crops', []):
+                    if crop.get('is_live') is False or crop.get('price_status') in {'estimated', 'fallback'}:
+                        continue
                     name = crop.get('name')
                     if name:
                         market_data[name] = {
@@ -542,12 +551,16 @@ class UltraDynamicGovernmentAPI:
                             'date': crop.get('date', datetime.now().strftime('%Y-%m-%d'))
                         }
                 
-                return {
-                    'status': 'success',
-                    'data': market_data,
-                    'sources': result.get('sources', ['Agmarknet', 'e-NAM']),
-                    'reliability_score': result.get('data_reliability', 0.95)
-                }
+                if market_data:
+                    return {
+                        'status': 'success',
+                        'data': market_data,
+                        'sources': result.get('sources', ['Agmarknet', 'e-NAM']),
+                        'reliability_score': result.get('data_reliability', 0.95)
+                    }
+
+                logger.warning("EnhancedMarketPricesService returned only estimated market rows")
+                return None
             
             # If enhanced service returns no crops (unlikely with fallback), return None
             logger.warning("EnhancedMarketPricesService returned no crops")

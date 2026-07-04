@@ -1226,18 +1226,23 @@ class EnhancedMarketPricesService:
                 crops.append({
                     'name': crop_name,
                     'current_price': current_price,
+                    'estimated_price': current_price,
                     'msp': msp_data['msp'],
                     'mandi': mandi_name,
                     'state': state,
                     'date': datetime.now().strftime('%Y-%m-%d'),
-                    'source': f'Government MSP Data + {mandi_name} Analysis',
+                    'source': 'MSP reference estimate (not live mandi price)',
+                    'data_source': 'msp_reference_estimate',
+                    'price_status': 'estimated',
+                    'is_live': False,
+                    'live': False,
                     'profit_margin': profit_margin,
                     'profit_percentage': profit_percentage,
                     'unit': msp_data.get('unit', '/quintal'),
                     'season': msp_data.get('season', 'All Season'),
                     'location_factor': round(region_multiplier, 2),
                     'mandi_multiplier': round(mandi_multiplier, 2),
-                    'api_source': 'mandi_specific_fallback'
+                    'api_source': 'mandi_specific_estimate'
                 })
                 
                 crop_index += 1
@@ -1246,16 +1251,22 @@ class EnhancedMarketPricesService:
             crops.sort(key=lambda x: x['current_price'], reverse=True)
             
             return {
-                'status': 'success',
+                'status': 'fallback',
+                'is_live': False,
+                'data_status': 'estimated',
                 'crops': crops,
-                'sources': ['Government MSP Data', f'{mandi_name} Analysis', 'Dynamic Pricing'],
+                'sources': ['MSP 2024-25 reference', f'{mandi_name} estimate'],
                 'location': location,
                 'mandi': mandi_name,
                 'state': state,
                 'nearest_mandis': [m['name'] for m in nearest_mandis[:3]],
                 'timestamp': datetime.now().isoformat(),
-                'data_reliability': 0.90,
-                'note': f'Mandi-specific pricing for {mandi_name}, {location} using real government MSP data with mandi-specific variations'
+                'data_reliability': 0.35,
+                'data_source': 'MSP reference estimate (not live mandi price)',
+                'note': (
+                    f'Estimated mandi reference for {mandi_name}, {location}; '
+                    'not live market data. Verify on Agmarknet/e-NAM or local mandi before trading.'
+                )
             }
             
         except Exception as e:
@@ -1278,7 +1289,7 @@ class EnhancedMarketPricesService:
         
         crops = []
         
-        # Process each crop with real government data and different prices
+        # Process each crop as an explicitly labeled MSP-based estimate.
         import random
         import hashlib
         
@@ -1317,35 +1328,46 @@ class EnhancedMarketPricesService:
             crops.append({
                 'name': crop_name,
                 'current_price': current_price,
+                'estimated_price': current_price,
                 'msp': base_msp,
                 'mandi': primary_mandi,
                 'state': state,
                 'date': datetime.now().strftime('%Y-%m-%d'),
-                'source': 'Government MSP Data + Location Analysis',
+                'source': 'MSP reference estimate (not live mandi price)',
+                'data_source': 'msp_reference_estimate',
+                'price_status': 'estimated',
+                'is_live': False,
+                'live': False,
                 'profit_margin': profit_margin,
                 'profit_percentage': profit_percentage,
                 'unit': msp_data.get('unit', '/quintal'),
                 'season': msp_data.get('season', 'All Season'),
                 'location_factor': round(location_factor, 2),
                 'region_multiplier': round(region_multiplier, 2),
-                    'api_source': 'government_msp_with_estimated_prices'
+                'api_source': 'msp_reference_estimate'
             })
         
         # Sort crops by price to show variety
         crops.sort(key=lambda x: x['current_price'], reverse=True)
         
         return {
-            'status': 'success',
+            'status': 'fallback',
+            'is_live': False,
+            'data_status': 'estimated',
             'crops': crops,
-            'sources': ['Government MSP Data', 'Location-based Analysis', 'Dynamic Pricing'],
+            'sources': ['MSP 2024-25 reference', 'Location estimate'],
             'location': location,
             'state': state,
             'nearest_mandis': [m['name'] for m in nearest_mandis[:3]],
             'nearest_mandis_data': nearest_mandis,  # Full data for frontend
             'auto_selected_mandi': nearest_mandis[0]['name'] if nearest_mandis else None,
             'timestamp': datetime.now().isoformat(),
-            'data_reliability': 0.90,
-            'note': f'Dynamic location-based pricing for {location}, {state} using real government MSP data with location-specific variations'
+            'data_reliability': 0.35,
+            'data_source': 'MSP reference estimate (not live mandi price)',
+            'note': (
+                f'Estimated reference prices for {location}, {state}; not live market data. '
+                'Verify on Agmarknet/e-NAM or the local mandi before trading.'
+            )
         }
     
     def _get_region_multiplier(self, location: str, latitude: float = None, longitude: float = None) -> float:
