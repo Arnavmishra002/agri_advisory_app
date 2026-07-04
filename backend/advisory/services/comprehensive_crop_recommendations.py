@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Crop Recommendations Service
-Uses real government data for historical, present, and predicted analysis
+Legacy crop analysis helpers. Unvalidated price/yield/profit forecasts are disabled.
 """
 
 import requests
@@ -1451,7 +1451,7 @@ class ComprehensiveCropRecommendations:
                 else:
                     score += 3
                 
-                # Future Price Prediction
+                # Price forecast readiness; numeric forecast disabled until validated.
                 market_data = {'market_trends': {'trend': 'Stable', 'volatility': 'Low'}} # Simplified market data
                 future_prices = self._predict_future_price(crop_name, market_data)
                 
@@ -1547,7 +1547,7 @@ class ComprehensiveCropRecommendations:
                 crop_key, crop_info, location, weather_data, soil_data, market_data
             )
             
-            # Add detailed predictions
+            # Add forecast readiness metadata; numeric forecasts disabled until validated.
             analysis.update({
                 'future_price_prediction': self._predict_future_price(crop_key, market_data),
                 'yield_prediction_next_season': self._predict_next_season_yield(crop_key, weather_data),
@@ -1588,7 +1588,7 @@ class ComprehensiveCropRecommendations:
         # Calculate profitability score (0-100)
         profitability_score = min(100, max(0, profit_percentage))
         
-        # Get future price predictions
+        # Get price forecast readiness metadata.
         future_prices = self._predict_future_price(crop_name, market_data)
         
         return {
@@ -1847,76 +1847,49 @@ class ComprehensiveCropRecommendations:
         return random.choice(risk_levels)
     
     def _predict_future_price(self, crop_name: str, market_data: Dict) -> Dict[str, Any]:
-        """Predict future price trends with detailed time duration"""
-        # Base price from crop database
-        base_price = self.crop_database.get(crop_name, {}).get('msp_per_quintal', 2000)
-        
-        # Location-based price variations
-        # location_multipliers removed as unused
-        
-        # Seasonal variations
-        seasonal_multipliers = {
-            'kharif': {'current': 1.0, 'next_3_months': 1.15, 'next_6_months': 1.25, 'next_year': 1.35},
-            'rabi': {'current': 1.0, 'next_3_months': 1.08, 'next_6_months': 1.18, 'next_year': 1.28},
-            'year_round': {'current': 1.0, 'next_3_months': 1.12, 'next_6_months': 1.22, 'next_year': 1.32}
-        }
-        
-        # Crop-specific trends
-        crop_trends = {
-            'wheat': {'trend': 'increasing', 'volatility': 'low'},
-            'rice': {'trend': 'stable', 'volatility': 'medium'},
-            'maize': {'trend': 'increasing', 'volatility': 'medium'},
-            'potato': {'trend': 'volatile', 'volatility': 'high'},
-            'onion': {'trend': 'volatile', 'volatility': 'very_high'},
-            'tomato': {'trend': 'volatile', 'volatility': 'high'},
-            'cotton': {'trend': 'increasing', 'volatility': 'medium'},
-            'sugarcane': {'trend': 'stable', 'volatility': 'low'},
-            'mustard': {'trend': 'increasing', 'volatility': 'medium'},
-            'turmeric': {'trend': 'increasing', 'volatility': 'medium'}
-        }
-        
+        """Return price forecast readiness without fabricating future prices."""
         crop_info = self.crop_database.get(crop_name, {})
-        season = crop_info.get('season', 'year_round')
-        trend_info = crop_trends.get(crop_name, {'trend': 'stable', 'volatility': 'medium'})
-        
-        # Calculate predictions
-        current_price = int(base_price)
-        next_3_months = int(current_price * seasonal_multipliers.get(season, seasonal_multipliers['year_round'])['next_3_months'])
-        next_6_months = int(current_price * seasonal_multipliers.get(season, seasonal_multipliers['year_round'])['next_6_months'])
-        next_year = int(current_price * seasonal_multipliers.get(season, seasonal_multipliers['year_round'])['next_year'])
-        
+        msp = crop_info.get('msp_per_quintal')
+
         return {
-            'current_price': f"₹{current_price:,}/quintal",
-            'next_3_months': f"₹{next_3_months:,}/quintal",
-            'next_6_months': f"₹{next_6_months:,}/quintal",
-            'next_year': f"₹{next_year:,}/quintal",
-            'trend': trend_info['trend'],
-            'volatility': trend_info['volatility'],
-            'confidence': 'High' if trend_info['volatility'] in ['low', 'medium'] else 'Medium',
-            'data_source': 'Government MSP + Market Analysis',
-            'prediction_factors': [
-                'Historical MSP trends',
-                'Seasonal demand patterns',
-                'Government procurement policies',
-                'Export market conditions',
-                'Weather impact on supply'
-            ]
+            'status': 'unvalidated',
+            'forecast_available': False,
+            'current_price': f"₹{int(msp):,}/quintal (MSP reference)" if msp else None,
+            'next_3_months': None,
+            'next_6_months': None,
+            'next_year': None,
+            'trend': 'Unavailable',
+            'volatility': 'Unavailable',
+            'confidence': 'Unavailable',
+            'data_source': (
+                'No backtested price prediction model is enabled; showing MSP reference only.'
+            ),
+            'backtest_metrics': None,
+            'message': (
+                'Future price forecast disabled until a model with published '
+                'backtested RMSE/MAPE is available.'
+            ),
+            'prediction_factors': [],
         }
     
     def _predict_next_season_yield(self, crop_name: str, weather_data: Dict) -> Dict[str, Any]:
-        """Predict next season yield"""
+        """Yield model is not validated; do not emit random predictions."""
         return {
-            'predicted_yield': f"{random.randint(35, 50)} quintals/hectare",
-            'confidence': 'Medium',
-            'factors': 'Weather conditions, soil health, input quality'
+            'status': 'unvalidated',
+            'predicted_yield': None,
+            'confidence': 'Unavailable',
+            'factors': 'No validated yield model/backtest is available.',
+            'message': 'Yield forecast disabled until validation metrics are published.',
         }
     
     def _predict_next_season_profit(self, crop_name: str, analysis: Dict) -> Dict[str, Any]:
-        """Predict next season profit"""
+        """Profit model is not validated; do not emit random predictions."""
         return {
-            'predicted_profit': f"₹{random.randint(40000, 80000)}/hectare",
-            'confidence': 'Medium',
-            'factors': 'Market prices, input costs, yield potential'
+            'status': 'unvalidated',
+            'predicted_profit': None,
+            'confidence': 'Unavailable',
+            'factors': 'No validated profit model/backtest is available.',
+            'message': 'Profit forecast disabled until validation metrics are published.',
         }
     
     def _assess_risk_factors(self, crop_name: str, location: str, weather_data: Dict) -> List[str]:
@@ -2054,7 +2027,7 @@ class ComprehensiveCropRecommendations:
                     if 'rain' in str(weather).lower() and crop_data.get('water_requirement') == 'high':
                         score += 5
                 
-                # Future Price Prediction (Simulated)
+                # Price forecast readiness; numeric forecast disabled until validated.
                 market_data = {'market_trends': {'trend': 'Stable', 'volatility': 'Low'}} 
                 future_prices = self._predict_future_price(crop_name, market_data)
                 
@@ -2228,7 +2201,12 @@ class ComprehensiveCropRecommendations:
                         'yield_per_hectare': details.get('yield_per_hectare', 0),
                         'duration_days': details.get('duration_days', 0),
                         'water_requirement': details.get('water_requirement', 'moderate'),
-                        'market_price_prediction': f"₹{start_price}",
+                        'market_price_prediction': None,
+                        'market_price_prediction_status': 'unvalidated',
+                        'msp_reference': f"₹{start_price}/quintal",
+                        'market_price_note': (
+                            'MSP reference only; no backtested price forecast model is enabled.'
+                        ),
                         'confidence': 0.85
                     }
                     
@@ -2259,7 +2237,12 @@ class ComprehensiveCropRecommendations:
                             'yield_per_hectare': details.get('yield_per_hectare', 0),
                             'duration_days': details.get('duration_days', 0),
                             'water_requirement': details.get('water_requirement', 'moderate'),
-                            'market_price_prediction': f"₹{details.get('msp_per_quintal', 2000)}",
+                            'market_price_prediction': None,
+                            'market_price_prediction_status': 'unvalidated',
+                            'msp_reference': f"₹{details.get('msp_per_quintal', 2000)}/quintal",
+                            'market_price_note': (
+                                'MSP reference only; no backtested price forecast model is enabled.'
+                            ),
                             'confidence': 0.70
                         })
 
@@ -2283,4 +2266,3 @@ class ComprehensiveCropRecommendations:
                 'recommendations': [],
                 'message': 'Error calculating recommendations'
             }
-
