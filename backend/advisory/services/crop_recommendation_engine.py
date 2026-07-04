@@ -146,6 +146,9 @@ class CropRecommendationEngine:
         # 5. Localise and format
         recommendations = self._format_recommendations(scored[:12], language, market_price_map, profile)
 
+        weather_is_live = bool(weather.get("is_live"))
+        market_is_live = bool(live_market.get("is_live"))
+
         return {
             "location": location,
             "state": state or profile.get("state", ""),
@@ -160,31 +163,67 @@ class CropRecommendationEngine:
             "top_4_recommendations": recommendations[:4],
             "weather_snapshot": current_weather,
             "weather_status": weather.get("status", "success"),
-            "weather_is_live": bool(weather.get("is_live", bool(current_weather))),
+            "weather_is_live": weather_is_live,
             "weather_data_source": weather.get("data_source", ""),
             "weather_fetched_at": weather.get("fetched_at"),
-            "market_is_live": bool(live_market.get("is_live")),
+            "market_is_live": market_is_live,
             "market_status": live_market.get("status"),
             "market_data_source": live_market.get("data_source_short") or live_market.get("data_source", ""),
             "market_fetched_at": live_market.get("fetched_at") or live_market.get("timestamp"),
             "market_snapshot": (live_market.get("top_crops") or [])[:5],
             "realtime_status": realtime_status,
-            "data_source": "KrishiMitra Agro-Climatic Engine v3 + Open-Meteo + Agmarknet",
+            "data_source": self._data_source_label(weather, live_market),
             "analysis_method": "multi_factor_scoring_v3",
-            "factors_analyzed": [
-                f"Season: {_season_label(season_key)}",
-                f"Soil: {profile.get('soil', 'Loamy')}",
-                f"Rainfall: {profile.get('rainfall', 'Medium')}",
-                f"Irrigation: {profile.get('irrigation', 'Medium')}",
-                "Live 7-day weather forecast",
-                "Live mandi modal prices vs MSP",
-                f"{len(ALL_CROP_DATA)} crop agro-climatic profiles",
-                "District-level priority crops",
-            ],
+            "factors_analyzed": self._factors_analyzed(
+                profile,
+                season_key,
+                weather,
+                live_market,
+            ),
             "profile_source": profile.get("_source", "state_default"),
             "timestamp": datetime.now().isoformat(),
             "language": language,
         }
+
+    def _data_source_label(self, weather: Dict[str, Any], market: Dict[str, Any]) -> str:
+        sources = ["KrishiMitra Agro-Climatic Engine v3"]
+        if weather.get("is_live"):
+            sources.append(weather.get("data_source_short") or "live weather")
+        else:
+            sources.append(f"weather {weather.get('status') or 'unavailable'}")
+        if market.get("is_live"):
+            sources.append(market.get("data_source_short") or "live mandi")
+        else:
+            sources.append(f"mandi {market.get('status') or 'unavailable'}")
+        return " + ".join(str(s) for s in sources if s)
+
+    def _factors_analyzed(
+        self,
+        profile: Dict[str, Any],
+        season_key: str,
+        weather: Dict[str, Any],
+        market: Dict[str, Any],
+    ) -> List[str]:
+        weather_factor = (
+            "Live 7-day weather forecast"
+            if weather.get("is_live")
+            else f"Weather unavailable/degraded ({weather.get('status') or 'unavailable'})"
+        )
+        market_factor = (
+            "Live mandi modal prices vs MSP"
+            if market.get("is_live")
+            else "Mandi prices unavailable; MSP/static economics only"
+        )
+        return [
+                f"Season: {_season_label(season_key)}",
+                f"Soil: {profile.get('soil', 'Loamy')}",
+                f"Rainfall: {profile.get('rainfall', 'Medium')}",
+                f"Irrigation: {profile.get('irrigation', 'Medium')}",
+                weather_factor,
+                market_factor,
+                f"{len(ALL_CROP_DATA)} crop agro-climatic profiles",
+                "District-level priority crops",
+            ]
 
     def _fetch_realtime_context(
         self,
@@ -776,15 +815,27 @@ class CropRecommendationEngine:
     def _build_market_price_map(self, market_data: Dict) -> Dict[str, Dict]:
         """Build crop_key → {modal_price, msp, profit_vs_msp} lookup."""
         price_map = {}
+        if not market_data.get("is_live"):
+            return price_map
         crops = market_data.get("top_crops") or []
         for row in crops:
             name = str(row.get("crop_name", "")).lower().strip().replace(" ", "_")
+            modal_price = row.get("modal_price", 0)
+            try:
+                modal_price = float(modal_price)
+            except (TypeError, ValueError):
+                modal_price = 0
+            if modal_price <= 0:
+                continue
             if name:
                 price_map[name] = {
-                    "modal_price": row.get("modal_price", 0),
+                    "modal_price": modal_price,
                     "msp":         row.get("msp", 0),
                     "profit_vs_msp": row.get("profit_vs_msp"),
                     "is_live":     row.get("is_live", False),
+                    "status":      row.get("status") or "live",
+                    "source":      row.get("source") or market_data.get("data_source_short") or market_data.get("data_source"),
+                    "fetched_at":  row.get("fetched_at") or market_data.get("fetched_at") or market_data.get("timestamp"),
                 }
                 # Also store under common aliases
                 for alias in self._get_crop_aliases(name):
@@ -836,7 +887,12 @@ class CropRecommendationEngine:
 
             # Use live market price if available
             mkt = market_price_map.get(crop_key, {})
-            modal = mkt.get("modal_price") or (msp * 1.1 if msp else 0)
+            modal = mkt.get("modal_price")
+            market_price = round(modal) if modal else None
+            market_status = mkt.get("status") or "unavailable"
+            market_source = mkt.get("source") or "not_available"
+            market_fetched_at = mkt.get("fetched_at")
+            market_price_text = f"₹{market_price}/q" if market_price else "Unavailable"
 
             # Localised crop name
             crop_name_local = get_crop_name(crop_key, lang) if lang != "en" else crop_key.title()
@@ -866,7 +922,10 @@ class CropRecommendationEngine:
                 "profit_per_hectare": profit,
                 "input_cost_per_hectare": input_c,
                 "msp_per_quintal": msp,
-                "market_price": round(modal),
+                "market_price": market_price,
+                "market_price_status": market_status,
+                "market_price_source": market_source,
+                "market_price_fetched_at": market_fetched_at,
                 "market_is_live": mkt.get("is_live", False),
                 "export_potential": crop.get("export_potential", "Low"),
                 "market_demand": crop.get("market_demand", "Medium"),
@@ -877,7 +936,7 @@ class CropRecommendationEngine:
                     "yield": f"{yield_q} q/ha",
                     "profit_potential": f"₹{profit:,}/ha",
                     "msp": f"₹{msp}/q" if msp else "No MSP",
-                    "market_price": f"₹{round(modal)}/q",
+                    "market_price": market_price_text,
                     "input_cost": f"₹{input_c:,}/ha",
                 },
                 "prediction_data": {
