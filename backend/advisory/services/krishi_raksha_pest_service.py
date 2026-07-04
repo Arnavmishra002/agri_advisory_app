@@ -1,5 +1,4 @@
 import logging
-import random
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -15,92 +14,6 @@ except ImportError:
     pass
 
 logger = logging.getLogger(__name__)
-
-# Specialist models for high-traffic crops
-_EXPERT_CROPS = frozenset({"tomato", "rice", "potato", "banana", "chilli"})
-
-# Category-based guidance when no specialist model exists
-_CATEGORY_DIAGNOSES: Dict[str, List[Dict[str, Any]]] = {
-    "cereal": [
-        {
-            "name": "Rust / Smut (Suspected)",
-            "confidence": 0.72,
-            "requires_humidity": True,
-            "symptoms": ["Orange/brown pustules on leaves", "Black spore masses on grains"],
-            "treatment": ["Propiconazole spray", "Resistant varieties", "Balanced nitrogen"],
-            "explanation": "Common cereal fungal complex in humid seasons — verify with local KVK.",
-        },
-        {
-            "name": "Stem Borer",
-            "confidence": 0.68,
-            "symptoms": ["Dead hearts in young plants", "Holes in stems"],
-            "treatment": ["Pheromone traps", "Cartap hydrochloride as per label", "Early sowing"],
-            "explanation": "Typical lepidopteran pest pressure on cereals in your region.",
-        },
-    ],
-    "pulse": [
-        {
-            "name": "Pod Borer / Helicoverpa",
-            "confidence": 0.7,
-            "symptoms": ["Holed pods", "Grain damage"],
-            "treatment": ["NPV spray", "Pheromone traps", "Inter-cropping with marigold"],
-            "explanation": "Frequent pulse pest — confirm with pheromone trap counts.",
-        },
-        {
-            "name": "Powdery Mildew",
-            "confidence": 0.65,
-            "requires_humidity": False,
-            "symptoms": ["White powder on leaves", "Yellowing"],
-            "treatment": ["Sulphur dusting", "Trichoderma seed treatment"],
-            "explanation": "Often appears in moderate humidity on legumes.",
-        },
-    ],
-    "oilseed": [
-        {
-            "name": "Alternaria Blight",
-            "confidence": 0.7,
-            "requires_humidity": True,
-            "symptoms": ["Dark concentric leaf spots", "Pod shattering"],
-            "treatment": ["Mancozeb + Carbendazim (label dose)", "Crop rotation"],
-            "explanation": "Typical oilseed foliar disease in post-flowering stage.",
-        },
-    ],
-    "vegetable": [
-        {
-            "name": "Leaf Spot / Blight Complex",
-            "confidence": 0.74,
-            "requires_humidity": True,
-            "symptoms": ["Brown spots with yellow halo", "Defoliation"],
-            "treatment": ["Copper fungicide", "Remove infected debris", "Drip irrigation"],
-            "explanation": "Vegetable foliar disease pattern — upload close-up leaf photo for precision.",
-        },
-        {
-            "name": "Aphid / Whitefly Infestation",
-            "confidence": 0.7,
-            "symptoms": ["Sticky honeydew", "Curling leaves", "Sooty mould"],
-            "treatment": ["Neem oil 1%", "Yellow sticky traps", "Imidacloprid only if severe"],
-            "explanation": "Vector pests common on vegetables — check underside of leaves.",
-        },
-    ],
-    "fruit": [
-        {
-            "name": "Fruit Fly / Borer",
-            "confidence": 0.71,
-            "symptoms": ["Puncture marks on fruit", "Premature drop"],
-            "treatment": ["Methyl eugenol traps", "Bagging of fruits", "Protein bait sprays"],
-            "explanation": "Orchard pest pressure increases near harvest.",
-        },
-    ],
-    "general": [
-        {
-            "name": "Nutrient Deficiency (N/P/K)",
-            "confidence": 0.6,
-            "symptoms": ["Inter-veinal chlorosis", "Stunted growth", "Poor flowering"],
-            "treatment": ["Soil test at soil health card lab", "Split NPK as per crop stage"],
-            "explanation": "Non-specific stress — soil test recommended for your GPS location.",
-        },
-    ],
-}
 
 
 class KrishiRakshaPestService:
@@ -323,28 +236,6 @@ class KrishiRakshaPestService:
             return crop_input.lower().strip()
         return "unknown"
 
-    def _run_specialist_model(
-        self,
-        crop: str,
-        images: Dict,
-        catalog_entry: Optional[Dict] = None,
-        ml_result: Optional[Dict] = None,
-    ) -> List[Dict]:
-        if ml_result:
-            ml_diag = self._diagnosis_from_ml(ml_result)
-            if ml_diag is not None:
-                return ml_diag
-        experts = {
-            "tomato": self._tomato_expert_logic,
-            "rice": self._rice_expert_logic,
-            "potato": self._potato_expert_logic,
-            "banana": self._banana_expert_logic,
-            "chilli": self._chilli_expert_logic,
-        }
-        if crop in experts:
-            return experts[crop]()
-        return self._catalog_expert_logic(crop, catalog_entry)
-
     def _photo_required_diagnosis(self, crop_label: str) -> List[Dict[str, Any]]:
         return [
             {
@@ -465,27 +356,6 @@ class KrishiRakshaPestService:
             }
         ]
 
-    def _catalog_expert_logic(
-        self, crop: str, catalog_entry: Optional[Dict] = None
-    ) -> List[Dict]:
-        entry = catalog_entry or crop_catalog.get(crop)
-        category = entry["category"] if entry else "general"
-        raw = list(_CATEGORY_DIAGNOSES.get(category, []))
-        if category != "general":
-            raw.extend(_CATEGORY_DIAGNOSES.get("general", []))
-        crop_label = entry["name"] if entry else crop.title()
-        if not raw:
-            return self._generalist_logic(crop)
-        out = []
-        for d in raw[:3]:
-            copy = dict(d)
-            copy["explanation"] = (
-                f"{d.get('explanation', '')} "
-                f"Tailored for {crop_label} ({category}) at your GPS location."
-            ).strip()
-            out.append(copy)
-        return out
-
     def _verify_region_context(
         self,
         diseases: List[Dict],
@@ -543,85 +413,3 @@ class KrishiRakshaPestService:
             else:
                 d["severity_label"] = "Low"
         return diseases
-
-    def _tomato_expert_logic(self):
-        return [
-            {
-                "name": "Early Blight",
-                "confidence": 0.95,
-                "requires_humidity": True,
-                "symptoms": ["Target-like spots", "Yellowing leaves"],
-                "treatment": ["Copper fungicides", "Trim infected leaves", "Mulching"],
-                "explanation": "Identified by characteristic concentric rings on lower leaves.",
-            },
-            {
-                "name": "Late Blight",
-                "confidence": 0.85,
-                "max_temp": 30,
-                "symptoms": ["Dark water-soaked lesions", "White mold on underside"],
-                "treatment": ["Mancozeb", "Improve air circulation", "Avoid overhead irrigation"],
-                "explanation": "Detected dark lesions typical of phytophthora infestans.",
-            },
-        ]
-
-    def _rice_expert_logic(self):
-        return [
-            {
-                "name": "Rice Blast",
-                "confidence": 0.92,
-                "requires_humidity": True,
-                "symptoms": ["Diamond shaped lesions", "Gray center spots"],
-                "treatment": ["Tricyclazole", "Reduce Nitrogen dosage", "Keep water level constant"],
-                "explanation": "Diamond-shaped lesions on leaves confirm Pyricularia oryzae.",
-            },
-            {
-                "name": "Bacterial Leaf Blight",
-                "confidence": 0.75,
-                "requires_humidity": True,
-                "symptoms": ["Water-soaked streaks", "Milky ooze"],
-                "treatment": ["Copper oxychloride", "Drain field", "Potash application"],
-                "explanation": "Yellowish streaks starting from leaf tips.",
-            },
-        ]
-
-    def _potato_expert_logic(self):
-        return [
-            {
-                "name": "Early Blight",
-                "confidence": 0.88,
-                "symptoms": ["Brown spots with rings", "Yellow halo"],
-                "treatment": ["Chlorothalonil", "Crop rotation", "Drip irrigation"],
-                "explanation": "Concentric rings (target board effect) visible.",
-            }
-        ]
-
-    def _banana_expert_logic(self):
-        return [
-            {
-                "name": "Panama Wilt",
-                "confidence": 0.90,
-                "symptoms": ["Yellowing of older leaves", "Splitting stem"],
-                "treatment": ["Soil drenching with Carbendazim", "Remove infected plants"],
-                "explanation": "Yellowing starting from older leaves indicates vascular wilt.",
-            }
-        ]
-
-    def _chilli_expert_logic(self):
-        return [
-            {
-                "name": "Leaf Curl Virus",
-                "confidence": 0.94,
-                "symptoms": ["Curled leaves", "Stunted growth"],
-                "treatment": ["Control whitefly vector", "Imidacloprid", "Remove infected plants"],
-                "explanation": "Upward curling of leaves is a classic sign of Geminivirus.",
-            }
-        ]
-
-    def _generalist_logic(self, crop):
-        return [{
-            "name": "General Stress / Unknown",
-            "confidence": 0.5,
-            "symptoms": ["Leaf discoloration", "Wilting"],
-            "treatment": ["Ensure proper watering", "Check for pests", "Consult local agronomist"],
-            "explanation": f"Upload clear photos of {crop} for a sharper diagnosis.",
-        }]
