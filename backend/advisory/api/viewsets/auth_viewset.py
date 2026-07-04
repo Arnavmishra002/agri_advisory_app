@@ -23,14 +23,15 @@ Security:
   - Phone normalised to +91XXXXXXXXXX format
 """
 import logging
-import random
 import re
 import os
+import secrets
 import base64
 import urllib.parse
 import urllib.request as _urllib_request
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.core.cache import cache
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -51,6 +52,11 @@ otp_rate_limiter = SharedRateLimiter(
     capacity=3,
     fill_rate=3 / 3600,  # refill 3 tokens over 1 hour (steady state = 3/hr)
 )
+otp_verify_rate_limiter = SharedRateLimiter(
+    key_prefix="otp_verify",
+    capacity=5,
+    fill_rate=5 / 3600,  # refill 5 verification attempts over 1 hour
+)
 
 # Indian mobile number: optional +, optional 91, then 6-9 followed by 9 digits
 _PHONE_RE = re.compile(r"^\+?91?[6-9]\d{9}$")
@@ -70,7 +76,7 @@ def _normalise_phone(raw: str) -> str:
 
 def _send_otp_sms(phone: str, otp: str) -> bool:
     """
-    Send OTP via Twilio SMS. Falls back to console log when Twilio is not configured.
+    Send OTP via Twilio SMS. In local DEBUG only, falls back to console logging.
     Returns True if SMS was sent, False if fallback (dev mode).
     """
     twilio_sid   = os.getenv("TWILIO_ACCOUNT_SID", "")
@@ -78,7 +84,10 @@ def _send_otp_sms(phone: str, otp: str) -> bool:
     twilio_from  = os.getenv("TWILIO_FROM_NUMBER", "")
 
     if not (twilio_sid and twilio_token and twilio_from):
-        logger.info("📱 OTP for %s: %s  (Twilio not configured — dev console fallback)", phone, otp)
+        if settings.DEBUG:
+            logger.info("📱 OTP for %s: %s  (Twilio not configured — dev console fallback)", phone, otp)
+        else:
+            logger.warning("Twilio not configured; OTP not sent for %s", phone)
         return False  # dev mode
 
     try:
@@ -103,7 +112,10 @@ def _send_otp_sms(phone: str, otp: str) -> bool:
             return True
     except Exception as exc:
         logger.warning("Twilio SMS failed for %s: %s — falling back to console", phone, exc)
-        logger.info("📱 OTP for %s: %s  (SMS failed — dev console fallback)", phone, otp)
+        if settings.DEBUG:
+            logger.info("📱 OTP for %s: %s  (SMS failed — dev console fallback)", phone, otp)
+        else:
+            logger.warning("OTP delivery failed for %s; code suppressed outside DEBUG", phone)
         return False
 
 
@@ -151,7 +163,7 @@ class AuthViewSet(viewsets.ViewSet):
             )
 
         # Generate and cache OTP
-        otp = f"{random.randint(100000, 999999)}"
+        otp = f"{secrets.randbelow(900000) + 100000}"
         cache.set(f"otp:{phone}", otp, timeout=600)  # 10 minutes
 
         # Send SMS
@@ -192,6 +204,16 @@ class AuthViewSet(viewsets.ViewSet):
 
         phone = _normalise_phone(phone_raw)
 
+        if not otp_verify_rate_limiter.is_allowed(phone):
+            return Response(
+                {
+                    "error": "Too many OTP verification attempts. Please request a new OTP later.",
+                    "error_code": "OTP_VERIFY_RATE_LIMITED",
+                    "error_hi": "बहुत अधिक गलत प्रयास। कुछ देर बाद नया OTP भेजें।",
+                },
+                status=429,
+            )
+
         # Check OTP from cache
         stored_otp = cache.get(f"otp:{phone}")
         if not stored_otp:
@@ -216,6 +238,7 @@ class AuthViewSet(viewsets.ViewSet):
 
         # OTP verified — delete it (one-time use)
         cache.delete(f"otp:{phone}")
+        otp_verify_rate_limiter.reset(phone)
 
         # Get or create User (username = phone digits without +)
         username = phone.lstrip("+").replace(" ", "")
