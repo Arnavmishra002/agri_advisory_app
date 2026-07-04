@@ -56,6 +56,24 @@ class MarketDataSecurityTests(TestCase):
             self.assertFalse(mandi["is_live"])
             self.assertEqual(mandi["status"], "fallback")
 
+    def test_bad_mandi_coordinate_rows_are_skipped(self):
+        service = EnhancedMarketPricesService()
+
+        mandis = service._filter_mandis_by_location(
+            [
+                {"name": "Bad Mandi", "latitude": "bad", "longitude": 80.0},
+                {"name": "Good Mandi", "latitude": "26.1", "longitude": "80.1"},
+            ],
+            "Testville",
+            latitude=26.0,
+            longitude=80.0,
+            state="Uttar Pradesh",
+        )
+
+        self.assertEqual(mandis[0]["name"], "Good Mandi")
+        self.assertEqual(mandis[0]["source"], "reference database")
+        self.assertFalse(mandis[0]["live"])
+
     @patch.object(EnhancedMarketPricesService, "_fetch_agmarknet_data", return_value=None)
     @patch.object(EnhancedMarketPricesService, "_fetch_enam_data", return_value=None)
     @patch.object(EnhancedMarketPricesService, "_fetch_fci_data", return_value=None)

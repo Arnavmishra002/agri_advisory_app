@@ -99,22 +99,21 @@ class EnhancedMarketPricesService:
         
         # SSL verification: enabled by default for security
         # Only disable for specific government sites with cert issues if needed
+
+    @staticmethod
+    def _coerce_float(value: Any) -> Optional[float]:
+        if value is None or value == "":
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
         
     def get_market_prices(self, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Get REAL-TIME market prices from government APIs with live mandi data"""
         try:
-            # Convert string parameters to float if needed
-            if latitude and isinstance(latitude, str):
-                try:
-                    latitude = float(latitude)
-                except (ValueError, TypeError):
-                    latitude = None
-            
-            if longitude and isinstance(longitude, str):
-                try:
-                    longitude = float(longitude)
-                except (ValueError, TypeError):
-                    longitude = None
+            latitude = self._coerce_float(latitude)
+            longitude = self._coerce_float(longitude)
             
             # Get state for API calls
             state = self._get_state_from_location(location)
@@ -213,18 +212,8 @@ class EnhancedMarketPricesService:
     def get_mandi_specific_prices(self, mandi_name: str, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Get mandi-specific market prices from government APIs"""
         try:
-            # Convert string parameters to float if needed
-            if latitude and isinstance(latitude, str):
-                try:
-                    latitude = float(latitude)
-                except (ValueError, TypeError):
-                    latitude = None
-            
-            if longitude and isinstance(longitude, str):
-                try:
-                    longitude = float(longitude)
-                except (ValueError, TypeError):
-                    longitude = None
+            latitude = self._coerce_float(latitude)
+            longitude = self._coerce_float(longitude)
             
             logger.info(f"Fetching mandi-specific prices for {mandi_name} in {location}")
             
@@ -1374,14 +1363,9 @@ class EnhancedMarketPricesService:
         """Get region-based price multiplier"""
         # Regional price variations based on government data
         if latitude and longitude:
-            # Convert to float if they are strings
-            try:
-                lat = float(latitude)
-                lon = float(longitude)
-            except (ValueError, TypeError):
-                lat = None
-                lon = None
-            
+            lat = self._coerce_float(latitude)
+            lon = self._coerce_float(longitude)
+
             if lat and lon:
                 if 18.0 <= lat <= 20.0 and 72.0 <= lon <= 74.0:  # Mumbai region
                     return 1.15
@@ -1871,13 +1855,17 @@ class EnhancedMarketPricesService:
         try:
             import math
 
+            latitude = self._coerce_float(latitude)
+            longitude = self._coerce_float(longitude)
             if latitude is None or longitude is None:
                 latitude, longitude = 28.7041, 77.1025
 
             mandis_with_distance = []
             for mandi in all_mandis:
-                mandi_lat = mandi.get('latitude', latitude)
-                mandi_lon = mandi.get('longitude', longitude)
+                mandi_lat = self._coerce_float(mandi.get('latitude', latitude))
+                mandi_lon = self._coerce_float(mandi.get('longitude', longitude))
+                if mandi_lat is None or mandi_lon is None:
+                    continue
 
                 R = 6371
                 dlat = math.radians(mandi_lat - latitude)
@@ -1898,6 +1886,9 @@ class EnhancedMarketPricesService:
                 mandi_copy.setdefault('live', False)
                 mandis_with_distance.append(mandi_copy)
 
+            if not mandis_with_distance:
+                return self._fallback_mandis_for_location(location, state, limit)
+
             mandis_with_distance.sort(key=lambda x: x['distance_km'])
             cap = limit if limit and limit > 0 else len(mandis_with_distance)
             nearest_mandis = mandis_with_distance[:cap]
@@ -1910,43 +1901,53 @@ class EnhancedMarketPricesService:
             
         except Exception as e:
             logger.error(f"Error filtering mandis by location: {e}")
-            # Return clearly labeled synthetic fallbacks for the location.
-            fallback_common = {
-                'source': 'synthetic_fallback',
-                'live': False,
-                'is_live': False,
-                'status': 'fallback',
-                'data_source': 'synthetic_fallback',
-                'note': 'Synthetic fallback mandi; verify locally before trading.',
-            }
-            return [
-                {
-                    **fallback_common,
-                    'name': f'{location} Main Mandi',
-                    'distance': '0 km',
-                    'specialty': 'All Crops',
-                    'state': state or 'Unknown',
-                    'location': location,
-                    'auto_selected': True,
-                    'is_nearest': True,
-                },
-                {
-                    **fallback_common,
-                    'name': f'{location} APMC',
-                    'distance': '5 km',
-                    'specialty': 'Grains & Pulses',
-                    'state': state or 'Unknown',
-                    'location': location,
-                },
-                {
-                    **fallback_common,
-                    'name': f'{location} Vegetable Market',
-                    'distance': '8 km',
-                    'specialty': 'Fruits & Vegetables',
-                    'state': state or 'Unknown',
-                    'location': location,
-                },
-            ]
+            return self._fallback_mandis_for_location(location, state, limit)
+
+    def _fallback_mandis_for_location(
+        self,
+        location: str,
+        state: str = None,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """Return clearly labeled synthetic mandi fallbacks for the location."""
+        fallback_common = {
+            'source': 'synthetic_fallback',
+            'live': False,
+            'is_live': False,
+            'status': 'fallback',
+            'data_source': 'synthetic_fallback',
+            'note': 'Synthetic fallback mandi; verify locally before trading.',
+        }
+        fallbacks = [
+            {
+                **fallback_common,
+                'name': f'{location} Main Mandi',
+                'distance': '0 km',
+                'specialty': 'All Crops',
+                'state': state or 'Unknown',
+                'location': location,
+                'auto_selected': True,
+                'is_nearest': True,
+            },
+            {
+                **fallback_common,
+                'name': f'{location} APMC',
+                'distance': '5 km',
+                'specialty': 'Grains & Pulses',
+                'state': state or 'Unknown',
+                'location': location,
+            },
+            {
+                **fallback_common,
+                'name': f'{location} Vegetable Market',
+                'distance': '8 km',
+                'specialty': 'Fruits & Vegetables',
+                'state': state or 'Unknown',
+                'location': location,
+            },
+        ]
+        cap = limit if limit and limit > 0 else len(fallbacks)
+        return fallbacks[:cap]
 
     def _fetch_from_data_gov_in(self, location: str, state: str) -> Dict[str, Any]:
         """Fetch from Data.gov.in - working government data portal"""
