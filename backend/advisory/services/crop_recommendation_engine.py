@@ -34,6 +34,8 @@ logger = logging.getLogger(__name__)
 
 _REC_FETCH_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="crop-rec-fetch")
 atexit.register(_REC_FETCH_POOL.shutdown, wait=False, cancel_futures=True)
+CROP_REC_HEALTH_CACHE_KEY = "crop_rec:data_source_health:last"
+CROP_REC_HEALTH_CACHE_TTL_SECONDS = 60 * 60
 
 # Rainfall category boundaries (mm/year)
 RAINFALL_BANDS = {
@@ -148,6 +150,14 @@ class CropRecommendationEngine:
 
         weather_is_live = bool(weather.get("is_live"))
         market_is_live = bool(live_market.get("is_live"))
+        data_quality = self._data_quality_summary(weather, live_market, realtime_status)
+        self._record_data_source_health(
+            location,
+            state or profile.get("state", ""),
+            latitude,
+            longitude,
+            data_quality,
+        )
 
         return {
             "location": location,
@@ -172,6 +182,8 @@ class CropRecommendationEngine:
             "market_fetched_at": live_market.get("fetched_at") or live_market.get("timestamp"),
             "market_snapshot": (live_market.get("top_crops") or [])[:5],
             "realtime_status": realtime_status,
+            "data_quality_status": data_quality["status"],
+            "data_quality": data_quality,
             "data_source": self._data_source_label(weather, live_market),
             "analysis_method": "multi_factor_scoring_v3",
             "factors_analyzed": self._factors_analyzed(
@@ -224,6 +236,77 @@ class CropRecommendationEngine:
                 f"{len(ALL_CROP_DATA)} crop agro-climatic profiles",
                 "District-level priority crops",
             ]
+
+    def _data_quality_summary(
+        self,
+        weather: Dict[str, Any],
+        market: Dict[str, Any],
+        status_map: Dict[str, str],
+    ) -> Dict[str, Any]:
+        """Summarise live/degraded source state for farmers and ops."""
+        generated_at = datetime.now().isoformat()
+        sources = {}
+        alerts = []
+
+        source_inputs = {
+            "weather": weather,
+            "market": market,
+        }
+        for name, data in source_inputs.items():
+            is_live = bool(data.get("is_live"))
+            status = (
+                data.get("status")
+                or status_map.get(name)
+                or ("live" if is_live else "unavailable")
+            )
+            source_label = (
+                data.get("data_source_short")
+                or data.get("data_source")
+                or "not_available"
+            )
+            fetched_at = data.get("fetched_at") or data.get("timestamp")
+            sources[name] = {
+                "is_live": is_live,
+                "status": status,
+                "source": source_label,
+                "fetched_at": fetched_at,
+            }
+            if not is_live:
+                alerts.append(f"{name} {status}: {source_label}")
+
+        return {
+            "status": "ok" if not alerts else "degraded",
+            "generated_at": generated_at,
+            "sources": sources,
+            "alerts": alerts,
+        }
+
+    def _record_data_source_health(
+        self,
+        location: str,
+        state: str,
+        latitude: float,
+        longitude: float,
+        data_quality: Dict[str, Any],
+    ) -> None:
+        """Record latest crop recommendation source health for monitoring."""
+        try:
+            from django.core.cache import cache
+
+            payload = dict(data_quality)
+            payload.update({
+                "location": location,
+                "state": state,
+                "coordinates": {"lat": latitude, "lon": longitude},
+                "recorded_at": datetime.now().isoformat(),
+            })
+            cache.set(
+                CROP_REC_HEALTH_CACHE_KEY,
+                payload,
+                timeout=CROP_REC_HEALTH_CACHE_TTL_SECONDS,
+            )
+        except Exception as exc:
+            logger.debug("Could not record crop recommendation source health: %s", exc)
 
     def _fetch_realtime_context(
         self,
