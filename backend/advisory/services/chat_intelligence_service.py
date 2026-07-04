@@ -34,6 +34,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+import requests
+
 from .crop_catalog import crop_catalog
 from .crop_recommendation_engine import crop_recommendation_engine
 from .language_service import (
@@ -99,9 +101,39 @@ def _safe_temp(temp_str: str, fallback: float = 25.0) -> float:
     except (TypeError, ValueError):
         return fallback
 
-_PHASE1_TIMEOUT_S:       int   = int(_os.environ.get("PHASE1_TIMEOUT_S", "12"))
-_OLLAMA_DIRECT_TIMEOUT_S:int   = int(_os.environ.get("OLLAMA_DIRECT_TIMEOUT_S", "20"))
-_CHAT_REALTIME_TIMEOUT_S:float = float(_os.environ.get("CHAT_REALTIME_TIMEOUT_S", "5"))
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(_os.environ.get(name, str(default)))
+    except (TypeError, ValueError):
+        logger.warning("Invalid %s; using %.1fs", name, default)
+        return default
+
+
+_PHASE1_TIMEOUT_S:       float = _env_float("PHASE1_TIMEOUT_S", 12.0)
+_PHASE1_CONNECT_TIMEOUT_S: float = _env_float("PHASE1_CONNECT_TIMEOUT_S", min(2.0, _PHASE1_TIMEOUT_S))
+_PHASE1_READ_TIMEOUT_S:    float = _env_float("PHASE1_READ_TIMEOUT_S", _PHASE1_TIMEOUT_S)
+_PHASE1_TIMEOUT: Tuple[float, float] = (_PHASE1_CONNECT_TIMEOUT_S, _PHASE1_READ_TIMEOUT_S)
+_PHASE1_STREAM_CONNECT_TIMEOUT_S: float = _env_float("PHASE1_STREAM_CONNECT_TIMEOUT_S", _PHASE1_CONNECT_TIMEOUT_S)
+_PHASE1_STREAM_READ_TIMEOUT_S:    float = _env_float("PHASE1_STREAM_READ_TIMEOUT_S", 15.0)
+_PHASE1_STREAM_TOTAL_TIMEOUT_S:   float = _env_float("PHASE1_STREAM_TOTAL_TIMEOUT_S", 30.0)
+_PHASE1_STREAM_TIMEOUT: Tuple[float, float] = (
+    _PHASE1_STREAM_CONNECT_TIMEOUT_S,
+    _PHASE1_STREAM_READ_TIMEOUT_S,
+)
+_OLLAMA_DIRECT_TIMEOUT_S:float = _env_float("OLLAMA_DIRECT_TIMEOUT_S", 20.0)
+_OLLAMA_DIRECT_CONNECT_TIMEOUT_S: float = _env_float(
+    "OLLAMA_DIRECT_CONNECT_TIMEOUT_S",
+    _env_float("OLLAMA_CONNECT_TIMEOUT_S", 2.0),
+)
+_OLLAMA_DIRECT_READ_TIMEOUT_S: float = _env_float(
+    "OLLAMA_DIRECT_READ_TIMEOUT_S",
+    _OLLAMA_DIRECT_TIMEOUT_S,
+)
+_OLLAMA_DIRECT_TIMEOUT: Tuple[float, float] = (
+    _OLLAMA_DIRECT_CONNECT_TIMEOUT_S,
+    _OLLAMA_DIRECT_READ_TIMEOUT_S,
+)
+_CHAT_REALTIME_TIMEOUT_S:float = _env_float("CHAT_REALTIME_TIMEOUT_S", 5.0)
 _PHASE1_CB_MAX_FAILS:    int   = 3   # open circuit after 3 consecutive failures
 _PHASE1_CB_RESET_S:      int   = 60  # retry after 60 s cooldown
 
@@ -1124,28 +1156,33 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         }, ensure_ascii=False).encode("utf-8")
 
         try:
-            req = urllib.request.Request(
+            resp = requests.post(
                 PHASE1_URL,
                 data=payload,
                 headers={"Content-Type": "application/json"},
-                method="POST",
+                timeout=_PHASE1_TIMEOUT,
             )
-            with urllib.request.urlopen(req, timeout=_PHASE1_TIMEOUT_S) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                text = (data.get("response") or "").strip()
-                if text:
-                    _cb_reset()
-                    logger.info(
-                        "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
-                        query[:40], data.get("rag_chunks", 0),
-                    )
-                    return text
-                logger.warning("Phase 1 returned empty for: %s", query[:40])
-                # Fall through to Path B
-        except urllib.error.URLError:
-            logger.debug("Phase 1 offline — trying direct Ollama path")
+            resp.raise_for_status()
+            data = resp.json()
+            text = (data.get("response") or "").strip()
+            if text:
+                _cb_reset()
+                logger.info(
+                    "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
+                    query[:40], data.get("rag_chunks", 0),
+                )
+                return text
+            logger.warning("Phase 1 returned empty for: %s", query[:40])
+            # Fall through to Path B
+        except requests.Timeout:
+            _cb_increment()
+            logger.info("Phase 1 timed out after %ss — trying direct Ollama", _PHASE1_TIMEOUT)
+        except requests.RequestException as exc:
+            _cb_increment()
+            logger.debug("Phase 1 offline/error (%s) — trying direct Ollama", type(exc).__name__)
         except Exception as exc:
-            logger.info("Phase 1 timeout/error (%s) — trying direct Ollama", type(exc).__name__)
+            _cb_increment()
+            logger.info("Phase 1 error (%s) — trying direct Ollama", type(exc).__name__)
 
         # ── Path B: Direct Ollama — Ultra-Rich Context (all real-time data) ─────
         OLLAMA_BASE  = _os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -1347,26 +1384,28 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         }, ensure_ascii=False).encode("utf-8")
 
         try:
-            ollama_req = urllib.request.Request(
+            resp = requests.post(
                 OLLAMA_URL,
                 data=ollama_payload,
                 headers={"Content-Type": "application/json"},
-                method="POST",
+                timeout=_OLLAMA_DIRECT_TIMEOUT,
             )
-            # Direct Ollama must be bounded so one slow model call does not
-            # block farmer-facing fallback responses.
-            with urllib.request.urlopen(ollama_req, timeout=_OLLAMA_DIRECT_TIMEOUT_S) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                text = (data.get("message", {}).get("content") or "").strip()
-                if text:
-                    _cb_reset()
-                    logger.info(
-                        "krishimitra-llm direct Ollama: '%s...' — %d chars",
-                        query[:40], len(text),
-                    )
-                    return text
-                return None
-        except urllib.error.URLError:
+            resp.raise_for_status()
+            data = resp.json()
+            text = (data.get("message", {}).get("content") or "").strip()
+            if text:
+                _cb_reset()
+                logger.info(
+                    "krishimitra-llm direct Ollama: '%s...' — %d chars",
+                    query[:40], len(text),
+                )
+                return text
+            return None
+        except requests.Timeout:
+            _cb_increment()
+            logger.warning("Direct Ollama timeout after %ss — falling back", _OLLAMA_DIRECT_TIMEOUT)
+            return None
+        except requests.RequestException:
             _cb_increment()
             logger.debug("Direct Ollama also offline — falling back to rule-based")
             return None
@@ -3701,8 +3740,6 @@ def _answer_stream(
     before the done sentinel.
     """
     import json as _json
-    import os as _os
-    import urllib.request as _ureq
 
     query = (query or "").strip()
     lang  = normalise_language_code(language)
@@ -3775,13 +3812,23 @@ def _answer_stream(
                 "farmer_profile": farmer_profile,
                 "stream": True,
             }, ensure_ascii=False).encode()
-            req = _ureq.Request(
-                PHASE1_STREAM_URL, data=payload,
-                headers={"Content-Type": "application/json"}, method="POST"
-            )
-            with _ureq.urlopen(req, timeout=30) as resp:
+            with requests.post(
+                PHASE1_STREAM_URL,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                stream=True,
+                timeout=_PHASE1_STREAM_TIMEOUT,
+            ) as resp:
+                resp.raise_for_status()
+                stream_started = _time.monotonic()
                 full_text = []
-                for raw in resp:
+                for raw in resp.iter_lines():
+                    if _time.monotonic() - stream_started > _PHASE1_STREAM_TOTAL_TIMEOUT_S:
+                        raise TimeoutError(
+                            f"Phase1 stream exceeded {_PHASE1_STREAM_TOTAL_TIMEOUT_S:.1f}s total budget"
+                        )
+                    if not raw:
+                        continue
                     line = raw.decode("utf-8").strip()
                     if not line:
                         continue
