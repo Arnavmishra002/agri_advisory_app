@@ -32,6 +32,162 @@ OLLAMA_URL  = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 CHUNK_SIZE    = 800   # characters (~600 words)
 CHUNK_OVERLAP = 120
 
+_CROP_TERMS = {
+    "rice": ("rice", "paddy", "धान", "चावल"),
+    "wheat": ("wheat", "गेहूँ", "गेहू", "गेहुं"),
+    "maize": ("maize", "corn", "मक्का"),
+    "barley": ("barley", "जौ"),
+    "jowar": ("jowar", "sorghum", "ज्वार"),
+    "bajra": ("bajra", "pearl millet", "बाजरा"),
+    "ragi": ("ragi", "finger millet", "रागी"),
+    "mustard": ("mustard", "rapeseed", "सरसों"),
+    "soybean": ("soybean", "सोयाबीन"),
+    "groundnut": ("groundnut", "peanut", "मूंगफली", "मूँगफली"),
+    "sunflower": ("sunflower", "सूरजमुखी"),
+    "cotton": ("cotton", "कपास"),
+    "sugarcane": ("sugarcane", "गन्ना"),
+    "gram": ("gram", "chickpea", "चना"),
+    "arhar": ("arhar", "pigeonpea", "tur", "अरहर", "तूर"),
+    "moong": ("moong", "green gram", "मूंग", "मूँग"),
+    "urad": ("urad", "black gram", "उड़द"),
+    "lentil": ("lentil", "masoor", "मसूर"),
+    "tomato": ("tomato", "टमाटर"),
+    "potato": ("potato", "आलू"),
+    "onion": ("onion", "प्याज"),
+    "brinjal": ("brinjal", "eggplant", "बैंगन"),
+    "chilli": ("chilli", "chili", "pepper", "मिर्च"),
+    "okra": ("okra", "bhindi", "भिंडी"),
+    "mango": ("mango", "आम"),
+    "banana": ("banana", "केला"),
+    "pomegranate": ("pomegranate", "अनार"),
+    "turmeric": ("turmeric", "हल्दी"),
+    "ginger": ("ginger", "अदरक"),
+    "garlic": ("garlic", "लहसुन"),
+}
+
+_TOPIC_TERMS = {
+    "disease": ("disease", "blast", "blight", "rust", "rot", "wilt", "smut", "रोग", "झुलसा", "रतुआ"),
+    "pest": ("pest", "aphid", "borer", "whitefly", "thrips", "weevil", "mite", "कीट", "माहू", "सुंडी"),
+    "irrigation": ("irrigation", "drip", "sprinkler", "rainfall", "water", "सिंचाई", "पानी"),
+    "fertilizer": ("fertilizer", "urea", "dap", "npk", "nutrient", "खाद", "उर्वरक"),
+    "seed": ("seed", "variety", "sowing", "planting", "बीज", "बुवाई"),
+    "market": ("msp", "mandi", "market", "price", "मंडी", "भाव", "एमएसपी"),
+    "scheme": ("scheme", "subsidy", "loan", "insurance", "yojana", "योजना", "सब्सिडी", "बीमा"),
+    "soil": ("soil", "ph", "organic carbon", "salinity", "मिट्टी"),
+    "weather": ("weather", "rain", "temperature", "humidity", "मौसम", "बारिश", "तापमान"),
+    "storage": ("storage", "warehouse", "cold storage", "fumigation", "भंडारण"),
+}
+
+
+def _normalize_spaces(text: str) -> str:
+    """Keep paragraph breaks, but remove repeated whitespace inside lines."""
+    lines = [" ".join(line.split()) for line in text.splitlines()]
+    compact = "\n".join(lines)
+    return re.sub(r"\n{3,}", "\n\n", compact).strip()
+
+
+def _detect_heading(section: str) -> tuple[str, str]:
+    """Return (heading, body) for long-section splitting."""
+    lines = section.splitlines()
+    first_idx = next((i for i, line in enumerate(lines) if line.strip()), None)
+    if first_idx is None:
+        return "", section
+
+    first = lines[first_idx].strip()
+    is_heading = (
+        first.startswith("#")
+        or first.endswith(":")
+        or bool(re.fullmatch(r"[A-Z][A-Z\s/()\-]{3,}", first))
+    )
+    if is_heading and len(first) <= 140:
+        body = "\n".join(lines[first_idx + 1:]).strip()
+        return first, body
+    return "", section
+
+
+def _safe_windows(text: str, limit: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
+    """Split long text with sentence/paragraph-aware boundaries."""
+    text = _normalize_spaces(text)
+    if len(text) <= limit:
+        return [text] if text else []
+
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = min(start + limit, len(text))
+        if end < len(text):
+            breakpoints = [
+                text.rfind("\n\n", start, end),
+                text.rfind(". ", start, end),
+                text.rfind("। ", start, end),
+                text.rfind("; ", start, end),
+                text.rfind(", ", start, end),
+            ]
+            split_at = max(breakpoints)
+            if split_at > start + int(limit * 0.55):
+                end = split_at + 1
+
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        if end >= len(text):
+            break
+
+        next_start = max(end - overlap, start + 1)
+        while next_start < len(text) and text[next_start].isspace():
+            next_start += 1
+        start = next_start
+
+    return chunks
+
+
+def _split_section(section: str) -> list[str]:
+    section = _normalize_spaces(section)
+    if len(section) <= CHUNK_SIZE:
+        return [section] if section else []
+
+    heading, body = _detect_heading(section)
+    base = body or section
+    parts = _safe_windows(base)
+    if not heading:
+        return parts
+
+    headed = []
+    for part in parts:
+        candidate = f"{heading}\n\n{part}".strip()
+        if len(candidate) <= CHUNK_SIZE:
+            headed.append(candidate)
+        else:
+            headed.extend(_safe_windows(candidate))
+    return headed
+
+
+def _metadata_for_chunk(text: str, source_file: str, category: str, chunk_index: int) -> dict:
+    lower = text.lower()
+    crops = [
+        crop
+        for crop, terms in _CROP_TERMS.items()
+        if any(term.lower() in lower for term in terms)
+    ]
+    topics = [
+        topic
+        for topic, terms in _TOPIC_TERMS.items()
+        if any(term.lower() in lower for term in terms)
+    ]
+    language = "hi-en" if re.search(r"[\u0900-\u097F]", text) and re.search(r"[A-Za-z]", text) else (
+        "hi" if re.search(r"[\u0900-\u097F]", text) else "en"
+    )
+    return {
+        "source_file": source_file,
+        "source_stem": Path(source_file).stem,
+        "category": category,
+        "chunk_index": chunk_index,
+        "crops": "|".join(sorted(crops)) if crops else "general",
+        "topics": "|".join(sorted(topics)) if topics else category,
+        "language": language,
+        "char_count": len(text),
+    }
+
 
 def embed(texts: list[str]) -> list[list[float]]:
     """Call Ollama nomic-embed-text to get embeddings for a batch of texts."""
@@ -66,46 +222,32 @@ def chunk_text(text: str, source_file: str, category: str) -> list[dict]:
         r"\n(?=[A-Z][A-Z\s/()]{3,}[\n:])",   # ALL-CAPS heading
     )
 
-    sections = section_pattern.split(text)
+    sections = section_pattern.split(_normalize_spaces(text))
     current = ""
 
     for section in sections:
-        section = section.strip()
-        if not section:
-            continue
+        for part in _split_section(section):
+            if len(current) + len(part) + 2 <= CHUNK_SIZE:
+                current = (current + "\n\n" + part).strip()
+                continue
 
-        if len(current) + len(section) + 2 <= CHUNK_SIZE:
-            current = (current + "\n\n" + section).strip()
-        else:
             if current:
                 chunks.append(current)
-                # Overlap: carry last CHUNK_OVERLAP chars
                 tail = current[-CHUNK_OVERLAP:] if len(current) > CHUNK_OVERLAP else current
-                current = (tail + "\n\n" + section).strip()
+                candidate = (tail + "\n\n" + part).strip()
+                current = candidate if len(candidate) <= CHUNK_SIZE else part
             else:
-                # Section itself is too long — split at paragraph boundaries
-                paras = [p.strip() for p in section.split("\n\n") if p.strip()]
-                sub = ""
-                for para in paras:
-                    if len(sub) + len(para) + 2 <= CHUNK_SIZE:
-                        sub = (sub + "\n\n" + para).strip()
-                    else:
-                        if sub:
-                            chunks.append(sub)
-                        sub = para
-                if sub:
-                    current = sub
+                current = part
 
     if current:
         chunks.append(current)
 
     return [
         {
-            "text":        c,
-            "source_file": source_file,
-            "category":    category,
+            "text": c,
+            **_metadata_for_chunk(c, source_file, category, idx),
         }
-        for c in chunks
+        for idx, c in enumerate(chunks)
         if len(c.strip()) > 50
     ]
 
@@ -208,7 +350,7 @@ def main():
             continue
 
         ids       = [f"chunk_{start + i}" for i in range(len(batch))]
-        metadatas = [{"source_file": c["source_file"], "category": c["category"]} for c in batch]
+        metadatas = [{k: v for k, v in c.items() if k != "text"} for c in batch]
 
         collection.add(
             ids=ids,
