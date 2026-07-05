@@ -46,7 +46,16 @@ def resolve_request_location(request: Request) -> LocationContext:
     accuracy = _float_param(_get_param(
         request, "accuracy", "accuracy_meters", "gps_accuracy"
     ))
-    location_query = _get_param(request, "location", "city", "place", "address")
+    location_query = _get_param(
+        request,
+        "location",
+        "location_name",
+        "city",
+        "village",
+        "district",
+        "place",
+        "address",
+    )
     state_hint = _get_param(request, "state")
 
     # Valid GPS in India always wins over text search (delivery-app style)
