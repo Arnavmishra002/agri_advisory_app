@@ -100,6 +100,46 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         self.assertEqual(payload["crop"], "Rice")
         self.assertEqual(payload["farmer_profile"]["current_crop"], "rice")
 
+    @patch("advisory.services.chat_intelligence_service.gemini_service")
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_stream_busy_local_ai_returns_degraded_done_frame(
+        self,
+        kb_answer,
+        requests_post,
+        gemini_service,
+    ):
+        kb_answer.return_value = {
+            "answer": None,
+            "source": "escalate_to_gemini",
+            "confidence": "low",
+        }
+        gemini_service.api_key = ""
+        self.assertTrue(chat_module._acquire_local_ai_slot())
+        try:
+            chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
+        finally:
+            chat_module._release_local_ai_slot()
+
+        text = "".join(c for c in chunks if isinstance(c, str))
+        done = chunks[-1]
+        self.assertIn("Local AI is busy", text)
+        self.assertEqual(done["data_source"], "local_ai_busy_fallback")
+        self.assertEqual(done["chatbot_diagnostics"]["selected_tier"], "local_ai_busy_fallback")
+        requests_post.assert_not_called()
+
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_greeting_stream_skips_kb_and_llm(self, kb_answer, requests_post):
+        chunks = list(self.service.answer_stream("hii", self.ctx, language="en"))
+
+        text = "".join(c for c in chunks if isinstance(c, str))
+        done = chunks[-1]
+        self.assertIn("Hello Farmer", text)
+        self.assertEqual(done["chatbot_diagnostics"]["selected_tier"], "instant_rule")
+        kb_answer.assert_not_called()
+        requests_post.assert_not_called()
+
 
 class ChatLocalLLMTimeoutTests(SimpleTestCase):
     def setUp(self):
@@ -164,3 +204,62 @@ class ChatLocalLLMTimeoutTests(SimpleTestCase):
         self.assertIn("not have enough verified context", system_prompt)
         self.assertIn("KVK/agriculture officer", system_prompt)
         _cb_increment.assert_called_once()
+
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_local_ai_capacity_full_returns_fast_fallback(self, kb_answer, requests_post):
+        kb_answer.return_value = {
+            "answer": None,
+            "source": "escalate_to_gemini",
+            "confidence": "low",
+        }
+        self.assertTrue(chat_module._acquire_local_ai_slot())
+        try:
+            result = self.service.answer("custom crop question", self.ctx, language="en")
+        finally:
+            chat_module._release_local_ai_slot()
+
+        self.assertIn("Local AI is busy", result["response"])
+        self.assertEqual(result["data_source"], "local_ai_busy_fallback")
+        self.assertEqual(result["chatbot_diagnostics"]["selected_tier"], "local_ai_busy_fallback")
+        requests_post.assert_not_called()
+
+    @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_weather_intent_skips_mandi_fetch(self, kb_answer, get_weather, get_prices):
+        kb_answer.return_value = {
+            "answer": "Weather answer",
+            "source": "knowledge_base",
+            "confidence": "high",
+        }
+        get_weather.return_value = {
+            "current": {"temperature": 28, "humidity": 70, "condition": "Cloudy"},
+            "forecast_7day": [],
+            "farming_alerts": [],
+            "data_source": "Open-Meteo live",
+        }
+
+        result = self.service.answer("Lucknow weather today", self.ctx, language="en")
+
+        self.assertEqual(result["response"], "Weather answer")
+        get_weather.assert_called()
+        get_prices.assert_not_called()
+
+    @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_mandi_intent_keeps_fallback_source_label(self, kb_answer, get_prices):
+        kb_answer.return_value = {
+            "answer": None,
+            "source": "escalate_to_gemini",
+            "confidence": "low",
+        }
+        get_prices.return_value = {
+            "is_live": False,
+            "top_crops": [],
+            "data_source": "Agmarknet fallback estimate (not live)",
+        }
+
+        result = self.service.answer("wheat mandi price", self.ctx, language="en", fast_mode=True)
+
+        self.assertIn("Agmarknet fallback estimate (not live)", result["sources"])

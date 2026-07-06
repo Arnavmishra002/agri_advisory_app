@@ -273,8 +273,13 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `VITE_API_BASE_URL` | Frontend | Browser API base URL |
 | `PHASE1_BASE_URL` | Optional | Django -> Phase 1 service URL |
 | `PHASE1_TIMEOUT_S` | Optional | Phase 1 request timeout |
+| `PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S` | Optional | Max wait for first streamed local-AI token |
+| `PHASE1_STREAM_IDLE_TIMEOUT_S` | Optional | Max idle gap between streamed local-AI tokens |
+| `PHASE1_STREAM_TOTAL_TIMEOUT_S` | Optional | Total Phase 1 stream budget |
+| `CHAT_LOCAL_AI_MAX_CONCURRENCY` | Optional | Max concurrent local Phase 1/Ollama chatbot calls; use `1` on small CPU-only hosts |
 | `OLLAMA_BASE_URL` | Optional | Local Ollama URL |
 | `OLLAMA_MODEL` | Optional | Local LLM model name |
+| `OLLAMA_DIRECT_TIMEOUT_S` | Optional | Direct Ollama fallback read timeout |
 | `CROP_DISEASE_MODEL_DIR` | Optional | Directory containing disease model artifacts |
 | `ML_CONFIDENCE_THRESHOLD` | Optional | Minimum confidence for image classification |
 | `ML_ALLOW_UNVERIFIED_MODEL` | Development only | Allows low-quality/unverified disease model predictions for offline testing |

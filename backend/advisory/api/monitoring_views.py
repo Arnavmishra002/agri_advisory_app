@@ -224,6 +224,20 @@ def readiness_check(request):
     except Exception:
         checks["ollama"] = "offline (local LLM unavailable)"
 
+    # ── Chatbot runtime capacity ─────────────────────────────────────────────
+    try:
+        from advisory.services.chat_intelligence_service import chatbot_runtime_status
+        chat_runtime = chatbot_runtime_status()
+        local_ai = chat_runtime.get("local_ai", {})
+        phase1 = chat_runtime.get("phase1", {})
+        cb_label = "open" if phase1.get("circuit_breaker_open") else "closed"
+        checks["chatbot_runtime"] = (
+            f"ok (local_ai_active={local_ai.get('active')}/"
+            f"{local_ai.get('max_concurrency')}, phase1_cb={cb_label})"
+        )
+    except Exception as exc:
+        checks["chatbot_runtime"] = f"unknown: {exc}"
+
     # ── Crop disease ML model ────────────────────────────────────────────────
     try:
         from advisory.ml.config import DEFAULT_MODEL_DIR, MODEL_FILENAME, LABELS_FILENAME

@@ -90,6 +90,8 @@ import os as _os
 import time as _time
 
 import dataclasses
+import contextvars
+import threading
 
 def _wc_to_dict(wc) -> dict:
     return dataclasses.asdict(wc) if wc is not None else {}
@@ -105,6 +107,13 @@ def _env_float(name: str, default: float) -> float:
         return float(_os.environ.get(name, str(default)))
     except (TypeError, ValueError):
         logger.warning("Invalid %s; using %.1fs", name, default)
+        return default
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(_os.environ.get(name, str(default)))
+    except (TypeError, ValueError):
+        logger.warning("Invalid %s; using %d", name, default)
         return default
 
 
@@ -133,11 +142,134 @@ _OLLAMA_DIRECT_TIMEOUT: Tuple[float, float] = (
     _OLLAMA_DIRECT_READ_TIMEOUT_S,
 )
 _CHAT_REALTIME_TIMEOUT_S:float = _env_float("CHAT_REALTIME_TIMEOUT_S", 5.0)
+_CHAT_LOCAL_AI_MAX_CONCURRENCY: int = max(1, _env_int("CHAT_LOCAL_AI_MAX_CONCURRENCY", 1))
+_PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S: float = _env_float("PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S", 8.0)
+_PHASE1_STREAM_IDLE_TIMEOUT_S: float = _env_float(
+    "PHASE1_STREAM_IDLE_TIMEOUT_S",
+    _PHASE1_STREAM_READ_TIMEOUT_S,
+)
 _PHASE1_CB_MAX_FAILS:    int   = 3   # open circuit after 3 consecutive failures
 _PHASE1_CB_RESET_S:      int   = 60  # retry after 60 s cooldown
 
 _CB_KEY_FAILS = "krishimitra:phase1:cb:fails"
 _CB_KEY_TS    = "krishimitra:phase1:cb:ts"
+_CHAT_META: contextvars.ContextVar[Dict[str, Any]] = contextvars.ContextVar(
+    "krishimitra_chat_meta",
+    default={},
+)
+_LOCAL_AI_SEMAPHORE = threading.BoundedSemaphore(_CHAT_LOCAL_AI_MAX_CONCURRENCY)
+_LOCAL_AI_LOCK = threading.Lock()
+_LOCAL_AI_ACTIVE = 0
+
+def _chat_meta() -> Dict[str, Any]:
+    meta = _CHAT_META.get()
+    if not isinstance(meta, dict):
+        meta = {}
+        _CHAT_META.set(meta)
+    return meta
+
+def _reset_chat_meta() -> None:
+    _CHAT_META.set({
+        "selected_tier": None,
+        "fallback_reason": "",
+        "phase1_latency_ms": None,
+        "ollama_latency_ms": None,
+        "first_token_ms": None,
+        "total_llm_ms": None,
+        "local_ai_capacity": {
+            "max": _CHAT_LOCAL_AI_MAX_CONCURRENCY,
+            "active": _local_ai_active_count(),
+        },
+    })
+
+def _set_chat_meta(**updates: Any) -> None:
+    meta = dict(_chat_meta())
+    meta.update(updates)
+    if "local_ai_capacity" not in meta:
+        meta["local_ai_capacity"] = {
+            "max": _CHAT_LOCAL_AI_MAX_CONCURRENCY,
+            "active": _local_ai_active_count(),
+        }
+    _CHAT_META.set(meta)
+
+def _local_ai_active_count() -> int:
+    with _LOCAL_AI_LOCK:
+        return _LOCAL_AI_ACTIVE
+
+def _acquire_local_ai_slot() -> bool:
+    global _LOCAL_AI_ACTIVE
+    acquired = _LOCAL_AI_SEMAPHORE.acquire(blocking=False)
+    if not acquired:
+        _set_chat_meta(
+            selected_tier="local_ai_busy_fallback",
+            fallback_reason="local_ai_capacity_full",
+            source_label="local_ai_busy_fallback",
+            local_ai_capacity={
+                "max": _CHAT_LOCAL_AI_MAX_CONCURRENCY,
+                "active": _local_ai_active_count(),
+            },
+        )
+        return False
+    with _LOCAL_AI_LOCK:
+        _LOCAL_AI_ACTIVE += 1
+        active = _LOCAL_AI_ACTIVE
+    _set_chat_meta(local_ai_capacity={"max": _CHAT_LOCAL_AI_MAX_CONCURRENCY, "active": active})
+    return True
+
+def _release_local_ai_slot() -> None:
+    global _LOCAL_AI_ACTIVE
+    with _LOCAL_AI_LOCK:
+        _LOCAL_AI_ACTIVE = max(0, _LOCAL_AI_ACTIVE - 1)
+        active = _LOCAL_AI_ACTIVE
+    try:
+        _LOCAL_AI_SEMAPHORE.release()
+    except ValueError:
+        pass
+    _set_chat_meta(local_ai_capacity={"max": _CHAT_LOCAL_AI_MAX_CONCURRENCY, "active": active})
+
+def _local_ai_busy_message(lang: str) -> str:
+    if lang == "hi":
+        return (
+            "स्थानीय AI अभी व्यस्त है, इसलिए मैंने तेज सुरक्षित सलाह मोड चालू किया है। "
+            "कृपया अपना सवाल थोड़ी देर बाद फिर पूछें। जरूरी सलाह के लिए Kisan Helpline "
+            "1800-180-1551 पर कॉल करें।"
+        )
+    return (
+        "Local AI is busy, so I switched to fast safe-advice mode. "
+        "Please try again shortly. For urgent farm advice, call Kisan Helpline "
+        "1800-180-1551."
+    )
+
+def chatbot_runtime_status() -> Dict[str, Any]:
+    """Small readiness payload for local-AI capacity and circuit-breaker state."""
+    return {
+        "local_ai": {
+            "max_concurrency": _CHAT_LOCAL_AI_MAX_CONCURRENCY,
+            "active": _local_ai_active_count(),
+            "available_slots": max(
+                0,
+                _CHAT_LOCAL_AI_MAX_CONCURRENCY - _local_ai_active_count(),
+            ),
+        },
+        "phase1": {
+            "circuit_breaker_open": _cb_is_open(),
+            "timeout_s": {
+                "connect": _PHASE1_CONNECT_TIMEOUT_S,
+                "read": _PHASE1_READ_TIMEOUT_S,
+                "stream_connect": _PHASE1_STREAM_CONNECT_TIMEOUT_S,
+                "stream_read": _PHASE1_STREAM_READ_TIMEOUT_S,
+                "stream_first_token": _PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S,
+                "stream_idle": _PHASE1_STREAM_IDLE_TIMEOUT_S,
+                "stream_total": _PHASE1_STREAM_TOTAL_TIMEOUT_S,
+            },
+        },
+        "ollama": {
+            "direct_timeout_s": {
+                "connect": _OLLAMA_DIRECT_CONNECT_TIMEOUT_S,
+                "read": _OLLAMA_DIRECT_READ_TIMEOUT_S,
+            }
+        },
+    }
 
 def _phase1_base_url() -> str:
     base = _os.environ.get("PHASE1_BASE_URL") or _os.environ.get("PHASE1_URL", "http://127.0.0.1:8001")
@@ -714,17 +846,21 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         """
         query = (query or "").strip()
         lang  = normalise_language_code(language)
+        _reset_chat_meta()
+        answer_started = _time.monotonic()
 
         if language == "auto" and ctx.state:
             lang = get_language_for_state(ctx.state)
 
         if not query:
+            _set_chat_meta(selected_tier="empty_query", total_llm_ms=0)
             return {
                 "response": self._empty_response(lang),
                 "intent": INTENT_GENERAL,
                 "sources": [],
                 "crop_suggestions": [],
                 "language": lang,
+                "chatbot_diagnostics": dict(_chat_meta()),
             }
 
         # ── NLP: intent + entity extraction ───────────────────────
@@ -769,6 +905,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # avoids showing placeholder weather when no weather was requested.
         if intent == INTENT_GREETING and not crops_mentioned:
             now = datetime.now(tz=timezone.utc)
+            _set_chat_meta(
+                selected_tier="instant_rule",
+                fallback_reason="greeting_fast_path",
+                total_llm_ms=0,
+            )
             response_text = self._smart_rule_response(
                 query=query,
                 intent=intent,
@@ -792,6 +933,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "data_source": "KrishiMitra Advisory Engine",
                 "timestamp": now.isoformat(),
                 "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
+                "chatbot_diagnostics": dict(_chat_meta()),
             }
 
         # ── Named-location override ───────────────────────────────────────────
@@ -1027,7 +1169,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
             )
             if response_text:
-                data_source = "krishimitra-llm (fine-tuned KCC model)"
+                data_source = _chat_meta().get("source_label") or "krishimitra-llm (fine-tuned KCC model)"
 
         # Tier 2: Gemini API — optional cloud, only when LLM unavailable
         has_gemini = _is_valid_gemini_key(gemini_service.api_key)
@@ -1043,6 +1185,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     max_tokens=1600, user_query=query, temperature=0.3,
                 )
                 if response_text:
+                    _set_chat_meta(selected_tier="gemini", fallback_reason="")
                     data_source = "Gemini AI + Official gov APIs"
                 else:
                     logger.warning("Gemini returned empty — using rule-based")
@@ -1052,10 +1195,16 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # Tier 3: Rule-based (instant, ICAR-grounded, always available)
         # Used when: fast_mode=True OR LLM offline OR Gemini unavailable
         if not response_text:
+            _set_chat_meta(
+                selected_tier="rule_based_fallback",
+                fallback_reason=_chat_meta().get("fallback_reason") or "local_and_cloud_unavailable",
+            )
             response_text = self._smart_rule_response(
                 query, intent, crops_mentioned, ctx, context_block, lang, history,
                 sc=sc, wc=wc,
             )
+
+        _set_chat_meta(total_llm_ms=int((_time.monotonic() - answer_started) * 1000))
 
         crop_suggestions = self._crop_suggestions_for_intent(
             ctx, intent, crops_mentioned, lang=lang
@@ -1071,6 +1220,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "data_source":     data_source,
             "timestamp":       now.isoformat(),
             "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
+            "chatbot_diagnostics": dict(_chat_meta()),
         }
 
     # ── Tier 2: Qwen 2.5 7B + RAG (local Phase 1 server) ────────
@@ -1105,7 +1255,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             logger.debug(
                 "Phase 1 circuit breaker OPEN — skipping",
             )
+            _set_chat_meta(
+                selected_tier="rule_based_fallback",
+                fallback_reason="phase1_circuit_breaker_open",
+            )
             return None
+
+        slot_held = False
 
         # ── Build shared context ──────────────────────────────────────────────
         sensor_ctx: Optional[Dict[str, Any]] = None
@@ -1154,33 +1310,57 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         }, ensure_ascii=False).encode("utf-8")
 
         try:
+            if not _acquire_local_ai_slot():
+                return _local_ai_busy_message(lang)
+            slot_held = True
+            phase1_started = _time.monotonic()
             resp = requests.post(
                 PHASE1_URL,
                 data=payload,
                 headers={"Content-Type": "application/json"},
                 timeout=_PHASE1_TIMEOUT,
             )
+            phase1_latency = int((_time.monotonic() - phase1_started) * 1000)
             resp.raise_for_status()
             data = resp.json()
             text = (data.get("response") or "").strip()
             if text:
                 _cb_reset()
+                _set_chat_meta(
+                    selected_tier="phase1_rag_ollama",
+                    fallback_reason="",
+                    phase1_latency_ms=phase1_latency,
+                    source_label="krishimitra-llm via Phase1 RAG",
+                )
                 logger.info(
                     "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
                     query[:40], data.get("rag_chunks", 0),
                 )
+                _release_local_ai_slot()
+                slot_held = False
                 return text
             logger.warning("Phase 1 returned empty for: %s", query[:40])
+            _set_chat_meta(
+                phase1_latency_ms=phase1_latency,
+                fallback_reason="phase1_empty_response",
+            )
             # Fall through to Path B
         except requests.Timeout:
             _cb_increment()
+            _set_chat_meta(fallback_reason="phase1_timeout")
             logger.info("Phase 1 timed out after %ss — trying direct Ollama", _PHASE1_TIMEOUT)
         except requests.RequestException as exc:
             _cb_increment()
+            _set_chat_meta(fallback_reason=f"phase1_{type(exc).__name__}")
             logger.debug("Phase 1 offline/error (%s) — trying direct Ollama", type(exc).__name__)
         except Exception as exc:
             _cb_increment()
+            _set_chat_meta(fallback_reason=f"phase1_{type(exc).__name__}")
             logger.info("Phase 1 error (%s) — trying direct Ollama", type(exc).__name__)
+
+        if slot_held:
+            _release_local_ai_slot()
+            slot_held = False
 
         # ── Path B: Direct Ollama — Ultra-Rich Context (all real-time data) ─────
         OLLAMA_BASE  = _os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -1385,34 +1565,61 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         }, ensure_ascii=False).encode("utf-8")
 
         try:
+            if not _acquire_local_ai_slot():
+                return _local_ai_busy_message(lang)
+            slot_held = True
+            ollama_started = _time.monotonic()
             resp = requests.post(
                 OLLAMA_URL,
                 data=ollama_payload,
                 headers={"Content-Type": "application/json"},
                 timeout=_OLLAMA_DIRECT_TIMEOUT,
             )
+            ollama_latency = int((_time.monotonic() - ollama_started) * 1000)
             resp.raise_for_status()
             data = resp.json()
             text = (data.get("message", {}).get("content") or "").strip()
             if text:
                 _cb_reset()
+                _set_chat_meta(
+                    selected_tier="direct_ollama",
+                    ollama_latency_ms=ollama_latency,
+                    source_label="krishimitra-llm direct Ollama",
+                )
                 logger.info(
                     "krishimitra-llm direct Ollama: '%s...' — %d chars",
                     query[:40], len(text),
                 )
+                _release_local_ai_slot()
+                slot_held = False
                 return text
+            _set_chat_meta(ollama_latency_ms=ollama_latency, fallback_reason="direct_ollama_empty_response")
+            _release_local_ai_slot()
+            slot_held = False
             return None
         except requests.Timeout:
             _cb_increment()
+            _set_chat_meta(fallback_reason="direct_ollama_timeout")
             logger.warning("Direct Ollama timeout after %ss — falling back", _OLLAMA_DIRECT_TIMEOUT)
+            if slot_held:
+                _release_local_ai_slot()
+                slot_held = False
             return None
         except requests.RequestException:
             _cb_increment()
+            _set_chat_meta(fallback_reason="direct_ollama_request_error")
             logger.debug("Direct Ollama also offline — falling back to rule-based")
+            if slot_held:
+                _release_local_ai_slot()
+                slot_held = False
             return None
         except Exception as exc:
             _cb_increment()
+            _set_chat_meta(fallback_reason=f"direct_ollama_{type(exc).__name__}")
             logger.warning("Direct Ollama error: %s", exc)
+            if slot_held:
+                _release_local_ai_slot()
+                slot_held = False
             return None
 
     # ── Named-location extraction ──────────────────────────────────────────────
@@ -3718,16 +3925,20 @@ def _answer_stream(
 
     query = (query or "").strip()
     lang  = normalise_language_code(language)
+    _reset_chat_meta()
 
     if not query:
+        _set_chat_meta(selected_tier="empty_query", total_llm_ms=0)
         yield self._empty_response(lang)
         yield {"__done__": True, "intent": INTENT_GENERAL, "language": lang,
-               "data_source": "KrishiMitra Advisory Engine", "crops_detected": []}
+               "data_source": "KrishiMitra Advisory Engine", "crops_detected": [],
+               "chatbot_diagnostics": dict(_chat_meta())}
         return
 
     intent, crops_mentioned = self.classify_query(query)
     now    = datetime.now(tz=timezone.utc)
     season = _current_season(now.month)
+    stream_started = _time.monotonic()
 
     def _yield_answer_chunks(text: str, chunk_size: int = 80):
         for idx in range(0, len(text), chunk_size):
@@ -3741,7 +3952,30 @@ def _answer_stream(
             "data_source": data_source,
             "crops_detected": [c["name"] for c in crops_mentioned],
             "season": season,
+            "chatbot_diagnostics": dict(_chat_meta()),
         }
+
+    if intent == INTENT_GREETING and not crops_mentioned:
+        text = self._smart_rule_response(
+            query=query,
+            intent=intent,
+            crops=crops_mentioned,
+            ctx=ctx,
+            context_block="",
+            lang=lang,
+            history=history,
+            sc=SensorContext(),
+            wc=WeatherConstraints(),
+        )
+        _set_chat_meta(
+            selected_tier="instant_rule",
+            fallback_reason="greeting_fast_path",
+            total_llm_ms=0,
+        )
+        for token in _yield_answer_chunks(text):
+            yield token
+        yield _done_payload("KrishiMitra Advisory Engine")
+        return
 
     # ── Tier 0: Local KB first, matching the JSON path ─────────────
     try:
@@ -3771,6 +4005,7 @@ def _answer_stream(
 
     # ── Tier 1: Phase 1 Ollama/RAG streaming ───────────────────────
     if not fast_mode:
+        stream_slot_held = False
         try:
             PHASE1_STREAM_URL = _phase1_endpoint("/chat/stream")
             crop_hint = crops_mentioned[0].get("name") if crops_mentioned else None
@@ -3787,6 +4022,13 @@ def _answer_stream(
                 "farmer_profile": farmer_profile,
                 "stream": True,
             }, ensure_ascii=False).encode()
+            if not _acquire_local_ai_slot():
+                busy_text = _local_ai_busy_message(lang)
+                for token in _yield_answer_chunks(busy_text):
+                    yield token
+                yield _done_payload("local_ai_busy_fallback")
+                return
+            stream_slot_held = True
             with requests.post(
                 PHASE1_STREAM_URL,
                 data=payload,
@@ -3795,12 +4037,23 @@ def _answer_stream(
                 timeout=_PHASE1_STREAM_TIMEOUT,
             ) as resp:
                 resp.raise_for_status()
-                stream_started = _time.monotonic()
+                phase1_started = _time.monotonic()
+                last_token_at = phase1_started
+                first_token_seen = False
                 full_text = []
                 for raw in resp.iter_lines():
-                    if _time.monotonic() - stream_started > _PHASE1_STREAM_TOTAL_TIMEOUT_S:
+                    now_mono = _time.monotonic()
+                    if now_mono - phase1_started > _PHASE1_STREAM_TOTAL_TIMEOUT_S:
                         raise TimeoutError(
                             f"Phase1 stream exceeded {_PHASE1_STREAM_TOTAL_TIMEOUT_S:.1f}s total budget"
+                        )
+                    if not first_token_seen and now_mono - phase1_started > _PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S:
+                        raise TimeoutError(
+                            f"Phase1 stream first token exceeded {_PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S:.1f}s"
+                        )
+                    if first_token_seen and now_mono - last_token_at > _PHASE1_STREAM_IDLE_TIMEOUT_S:
+                        raise TimeoutError(
+                            f"Phase1 stream idle exceeded {_PHASE1_STREAM_IDLE_TIMEOUT_S:.1f}s"
                         )
                     if not raw:
                         continue
@@ -3813,14 +4066,37 @@ def _answer_stream(
                             break
                         token = obj.get("token", "")
                         if token:
+                            if not first_token_seen:
+                                _set_chat_meta(first_token_ms=int((now_mono - phase1_started) * 1000))
+                                first_token_seen = True
+                            last_token_at = now_mono
                             full_text.append(token)
                             yield token
                     except Exception:
                         continue
                 if full_text:
+                    _set_chat_meta(
+                        selected_tier="phase1_rag_ollama_stream",
+                        fallback_reason="",
+                        phase1_latency_ms=int((_time.monotonic() - phase1_started) * 1000),
+                        total_llm_ms=int((_time.monotonic() - stream_started) * 1000),
+                    )
+                    _release_local_ai_slot()
+                    stream_slot_held = False
                     yield _done_payload("krishimitra-llm (stream)")
                     return
+            if stream_slot_held:
+                _release_local_ai_slot()
+                stream_slot_held = False
+            _set_chat_meta(fallback_reason="phase1_stream_empty_response")
         except Exception as exc:
+            if stream_slot_held:
+                _release_local_ai_slot()
+                stream_slot_held = False
+            _set_chat_meta(
+                fallback_reason=f"phase1_stream_{type(exc).__name__}",
+                total_llm_ms=int((_time.monotonic() - stream_started) * 1000),
+            )
             logger.debug("Phase1 stream unavailable (%s) — non-stream fallback", exc)
 
     # ── Tier 2: Gemini streaming only after local tiers fail ───────
@@ -3848,6 +4124,11 @@ def _answer_stream(
                     full_text.append(token)
                     yield token
             if full_text:
+                _set_chat_meta(
+                    selected_tier="gemini_stream",
+                    fallback_reason="",
+                    total_llm_ms=int((_time.monotonic() - stream_started) * 1000),
+                )
                 yield _done_payload("Gemini AI (stream)")
                 return
         except Exception as exc:
@@ -3863,6 +4144,7 @@ def _answer_stream(
     chunk_size = 50
     for i in range(0, len(full_text), chunk_size):
         yield full_text[i:i + chunk_size]
+    _set_chat_meta(total_llm_ms=int((_time.monotonic() - stream_started) * 1000))
     yield {
         "__done__": True,
         "intent":          result.get("intent", intent),
@@ -3870,6 +4152,7 @@ def _answer_stream(
         "data_source":     result.get("data_source", "KrishiMitra Advisory Engine"),
         "crops_detected":  result.get("crops_detected", [c["name"] for c in crops_mentioned]),
         "season":          result.get("season", season),
+        "chatbot_diagnostics": result.get("chatbot_diagnostics", dict(_chat_meta())),
     }
 
 
