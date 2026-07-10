@@ -7,11 +7,13 @@ class ChatMessage {
   final DateTime timestamp;
   final String? intent;
   final String? dataSource;
+  final String? aiQualityLabel;
+  final String? aiQualityStatus;
 
   const ChatMessage({
     required this.id, required this.role,
     required this.content, required this.timestamp,
-    this.intent, this.dataSource,
+    this.intent, this.dataSource, this.aiQualityLabel, this.aiQualityStatus,
   });
 
   bool get isUser => role == 'user';
@@ -21,20 +23,35 @@ class ChatMessage {
     role: 'user', content: text, timestamp: DateTime.now(),
   );
 
-  factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(
-    id:         j['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-    role:       j['role'] as String? ?? 'assistant',
-    content:    (j['content'] ?? j['answer'] ?? j['response'] ?? '') as String,
-    timestamp:  j['timestamp'] != null
-                    ? DateTime.tryParse(j['timestamp'] as String) ?? DateTime.now()
-                    : DateTime.now(),
-    intent:     j['intent'] as String?,
-    dataSource: j['data_source'] as String?,
-  );
+  factory ChatMessage.fromJson(Map<String, dynamic> j) {
+    final rawQuality = j['ai_data_quality'];
+    final quality = rawQuality is Map
+        ? Map<String, dynamic>.from(rawQuality)
+        : const <String, dynamic>{};
+    return ChatMessage(
+      id:         j['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      role:       j['role'] as String? ?? 'assistant',
+      content:    (j['content'] ?? j['answer'] ?? j['response'] ?? '') as String,
+      timestamp:  j['timestamp'] != null
+                      ? DateTime.tryParse(j['timestamp'] as String) ?? DateTime.now()
+                      : DateTime.now(),
+      intent:     j['intent'] as String?,
+      dataSource: j['data_source'] as String?,
+      aiQualityLabel: quality['label'] as String?,
+      aiQualityStatus: quality['status'] as String?,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id, 'role': role, 'content': content,
     'timestamp': timestamp.toIso8601String(),
+    if (intent != null) 'intent': intent,
+    if (dataSource != null) 'data_source': dataSource,
+    if (aiQualityLabel != null || aiQualityStatus != null)
+      'ai_data_quality': {
+        if (aiQualityLabel != null) 'label': aiQualityLabel,
+        if (aiQualityStatus != null) 'status': aiQualityStatus,
+      },
   };
 }
 

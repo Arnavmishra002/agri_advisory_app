@@ -157,6 +157,10 @@ _CHAT_META: contextvars.ContextVar[Dict[str, Any]] = contextvars.ContextVar(
     "krishimitra_chat_meta",
     default={},
 )
+_SKIP_PHASE1_ONCE: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "krishimitra_skip_phase1_once",
+    default=False,
+)
 _LOCAL_AI_SEMAPHORE = threading.BoundedSemaphore(_CHAT_LOCAL_AI_MAX_CONCURRENCY)
 _LOCAL_AI_LOCK = threading.Lock()
 _LOCAL_AI_ACTIVE = 0
@@ -269,6 +273,44 @@ def chatbot_runtime_status() -> Dict[str, Any]:
                 "read": _OLLAMA_DIRECT_READ_TIMEOUT_S,
             }
         },
+    }
+
+
+def chatbot_quality_metadata(
+    data_source: str,
+    diagnostics: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Return a stable farmer-facing AI/data quality contract."""
+    diagnostics = diagnostics or {}
+    tier = diagnostics.get("selected_tier") or "unknown"
+    labels = {
+        "instant_rule": ("Instant advisory", "verified_local", 500),
+        "knowledge_base": ("Verified knowledge base", "verified_local", 500),
+        "knowledge_base_local_llm": ("Local knowledge AI", "local_ai", 15000),
+        "phase1_rag_ollama": ("Local AI + knowledge base", "local_ai", 15000),
+        "phase1_rag_ollama_stream": ("Local AI + knowledge base", "local_ai", 15000),
+        "direct_ollama": ("Local AI fallback", "local_ai", 15000),
+        "gemini": ("Cloud AI fallback", "cloud_fallback", 15000),
+        "gemini_stream": ("Cloud AI fallback", "cloud_fallback", 15000),
+        "local_ai_busy_fallback": ("AI busy: safe fallback", "degraded", 3000),
+        "rule_based_fallback": ("Safe advisory fallback", "degraded", 3000),
+        "empty_query": ("Input required", "degraded", 500),
+    }
+    label, quality_status, target_ms = labels.get(
+        tier,
+        ("Advisory source", "unknown", 3000),
+    )
+    elapsed = diagnostics.get("total_llm_ms")
+    return {
+        "tier": tier,
+        "label": label,
+        "status": quality_status,
+        "is_degraded": quality_status in {"degraded", "unknown"},
+        "source": data_source or "KrishiMitra Advisory Engine",
+        "latency_target_ms": target_ms,
+        "meets_latency_target": (
+            elapsed <= target_ms if isinstance(elapsed, (int, float)) else None
+        ),
     }
 
 def _phase1_base_url() -> str:
@@ -854,13 +896,15 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         if not query:
             _set_chat_meta(selected_tier="empty_query", total_llm_ms=0)
+            diagnostics = dict(_chat_meta())
             return {
                 "response": self._empty_response(lang),
                 "intent": INTENT_GENERAL,
                 "sources": [],
                 "crop_suggestions": [],
                 "language": lang,
-                "chatbot_diagnostics": dict(_chat_meta()),
+                "chatbot_diagnostics": diagnostics,
+                "ai_data_quality": chatbot_quality_metadata("", diagnostics),
             }
 
         # ── NLP: intent + entity extraction ───────────────────────
@@ -921,6 +965,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 sc=SensorContext(),
                 wc=WeatherConstraints(),
             )
+            diagnostics = dict(_chat_meta())
+            data_source = "KrishiMitra Advisory Engine"
             return {
                 "response": response_text,
                 "intent": intent,
@@ -930,10 +976,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     ctx, intent, crops_mentioned, lang=lang
                 ),
                 "language": lang,
-                "data_source": "KrishiMitra Advisory Engine",
+                "data_source": data_source,
                 "timestamp": now.isoformat(),
                 "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
-                "chatbot_diagnostics": dict(_chat_meta()),
+                "chatbot_diagnostics": diagnostics,
+                "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
             }
 
         # ── Named-location override ───────────────────────────────────────────
@@ -1153,6 +1200,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             if kb_result.get("answer"):
                 response_text = kb_result["answer"]
                 kb_source = kb_result.get("source", "knowledge_base")
+                _set_chat_meta(
+                    selected_tier=(
+                        "knowledge_base"
+                        if kb_source == "knowledge_base"
+                        else "knowledge_base_local_llm"
+                    ),
+                    fallback_reason="",
+                )
                 data_source = (
                     "KrishiMitra KB (instant)"
                     if kb_source == "knowledge_base"
@@ -1209,6 +1264,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         crop_suggestions = self._crop_suggestions_for_intent(
             ctx, intent, crops_mentioned, lang=lang
         )
+        diagnostics = dict(_chat_meta())
 
         return {
             "response":        response_text,
@@ -1220,7 +1276,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "data_source":     data_source,
             "timestamp":       now.isoformat(),
             "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
-            "chatbot_diagnostics": dict(_chat_meta()),
+            "chatbot_diagnostics": diagnostics,
+            "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
         }
 
     # ── Tier 2: Qwen 2.5 7B + RAG (local Phase 1 server) ────────
@@ -1309,58 +1366,61 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "stream":         False,
         }, ensure_ascii=False).encode("utf-8")
 
-        try:
-            if not _acquire_local_ai_slot():
-                return _local_ai_busy_message(lang)
-            slot_held = True
-            phase1_started = _time.monotonic()
-            resp = requests.post(
-                PHASE1_URL,
-                data=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=_PHASE1_TIMEOUT,
-            )
-            phase1_latency = int((_time.monotonic() - phase1_started) * 1000)
-            resp.raise_for_status()
-            data = resp.json()
-            text = (data.get("response") or "").strip()
-            if text:
-                _cb_reset()
+        if _SKIP_PHASE1_ONCE.get():
+            _set_chat_meta(fallback_reason="phase1_stream_failed")
+        else:
+            try:
+                if not _acquire_local_ai_slot():
+                    return _local_ai_busy_message(lang)
+                slot_held = True
+                phase1_started = _time.monotonic()
+                resp = requests.post(
+                    PHASE1_URL,
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
+                    timeout=_PHASE1_TIMEOUT,
+                )
+                phase1_latency = int((_time.monotonic() - phase1_started) * 1000)
+                resp.raise_for_status()
+                data = resp.json()
+                text = (data.get("response") or "").strip()
+                if text:
+                    _cb_reset()
+                    _set_chat_meta(
+                        selected_tier="phase1_rag_ollama",
+                        fallback_reason="",
+                        phase1_latency_ms=phase1_latency,
+                        source_label="krishimitra-llm via Phase1 RAG",
+                    )
+                    logger.info(
+                        "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
+                        query[:40], data.get("rag_chunks", 0),
+                    )
+                    _release_local_ai_slot()
+                    slot_held = False
+                    return text
+                logger.warning("Phase 1 returned empty for: %s", query[:40])
                 _set_chat_meta(
-                    selected_tier="phase1_rag_ollama",
-                    fallback_reason="",
                     phase1_latency_ms=phase1_latency,
-                    source_label="krishimitra-llm via Phase1 RAG",
+                    fallback_reason="phase1_empty_response",
                 )
-                logger.info(
-                    "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
-                    query[:40], data.get("rag_chunks", 0),
-                )
+                # Fall through to Path B
+            except requests.Timeout:
+                _cb_increment()
+                _set_chat_meta(fallback_reason="phase1_timeout")
+                logger.info("Phase 1 timed out after %ss — trying direct Ollama", _PHASE1_TIMEOUT)
+            except requests.RequestException as exc:
+                _cb_increment()
+                _set_chat_meta(fallback_reason=f"phase1_{type(exc).__name__}")
+                logger.debug("Phase 1 offline/error (%s) — trying direct Ollama", type(exc).__name__)
+            except Exception as exc:
+                _cb_increment()
+                _set_chat_meta(fallback_reason=f"phase1_{type(exc).__name__}")
+                logger.info("Phase 1 error (%s) — trying direct Ollama", type(exc).__name__)
+
+            if slot_held:
                 _release_local_ai_slot()
                 slot_held = False
-                return text
-            logger.warning("Phase 1 returned empty for: %s", query[:40])
-            _set_chat_meta(
-                phase1_latency_ms=phase1_latency,
-                fallback_reason="phase1_empty_response",
-            )
-            # Fall through to Path B
-        except requests.Timeout:
-            _cb_increment()
-            _set_chat_meta(fallback_reason="phase1_timeout")
-            logger.info("Phase 1 timed out after %ss — trying direct Ollama", _PHASE1_TIMEOUT)
-        except requests.RequestException as exc:
-            _cb_increment()
-            _set_chat_meta(fallback_reason=f"phase1_{type(exc).__name__}")
-            logger.debug("Phase 1 offline/error (%s) — trying direct Ollama", type(exc).__name__)
-        except Exception as exc:
-            _cb_increment()
-            _set_chat_meta(fallback_reason=f"phase1_{type(exc).__name__}")
-            logger.info("Phase 1 error (%s) — trying direct Ollama", type(exc).__name__)
-
-        if slot_held:
-            _release_local_ai_slot()
-            slot_held = False
 
         # ── Path B: Direct Ollama — Ultra-Rich Context (all real-time data) ─────
         OLLAMA_BASE  = _os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -3945,6 +4005,7 @@ def _answer_stream(
             yield text[idx:idx + chunk_size]
 
     def _done_payload(data_source: str):
+        diagnostics = dict(_chat_meta())
         return {
             "__done__": True,
             "intent": intent,
@@ -3952,7 +4013,8 @@ def _answer_stream(
             "data_source": data_source,
             "crops_detected": [c["name"] for c in crops_mentioned],
             "season": season,
-            "chatbot_diagnostics": dict(_chat_meta()),
+            "chatbot_diagnostics": diagnostics,
+            "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
         }
 
     if intent == INTENT_GREETING and not crops_mentioned:
@@ -3990,9 +4052,18 @@ def _answer_stream(
         )
         kb_text = (kb_result.get("answer") or "").strip()
         if kb_text:
+            source = kb_result.get("source", "knowledge_base")
+            _set_chat_meta(
+                selected_tier=(
+                    "knowledge_base"
+                    if source == "knowledge_base"
+                    else "knowledge_base_local_llm"
+                ),
+                fallback_reason="",
+                total_llm_ms=int((_time.monotonic() - stream_started) * 1000),
+            )
             for token in _yield_answer_chunks(kb_text):
                 yield token
-            source = kb_result.get("source", "knowledge_base")
             data_source = (
                 "KrishiMitra KB (instant)"
                 if source == "knowledge_base"
@@ -4099,46 +4170,17 @@ def _answer_stream(
             )
             logger.debug("Phase1 stream unavailable (%s) — non-stream fallback", exc)
 
-    # ── Tier 2: Gemini streaming only after local tiers fail ───────
-    has_gemini = _is_valid_gemini_key(gemini_service.api_key)
-    if has_gemini and not fast_mode:
-        try:
-            import google.generativeai as _genai
-            _genai.configure(api_key=gemini_service.api_key)
-            model = _genai.GenerativeModel("gemini-1.5-flash")
-
-            lang_instr = get_gemini_language_instruction(lang)
-            compact_prompt = (
-                f"You are KrishiMitra AI — expert agricultural advisor for Indian farmers.\n"
-                f"Language rule: {lang_instr}\n\n"
-                f"Query: {query}\n\n"
-                f"If you do not have enough agricultural context, say so clearly. "
-                f"Respond concisely in the farmer's language. "
-                f"Use bullet points for action steps."
-            )
-            response = model.generate_content(compact_prompt, stream=True)
-            full_text = []
-            for chunk in response:
-                token = (chunk.text or "")
-                if token:
-                    full_text.append(token)
-                    yield token
-            if full_text:
-                _set_chat_meta(
-                    selected_tier="gemini_stream",
-                    fallback_reason="",
-                    total_llm_ms=int((_time.monotonic() - stream_started) * 1000),
-                )
-                yield _done_payload("Gemini AI (stream)")
-                return
-        except Exception as exc:
-            logger.warning("Gemini stream failed (%s) — falling back to answer()", exc)
-
-    # ── Non-stream fallback: call answer() and yield as one chunk ─
-    result = self.answer(
-        query, ctx, language=language, history=history,
-        farmer_profile=farmer_profile, fast_mode=fast_mode,
-    )
+    # Use the canonical JSON chain after a stream failure. The context flag
+    # prevents a second Phase 1 attempt, so fallback order remains direct
+    # Ollama -> Gemini -> safe rules without doubling the timeout budget.
+    skip_token = _SKIP_PHASE1_ONCE.set(not fast_mode)
+    try:
+        result = self.answer(
+            query, ctx, language=language, history=history,
+            farmer_profile=farmer_profile, fast_mode=fast_mode,
+        )
+    finally:
+        _SKIP_PHASE1_ONCE.reset(skip_token)
     full_text = result.get("response", "")
     # Yield in ~50-char chunks so the SSE bubble still fills in progressively
     chunk_size = 50
@@ -4153,6 +4195,7 @@ def _answer_stream(
         "crops_detected":  result.get("crops_detected", [c["name"] for c in crops_mentioned]),
         "season":          result.get("season", season),
         "chatbot_diagnostics": result.get("chatbot_diagnostics", dict(_chat_meta())),
+        "ai_data_quality": result.get("ai_data_quality", {}),
     }
 
 

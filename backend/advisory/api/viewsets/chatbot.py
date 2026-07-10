@@ -412,6 +412,7 @@ class ChatbotViewSet(viewsets.ViewSet):
             "crop_suggestions": result.get("crop_suggestions", []),
             "data_source":      result.get("data_source"),
             "chatbot_diagnostics": result.get("chatbot_diagnostics", {}),
+            "ai_data_quality":  result.get("ai_data_quality", {}),
             "response_time_ms": response_time_ms,
             "timestamp":        _now_utc.isoformat(),
             "session_id":       session_id,
@@ -480,6 +481,7 @@ def _stream_generator(
         "data_source":     result_meta.get("data_source", ""),
         "crops_detected":  result_meta.get("crops_detected", []),
         "chatbot_diagnostics": result_meta.get("chatbot_diagnostics", {}),
+        "ai_data_quality": result_meta.get("ai_data_quality", {}),
         "response_time_ms": response_time_ms,
         "session_id":      session_id,
     })

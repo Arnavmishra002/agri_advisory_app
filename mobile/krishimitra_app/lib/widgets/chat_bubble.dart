@@ -63,6 +63,23 @@ class ChatBubble extends StatelessWidget {
                   style: const TextStyle(fontSize: 10, color: Colors.grey),
                 ),
               ),
+            if (!isUser && message.aiQualityLabel != null)
+              Container(
+                margin: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: message.aiQualityStatus == 'degraded'
+                      ? const Color(0xFFFFF3E0)
+                      : message.aiQualityStatus == 'cloud_fallback'
+                          ? const Color(0xFFE8EAF6)
+                          : const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'AI/Data Quality: ${message.aiQualityLabel}',
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                ),
+              ),
             Align(
               alignment: Alignment.bottomRight,
               child: Padding(

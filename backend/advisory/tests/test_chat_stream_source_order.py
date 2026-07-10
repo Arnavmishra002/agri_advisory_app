@@ -9,6 +9,7 @@ from advisory.services.chat_intelligence_service import (
     ChatIntelligenceService,
     SensorContext,
     WeatherConstraints,
+    chatbot_quality_metadata,
 )
 from advisory.services.location_context import LocationContext
 
@@ -40,6 +41,15 @@ class _FakeJSONResponse:
 
     def json(self):
         return self.payload
+
+
+class _FakeGeminiChunk:
+    text = "cloud answer"
+
+
+class _FakeGeminiModel:
+    def generate_content(self, *args, **kwargs):
+        return [_FakeGeminiChunk()]
 
 
 class ChatStreamSourceOrderTests(SimpleTestCase):
@@ -140,6 +150,39 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         kb_answer.assert_not_called()
         requests_post.assert_not_called()
 
+    @patch("google.generativeai.GenerativeModel", return_value=_FakeGeminiModel())
+    @patch("advisory.services.chat_intelligence_service._is_valid_gemini_key", return_value=True)
+    @patch("advisory.services.chat_intelligence_service.requests.post", side_effect=requests.Timeout("phase1 stalled"))
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_stream_uses_canonical_local_fallback_chain_before_cloud_stream(
+        self,
+        kb_answer,
+        requests_post,
+        gemini_key_check,
+        gemini_model,
+    ):
+        kb_answer.return_value = {
+            "answer": None,
+            "source": "escalate_to_gemini",
+            "confidence": "low",
+        }
+        canonical = {
+            "response": "direct ollama answer",
+            "intent": "pest_disease",
+            "language": "en",
+            "data_source": "Ollama direct local model",
+            "crops_detected": ["Rice"],
+            "chatbot_diagnostics": {"selected_tier": "direct_ollama"},
+        }
+
+        with patch.object(self.service, "answer", return_value=canonical) as answer:
+            chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
+
+        text = "".join(c for c in chunks if isinstance(c, str))
+        self.assertEqual(text, "direct ollama answer")
+        answer.assert_called_once()
+        gemini_model.assert_not_called()
+
 
 class ChatLocalLLMTimeoutTests(SimpleTestCase):
     def setUp(self):
@@ -150,6 +193,20 @@ class ChatLocalLLMTimeoutTests(SimpleTestCase):
             display_name="Lucknow",
             state="Uttar Pradesh",
         )
+
+    def test_quality_metadata_labels_degraded_fallback_honestly(self):
+        quality = chatbot_quality_metadata(
+            "KrishiMitra Advisory Engine",
+            {
+                "selected_tier": "rule_based_fallback",
+                "total_llm_ms": 120,
+            },
+        )
+
+        self.assertEqual(quality["status"], "degraded")
+        self.assertTrue(quality["is_degraded"])
+        self.assertEqual(quality["label"], "Safe advisory fallback")
+        self.assertTrue(quality["meets_latency_target"])
 
     @patch("advisory.services.chat_intelligence_service._cb_reset")
     @patch("advisory.services.chat_intelligence_service._cb_is_open", return_value=False)

@@ -2232,16 +2232,14 @@
             }
 
             const dataSource = data.data_source || '';
-            const dsLower = dataSource.toLowerCase();
-            let aiSourceBadge = '';
-            if (dsLower.includes('gemini')) {
-                aiSourceBadge = '<span style="display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">✨ Gemini AI</span>';
-            } else if (dsLower.includes('qwen') || dsLower.includes('rag')) {
-                aiSourceBadge = '<span style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">🧠 Local LLM + RAG</span>';
-            } else if (dataSource) {
-                aiSourceBadge = '<span style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">📚 Advisory Engine</span>';
-            }
-            if (aiSourceBadge) extra += aiSourceBadge;
+            const quality = _chatQualityInfo(data);
+            const qualityPalette = quality.status === 'degraded'
+                ? { bg: '#fff3e0', fg: '#9a3412' }
+                : quality.status === 'cloud_fallback'
+                    ? { bg: '#e8eaf6', fg: '#3949ab' }
+                    : { bg: '#e8f5e9', fg: '#1b5e20' };
+            extra += '<span style="display:inline-block;background:' + qualityPalette.bg + ';color:' + qualityPalette.fg + ';border-radius:999px;padding:3px 10px;font-size:0.72rem;font-weight:700;margin-top:6px;">' +
+                'AI/Data Quality: ' + escapeHtml(quality.label) + '</span>';
 
             if (data.context && data.context.memory_active) {
                 extra += '<span style="display:inline-block;background:#fff3e0;color:#e65100;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;margin-left:4px;">💾 Memory Active</span>';
@@ -2270,7 +2268,7 @@
             botRow.appendChild(botDiv);
             chatMessages.appendChild(botRow);
 
-            _updateAIStatusBadge(dataSource);
+            _updateAIStatusBadge(dataSource, quality);
 
         } catch (error) {
             skeletonRow.remove();
@@ -2288,19 +2286,36 @@
         }
     }
 
-    function _updateAIStatusBadge(dataSource) {
+    function _chatQualityInfo(data) {
+        const quality = data.ai_data_quality || {};
+        if (quality.label) return quality;
+        const tier = (data.chatbot_diagnostics || {}).selected_tier || '';
+        const fallback = {
+            instant_rule: { label: 'Instant advisory', status: 'verified_local' },
+            knowledge_base: { label: 'Verified knowledge base', status: 'verified_local' },
+            phase1_rag_ollama: { label: 'Local AI + knowledge base', status: 'local_ai' },
+            phase1_rag_ollama_stream: { label: 'Local AI + knowledge base', status: 'local_ai' },
+            direct_ollama: { label: 'Local AI fallback', status: 'local_ai' },
+            gemini: { label: 'Cloud AI fallback', status: 'cloud_fallback' },
+            local_ai_busy_fallback: { label: 'AI busy: safe fallback', status: 'degraded' },
+            rule_based_fallback: { label: 'Safe advisory fallback', status: 'degraded' },
+        };
+        return fallback[tier] || { label: data.data_source || 'Advisory source', status: 'unknown' };
+    }
+
+    function _updateAIStatusBadge(dataSource, quality) {
         let badge = document.getElementById('aiStatusBadge');
         if (!badge) return;
-        const dsL = (dataSource || '').toLowerCase();
-        if (dsL.includes('gemini')) {
-            badge.textContent = '✨ Gemini AI';
+        quality = quality || _chatQualityInfo({ data_source: dataSource });
+        if (quality.status === 'cloud_fallback') {
+            badge.textContent = 'Cloud AI fallback';
             badge.style.cssText = 'display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
-        } else if (dsL.includes('qwen') || dsL.includes('rag')) {
-            badge.textContent = '🧠 Local LLM + RAG';
-            badge.style.cssText = 'display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
+        } else if (quality.status === 'degraded' || quality.status === 'unknown') {
+            badge.textContent = quality.label;
+            badge.style.cssText = 'display:inline-block;background:#fff3e0;color:#9a3412;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
         } else {
-            badge.textContent = '📚 Advisory';
-            badge.style.cssText = 'display:inline-block;background:#f3e5f5;color:#4a148c;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
+            badge.textContent = quality.label;
+            badge.style.cssText = 'display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
         }
     }
 
