@@ -13,7 +13,7 @@ import json
 import logging
 import random
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -40,6 +40,32 @@ from .labels import load_labels
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _per_class_metrics(
+    all_true: Sequence[int],
+    all_preds: Sequence[int],
+    class_names: Sequence[str],
+) -> Dict[str, Dict[str, float]]:
+    labels = list(range(len(class_names)))
+    report = classification_report(
+        all_true,
+        all_preds,
+        labels=labels,
+        target_names=list(class_names),
+        zero_division=0,
+        output_dict=True,
+    )
+    return {
+        name: {
+            "precision": float(report[name]["precision"]),
+            "recall": float(report[name]["recall"]),
+            "f1": float(report[name]["f1-score"]),
+            "false_negative_rate": float(1.0 - report[name]["recall"]),
+            "support": int(report[name]["support"]),
+        }
+        for name in class_names
+    }
 
 
 def _limit_test_samples(
@@ -143,18 +169,18 @@ def evaluate(
     prec = precision_score(all_true, all_preds, average="weighted", zero_division=0)
     rec = recall_score(all_true, all_preds, average="weighted", zero_division=0)
     f1 = f1_score(all_true, all_preds, average="weighted", zero_division=0)
-    cm = confusion_matrix(all_true, all_preds).tolist()
-
-    n_classes = max(max(all_true, default=0), max(all_preds, default=0)) + 1
-    tnames = class_names[:n_classes] if class_names and len(class_names) >= n_classes else None
+    n_classes = len(class_names)
+    label_ids = list(range(n_classes))
+    cm = confusion_matrix(all_true, all_preds, labels=label_ids).tolist()
     report = classification_report(
         all_true,
         all_preds,
-        labels=list(range(n_classes)),
-        target_names=tnames,
+        labels=label_ids,
+        target_names=class_names,
         zero_division=0,
         output_dict=True,
     )
+    per_class = _per_class_metrics(all_true, all_preds, class_names)
 
     metrics = {
         "accuracy": float(acc),
@@ -163,6 +189,11 @@ def evaluate(
         "f1_weighted": float(f1),
         "confusion_matrix": cm,
         "classification_report": report,
+        "per_class_metrics": per_class,
+        "max_false_negative_rate": max(
+            (item["false_negative_rate"] for item in per_class.values()),
+            default=1.0,
+        ),
         "num_test_samples": len(all_true),
         "available_test_samples": available_test_samples,
         "max_test_samples": max_test_samples,
@@ -172,7 +203,14 @@ def evaluate(
     }
 
     metrics_path = model_dir / METRICS_FILENAME
-    metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    existing_metrics = {}
+    if metrics_path.exists():
+        try:
+            existing_metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            existing_metrics = {}
+    existing_metrics.update(metrics)
+    metrics_path.write_text(json.dumps(existing_metrics, indent=2), encoding="utf-8")
     logger.info("Accuracy=%.4f F1=%.4f — saved %s", acc, f1, metrics_path)
 
     _plot_confusion_matrix(cm, class_names, model_dir / "confusion_matrix.png")

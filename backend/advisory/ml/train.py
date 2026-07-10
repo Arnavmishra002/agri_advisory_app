@@ -30,6 +30,7 @@ from .config import (
     USE_CLASS_WEIGHTS,
 )
 from .dataset_loader import build_splits, save_dataset_artifacts
+from .dataset_manifest import load_and_validate_manifest, manifest_summary
 from .model_builder import build_model, get_architecture_settings
 
 logging.basicConfig(level=logging.INFO)
@@ -46,8 +47,25 @@ def train(
     architecture: str = "efficientnetb3",
     augment: bool = True,
     use_class_weights: bool = USE_CLASS_WEIGHTS,
+    dataset_manifest: Optional[Path] = None,
+    require_manifest: bool = False,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = dataset_manifest or (data_dir / "dataset_manifest.json")
+    manifest_data = None
+    if manifest_path.exists():
+        manifest_data = load_and_validate_manifest(manifest_path)
+        (output_dir / "dataset_manifest.json").write_text(
+            json.dumps(manifest_data, indent=2),
+            encoding="utf-8",
+        )
+    elif require_manifest:
+        raise ValueError(
+            f"Dataset manifest required but not found: {manifest_path}. "
+            "Training is blocked until dataset licensing and splits are documented."
+        )
+    else:
+        logger.warning("Dataset manifest missing: %s", manifest_path)
     model_settings = get_architecture_settings(architecture)
     image_size = tuple(model_settings["input_size"])
     preprocess_mode = model_settings["preprocess"]
@@ -146,6 +164,9 @@ def train(
         "max_samples_per_class": max_samples_per_class,
         "augmentation": augment,
         "class_weights": use_class_weights,
+        "dataset_manifest": (
+            manifest_summary(manifest_data) if manifest_data else {"status": "missing"}
+        ),
         "best_val_accuracy": max(
             [float(x) for x in hist.get("val_accuracy", [])],
             default=None,
@@ -194,6 +215,17 @@ def main():
         action="store_true",
         help="Disable class weights for balanced/capped datasets.",
     )
+    parser.add_argument(
+        "--dataset-manifest",
+        type=Path,
+        default=None,
+        help="Dataset provenance manifest; defaults to DATA_DIR/dataset_manifest.json.",
+    )
+    parser.add_argument(
+        "--require-manifest",
+        action="store_true",
+        help="Refuse to train when the licensed dataset manifest is missing or invalid.",
+    )
     args = parser.parse_args()
 
     train(
@@ -206,6 +238,8 @@ def main():
         architecture=args.architecture,
         augment=not args.no_augmentation,
         use_class_weights=not args.no_class_weights,
+        dataset_manifest=args.dataset_manifest,
+        require_manifest=args.require_manifest,
     )
 
 
