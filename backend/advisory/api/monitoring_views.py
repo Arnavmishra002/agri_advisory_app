@@ -219,8 +219,16 @@ def readiness_check(request):
         with urllib.request.urlopen(req, timeout=2) as resp:
             import json
             models = [m["name"] for m in json.loads(resp.read()).get("models", [])]
-            qwen_present = any("qwen2.5" in m for m in models)
-            checks["ollama"] = f"ok (qwen={'present' if qwen_present else 'missing'})"
+            desired_model = os.environ.get("OLLAMA_MODEL", "krishimitra-llm").strip()
+            desired_base = desired_model.split(":", 1)[0]
+            model_present = any(
+                model == desired_model or model.split(":", 1)[0] == desired_base
+                for model in models
+            )
+            checks["ollama"] = (
+                f"ok (model={desired_model}, "
+                f"present={'yes' if model_present else 'no'})"
+            )
     except Exception:
         checks["ollama"] = "offline (local LLM unavailable)"
 
@@ -262,6 +270,124 @@ def readiness_check(request):
         "checks":    checks,
         "timestamp": _now(),
     }, status=status_code)
+
+
+def _configured_env(name: str) -> bool:
+    value = os.environ.get(name, "").strip()
+    return bool(value) and value.lower() not in {
+        "change_me",
+        "your_api_key_here",
+        "your_data_gov_in_api_key_here",
+    }
+
+
+@csrf_exempt
+def launch_readiness_check(request):
+    """Production launch gate with explicit, non-secret remediation details."""
+    import json
+
+    readiness_response = readiness_check(request)
+    try:
+        runtime_checks = json.loads(readiness_response.content).get("checks", {})
+    except Exception:
+        runtime_checks = {}
+
+    strict = (
+        os.environ.get("LAUNCH_CHECK", "false").lower() in {"1", "true", "yes"}
+        or request.GET.get("strict", "false").lower() in {"1", "true", "yes"}
+    )
+    blockers = []
+
+    def block(code: str, service: str, message: str, action: str) -> None:
+        blockers.append({
+            "code": code,
+            "service": service,
+            "message": message,
+            "action": action,
+        })
+
+    database_ok = str(runtime_checks.get("database", "")).startswith("ok")
+    phase1_ok = str(runtime_checks.get("phase1_ai", "")).startswith("ok")
+    ollama_status = str(runtime_checks.get("ollama", ""))
+    ollama_ok = ollama_status.startswith("ok") and "present=yes" in ollama_status
+    disease_ok = str(runtime_checks.get("crop_disease_model", "")).startswith("ok")
+    redis_required = not settings.DEBUG and bool(settings.RATE_LIMIT_ENABLED)
+    redis_ok = _configured_env("REDIS_URL")
+    data_gov_ok = _configured_env("DATA_GOV_IN_API_KEY")
+    sentry_ok = bool(getattr(settings, "SENTRY_DSN", None))
+
+    if not database_ok:
+        block(
+            "database_unavailable",
+            "database",
+            "The farmer data service is not ready.",
+            "Verify DATABASE_URL and database connectivity.",
+        )
+    if redis_required and not redis_ok:
+        block(
+            "redis_required",
+            "redis",
+            "Shared rate limiting and cache are not configured for production.",
+            "Set REDIS_URL to a production Redis instance.",
+        )
+    if not data_gov_ok:
+        block(
+            "mandi_api_key_missing",
+            "mandi",
+            "Full live mandi coverage is not configured.",
+            "Set DATA_GOV_IN_API_KEY from data.gov.in.",
+        )
+    if not phase1_ok:
+        block(
+            "phase1_offline",
+            "local_ai",
+            "The local knowledge and RAG service is unavailable.",
+            "Start Phase 1 and verify PHASE1_BASE_URL/health.",
+        )
+    if not ollama_ok:
+        block(
+            "ollama_model_unavailable",
+            "local_ai",
+            "The configured local language model is not available.",
+            "Install OLLAMA_MODEL and verify the Ollama tags endpoint.",
+        )
+    if not disease_ok:
+        block(
+            "disease_model_unverified",
+            "diagnostics",
+            "Image disease classification is not production-verified.",
+            "Keep advisory fallback enabled until model quality is production_candidate.",
+        )
+    if not sentry_ok:
+        block(
+            "sentry_missing",
+            "observability",
+            "Production error monitoring is not configured.",
+            "Set SENTRY_DSN before farmer launch.",
+        )
+
+    status_label = "blocked_for_launch" if blockers else "ready"
+    http_status = 503 if strict and blockers else 200
+    return JsonResponse({
+        "status": status_label,
+        "strict": strict,
+        "message": (
+            "Launch checks need attention. Development fallbacks remain available."
+            if blockers
+            else "All required farmer-launch checks passed."
+        ),
+        "checks": {
+            "database": database_ok,
+            "redis": redis_ok if redis_required else "not_required_in_debug",
+            "data_gov_in_api_key": data_gov_ok,
+            "phase1_rag": phase1_ok,
+            "ollama_model": ollama_ok,
+            "disease_model": disease_ok,
+            "sentry": sentry_ok,
+        },
+        "blockers": blockers,
+        "timestamp": _now(),
+    }, status=http_status)
 
 
 @csrf_exempt

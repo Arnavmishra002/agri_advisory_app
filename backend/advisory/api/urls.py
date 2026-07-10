@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 from .monitoring_views import (
     MonitoringViewSet,
     RateLimitViewSet,
+    launch_readiness_check,
     liveness_check,
     readiness_check,
     simple_health_check,
@@ -65,6 +66,7 @@ urlpatterns = [
     path("health/simple/", simple_health_check, name="simple_health"),
     path("health/liveness/", liveness_check, name="liveness_check"),
     path("health/readiness/", readiness_check, name="readiness_check"),
+    path("health/launch-readiness/", launch_readiness_check, name="launch_readiness_check"),
     path("health/sentry-test/", sentry_test, name="sentry_test"),
     path("health/data-freshness/", data_freshness, name="data_freshness"),
     path(
