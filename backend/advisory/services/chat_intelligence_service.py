@@ -528,6 +528,8 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
     (INTENT_GREETING, [
         r"\b(hi|hello|namaste|namaskar|hey|नमस्ते|नमस्कार|vanakkam|namaskaram|salam|adaab|pranam|jai\s*kisan)\b",
         r"^(helo|hii|kya\s*hal|kaisa\s*hai|kaise\s*hain|good\s*(morning|evening|afternoon|night))$",
+        # Word boundaries are unreliable for combining marks in Indic scripts.
+        r"^(नमस्ते|नमस्कार|सत\s*श्री\s*अकाल|வணக்கம்|నమస్కారం|ನಮಸ್ಕಾರ|നമസ്കാരം|নমস্কার|નમસ્તે|ਸਤ\s*ਸ੍ਰੀ\s*ਅਕਾਲ)[!?.।\s]*$",
         r"^(start|शुरू|shuru|help|madad|सहायता)\s*$",
     ]),
 
