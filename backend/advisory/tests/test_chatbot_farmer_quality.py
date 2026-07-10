@@ -30,6 +30,7 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
     def test_multilingual_farmer_questions_classify_to_expected_service(self):
         cases = {
             "kal barish hogi kya": INTENT_WEATHER,
+            "Delhi weather forecast for next week": INTENT_WEATHER,
             "gehu ka mandi bhav kya hai": INTENT_MARKET_PRICE,
             "wheat leaves have rust disease": INTENT_PEST_DISEASE,
             "धान में खाद कब डालें": INTENT_FERTILIZER,

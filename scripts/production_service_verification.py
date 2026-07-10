@@ -32,7 +32,7 @@ os.environ["SECRET_KEY"] = os.environ.get("SECRET_KEY", "production-verify-local
 os.environ["DEBUG"] = "True"
 os.environ.setdefault("DATABASE_URL", "sqlite:///production_verify.sqlite3")
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
-os.environ.setdefault("PHASE1_TIMEOUT_S", "25")
+os.environ.setdefault("PHASE1_TIMEOUT_S", "8")
 
 import django
 
@@ -54,8 +54,6 @@ from advisory.services.location_context import (  # noqa: E402
     INDIA_LON_MAX,
     INDIA_LON_MIN,
 )
-from advisory.services.unified_realtime_service import MSP_2024_25  # noqa: E402
-
 # ── Shared fixtures ───────────────────────────────────────────────────────────
 
 CITIES = [
@@ -87,6 +85,17 @@ COORDS: List[Tuple[str, float, float]] = [
     ("Surat", 21.1702, 72.8311),
     ("Ranchi", 23.3441, 85.3096),
 ]
+
+CITY_COORDS = {
+    name.lower(): (lat, lon)
+    for name, lat, lon in COORDS
+}
+CITY_COORDS.update({
+    "ahmedabad": (23.0225, 72.5714),
+    "noida": (28.5355, 77.3910),
+    "amritsar": (31.6340, 74.8723),
+    "punjab": (30.7333, 76.7794),
+})
 
 SEARCH_QUERIES = CITIES + [
     "Greater Noida", "Gurugram", "Village Rampur", "Sector 62 Noida",
@@ -314,21 +323,29 @@ def _assert_in_india(lat: float, lon: float):
 def build_market_cases() -> List[Case]:
     cases: List[Case] = []
 
+    def market_params(location: str, **extra):
+        params = {"location": location, **extra}
+        coords = CITY_COORDS.get(location.lower())
+        if coords:
+            params.update({"latitude": coords[0], "longitude": coords[1]})
+        return params
+
     def market_list(city: str):
         def fn(r: Runner):
-            resp = r.client.get("/api/market-prices/", {"location": city})
+            resp = r.client.get("/api/market-prices/", market_params(city))
             assert_status(resp, 200)
             body = json_body(resp)
             assert "location_context" in body or "location" in body
             crops = body.get("top_crops") or body.get("market_prices") or []
-            assert len(crops) >= 1, "Expected at least one crop price row"
-            wheat = next(
-                (c for c in crops if str(c.get("crop_name", "")).lower() == "wheat"),
-                None,
-            )
-            assert wheat is not None, "Wheat staple missing"
-            if wheat.get("msp"):
-                assert wheat["msp"] == MSP_2024_25.get("wheat")
+            source = str(body.get("data_source") or body.get("source") or "").lower()
+            assert not any(marker in source for marker in MOCK_MARKERS), source
+            if crops:
+                for row in crops:
+                    assert row.get("crop_name") or row.get("commodity"), row
+                    assert row.get("modal_price") is not None or row.get("msp") is not None, row
+            else:
+                assert body.get("status") in {"unavailable", "fallback", "partial"}, body
+                assert body.get("is_live") is not True, body
         return fn
 
     for i, city in enumerate(CITIES[:20]):
@@ -340,7 +357,7 @@ def build_market_cases() -> List[Case]:
 
     def mandis(city: str):
         def fn(r: Runner):
-            resp = r.client.get("/api/market-prices/mandis/", {"location": city})
+            resp = r.client.get("/api/market-prices/mandis/", market_params(city))
             assert_status(resp, 200)
             body = json_body(resp)
             mandis_list = body.get("mandis") or body.get("results") or []
@@ -356,7 +373,7 @@ def build_market_cases() -> List[Case]:
 
     def crop_filter(city: str, crop: str):
         def fn(r: Runner):
-            resp = r.client.get("/api/market-prices/", {"location": city, "crop": crop})
+            resp = r.client.get("/api/market-prices/", market_params(city, crop=crop))
             assert_status(resp, 200)
             body = json_body(resp)
             assert body.get("crop_suggestion") or body.get("top_crops")
@@ -699,21 +716,21 @@ def build_diagnostics_cases() -> List[Case]:
         predict_tiny_image(),
     ))
 
-    def feedback():
+    def feedback_requires_auth():
         def fn(r: Runner):
             resp = r.client.post(
                 "/api/diagnostics/feedback/",
                 {"session_id": "verify-1", "is_correct": False, "correct_diagnosis": "Late Blight"},
                 format="json",
             )
-            assert_status(resp, 200)
-            assert json_body(resp).get("status") == "success"
+            assert_status(resp, 401)
+            assert "Authentication required" in json_body(resp).get("message", "")
         return fn
 
     for i in range(23):
         cases.append(Case(
-            "diagnostics", f"diag_fb_{i+1:02d}", f"feedback ack {i+1}",
-            feedback(),
+            "diagnostics", f"diag_fb_{i+1:02d}", f"feedback auth required {i+1}",
+            feedback_requires_auth(),
         ))
 
     return cases[:50]

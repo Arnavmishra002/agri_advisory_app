@@ -536,7 +536,7 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
     # ── FOLLOW-UP ────────────────────────────────────────────────
     (INTENT_FOLLOWUP, [
         r"\b(uska|uski|iske|isi|yahi|wahi|उसका|उसकी|इसका|इसकी|यही|वही)\b",
-        r"\b(aur|phir|फिर|और\s*क्या|next|then|also|more|aage)\b\s*(batao|bataiye|tell|kya|kab|kitna|batao)?",
+        r"^(aur|phir|फिर|और\s*क्या|next|then|also|more|aage)\s*(batao|bataiye|tell|kya|kab|kitna)?$",
         r"\b(iske\s*baad|इसके\s*बाद|उसके\s*बाद|uske\s*baad|और\s*बताइए|more\s*about)\b",
         r"^(okay|ok|theek\s*hai|accha|acha|hmm|haan|ha)\s*$",
     ]),
