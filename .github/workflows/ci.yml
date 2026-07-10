@@ -2,7 +2,7 @@ name: KrishiMitra CI
 
 on:
   push:
-    branches: [main, master, develop, staging]
+    branches: [main, master, develop, staging, feature/premium-ui]
   pull_request:
     branches: [main, master, develop]
   workflow_dispatch:
@@ -78,7 +78,7 @@ jobs:
               print('MISSING routes:', missing); sys.exit(1)
           # Verify new endpoints exist in urlpatterns
           url_names = [p.name for p in urlpatterns if hasattr(p,'name') and p.name]
-          for ep in ['chatbot-stream','sentry_test','data_freshness','readiness_check']:
+          for ep in ['chatbot-stream','sentry_test','data_freshness','readiness_check','launch_readiness_check']:
               if ep not in url_names:
                   print(f'MISSING endpoint: {ep}'); sys.exit(1)
           print(f'✅ {len(routes)} router routes + new endpoints verified')
@@ -449,6 +449,28 @@ jobs:
           print(f'  ✅ Field sensor: {len(sc)} crops, {len(gaps)} gap plans')
           "
 
+      - name: Generate farmer-readiness reports
+        working-directory: ${{ github.workspace }}
+        continue-on-error: true
+        run: |
+          mkdir -p docs
+          timeout 180 python3 scripts/quick_services_check.py || true
+          timeout 240 python3 scripts/production_service_verification.py \
+            --json docs/PRODUCTION_TEST_REPORT.json \
+            --markdown docs/PRODUCTION_TEST_REPORT.md || true
+
+      - name: Upload farmer-readiness reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: farmer-readiness-reports-${{ github.run_id }}
+          path: |
+            docs/SERVICES_STATUS.md
+            docs/PRODUCTION_TEST_REPORT.md
+            docs/PRODUCTION_TEST_REPORT.json
+          if-no-files-found: warn
+          retention-days: 14
+
   # ── Frontend: Vite build ─────────────────────────────────────
   frontend:
     name: 🌐 Frontend
@@ -533,36 +555,89 @@ jobs:
   docker:
     name: 🐳 Docker build
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build production image (no push)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          target: production
-          push: false
-          load: true
-          tags: krishimitra-ai:ci-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Smoke-test container (Django check + warm_cache)
+      - name: Build and start API plus Phase 1
+        env:
+          APP_PORT: "8001"
+          PHASE1_PORT: "8002"
+          DEBUG: "True"
+          RATE_LIMIT_ENABLED: "false"
+          SECRET_KEY: "ci-docker-test-key"
+          DATABASE_URL: "sqlite:////app/data/ci.db"
+          DOCKER_PHASE1_TIMEOUT_S: "2"
+          DOCKER_OLLAMA_CHAT_TIMEOUT_S: "2"
         run: |
-          docker run --rm \
-            -e SECRET_KEY="ci-docker-test-key" \
-            -e DEBUG=True \
-            -e DATABASE_URL=sqlite:////tmp/ci.db \
-            -e ALLOWED_HOSTS="localhost,testserver" \
-            krishimitra-ai:ci-${{ github.sha }} \
-            sh -c "python manage.py check && python manage.py migrate --noinput && python manage.py warm_cache"
-          echo "✅ Docker container check + warm_cache passed"
+          docker compose --profile ai up --build -d web phase1
+
+      - name: Docker service smoke tests
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8001/api/health/ >/dev/null && \
+               curl -fsS http://127.0.0.1:8002/health >/dev/null; then
+              break
+            fi
+            if [ "$attempt" = "60" ]; then
+              docker compose --profile ai ps
+              docker compose --profile ai logs --no-color --tail=200 web phase1
+              exit 1
+            fi
+            sleep 2
+          done
+
+          curl -fsS http://127.0.0.1:8001/api/health/readiness/ > /tmp/readiness.json
+          curl -fsS http://127.0.0.1:8001/api/health/launch-readiness/ > /tmp/launch-readiness.json
+          curl -fsS http://127.0.0.1:8002/health > /tmp/phase1-health.json
+          curl -fsS -X POST http://127.0.0.1:8001/api/chatbot/query/ \
+            -H 'Content-Type: application/json' \
+            -d '{"query":"hii","language":"en","location":"Delhi","latitude":28.6139,"longitude":77.2090,"fast_mode":true}' \
+            > /tmp/chat.json
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          readiness = json.loads(Path('/tmp/readiness.json').read_text())
+          launch = json.loads(Path('/tmp/launch-readiness.json').read_text())
+          phase1 = json.loads(Path('/tmp/phase1-health.json').read_text())
+          chat = json.loads(Path('/tmp/chat.json').read_text())
+          assert readiness['status'] in {'ready', 'not_ready'}, readiness
+          assert launch['status'] in {'ready', 'degraded', 'blocked_for_launch'}, launch
+          assert phase1.get('status') in {'healthy', 'degraded'}, phase1
+          assert chat.get('status') == 'success', chat
+          assert chat.get('chatbot_diagnostics', {}).get('selected_tier') == 'instant_rule', chat
+          assert chat.get('response_time_ms', 999999) < 500, chat
+          print('Docker API, Phase 1, readiness, and fast chatbot smoke checks passed')
+          PY
+
+          docker compose exec -T web python manage.py check
+          docker compose exec -T web python manage.py warm_cache
+
+      - name: Docker logs on failure
+        if: failure()
+        run: docker compose --profile ai logs --no-color --tail=300 web phase1
+
+      - name: Stop Docker services
+        if: always()
+        run: docker compose --profile ai down -v --remove-orphans
+
+  # Optional strict gate for a deployed environment. Enable repository variable
+  # LAUNCH_CHECK=true and set LAUNCH_READINESS_URL to the deployed API base URL.
+  launch-gate:
+    name: Farmer launch gate
+    runs-on: ubuntu-latest
+    if: vars.LAUNCH_CHECK == 'true'
+    steps:
+      - name: Require deployed services to be launch-ready
+        env:
+          LAUNCH_READINESS_URL: ${{ vars.LAUNCH_READINESS_URL }}
+        run: |
+          test -n "$LAUNCH_READINESS_URL"
+          curl -fsS "${LAUNCH_READINESS_URL%/}/api/health/launch-readiness/?strict=true"
 
   # ── Code Quality ─────────────────────────────────────────────
   lint:
@@ -632,7 +707,7 @@ jobs:
   # ── CI Gate ──────────────────────────────────────────────────
   ci-complete:
     name: ✅ CI Complete
-    needs: [backend, frontend, mobile, lint]
+    needs: [backend, frontend, mobile, docker, lint]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -641,10 +716,12 @@ jobs:
           echo "Backend:  ${{ needs.backend.result }}"
           echo "Frontend: ${{ needs.frontend.result }}"
           echo "Mobile:   ${{ needs.mobile.result }}"
+          echo "Docker:   ${{ needs.docker.result }}"
           echo "Lint:     ${{ needs.lint.result }}"
           if [ "${{ needs.backend.result }}"  != "success" ] || \
              [ "${{ needs.frontend.result }}" != "success" ] || \
-             [ "${{ needs.mobile.result }}"   != "success" ]; then
+             [ "${{ needs.mobile.result }}"   != "success" ] || \
+             [ "${{ needs.docker.result }}"   != "success" ]; then
             echo "❌ CI failed"
             exit 1
           fi

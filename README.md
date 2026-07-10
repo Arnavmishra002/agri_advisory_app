@@ -74,6 +74,7 @@ Useful backend URLs:
 | `http://127.0.0.1:8000/` | API/root app |
 | `http://127.0.0.1:8000/api/health/` | Basic health |
 | `http://127.0.0.1:8000/api/health/readiness/` | Database, cache, AI, model readiness |
+| `http://127.0.0.1:8000/api/health/launch-readiness/` | Explicit production launch blockers |
 | `http://127.0.0.1:8000/api/schema/swagger-ui/` | Swagger UI |
 | `http://127.0.0.1:8000/admin/` | Django admin |
 
@@ -269,6 +270,8 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `GOOGLE_AI_API_KEY` | Optional | Gemini fallback for chatbot |
 | `OPENWEATHER_API_KEY` | Optional | OpenWeather fallback; Open-Meteo works without a key |
 | `REDIS_URL` | Production | Shared cache, rate limits, Celery broker |
+| `SENTRY_DSN` | Production | Error tracing without exposing farmer PII |
+| `LAUNCH_CHECK` | CI/deploy | Return HTTP 503 from strict launch checks when blockers remain |
 | `SERVE_FRONTEND` | Optional | Serve `frontend/dist/` from Django |
 | `VITE_API_BASE_URL` | Frontend | Browser API base URL |
 | `PHASE1_BASE_URL` | Optional | Django -> Phase 1 service URL |
@@ -322,6 +325,7 @@ Manual farmer-critical API probes:
 
 ```bash
 curl http://127.0.0.1:8000/api/health/readiness/
+curl "http://127.0.0.1:8000/api/health/launch-readiness/?strict=true"
 curl "http://127.0.0.1:8000/api/locations/search/?q=lucknow&limit=2"
 curl "http://127.0.0.1:8000/api/crops/search/?q=makhana"
 ```
@@ -330,7 +334,14 @@ curl "http://127.0.0.1:8000/api/crops/search/?q=makhana"
 
 The CI workflow validates backend routes and farmer-critical API behavior,
 frontend build health, mobile analysis, code quality rules, and Docker build
-contracts. Pull requests should be green before merging.
+contracts. It starts the API and Phase 1 containers, checks both health routes,
+and verifies an instant chatbot greeting. Quick-service and production reports
+are uploaded as Actions artifacts for 14 days even though generated `docs/`
+reports are ignored locally. Pull requests should be green before merging.
+
+For a deployed pre-launch gate, set repository variable `LAUNCH_CHECK=true` and
+`LAUNCH_READINESS_URL=https://your-api.example.com`. The optional Actions job
+then calls the strict endpoint and fails while any production blocker remains.
 
 ## Deployment
 
@@ -344,6 +355,30 @@ Recommended production setup:
 5. Optional Phase 1 service plus Ollama for local RAG/LLM.
 6. Trained crop disease model mounted at `models/crop_disease/`.
 7. `DATA_GOV_IN_API_KEY` set for stronger mandi coverage.
+8. `SENTRY_DSN`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, and
+   `CSRF_TRUSTED_ORIGINS` set to production values.
+9. `PHASE1_BASE_URL`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, and
+   `CHAT_LOCAL_AI_MAX_CONCURRENCY` matched to the deployed CPU/RAM capacity.
+
+Before launch, the strict readiness endpoint must return `ready`. Missing Redis,
+mandi key, Phase 1/RAG, configured Ollama model, production-candidate disease
+model, or Sentry are reported as explicit blockers. Development remains usable
+with honest fallback labels when `LAUNCH_CHECK=false`.
+
+Disease model training must use a licensed dataset manifest in the format at
+`backend/advisory/ml/dataset_manifest.schema.json`:
+
+```bash
+python -m advisory.ml.dataset_manifest data/datasets/dataset_manifest.json
+python -m advisory.ml.train --data-dir data/datasets \
+  --output-dir models/crop_disease --require-manifest
+python -m advisory.ml.evaluate --model-dir models/crop_disease \
+  --data-dir data/datasets
+```
+
+Evaluation writes per-class precision, recall, F1, support, and false-negative
+rates. Farmer image classification remains disabled unless metadata quality is
+`production_candidate`; otherwise diagnostics return `advisory_fallback`.
 
 Render/Railway style API-only deployments can use `Procfile`, `render.yaml`,
 or `scripts/deploy.sh`. Combined single-container deployments should build the
