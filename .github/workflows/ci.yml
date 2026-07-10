@@ -572,7 +572,8 @@ jobs:
           DOCKER_PHASE1_TIMEOUT_S: "2"
           DOCKER_OLLAMA_CHAT_TIMEOUT_S: "2"
         run: |
-          docker compose --profile ai up --build -d web phase1
+          docker compose build web
+          docker compose --profile ai up --no-build -d web phase1
 
       - name: Docker service smoke tests
         run: |
