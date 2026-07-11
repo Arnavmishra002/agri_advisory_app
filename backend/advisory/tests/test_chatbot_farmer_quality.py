@@ -55,6 +55,66 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertNotRegex(english["response"], r"[\u0900-\u097F]")
         self.assertEqual(hindi["ai_data_quality"]["tier"], "instant_rule")
 
+    @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
+    def test_live_mandi_question_uses_verified_data_without_llm(
+        self, market, kb_answer, qwen
+    ):
+        market.return_value = {
+            "status": "success",
+            "is_live": True,
+            "data_source": "data.gov.in Official API (Agmarknet OGD)",
+            "reported_date": "10-07-2026",
+            "top_crops": [{
+                "crop_name": "Wheat",
+                "crop_name_hindi": "गेहूँ",
+                "crop_id": "wheat",
+                "modal_price": 2510,
+                "msp": 2425,
+                "mandi_name": "Azadpur",
+                "is_live": True,
+            }],
+        }
+
+        result = self.service.answer(
+            "What is wheat mandi price today?", self.ctx, language="en"
+        )
+
+        self.assertIn("2510", result["response"])
+        self.assertEqual(result["ai_data_quality"]["tier"], "verified_realtime")
+        kb_answer.assert_not_called()
+        qwen.assert_not_called()
+
+    @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_weather_question_uses_verified_data_without_llm(
+        self, weather, kb_answer, qwen
+    ):
+        weather.return_value = {
+            "status": "success",
+            "is_live": True,
+            "data_source": "Open-Meteo",
+            "current": {
+                "temperature": 31,
+                "humidity": 62,
+                "wind_speed": 8,
+                "rainfall_mm": 0,
+                "condition": "Clear",
+            },
+            "forecast_7day": [],
+        }
+
+        result = self.service.answer(
+            "Delhi weather today", self.ctx, language="en"
+        )
+
+        self.assertIn("31", result["response"])
+        self.assertEqual(result["ai_data_quality"]["tier"], "verified_realtime")
+        kb_answer.assert_not_called()
+        qwen.assert_not_called()
+
     @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
@@ -86,6 +146,8 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         )
 
         self.assertIn("Live mandi prices unavailable", result["response"])
+        self.assertNotIn("2,425", result["response"])
+        self.assertNotIn("2425", result["response"])
         self.assertIn("unavailable", [source.lower() for source in result["sources"]])
         self.assertEqual(result["ai_data_quality"]["status"], "degraded")
 

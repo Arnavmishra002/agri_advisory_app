@@ -102,6 +102,14 @@ def _safe_temp(temp_str: str, fallback: float = 25.0) -> float:
     except (TypeError, ValueError):
         return fallback
 
+
+def _usable_text(value: Any) -> Optional[str]:
+    """Accept only non-empty model text, never truthy mock/object values."""
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    return value or None
+
 def _env_float(name: str, default: float) -> float:
     try:
         return float(_os.environ.get(name, str(default)))
@@ -285,6 +293,7 @@ def chatbot_quality_metadata(
     tier = diagnostics.get("selected_tier") or "unknown"
     labels = {
         "instant_rule": ("Instant advisory", "verified_local", 500),
+        "verified_realtime": ("Verified live data", "verified_realtime", 5000),
         "knowledge_base": ("Verified knowledge base", "verified_local", 500),
         "knowledge_base_local_llm": ("Local knowledge AI", "local_ai", 15000),
         "phase1_rag_ollama": ("Local AI + knowledge base", "local_ai", 15000),
@@ -300,6 +309,15 @@ def chatbot_quality_metadata(
         tier,
         ("Advisory source", "unknown", 3000),
     )
+    # A deterministic answer grounded in a verified government feed should
+    # remain marked as real-time even when local/cloud generation is skipped.
+    # This keeps the farmer-facing quality label about data provenance, not
+    # merely about which text generator produced the sentence.
+    if tier == "rule_based_fallback" and "verified realtime" in (data_source or "").lower():
+        tier = "verified_realtime"
+        label = "Verified live data"
+        quality_status = "verified_realtime"
+        target_ms = 5000
     elapsed = diagnostics.get("total_llm_ms")
     return {
         "tier": tier,
@@ -1118,6 +1136,58 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             _weather=weather_data, _prices=prices_data,
         )
 
+        # Weather and mandi answers are factual data lookups. Once their live
+        # fetch is complete, render them directly so a stale KB entry or model
+        # hallucination cannot replace an official current value. This also
+        # keeps the most common farmer questions inside the low-latency path.
+        if intent in (INTENT_WEATHER, INTENT_MARKET_PRICE):
+            is_live = (
+                weather_data.get("is_live")
+                if intent == INTENT_WEATHER
+                else prices_data.get("is_live")
+            ) is True
+            selected_tier = "verified_realtime" if is_live else "rule_based_fallback"
+            fallback_reason = "" if is_live else (
+                "live_weather_unavailable"
+                if intent == INTENT_WEATHER
+                else "live_mandi_unavailable"
+            )
+            _set_chat_meta(
+                selected_tier=selected_tier,
+                fallback_reason=fallback_reason,
+                total_llm_ms=int((_time.monotonic() - answer_started) * 1000),
+            )
+            response_text = self._smart_rule_response(
+                query, intent, crops_mentioned, ctx, context_block, lang, history,
+                sc=sc, wc=wc,
+            )
+            data_source = (
+                "Verified realtime weather data"
+                if intent == INTENT_WEATHER and is_live
+                else "Verified realtime mandi data"
+                if intent == INTENT_MARKET_PRICE and is_live
+                else "Live weather feed unavailable"
+                if intent == INTENT_WEATHER
+                else "Live mandi feed unavailable"
+            )
+            diagnostics = dict(_chat_meta())
+            now = datetime.now(tz=timezone.utc)
+            return {
+                "response": response_text,
+                "intent": intent,
+                "sources": list(dict.fromkeys(sources)),
+                "crops_detected": [c["name"] for c in crops_mentioned],
+                "crop_suggestions": self._crop_suggestions_for_intent(
+                    ctx, intent, crops_mentioned, lang=lang
+                ),
+                "language": lang,
+                "data_source": data_source,
+                "timestamp": now.isoformat(),
+                "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
+                "chatbot_diagnostics": diagnostics,
+                "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
+            }
+
         # ── History block (for Gemini prompt) ────────────────────
         history_block = "(new conversation)"
         if history:
@@ -1199,8 +1269,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 language=lang,
                 weather_context=_wc_to_dict(wc),
             )
-            if kb_result.get("answer"):
-                response_text = kb_result["answer"]
+            kb_text = _usable_text(kb_result.get("answer"))
+            if kb_text:
+                response_text = kb_text
                 kb_source = kb_result.get("source", "knowledge_base")
                 _set_chat_meta(
                     selected_tier=(
@@ -1221,10 +1292,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # Tier 1: krishimitra-llm — analyses ALL real-time data before responding
         if not response_text and not fast_mode:
-            response_text = self._qwen_rag_answer(
+            response_text = _usable_text(self._qwen_rag_answer(
                 query=query, ctx=ctx, lang=lang, history=history,
                 sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
-            )
+            ))
             if response_text:
                 data_source = _chat_meta().get("source_label") or "krishimitra-llm (fine-tuned KCC model)"
 
@@ -1237,10 +1308,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     market_price_str=market_str, history_block=history_block,
                     lang=lang, season=season,
                 )
-                response_text = gemini_service.generate(
+                response_text = _usable_text(gemini_service.generate(
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
-                )
+                ))
                 if response_text:
                     _set_chat_meta(selected_tier="gemini", fallback_reason="")
                     data_source = "Gemini AI + Official gov APIs"
@@ -1260,6 +1331,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 query, intent, crops_mentioned, ctx, context_block, lang, history,
                 sc=sc, wc=wc,
             )
+            if intent == INTENT_MARKET_PRICE and prices_data.get("is_live"):
+                data_source = "Verified realtime mandi data + KrishiMitra rules"
+            elif intent == INTENT_WEATHER and weather_data.get("is_live"):
+                data_source = "Verified realtime weather data + KrishiMitra rules"
 
         _set_chat_meta(total_llm_ms=int((_time.monotonic() - answer_started) * 1000))
 
@@ -1906,13 +1981,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         crops: List[Dict[str, Any]],
     ) -> str:
         if not prices.get("is_live"):
-            parts = []
-            for crop in crops[:3]:
-                msp = MSP_2024_25.get(crop["id"])
-                if msp:
-                    parts.append(f"{crop['name'].title()}: ₹{msp}/q (MSP 2024-25)")
-            base = "; ".join(parts) if parts else "N/A"
-            return f"{base} — live mandi data unavailable, check agmarknet.gov.in"
+            return "Live mandi price rows are unavailable; do not quote an estimated price. Check agmarknet.gov.in."
 
         top = [c for c in (prices.get("top_crops") or []) if c.get("is_live")]
         if crops:
@@ -2714,30 +2783,18 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 }.get(lang, "")
                 return alert_prefix + header + body + footer
             else:
-                msp_body = ""
-                if msp_lines:
-                    for line in msp_lines[:5]:
-                        msp_body += f"• {line.replace('[MSP 2024-25]', '').strip()}\n"
-                else:
-                    msp_body = (
-                        "• गेहूँ: ₹2,425/q\n• धान: ₹2,369/q\n• सरसों: ₹5,950/q\n"
-                        "• मक्का: ₹2,400/q\n• सोयाबीन: ₹4,892/q"
-                        if lang == "hi" else
-                        "• Wheat: ₹2,425/q\n• Rice: ₹2,369/q\n• Mustard: ₹5,950/q\n"
-                        "• Maize: ₹2,400/q\n• Soybean: ₹4,892/q"
-                    )
                 no_live = {
                     "hi": (
-                        f"⚠️ आज का लाइव मंडी भाव उपलब्ध नहीं।\n\n"
-                        f"📊 **MSP 2024-25** (न्यूनतम समर्थन मूल्य):\n{msp_body}\n\n"
-                        f"🌐 agmarknet.gov.in पर देखें\n📞 eNAM: 1800-270-0224"
+                        f"⚠️ आज का लाइव मंडी भाव उपलब्ध नहीं है।\n\n"
+                        f"अंदाज़े या पुराने भाव नहीं दिखाए जा रहे हैं।\n"
+                        f"🌐 agmarknet.gov.in पर ताज़ा भाव देखें\n📞 eNAM: 1800-270-0224"
                     ),
                     "en": (
-                        f"⚠️ Live mandi prices unavailable.\n\n"
-                        f"📊 **MSP 2024-25** (Minimum Support Price):\n{msp_body}\n\n"
-                        f"🌐 Check agmarknet.gov.in\n📞 eNAM: 1800-270-0224"
+                        f"⚠️ Live mandi prices unavailable right now.\n\n"
+                        f"No estimated or historical price is being shown.\n"
+                        f"🌐 Check agmarknet.gov.in for the latest official price\n📞 eNAM: 1800-270-0224"
                     ),
-                }.get(lang, f"Live mandi prices unavailable. MSP:\n{msp_body}")
+                }.get(lang, "Live mandi prices are unavailable. No estimated price is being shown.")
                 return alert_prefix + no_live
 
         # ── GOVERNMENT SCHEMES ────────────────────────────────────

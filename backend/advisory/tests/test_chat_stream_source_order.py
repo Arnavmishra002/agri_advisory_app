@@ -295,11 +295,13 @@ class ChatLocalLLMTimeoutTests(SimpleTestCase):
             "forecast_7day": [],
             "farming_alerts": [],
             "data_source": "Open-Meteo live",
+            "is_live": True,
         }
 
         result = self.service.answer("Lucknow weather today", self.ctx, language="en")
 
-        self.assertEqual(result["response"], "Weather answer")
+        self.assertIn("28", result["response"])
+        self.assertEqual(result["ai_data_quality"]["tier"], "verified_realtime")
         get_weather.assert_called()
         get_prices.assert_not_called()
 
