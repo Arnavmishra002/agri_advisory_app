@@ -46,8 +46,9 @@ agri_advisory_app/
   Ollama next, Gemini only when `GOOGLE_AI_API_KEY` is configured, then a
   rule-based farmer-safe fallback.
 - Weather uses Open-Meteo without an API key. `OPENWEATHER_API_KEY` is optional.
-- Mandi prices work best with `DATA_GOV_IN_API_KEY`; without it coverage and
-  rate limits are restricted.
+- Mandi prices use only fresh, dated official Agmarknet/data.gov.in rows.
+  Without a valid `DATA_GOV_IN_API_KEY`, state and mandi coverage may be
+  unavailable; the app never substitutes synthetic or MSP-estimate prices.
 - Crop recommendations are location-aware and use weather/market data with
   bounded fallbacks.
 - Disease diagnostics do not fake image classification. If the trained model is
@@ -267,6 +268,7 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `CORS_ALLOWED_ORIGINS` | Production | Frontend origins allowed to call API |
 | `CSRF_TRUSTED_ORIGINS` | Production | Trusted origins for state-changing requests |
 | `DATA_GOV_IN_API_KEY` | Recommended | Fuller live mandi coverage |
+| `MANDI_MAX_DATA_AGE_HOURS` | Optional | Maximum accepted age for an official daily mandi row; default `72` |
 | `GOOGLE_AI_API_KEY` | Optional | Gemini fallback for chatbot |
 | `OPENWEATHER_API_KEY` | Optional | OpenWeather fallback; Open-Meteo works without a key |
 | `REDIS_URL` | Production | Shared cache, rate limits, Celery broker |

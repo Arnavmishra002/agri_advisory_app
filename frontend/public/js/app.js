@@ -1071,7 +1071,6 @@
         const banner = document.getElementById('marketLiveBanner');
         if (!banner) return;
 
-        const showEstimates = document.getElementById('showMspEstimates')?.checked;
         const isLive        = data.is_live === true && data.status !== 'fallback';
         const isPartial     = data.status === 'partial';
         const isFallback    = data.status === 'fallback' || data._auto_estimates;
@@ -1125,7 +1124,6 @@
         </div>`;
 
         try {
-            const estimatesChecked = document.getElementById('showMspEstimates')?.checked;
             let data;
 
             // Use mandi-specific endpoint when a mandi is selected (more accurate)
@@ -1133,32 +1131,20 @@
                 let mandiPath = `/api/market-prices/mandi-prices/?${buildLocationQuery()}`;
                 mandiPath += `&mandi=${encodeURIComponent(currentMandi)}`;
                 if (currentCropSearch) mandiPath += `&crop=${encodeURIComponent(currentCropSearch)}`;
-                if (estimatesChecked) mandiPath += '&include_estimates=true';
                 data = await apiGetJson(mandiPath);
             } else {
                 // Generic state-level prices
                 let marketPath = `/api/market-prices/?${buildLocationQuery()}`;
                 if (currentCropSearch) marketPath += `&crop=${encodeURIComponent(currentCropSearch)}`;
-                if (estimatesChecked) marketPath += '&include_estimates=true';
                 data = await apiGetJson(marketPath);
-            }
-
-            // Auto-fetch estimates if no live rows and estimates not yet shown
-            if ((!data.top_crops || data.top_crops.length === 0) &&
-                (data.status === 'unavailable' || data.status === 'partial') && !estimatesChecked) {
-                const ePath = currentMandi
-                    ? `/api/market-prices/mandi-prices/?${buildLocationQuery()}&mandi=${encodeURIComponent(currentMandi)}&include_estimates=true`
-                    : `/api/market-prices/?${buildLocationQuery()}&include_estimates=true${currentCropSearch ? '&crop=' + encodeURIComponent(currentCropSearch) : ''}`;
-                const est = await apiGetJson(ePath);
-                if (est.top_crops?.length) { data = est; data._auto_estimates = true; }
             }
 
             _mandiLastFetchedAt = new Date();
             updateMarketLiveBanner(data);
             _renderMarketPrices(data, container);
 
-            // Schedule auto-refresh (live: 3min, estimates: 10min)
-            const refreshMs = data.is_live ? 180000 : 600000;
+            // Refresh live data every 5 minutes; retry an unavailable feed in 1 minute.
+            const refreshMs = data.is_live ? 300000 : 60000;
             _mandiRefreshTimer = setTimeout(() => {
                 const badge = document.getElementById('mandiStatusBadge');
                 if (badge) badge.textContent += ' (refreshing…)';
@@ -1175,7 +1161,7 @@
 
     function _renderMarketPrices(data, container) {
         const crops = (data.top_crops || data.crops || []).filter(c => {
-            if (data.is_live && !document.getElementById('showMspEstimates')?.checked) {
+            if (data.is_live) {
                 return c.price_source !== 'msp_seasonal_estimate' && c.price_source !== 'msp_mandi_estimate' && !c.supplemented;
             }
             return true;
@@ -1207,7 +1193,6 @@
                         <li><code>.env</code> में <code>DATA_GOV_IN_API_KEY=your_key</code> set करें</li>
                         <li>Server restart करें</li>
                     </ol>
-                    <div style="margin-top:10px;">या <button class="btn btn-sm btn-outline-warning" onclick="document.getElementById('showMspEstimates').checked=true;loadMarketPrices();">MSP अनुमान देखें</button></div>
                   </div>`
                 : '';
             container.innerHTML = `<div style="padding:20px;text-align:center;">
