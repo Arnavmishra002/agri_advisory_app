@@ -8,10 +8,8 @@ Key design decisions:
   - 1-hour in-memory cache — government API updates only once per day (~9 AM IST)
   - 30-second timeout with 2 retries — API is sometimes slow
   - Browser-like headers — required to avoid bot detection
-  - Static seed data fallback — if the API is unavailable, serves the last
-    known national prices so farmers always see something meaningful
-  - Graceful degradation — any failure returns None and MarketPricesService
-    falls through to data.gov.in → MSP estimates
+  - Live-only contract — failures return None; historical seed rows are never
+    returned by public price methods
 
 Coverage (25 commodities confirmed):
   Cereals:  Wheat, Paddy, Maize, Jowar, Bajra, Ragi, Barley
@@ -112,7 +110,7 @@ _SEED_PRICES: List[Dict[str, Any]] = [
 
 class AgmarknetDirectClient:
     """
-    Agmarknet Direct API client with retry, caching, and seed fallback.
+    Agmarknet Direct API client with retry and live-response caching.
     No authentication required.
     """
 
@@ -144,15 +142,13 @@ class AgmarknetDirectClient:
         })
         self._cache:    Dict[str, Any]   = {}
         self._cache_ts: Dict[str, float] = {}
-        # Pre-load seed data so first call is instant
-        self._seed_loaded = False
 
     # ── Public API ────────────────────────────────────────────────────────────
 
     def get_national_prices(self, force_refresh: bool = False) -> Optional[Dict[str, Any]]:
         """
         Fetch today's national commodity prices.
-        Returns cached data if < 1 hour old. Falls back to seed data if API times out.
+        Returns cached official data if < 1 hour old, otherwise None on failure.
         """
         cache_key = "national"
         if not force_refresh and cache_key in self._cache:
@@ -165,14 +161,16 @@ class AgmarknetDirectClient:
         if records:
             reported = records[0].get("reported_date", "") if records else ""
             result = self._format_response(records, reported, is_live=True)
+            if not result.get("top_crops"):
+                logger.warning("Agmarknet Direct: response contained no fresh official rows")
+                return None
             self._cache[cache_key]    = result
             self._cache_ts[cache_key] = time.time()
             logger.info("Agmarknet Direct: loaded %d live prices for %s", len(records), reported)
             return result
 
-        # Fall back to seed data (guaranteed to have data)
-        logger.info("Agmarknet Direct: API unavailable — serving seed prices")
-        return self._get_seed_result()
+        logger.warning("Agmarknet Direct: live API unavailable; no fallback prices returned")
+        return None
 
     def get_prices_for_crops(self, crop_ids: List[str]) -> List[Dict[str, Any]]:
         """Return price rows filtered to the requested crop IDs."""
@@ -182,8 +180,9 @@ class AgmarknetDirectClient:
         return [r for r in data.get("top_crops", []) if r.get("crop_id") in crop_ids]
 
     def is_available(self) -> bool:
-        """Quick check — True if the API is reachable (tries seed as fallback)."""
-        return True   # we always have seed data, so always "available"
+        """Return True only when the live dashboard API produces price rows."""
+        data = self.get_national_prices(force_refresh=True)
+        return bool(data and data.get("is_live") and data.get("top_crops"))
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
@@ -205,7 +204,7 @@ class AgmarknetDirectClient:
             records = raw.get("data", {}).get("records", [])
             return records if records else None
         except requests.exceptions.Timeout:
-            logger.warning("Agmarknet Direct: timeout — using seed data")
+            logger.warning("Agmarknet Direct: timeout — no live price rows available")
         except requests.exceptions.ConnectionError as exc:
             logger.warning("Agmarknet Direct: connection error: %s", exc)
         except Exception as exc:
@@ -267,6 +266,16 @@ class AgmarknetDirectClient:
                 "is_live":         is_live,
             })
 
+        if is_live:
+            from .market_data_quality import filter_fresh_live_rows
+
+            top_crops, age_minutes, newest_date = filter_fresh_live_rows(
+                top_crops, response_date=reported_date
+            )
+            reported_date = newest_date
+        else:
+            age_minutes = None
+
         source_label = (
             "Agmarknet 2.0 (Live — no key needed)"
             if is_live else
@@ -278,11 +287,13 @@ class AgmarknetDirectClient:
             "is_live":           is_live,
             "data_source":       source_label,
             "reported_date":     reported_date,
+            "data_age_minutes":  age_minutes,
+            "freshness":         "latest_official" if is_live and top_crops else "historical_reference",
             "top_crops":         top_crops,
             "total_records":     len(top_crops),
-            "message":           f"National prices as of {reported_date} (Agmarknet 2.0)",
+            "message":           f"Latest official national prices reported {reported_date} (Agmarknet 2.0)",
             "using_demo_key":    False,
-            "api_key_registered": True,
+            "api_key_registered": False,
             "coverage":          "national",
             "timestamp":         datetime.now().isoformat(),
         }

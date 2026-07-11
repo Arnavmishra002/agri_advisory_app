@@ -22,7 +22,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
     def list(self, request):
         """
         Get real-time mandi prices for the user's location.
-        Hits Agmarknet 2.0 API → data.gov.in → MSP estimate (labeled).
+        Uses official Agmarknet/data.gov.in feeds only. If no fresh official
+        row is available, the response is explicitly unavailable and contains
+        no estimated price.
         """
         try:
             ctx = resolve_request_location(request)
@@ -101,14 +103,15 @@ class MarketPricesViewSet(viewsets.ViewSet):
     def mandi_prices(self, request):
         """
         Get real-time prices specifically for a single selected mandi.
-        Tries Agmarknet 2.0 with mandi filter → data.gov.in filtered →
-        MSP seasonal estimate (labeled) as last resort.
+        Tries official Agmarknet/data.gov.in sources with the selected mandi
+        and returns unavailable when no fresh official row can be verified.
 
         Query params:
           mandi       — mandi name (required)
           state       — state name (optional, improves accuracy)
           crop        — optional commodity filter
-          include_estimates — show MSP estimates if no live data (default false)
+          include_estimates — accepted for backwards compatibility; ignored
+                              because synthetic prices are never returned
         """
         try:
             ctx  = resolve_request_location(request)
@@ -200,12 +203,16 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 "data_gov_key_set":    has_datagov_key,
                 "source_priority": [
                     {"tier": 1, "name": "data.gov.in OGD API", "active": has_datagov_key},
-                    {"tier": 2, "name": "Agmarknet Direct (no key)", "active": not has_datagov_key},
-                    {"tier": 3, "name": "Seed/Reference prices", "active": False},
+                    {
+                        "tier": 2,
+                        "name": "Agmarknet Direct (no key)",
+                        "active": bool(probe.get("is_live")) and not has_datagov_key,
+                    },
+                    {"tier": 3, "name": "Unavailable (no synthetic prices)", "active": False},
                 ],
                 "data_source":         probe.get("data_source", ""),
                 "setup_instructions": (
-                    None if has_datagov_key else
+                    None if has_datagov_key or probe.get("is_live") else
                     "Register free at https://data.gov.in/user/register → "
                     "API Keys → copy key → set DATA_GOV_IN_API_KEY in .env"
                 ),

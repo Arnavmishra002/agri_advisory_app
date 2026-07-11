@@ -3,10 +3,81 @@ from unittest.mock import Mock, patch
 from django.test import TestCase
 
 from advisory.services.enhanced_market_prices import EnhancedMarketPricesService
+from advisory.services.agmarknet_direct_client import AgmarknetDirectClient
+from advisory.services.data_gov_mandi_client import DataGovMandiClient
 from advisory.services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
+from advisory.services.unified_realtime_service import MarketPricesService
 
 
 class MarketDataSecurityTests(TestCase):
+    @patch.object(DataGovMandiClient, "_fetch_data_gov", return_value=None)
+    @patch.object(DataGovMandiClient, "_fetch_agmarknet_direct", return_value=None)
+    def test_live_client_returns_unavailable_instead_of_seed_prices(
+        self, _direct, _data_gov
+    ):
+        service = DataGovMandiClient()
+
+        response = service.get_national_prices(force_refresh=True)
+
+        self.assertEqual(response["status"], "unavailable")
+        self.assertFalse(response["is_live"])
+        self.assertEqual(response["top_crops"], [])
+
+    @patch.object(AgmarknetDirectClient, "_fetch_live", return_value=None)
+    def test_agmarknet_direct_does_not_serve_seed_prices(self, _fetch_live):
+        response = AgmarknetDirectClient().get_national_prices(force_refresh=True)
+
+        self.assertIsNone(response)
+
+    @patch("advisory.services.data_gov_mandi_client.data_gov_mandi_client.get_national_prices")
+    @patch("advisory.services.agmarknet_client.agmarknet_client.get_market_prices", return_value=None)
+    def test_market_service_rejects_non_live_upstream_rows(self, _agmarknet, national):
+        national.return_value = {
+            "status": "fallback",
+            "is_live": False,
+            "data_source": "seed_fallback",
+            "top_crops": [{
+                "crop_name": "Wheat",
+                "modal_price": 2400,
+                "price_source": "seed_fallback",
+                "is_live": False,
+            }],
+        }
+
+        response = MarketPricesService().get_prices(
+            "Delhi", state="Delhi", crop="wheat"
+        )
+
+        self.assertEqual(response["status"], "unavailable")
+        self.assertFalse(response["is_live"])
+        self.assertEqual(response["top_crops"], [])
+
+    def test_market_service_rejects_undated_live_rows(self):
+        response = MarketPricesService._validated_live_data({
+            "status": "success",
+            "is_live": True,
+            "data_source": "official test feed",
+            "top_crops": [{
+                "crop_name": "Wheat",
+                "modal_price": 2400,
+                "price_source": "data_gov_in_official",
+                "is_live": True,
+            }],
+        })
+
+        self.assertIsNone(response)
+
+    def test_data_gov_formatter_rejects_rows_without_publication_date(self):
+        response = DataGovMandiClient()._format_datagov_response([
+            {
+                "commodity": "Wheat",
+                "modal_price": "2400",
+                "market": "Test Mandi",
+            }
+        ])
+
+        self.assertEqual(response, {})
+
     @patch.dict("os.environ", {"DATA_GOV_IN_API_KEY": ""})
     def test_data_gov_requests_do_not_use_hardcoded_api_key(self):
         service = EnhancedMarketPricesService()

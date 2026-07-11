@@ -623,7 +623,7 @@ def _parse_owm_forecast(items: list) -> List[Dict]:
 #  MARKET PRICES SERVICE
 # ─────────────────────────────────────────────────────────────────────────────
 class MarketPricesService:
-    """Real-time mandi prices: Agmarknet 2.0 API → data.gov.in → MSP estimate (labeled)."""
+    """Latest official mandi prices from Agmarknet/data.gov.in, with no price fallback."""
 
     def __init__(self):
         # BUG 4 FIX: bounded FIFO cache — prevents unbounded RAM growth in
@@ -635,9 +635,7 @@ class MarketPricesService:
         self._cache_ts: Dict[str, datetime] = {}
         # Agmarknet updates once daily (~9 AM IST). A 3-min TTL causes unnecessary
         # hammering — each expiry fires a real network call for no new data.
-        # 60 min for live data (Agmarknet), 24 h for seed/estimate fallback.
-        self.CACHE_TTL      = 3600   # 60 min — live Agmarknet data
-        self.CACHE_TTL_SEED = 86400  # 24 h  — seed/MSP-estimate fallback
+        self.CACHE_TTL = 3600
         # BUG 5 FIX: use per-thread session to prevent urllib3 connection pool
         # corruption when the module-level ThreadPoolExecutor calls get_prices()
         # concurrently from multiple threads sharing the same Session object.
@@ -669,7 +667,7 @@ class MarketPricesService:
         state: str = None,
         include_estimates: bool = False,
     ) -> Dict[str, Any]:
-        """Get real-time mandi prices from government APIs (no silent MSP fill)."""
+        """Get fresh official prices; ``include_estimates`` is ignored for compatibility."""
         coord_key = (
             f"{round(lat, 4)}:{round(lon, 4)}" if lat is not None and lon is not None else ""
         )
@@ -680,25 +678,18 @@ class MarketPricesService:
             _cache_token(state),
             _cache_token(mandi),
             _cache_token(crop),
-            "est" if include_estimates else "live",
+            "live_only",
         ])
         if cache_key in self._cache:
             age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
             cached = self._cache[cache_key]
-            # Live Agmarknet data: 60-min TTL (API updates once daily — 3-min TTL
-            # was causing 20× unnecessary network calls with no new data).
-            # Seed/MSP-estimate fallback: 24-h TTL (it never changes intraday).
-            ttl = self.CACHE_TTL_SEED if not cached.get("is_live") else self.CACHE_TTL
-            if age < ttl:
+            if age < self.CACHE_TTL:
                 return cached
 
         data = None
 
-        # Priority 0: data.gov.in official API (free key) → Agmarknet scraper → seed prices
-        # DataGovMandiClient handles the full fallback chain automatically:
-        #   data.gov.in OGD API (if DATA_GOV_IN_API_KEY is set and valid)
-        #   → Agmarknet direct dashboard (no key needed — 25 commodities)
-        #   → Hardcoded seed prices (always returns data, labeled clearly)
+        # Priority 0: data.gov.in official API; national Agmarknet dashboard is
+        # used only when no state scope was requested.
         # Redis-backed cache (1-hour TTL, shared across all Gunicorn workers).
         try:
             from .data_gov_mandi_client import data_gov_mandi_client
@@ -706,10 +697,10 @@ class MarketPricesService:
                 commodity=crop or None,
                 state=state or None,
             )
+            direct_data = self._validated_live_data(direct_data)
             if direct_data and direct_data.get("top_crops"):
                 # If a specific crop is requested, filter to that crop first
                 # DataGovMandiClient already filters by commodity & state internally;
-                # accept result directly. Fallback chain (Agmarknet → seed) already applied.
                 data = direct_data
                 source_short = direct_data.get("data_source_short", "data.gov.in/Agmarknet")
                 logger.info(
@@ -728,9 +719,10 @@ class MarketPricesService:
                 p1_data = agmarknet_client.get_market_prices(
                     location, mandi, crop, state=resolved_state or state
                 )
+                p1_data = self._validated_live_data(p1_data)
                 if p1_data and p1_data.get("top_crops"):
                     logger.info("Market prices from Agmarknet API for %s", location)
-                    data = self._tag_live_crop_rows(p1_data)
+                    data = p1_data
             except Exception as exc:
                 logger.warning("Agmarknet client error: %s", exc)
 
@@ -742,13 +734,9 @@ class MarketPricesService:
                     data = self._fetch_data_gov(
                         location, mandi, crop, resource_key, api_key, state=state
                     )
+                    data = self._validated_live_data(data)
                     if data:
-                        data = self._tag_live_crop_rows(data)
                         break
-
-        # Optional MSP seasonal estimates (opt-in only — never presented as mandi trades)
-        if not data and include_estimates:
-            data = self._curated_fallback(location, mandi, crop)
 
         if not data:
             data = self._unavailable_market_response(
@@ -815,6 +803,34 @@ class MarketPricesService:
         data["top_crops"] = tagged
         return data
 
+    @staticmethod
+    def _validated_live_data(data: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Reject fallback, stale, undated, and non-positive upstream price rows."""
+        if not data or data.get("is_live") is not True:
+            return None
+        from .market_data_quality import filter_fresh_live_rows, max_market_age_hours
+
+        rows, age_minutes, reported_date = filter_fresh_live_rows(
+            data.get("top_crops") or [],
+            response_date=data.get("reported_date"),
+        )
+        if not rows:
+            logger.warning(
+                "Rejected mandi response: no verifiably fresh rows within %.0f hours from %s",
+                max_market_age_hours(),
+                data.get("data_source", "unknown source"),
+            )
+            return None
+        result = dict(data)
+        result["top_crops"] = rows
+        result["total_records"] = len(rows)
+        result["reported_date"] = reported_date
+        result["data_age_minutes"] = age_minutes
+        result["freshness"] = "latest_official"
+        result["status"] = "success"
+        result["is_live"] = True
+        return result
+
     def _unavailable_market_response(
         self,
         location: str,
@@ -823,11 +839,10 @@ class MarketPricesService:
         state: Optional[str] = None,
     ) -> Dict[str, Any]:
         registered = self._has_registered_data_gov_key()
-        using_demo = not registered
         msg = (
-            "Live mandi data unavailable — configure DATA_GOV_IN_API_KEY in .env "
-            "(free registration at https://data.gov.in/user/register). "
-            "The public demo key returns only 10 rows and is rate-limited."
+            "Current official mandi prices are unavailable. Configure a valid "
+            "DATA_GOV_IN_API_KEY for state and mandi coverage, then try again. "
+            "No estimated or historical fallback price is being shown."
         )
         if crop:
             msg = (
@@ -842,11 +857,11 @@ class MarketPricesService:
         return {
             "status": "unavailable",
             "is_live": False,
-            "using_demo_key": using_demo,
+            "using_demo_key": False,
             "api_key_registered": registered,
             "location": location,
             "state": state or "",
-            "data_source": "Agmarknet (API key required for live data)",
+            "data_source": "Agmarknet/data.gov.in live feeds",
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "top_crops": [],
             "total_records": 0,
@@ -856,51 +871,18 @@ class MarketPricesService:
     def _finalize_market_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         data       = dict(data)
         registered = self._has_registered_data_gov_key()
-        # Bug 6 fix: _effective_data_gov_key() returns None (not the shared demo key)
-        # when no registered key is configured.
-        using_demo = self._effective_data_gov_key() is None
-        data["using_demo_key"]     = data.get("using_demo_key", using_demo)
+        data["using_demo_key"] = False
         data["api_key_registered"] = registered
 
-        top = list(data.get("top_crops") or [])
-        live_rows = [
-            c for c in top
-            if c.get("is_live")
-            or (
-                c.get("price_source") == "live_mandi"
-                and not c.get("supplemented")
-            )
-        ]
-        estimate_rows = [
-            c for c in top
-            if c.get("price_source") in ("msp_mandi_estimate", "msp_seasonal_estimate")
-            or c.get("supplemented")
-        ]
-
-        src = str(data.get("data_source") or "").lower()
-        is_msp_only = data.get("status") == "fallback" or "msp" in src or "estimate" in src
-
-        if is_msp_only or (estimate_rows and not live_rows):
-            data["is_live"] = False
-            data["status"] = "fallback"
-        elif live_rows and estimate_rows:
+        top = [dict(c) for c in (data.get("top_crops") or []) if c.get("is_live") is True]
+        data["top_crops"] = top
+        data["total_records"] = len(top)
+        if top:
             data["is_live"] = True
-            data["status"] = "partial"
-        elif live_rows:
-            data["is_live"] = True
-            if data.get("status") not in ("fallback", "unavailable"):
-                data["status"] = "success"
+            data["status"] = "success"
         else:
             data["is_live"] = False
-            if data.get("status") != "fallback":
-                data["status"] = "unavailable"
-
-        if using_demo and live_rows:
-            note = (
-                "Using data.gov.in demo key (max 10 rows). Register your own "
-                "DATA_GOV_IN_API_KEY for full state coverage."
-            )
-            data["message"] = f"{data.get('message', '')} {note}".strip()
+            data["status"] = "unavailable"
 
         # Always surface exact fetch time and age so Flutter UI can show
         # "Data as of 09:15 AM (2 hours ago)" — honest freshness disclosure.
@@ -908,7 +890,7 @@ class MarketPricesService:
         data["fetched_at"] = data.get("fetched_at") or now_utc.isoformat()
         # Compute age from the Agmarknet reported_date if available (daily data)
         reported = data.get("reported_date", "")
-        if reported and not data.get("data_age_minutes"):
+        if reported and data.get("data_age_minutes") is None:
             try:
                 from datetime import timezone as _tz
                 import re as _re
@@ -1188,7 +1170,7 @@ class MarketPricesService:
 
     @staticmethod
     def _has_registered_data_gov_key() -> bool:
-        key = DATA_GOV_KEY.strip()
+        key = os.getenv("DATA_GOV_IN_API_KEY", "").strip()
         return bool(key) and key.lower() not in DATA_GOV_PLACEHOLDER_KEYS
 
     @staticmethod
@@ -1413,11 +1395,15 @@ class MarketPricesService:
             data["message"] = f"{len(live_matches)} live commodities at {mandi}"
             return data
 
+        data["top_crops"] = []
+        data["total_records"] = 0
+        data["is_live"] = False
+        data["status"] = "unavailable"
         data["mandi_pricing_applied"] = True
         data["mandi_no_live_rows"] = True
         data["message"] = (
-            f"No live arrival rows for '{mandi}' today — showing state-wide mandi feed. "
-            "Pick another mandi or register DATA_GOV_IN_API_KEY for fuller coverage."
+            f"No current official arrival rows for '{mandi}'. "
+            "No state-wide or estimated prices are substituted."
         )
         return data
 
@@ -1446,10 +1432,13 @@ class MarketPricesService:
             data["message"] = f"{len(filtered)} mandi record(s) for {data['searched_crop']}"
         elif norm:
             data = dict(data)
+            data["top_crops"] = []
+            data["total_records"] = 0
+            data["is_live"] = False
+            data["status"] = "unavailable"
             data["searched_crop"] = norm["name"]
             data["crop_search_note"] = (
-                f"No live mandi rows for '{norm['name']}' in this state today; "
-                "showing nearest available commodities."
+                f"No current official mandi rows for '{norm['name']}' in this state."
             )
         return data
 
@@ -1470,7 +1459,7 @@ class MarketPricesService:
         all users of the demo, causing unpredictable failures at scale.
         Callers must handle None and surface a clear unavailability message.
         """
-        key = DATA_GOV_KEY.strip()
+        key = os.getenv("DATA_GOV_IN_API_KEY", "").strip()
         if key and key.lower() not in DATA_GOV_PLACEHOLDER_KEYS:
             return key
         return None
@@ -1708,7 +1697,6 @@ class MarketPricesService:
                 "grade": self._record_field(rec, "grade", "Grade", default=""),
                 "date": self._record_field(
                     rec, "arrival_date", "Arrival_Date", "Arrival Date",
-                    default=datetime.now(tz=timezone.utc).strftime("%d/%m/%Y"),
                 ),
                 "unit": "₹/quintal",
             })
