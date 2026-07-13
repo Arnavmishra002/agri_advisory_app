@@ -5,7 +5,7 @@ KrishiMitra — WhatsApp, SMS/IVR, TTS, User, Forum viewsets
 WhatsApp integration uses Meta Cloud API (free up to 1000 conversations/month).
 Flow: Farmer sends WhatsApp → Meta webhook → /api/sms-ivr/whatsapp/ → chatbot → reply
 
-TTS uses gTTS (no API key needed, built-in) to convert advisory text to speech
+TTS uses Edge TTS (no API key needed) to convert advisory text to speech
 so IVR callers can hear the advice.
 
 Setup (5 min):
@@ -606,7 +606,7 @@ class SMSIVRViewSet(viewsets.ViewSet):
 # ─────────────────────────────────────────────────────────────────────────────
 class TextToSpeechViewSet(viewsets.ViewSet):
     """
-    Convert advisory text to speech using gTTS (no API key needed).
+    Convert advisory text to speech using Edge TTS (no API key needed).
 
     POST /api/tts/generate/
     Body: {"text": "...", "language": "hi"}
@@ -626,7 +626,7 @@ class TextToSpeechViewSet(viewsets.ViewSet):
             )
         return Response({
             "service":   "KrishiMitra Text-to-Speech",
-            "engine":    "gTTS (Google TTS, no key needed)",
+            "engine":    "Edge TTS (online, no API key needed)",
             "languages": ["hi", "en", "mr", "ta", "te", "gu", "pa", "bn", "kn", "ml"],
             "endpoint":  "POST /api/tts/generate/ — {text, language}",
         })
@@ -697,24 +697,39 @@ class TextToSpeechViewSet(viewsets.ViewSet):
 
     # ── Internal TTS helper ───────────────────────────────────────────────────
     def _render_tts(self, text: str, language: str):
-        """Render `text` as audio/mpeg via gTTS. Returns a FileResponse or error Response."""
+        """Render `text` as audio/mpeg via Edge TTS."""
         try:
-            from gtts import gTTS
+            import edge_tts
         except ImportError:
             return Response(
-                {"error": "gTTS not installed", "fix": "pip install gTTS"},
+                {"error": "Text-to-speech engine is not installed"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         try:
-            lang_map = {
-                "hi": "hi", "en": "en", "mr": "mr", "ta": "ta", "te": "te",
-                "gu": "gu", "pa": "pa", "bn": "bn", "kn": "kn", "ml": "ml",
-                "or": "or", "as": "as",
+            voice_map = {
+                "hi": "hi-IN-SwaraNeural",
+                "en": "en-IN-NeerjaNeural",
+                "mr": "mr-IN-AarohiNeural",
+                "ta": "ta-IN-PallaviNeural",
+                "te": "te-IN-ShrutiNeural",
+                "gu": "gu-IN-DhwaniNeural",
+                "pa": "pa-IN-VaaniNeural",
+                "bn": "bn-IN-TanishaaNeural",
+                "kn": "kn-IN-SapnaNeural",
+                "ml": "ml-IN-SobhanaNeural",
+                "or": "or-IN-SubhasiniNeural",
+                "as": "as-IN-YashicaNeural",
             }
-            gtts_lang = lang_map.get(language, "hi")
-            tts       = gTTS(text=text, lang=gtts_lang, slow=False)
-            buf       = io.BytesIO()
-            tts.write_to_fp(buf)
+            voice = voice_map.get(language, voice_map["hi"])
+            communicate = edge_tts.Communicate(text=text, voice=voice)
+            buf = io.BytesIO()
+            for chunk in communicate.stream_sync():
+                if chunk.get("type") == "audio":
+                    buf.write(chunk.get("data", b""))
+                    if buf.tell() > 5 * 1024 * 1024:
+                        raise ValueError("Generated audio exceeded the 5 MB safety limit")
+            if not buf.tell():
+                raise ValueError("Text-to-speech provider returned no audio")
             buf.seek(0)
             from django.http import FileResponse
             return FileResponse(buf, content_type="audio/mpeg", as_attachment=False, filename="advisory.mp3")

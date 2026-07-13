@@ -18,7 +18,7 @@ from advisory.api.serializers import (
     TwilioWebhookInputSerializer,
     WhatsAppWebhookInputSerializer,
 )
-from advisory.api.viewsets.misc import _owned_advisory_audio_session
+from advisory.api.viewsets.misc import TextToSpeechViewSet, _owned_advisory_audio_session
 from advisory.rate_limiters import ExponentialBackoff
 
 
@@ -181,6 +181,24 @@ class StrictRequestSchemaTests(SimpleTestCase):
             user=SimpleNamespace(is_authenticated=True, pk=42)
         )
         self.assertEqual(_owned_advisory_audio_session(authenticated), "user:42")
+
+    def test_tts_streams_audio_without_the_vulnerable_gtts_dependency(self):
+        class FakeCommunicate:
+            def __init__(self, text, voice):
+                self.text = text
+                self.voice = voice
+
+            def stream_sync(self):
+                yield {"type": "WordBoundary", "text": "hello"}
+                yield {"type": "audio", "data": b"ID3-safe-audio"}
+
+        fake_edge_tts = SimpleNamespace(Communicate=FakeCommunicate)
+        with patch.dict("sys.modules", {"edge_tts": fake_edge_tts}):
+            response = TextToSpeechViewSet()._render_tts("hello farmer", "en")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "audio/mpeg")
+        self.assertEqual(b"".join(response.streaming_content), b"ID3-safe-audio")
 
 
 class AuthenticationBackoffTests(TestCase):

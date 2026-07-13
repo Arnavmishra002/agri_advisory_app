@@ -60,7 +60,7 @@ django-redis>=5.4.0
 django-celery-beat>=2.6.0
 
 # ── Text-to-Speech (optional — SMS/IVR feature) ────────────────
-gTTS>=2.5.0
+edge-tts>=7.2.8,<8
 
 # ── File type detection (KrishiRaksha image validation) ────────
 python-magic>=0.4.27
@@ -70,6 +70,7 @@ Pillow>=10.0.0
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 chromadb>=0.5.0,<0.6.0             # Compatible with the checked-in Chroma 0.5 store
+click>=8.3.3                        # PYSEC-2026-2132 fix; Python 3.10+ runtime
 
 # ── Scikit-learn (crop ML scoring helpers) ─────────────────────
 scikit-learn>=1.5.0,<2.0

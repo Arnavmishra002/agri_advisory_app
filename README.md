@@ -61,8 +61,11 @@ agri_advisory_app/
 
 ## Quick Start - Backend
 
+Use Python 3.11, matching Docker and GitHub Actions. Django 5.2 requires Python
+3.10 or newer; the macOS system Python 3.9 is not supported by this project.
+
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
 cp .env.example .env
