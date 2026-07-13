@@ -315,10 +315,11 @@ jobs:
           assert 'range(3)' in src or '_attempt' in src, 'Bug 2 not fixed: CAS loop missing'
           # 3. Functional test with local cache
           cache_config = {
-              'default': {
+              alias: {
                   'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-                  'LOCATION': f'ci-rate-limit-{time.time_ns()}',
+                  'LOCATION': f'ci-rate-limit-{time.time_ns()}-{alias}',
               }
+              for alias in ('default', 'rate_limit')
           }
           with override_settings(CACHES=cache_config):
               lim = SharedRateLimiter(f'ci_test_{time.time_ns()}', capacity=3, fill_rate=0.0)
