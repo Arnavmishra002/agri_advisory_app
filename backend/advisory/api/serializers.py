@@ -196,6 +196,7 @@ class DiagnosticMultipartPredictInputSerializer(StrictSerializer):
     crop_name = serializers.CharField(required=False, allow_blank=True, max_length=120)
     commodity = serializers.CharField(required=False, allow_blank=True, max_length=120)
     language = serializers.ChoiceField(required=False, choices=("hi", "en", "hinglish"), default="hi")
+    session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
 
 
 class PestDetectionInputSerializer(StrictSerializer):

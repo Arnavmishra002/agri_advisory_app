@@ -4,12 +4,14 @@ from unittest.mock import patch
 
 from django.core.cache import caches
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.test import APIClient
 
 from advisory.api.throttling import ConfigurableRateThrottle
 from advisory.api.validation import decode_base64_image, validate_image_bytes
+from advisory.api.serializers import DiagnosticMultipartPredictInputSerializer
 from advisory.rate_limiters import ExponentialBackoff
 
 
@@ -87,6 +89,16 @@ class StrictRequestSchemaTests(SimpleTestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("Unexpected field", str(response.data))
+
+    def test_multipart_diagnostics_accepts_mobile_session_id(self):
+        payload = {
+            "image": SimpleUploadedFile("leaf.png", b"png-placeholder", content_type="image/png"),
+            "session_id": "mobile-diagnostic-session",
+        }
+        serializer = DiagnosticMultipartPredictInputSerializer(data=payload)
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data["session_id"], "mobile-diagnostic-session")
 
 
 class AuthenticationBackoffTests(TestCase):
