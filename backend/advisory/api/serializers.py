@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+import re
 
 from rest_framework import serializers
 from ..models import CropAdvisory, Crop, User, ForumPost # Update import for models
@@ -278,6 +279,101 @@ class LocationQuerySerializer(StrictQuerySerializer):
     ec_ds_m = serializers.FloatField(required=False, min_value=0, max_value=100)
     moisture_pct = serializers.FloatField(required=False, min_value=0, max_value=100)
     organic_carbon = serializers.FloatField(required=False, min_value=0, max_value=100)
+
+
+class CropRecommendationQuerySerializer(LocationQuerySerializer):
+    """Strict farmer inputs used by the multi-factor crop engine."""
+
+    _INPUT_FIELDS = frozenset({
+        "season",
+        "soil_type",
+        "irrigation",
+        "farm_size_ha",
+        "budget_per_hectare",
+        "risk_tolerance",
+        "preferred_categories",
+        "exclude_crops",
+        "previous_crop",
+        "nitrogen_kg_ha",
+        "phosphorus_kg_ha",
+        "potassium_kg_ha",
+        "ph",
+        "ec_ds_m",
+        "moisture_pct",
+        "organic_carbon",
+    })
+
+    season = serializers.ChoiceField(
+        required=False,
+        choices=("rabi", "kharif", "zaid", "year_round"),
+    )
+    soil_type = serializers.ChoiceField(
+        required=False,
+        choices=(
+            "alluvial",
+            "loamy",
+            "sandy",
+            "sandy_loam",
+            "clay",
+            "clay_loam",
+            "black",
+            "red",
+            "laterite",
+            "saline",
+            "peaty",
+        ),
+    )
+    irrigation = serializers.ChoiceField(
+        required=False,
+        choices=("rainfed", "low", "medium", "high", "drip", "sprinkler", "flood"),
+    )
+    farm_size_ha = serializers.FloatField(required=False, min_value=0.01, max_value=1_000_000)
+    budget_per_hectare = serializers.FloatField(required=False, min_value=0, max_value=1_000_000_000)
+    risk_tolerance = serializers.ChoiceField(
+        required=False,
+        choices=("low", "medium", "high"),
+        default="medium",
+    )
+    preferred_categories = serializers.CharField(required=False, allow_blank=True, max_length=300)
+    exclude_crops = serializers.CharField(required=False, allow_blank=True, max_length=500)
+
+    @staticmethod
+    def _split_csv(value, *, max_items):
+        values = [item.strip() for item in str(value or "").split(",") if item.strip()]
+        if len(values) > max_items:
+            raise serializers.ValidationError(f"At most {max_items} values are allowed.")
+        if any(not re.fullmatch(r"[A-Za-z][A-Za-z0-9 _-]{0,79}", item) for item in values):
+            raise serializers.ValidationError("Use comma-separated crop/category names only.")
+        return values
+
+    def validate_preferred_categories(self, value):
+        allowed = {
+            "aquatic", "aromatic", "cash", "cereal", "fiber", "flower",
+            "fodder", "fruit", "leaf crop", "medicinal", "millet", "nut",
+            "oilseed", "plantation", "pseudo cereal", "pulse", "spice",
+            "vegetable",
+        }
+        values = self._split_csv(value, max_items=12)
+        invalid = sorted({item.lower() for item in values} - allowed)
+        if invalid:
+            raise serializers.ValidationError(f"Unsupported categories: {', '.join(invalid)}")
+        return [item.lower().title() for item in values]
+
+    def validate_exclude_crops(self, value):
+        return [
+            item.lower().replace("-", "_").replace(" ", "_")
+            for item in self._split_csv(value, max_items=30)
+        ]
+
+    @property
+    def recommendation_inputs(self):
+        if not hasattr(self, "validated_data"):
+            raise AssertionError("Call is_valid() before reading recommendation_inputs.")
+        return {
+            key: self.validated_data[key]
+            for key in self._INPUT_FIELDS
+            if key in self.validated_data
+        }
 
 
 class GovernmentPestInputSerializer(StrictSerializer):

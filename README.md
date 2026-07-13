@@ -49,8 +49,10 @@ agri_advisory_app/
 - Mandi prices use only fresh, dated official Agmarknet/data.gov.in rows.
   Without a valid `DATA_GOV_IN_API_KEY`, state and mandi coverage may be
   unavailable; the app never substitutes synthetic or MSP-estimate prices.
-- Crop recommendations are location-aware and use weather/market data with
-  bounded fallbacks.
+- Crop recommendations use 200+ canonical Indian crop profiles and combine
+  location, season, weather, soil, irrigation, optional soil-test readings,
+  farmer budget, crop rotation, and verified market signals. Static cost and
+  profit figures are explicitly labeled as indicative planning estimates.
 - Disease diagnostics do not fake image classification. If the trained model is
   missing or low quality, the API returns an advisory fallback instead of a false
   disease label.

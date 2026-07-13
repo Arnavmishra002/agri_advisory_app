@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""
-KrishiMitra Crop Recommendation Engine v3.0
-Multi-factor scoring using 150+ crop database + real-time data.
-
-Scoring factors (total 100 points):
-  1. Season match           — 25 pts
-  2. Soil suitability       — 20 pts
-  3. Water / irrigation     — 15 pts
-  4. Temperature suitability — 10 pts
-  5. Market demand + MSP    — 10 pts
-  6. Regional priority      — 10 pts
-  7. Live weather outlook   — 10 pts (drought / flood / heatwave penalty)
-"""
+"""Location-aware crop recommendation with transparent multi-factor scoring."""
 
 from __future__ import annotations
 
@@ -125,11 +113,14 @@ class CropRecommendationEngine:
         longitude: float,
         state: Optional[str] = None,
         language: str = "hi",
+        agronomic_inputs: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Full recommendation pipeline with live weather and market data."""
 
         # 1. Resolve location profile — GPS-first in v4.0
         profile = self._resolve_location_profile(location, state, latitude, longitude)
+        inputs = self._normalise_agronomic_inputs(agronomic_inputs)
+        profile = self._apply_farmer_profile(profile, inputs)
 
         # 2. Get live weather + mandi prices concurrently with partial fallback
         weather, live_market, realtime_status = self._fetch_realtime_context(
@@ -142,11 +133,20 @@ class CropRecommendationEngine:
         market_price_map = self._build_market_price_map(live_market)
 
         # 4. Score all crops
-        season_key = _current_season()
-        scored = self._score_all_crops(profile, season_key, current_weather, forecast, market_price_map)
+        season_key = inputs.get("season") or _current_season()
+        scored = self._score_all_crops(
+            profile,
+            season_key,
+            current_weather,
+            forecast,
+            market_price_map,
+            inputs,
+        )
 
         # 5. Localise and format
-        recommendations = self._format_recommendations(scored[:12], language, market_price_map, profile)
+        recommendations = self._format_recommendations(
+            scored[:12], language, market_price_map, profile, inputs
+        )
 
         weather_is_live = bool(weather.get("is_live"))
         market_is_live = bool(live_market.get("is_live"))
@@ -185,20 +185,88 @@ class CropRecommendationEngine:
             "data_quality_status": data_quality["status"],
             "data_quality": data_quality,
             "data_source": self._data_source_label(weather, live_market),
-            "analysis_method": "multi_factor_scoring_v3",
+            "analysis_method": "multi_factor_scoring_v4",
+            "database_size": len(ALL_CROP_DATA),
+            "input_parameters": inputs,
             "factors_analyzed": self._factors_analyzed(
                 profile,
                 season_key,
                 weather,
                 live_market,
+                inputs,
             ),
             "profile_source": profile.get("_source", "state_default"),
             "timestamp": datetime.now().isoformat(),
             "language": language,
         }
 
+    @staticmethod
+    def _normalise_agronomic_inputs(values: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Keep only bounded farmer inputs understood by the scoring model."""
+        if not values:
+            return {}
+        allowed = {
+            "season", "soil_type", "irrigation", "farm_size_ha",
+            "budget_per_hectare", "risk_tolerance", "preferred_categories",
+            "exclude_crops", "previous_crop", "nitrogen_kg_ha",
+            "phosphorus_kg_ha", "potassium_kg_ha", "ph", "ec_ds_m",
+            "moisture_pct", "organic_carbon",
+        }
+        inputs = {key: values[key] for key in allowed if values.get(key) not in (None, "")}
+
+        if "soil_type" in inputs:
+            inputs["soil_type"] = str(inputs["soil_type"]).lower().replace(" ", "_")
+        for key in ("season", "irrigation", "risk_tolerance"):
+            if key in inputs:
+                inputs[key] = str(inputs[key]).lower()
+        for key in ("preferred_categories", "exclude_crops"):
+            value = inputs.get(key)
+            if value is not None and not isinstance(value, list):
+                inputs[key] = [item.strip() for item in str(value).split(",") if item.strip()]
+        if inputs.get("preferred_categories"):
+            inputs["preferred_categories"] = [
+                str(item).replace("_", " ").title()
+                for item in inputs["preferred_categories"][:12]
+            ]
+
+        try:
+            from .crop_catalog import crop_catalog
+        except ImportError:
+            crop_catalog = None
+
+        def canonical_crop(value: Any) -> str:
+            text = str(value or "").strip()
+            if crop_catalog:
+                match = crop_catalog.normalize(text)
+                if match:
+                    return match["id"]
+            return text.lower().replace("-", "_").replace(" ", "_")
+
+        if inputs.get("previous_crop"):
+            inputs["previous_crop"] = canonical_crop(inputs["previous_crop"])
+        if inputs.get("exclude_crops"):
+            inputs["exclude_crops"] = [canonical_crop(item) for item in inputs["exclude_crops"][:30]]
+        return inputs
+
+    @staticmethod
+    def _apply_farmer_profile(profile: Dict[str, Any], inputs: Dict[str, Any]) -> Dict[str, Any]:
+        profile = dict(profile)
+        if inputs.get("soil_type"):
+            profile["soil"] = inputs["soil_type"].replace("_", " ").title()
+        if inputs.get("irrigation"):
+            irrigation = inputs["irrigation"]
+            if irrigation in {"rainfed", "low"}:
+                profile["irrigation"] = "Low"
+            elif irrigation in {"high", "flood"}:
+                profile["irrigation"] = "High"
+            else:
+                profile["irrigation"] = "Medium"
+        if inputs:
+            profile["_source"] = f"{profile.get('_source', 'location')}+farmer_inputs"
+        return profile
+
     def _data_source_label(self, weather: Dict[str, Any], market: Dict[str, Any]) -> str:
-        sources = ["KrishiMitra Agro-Climatic Engine v3"]
+        sources = ["KrishiMitra Agro-Climatic Engine v4"]
         if weather.get("is_live"):
             sources.append(weather.get("data_source_short") or "live weather")
         else:
@@ -215,6 +283,7 @@ class CropRecommendationEngine:
         season_key: str,
         weather: Dict[str, Any],
         market: Dict[str, Any],
+        inputs: Optional[Dict[str, Any]] = None,
     ) -> List[str]:
         weather_factor = (
             "Live 7-day weather forecast"
@@ -226,7 +295,7 @@ class CropRecommendationEngine:
             if market.get("is_live")
             else "Mandi prices unavailable; MSP/static economics only"
         )
-        return [
+        factors = [
                 f"Season: {_season_label(season_key)}",
                 f"Soil: {profile.get('soil', 'Loamy')}",
                 f"Rainfall: {profile.get('rainfall', 'Medium')}",
@@ -236,6 +305,28 @@ class CropRecommendationEngine:
                 f"{len(ALL_CROP_DATA)} crop agro-climatic profiles",
                 "District-level priority crops",
             ]
+        inputs = inputs or {}
+        optional = (
+            ("ph", "Soil pH"),
+            ("ec_ds_m", "Soil EC (dS/m)"),
+            ("moisture_pct", "Soil moisture (%)"),
+            ("organic_carbon", "Organic carbon (%)"),
+            ("nitrogen_kg_ha", "Nitrogen (kg/ha)"),
+            ("phosphorus_kg_ha", "Phosphorus (kg/ha)"),
+            ("potassium_kg_ha", "Potassium (kg/ha)"),
+            ("budget_per_hectare", "Budget per hectare (INR)"),
+            ("farm_size_ha", "Farm size (ha)"),
+            ("previous_crop", "Previous crop"),
+            ("risk_tolerance", "Risk tolerance"),
+        )
+        factors.extend(
+            f"{label}: {inputs[key]}"
+            for key, label in optional
+            if inputs.get(key) is not None and inputs.get(key) != ""
+        )
+        if inputs.get("preferred_categories"):
+            factors.append("Preferred categories: " + ", ".join(inputs["preferred_categories"]))
+        return factors
 
     def _data_quality_summary(
         self,
@@ -381,7 +472,12 @@ class CropRecommendationEngine:
         return weather, market, status_map
 
     @classmethod
-    def recommend_from_context(cls, ctx: LocationContext, language: str = "hi") -> Dict[str, Any]:
+    def recommend_from_context(
+        cls,
+        ctx: LocationContext,
+        language: str = "hi",
+        agronomic_inputs: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """Singleton-safe context-based entry point."""
         return crop_recommendation_engine.recommend(
             ctx.query_label,
@@ -389,6 +485,7 @@ class CropRecommendationEngine:
             ctx.longitude,
             state=ctx.state or None,
             language=language,
+            agronomic_inputs=agronomic_inputs,
         )
 
     # ── Location profile resolution ────────────────────────────────────
@@ -671,7 +768,8 @@ class CropRecommendationEngine:
         current_weather: Dict,
         forecast: List[Dict],
         market_price_map: Dict[str, Dict],
-    ) -> List[Tuple[float, str, Dict[str, Any]]]:
+        agronomic_inputs: Optional[Dict[str, Any]] = None,
+    ) -> List[Tuple[float, str, Dict[str, Any], List[str], Dict[str, Any]]]:
         """Score every crop in the database and return sorted list."""
 
         try:
@@ -689,15 +787,20 @@ class CropRecommendationEngine:
         # Derive weather risk from forecast
         weather_risk = self._assess_weather_risk(forecast, current_weather)
         curr_temp    = current_weather.get("temperature") or 28
+        inputs = agronomic_inputs or {}
+        excluded = set(inputs.get("exclude_crops") or [])
 
         results = []
         for crop_key, crop in ALL_CROP_DATA.items():
-            score, reasons = self._score_single_crop(
+            if crop_key in excluded:
+                continue
+            score, reasons, breakdown = self._score_single_crop(
                 crop_key, crop, season_key, soil, rainfall_band, irrigation,
-                priority_list, agro_zone, weather_risk, curr_temp, market_price_map
+                priority_list, agro_zone, weather_risk, curr_temp,
+                market_price_map, inputs,
             )
             if score > 0:
-                results.append((score, crop_key, crop, reasons))
+                results.append((score, crop_key, crop, reasons, breakdown))
 
         results.sort(key=lambda x: x[0], reverse=True)
         return results
@@ -705,51 +808,74 @@ class CropRecommendationEngine:
     def _score_single_crop(
         self, crop_key, crop, season_key, soil, rainfall_band,
         irrigation, priority_list, agro_zone, weather_risk, curr_temp,
-        market_price_map
-    ) -> Tuple[float, List[str]]:
+        market_price_map, agronomic_inputs=None,
+    ) -> Tuple[float, List[str], Dict[str, Any]]:
         score = 0.0
         reasons = []
+        breakdown: Dict[str, Any] = {}
+        inputs = agronomic_inputs or {}
+
+        def factor(name: str, points: float, maximum: float, status: str, detail: str):
+            nonlocal score
+            score += points
+            breakdown[name] = {
+                "points": round(points, 1),
+                "max_points": maximum,
+                "status": status,
+                "detail": detail,
+            }
 
         crop_season = crop.get("season", "kharif")
 
-        # ── 1. Season match (25 pts) ───────────────────────────────────
+        # 1. Season. Off-season annual crops are filtered rather than
+        # presented as plausible choices.
         if crop_season == "year_round":
-            # Year-round crops get a base score but don't outscore properly-seasonal crops
-            # unless they are in the regional priority list
             if crop_key in priority_list:
-                score += 20
+                factor("season", 18, 20, "good", "Year-round regional crop")
                 reasons.append("Year-round + regional priority")
             else:
-                score += 12
+                factor("season", 12, 20, "compatible", "Year-round crop")
                 reasons.append("Year-round crop")
         elif crop_season == season_key:
-            score += 25
+            factor("season", 20, 20, "ideal", f"Matches {season_key}")
             reasons.append(f"Perfect season match ({season_key})")
         elif (season_key == "zaid" and crop_season == "kharif"):
-            score += 10
+            factor("season", 8, 20, "conditional", "Zaid-Kharif overlap")
             reasons.append("Zaid–Kharif overlap")
         else:
-            # Wrong season — hard penalty, but still show if priority
             if crop_key in priority_list:
-                score -= 10  # smaller penalty for regional priority
+                factor("season", -10, 20, "poor", "Off-season regional crop")
                 reasons.append(f"Off-season (regional priority)")
             else:
-                return 0.0, []  # Hard filter: don't recommend wrong-season crops
+                return 0.0, [], {"season": {"status": "off_season"}}
 
-        # ── 2. Soil suitability (20 pts) ──────────────────────────────
+        # 2. Soil texture.
         crop_soils = [s.lower() for s in crop.get("soil_preference", [])]
         soil_lower = soil.lower()
         if soil_lower in crop_soils or any(soil_lower in s for s in crop_soils):
-            score += 20
+            factor("soil", 15, 15, "ideal", f"Ideal {soil}")
             reasons.append(f"Ideal soil ({soil})")
         elif any(s in soil_lower for s in crop_soils):
-            score += 12
+            factor("soil", 9, 15, "compatible", f"Compatible {soil}")
             reasons.append(f"Compatible soil ({soil})")
         else:
-            score += 4
+            factor("soil", 2, 15, "uncertain", "Local soil adaptation required")
             reasons.append("Soil adaptation possible")
 
-        # ── 3. Water / irrigation (15 pts) ────────────────────────────
+        # 3. Long-term rainfall fit. Location profiles are broad bands, so
+        # this remains lower-weight than farmer soil/irrigation readings.
+        rain_range = RAINFALL_BANDS.get(rainfall_band, RAINFALL_BANDS["Medium"])
+        available_rain = (rain_range[0] + min(rain_range[1], 2500)) / 2
+        required_rain = max(float(crop.get("rainfall_mm", 800)), 1)
+        rain_ratio = available_rain / required_rain
+        if 0.6 <= rain_ratio <= 1.8:
+            factor("rainfall", 8, 8, "good", f"Regional rainfall fits {required_rain:.0f} mm need")
+        elif 0.35 <= rain_ratio <= 2.4:
+            factor("rainfall", 3, 8, "conditional", "Irrigation/drainage may be needed")
+        else:
+            factor("rainfall", -8, 8, "poor", "Large rainfall mismatch")
+
+        # 4. Water and irrigation.
         water_req = crop.get("water_requirement", "Moderate")
         irr_min   = WATER_IRRIGATION_MIN.get(water_req, "Low")
         irr_levels = {"Low": 0, "Medium": 1, "High": 2}
@@ -762,103 +888,234 @@ class CropRecommendationEngine:
 
         if effective_water >= min_val:
             if water_req == "Low" and effective_water >= 2:
-                score += 8  # over-watered — slight penalty
+                factor("water", 6, 12, "compatible", "Drainage needed with abundant water")
                 reasons.append("Water abundant (drought-resistant crop)")
             else:
-                score += 15
+                factor("water", 12, 12, "ideal", f"{water_req} requirement met")
                 reasons.append(f"Water needs met ({water_req})")
         else:
-            # Water deficiency
             deficit = min_val - effective_water
-            penalty = deficit * 20
-            score -= penalty
+            penalty = deficit * -12
+            factor("water", penalty, 12, "poor", f"Needs {water_req} water")
             reasons.append(f"WATER DEFICIT — needs {water_req} irrigation")
-            if score < 0:
-                return max(0.0, score), reasons
 
-        # ── 4. Temperature (10 pts) ────────────────────────────────────
+        # 5. Current temperature.
         t_min = crop.get("temperature_min", 10)
         t_max = crop.get("temperature_max", 38)
         if t_min <= curr_temp <= t_max:
-            score += 10
+            factor("temperature", 10, 10, "ideal", f"{curr_temp} C within crop range")
             reasons.append(f"Temp optimal ({curr_temp}°C)")
         elif curr_temp < t_min:
             diff = t_min - curr_temp
-            score += max(0, 10 - diff * 2)
+            points = max(-8, 10 - diff * 2)
+            factor("temperature", points, 10, "poor" if diff > 5 else "conditional", "Below preferred range")
             if diff > 5:
                 reasons.append(f"Too cold ({curr_temp}°C < {t_min}°C min)")
         else:
             diff = curr_temp - t_max
-            score += max(0, 10 - diff * 2)
+            points = max(-8, 10 - diff * 2)
+            factor("temperature", points, 10, "poor" if diff > 5 else "conditional", "Above preferred range")
             if diff > 5:
                 reasons.append(f"Too hot ({curr_temp}°C > {t_max}°C max)")
 
-        # ── 5. Market demand + MSP (10 pts) ───────────────────────────
+        # 6. Market signal. Static demand has limited weight; only verified
+        # live rows can receive the live-price bonus.
         demand = crop.get("market_demand", "Medium")
         msp    = crop.get("msp_per_quintal", 0)
         mkt_info = market_price_map.get(crop_key, {})
         modal    = mkt_info.get("modal_price", 0)
-
-        if demand == "Very High":
-            score += 10
-        elif demand == "High":
-            score += 8
-        elif demand == "Medium":
-            score += 5
-        else:
-            score += 2
-
+        market_points = {"Very High": 5, "High": 4, "Medium": 2, "Low": 0}.get(demand, 2)
         if msp > 0:
-            score += 3
-            reasons.append(f"MSP guaranteed ₹{msp}/q")
-        if modal and msp and modal > msp:
-            bonus = min(5, round((modal - msp) / msp * 10))
-            score += bonus
-            reasons.append(f"Mandi ₹{modal} > MSP ₹{msp} (+{bonus}pts)")
+            market_points += 2
+            reasons.append(f"MSP reference ₹{msp}/q")
+        market_is_live = bool(modal and mkt_info.get("is_live"))
+        if market_is_live:
+            if not msp:
+                bonus = 3
+            elif modal >= msp:
+                bonus = min(3, max(1, round((modal - msp) / max(msp, 1) * 6)))
+            else:
+                bonus = 0
+            market_points += bonus
+            if msp and modal > msp:
+                reasons.append(f"Verified mandi ₹{modal} > MSP ₹{msp} (+{bonus}pts)")
+            else:
+                reasons.append(f"Verified live mandi price ₹{modal}/q")
+        factor(
+            "market",
+            market_points,
+            10,
+            "live" if market_is_live else "indicative",
+            f"Demand {demand}; verified live price {'yes' if market_is_live else 'no'}",
+        )
         if demand in ("High", "Very High"):
             reasons.append(f"High market demand")
 
-        # ── 6. Regional / district priority (10 pts) ──────────────────
+        # 7. Regional suitability.
         if crop_key in priority_list[:3]:
-            score += 10
+            factor("region", 10, 10, "ideal", "Top district/state priority")
             reasons.append("Top regional priority crop")
         elif crop_key in priority_list:
-            score += 7
+            factor("region", 7, 10, "good", "Regional priority")
             reasons.append("Regional priority crop")
         elif agro_zone and agro_zone in crop.get("agro_zones", []):
-            score += 5
+            factor("region", 5, 10, "compatible", f"Suited to {agro_zone}")
             reasons.append(f"Suited to {agro_zone} agro-zone")
+        else:
+            factor("region", 0, 10, "uncertain", "No specific regional evidence")
 
-        # ── 7. Live weather outlook (10 pts) ──────────────────────────
+        # 8. Seven-day weather risk.
         risk = weather_risk.get("risk", "None")
         crop_water = crop.get("water_requirement", "Moderate")
 
         if risk == "None":
-            score += 10
+            factor("weather", 10, 10, "good", "No severe 7-day risk")
             reasons.append("✅ Favorable weather outlook")
         elif risk == "High Rainfall":
             if crop_water == "High":
-                score += 8
+                factor("weather", 7, 10, "compatible", "Rain supports water demand")
                 reasons.append("🌧️ Rain suits this crop")
             elif crop_water == "Low":
-                score -= 15
+                factor("weather", -10, 10, "poor", "Waterlogging risk")
                 reasons.append("⚠️ Flood risk for drought-resistant crop")
+            else:
+                factor("weather", 1, 10, "conditional", "Drainage required")
         elif risk == "Drought":
             if crop_water in ("Low", "Moderate"):
-                score += 7
+                factor("weather", 7, 10, "good", "Drought-tolerant water demand")
                 reasons.append("☀️ Drought-tolerant — suitable")
             elif crop_water in ("High", "Very High"):
-                score -= 20
+                factor("weather", -12, 10, "poor", "Drought conflicts with water demand")
                 reasons.append("🚨 Drought risk — water-intensive crop")
         elif risk == "Heatwave":
             if t_max >= 38:
-                score += 5
+                factor("weather", 5, 10, "compatible", "Heat-tolerant range")
                 reasons.append("🔥 Heat-tolerant crop")
             elif t_max < 28:
-                score -= 10
+                factor("weather", -10, 10, "poor", "Heatwave above crop range")
                 reasons.append("⚠️ Heatwave risk for cool-season crop")
+            else:
+                factor("weather", 0, 10, "conditional", "Heat mitigation needed")
+        else:
+            factor("weather", 0, 10, "conditional", str(risk))
 
-        return round(max(0.0, score), 1), reasons
+        # 9. Farmer soil measurements. Missing readings are not guessed.
+        if inputs.get("ph") is not None:
+            ph = float(inputs["ph"])
+            ph_min = float(crop.get("ph_min", 5.5))
+            ph_max = float(crop.get("ph_max", 7.5))
+            if ph_min <= ph <= ph_max:
+                factor("soil_ph", 8, 8, "ideal", f"pH {ph} within {ph_min}-{ph_max}")
+                reasons.append(f"Soil pH {ph} fits crop")
+            elif min(abs(ph - ph_min), abs(ph - ph_max)) <= 0.5:
+                factor("soil_ph", 2, 8, "conditional", f"pH {ph} near {ph_min}-{ph_max}")
+            else:
+                factor("soil_ph", -12, 8, "poor", f"pH {ph} outside {ph_min}-{ph_max}")
+
+        if inputs.get("ec_ds_m") is not None:
+            ec = float(inputs["ec_ds_m"])
+            tolerance = crop.get("salinity_tolerance", "Low")
+            if ec <= 2:
+                factor("salinity", 4, 4, "good", f"EC {ec} dS/m")
+            elif ec <= 4 and tolerance in {"Medium", "High"}:
+                factor("salinity", 2, 4, "compatible", f"{tolerance} salinity tolerance")
+            else:
+                penalty = -6 if tolerance == "High" else -12
+                factor("salinity", penalty, 4, "poor", f"EC {ec}; tolerance {tolerance}")
+
+        if inputs.get("moisture_pct") is not None:
+            moisture = float(inputs["moisture_pct"])
+            if moisture < 25 and crop_water in {"High", "Very High"}:
+                factor("soil_moisture", -8, 4, "poor", "Low moisture for water-intensive crop")
+            elif moisture > 80 and crop_water == "Low":
+                factor("soil_moisture", -6, 4, "poor", "Waterlogging risk")
+            else:
+                factor("soil_moisture", 4, 4, "good", f"Measured moisture {moisture}%")
+
+        nutrient_values = {
+            "N": inputs.get("nitrogen_kg_ha"),
+            "P": inputs.get("phosphorus_kg_ha"),
+            "K": inputs.get("potassium_kg_ha"),
+        }
+        measured_nutrients = {key: value for key, value in nutrient_values.items() if value is not None}
+        if measured_nutrients:
+            thresholds = {"N": 120, "P": 20, "K": 120}
+            low = [key for key, value in measured_nutrients.items() if float(value) < thresholds[key]]
+            demand_level = crop.get("nutrient_demand", "Medium")
+            if not low:
+                factor("nutrients", 6, 6, "good", "Measured NPK is not low")
+            elif demand_level == "High" and len(low) >= 2:
+                factor("nutrients", -8, 6, "poor", f"Low {', '.join(low)} for high-demand crop")
+            else:
+                factor("nutrients", -2, 6, "conditional", f"Correct low {', '.join(low)} from soil test")
+
+        if inputs.get("organic_carbon") is not None:
+            organic_carbon = float(inputs["organic_carbon"])
+            if organic_carbon < 0.5 and crop.get("nutrient_demand") == "High":
+                factor("organic_carbon", -4, 3, "poor", "Low organic carbon for high-demand crop")
+            else:
+                factor("organic_carbon", 3, 3, "good", f"Organic carbon {organic_carbon}%")
+
+        # 10. Rotation, budget, scale, category and risk preferences.
+        previous_crop = inputs.get("previous_crop")
+        if previous_crop:
+            previous_profile = ALL_CROP_DATA.get(previous_crop, {})
+            previous_category = previous_profile.get("category")
+            current_category = crop.get("category")
+            if previous_crop == crop_key:
+                factor("rotation", -8, 6, "poor", "Avoid immediate same-crop repetition")
+            elif previous_category in {"Cereal", "Millet"} and current_category == "Pulse":
+                factor("rotation", 6, 6, "ideal", "Legume after cereal supports soil nitrogen")
+                reasons.append("Good cereal-legume rotation")
+            elif current_category == "Pulse":
+                factor("rotation", 4, 6, "good", "Legume diversification")
+            else:
+                factor("rotation", 1, 6, "neutral", "No known rotation conflict")
+
+        budget = inputs.get("budget_per_hectare")
+        input_cost = float(crop.get("input_cost_per_hectare", 0) or 0)
+        if budget is not None:
+            budget = float(budget)
+            if input_cost > budget:
+                return 0.0, reasons + ["Above farmer budget"], {
+                    **breakdown,
+                    "budget": {"points": -20, "max_points": 8, "status": "over_budget", "detail": f"INR {input_cost:.0f} > INR {budget:.0f}"},
+                }
+            headroom = budget - input_cost
+            factor("budget", 8 if headroom >= budget * 0.2 else 4, 8, "good", "Within farmer budget")
+
+        preferred = set(inputs.get("preferred_categories") or [])
+        if preferred:
+            matched = crop.get("category") in preferred
+            factor("category_preference", 6 if matched else 0, 6, "preferred" if matched else "neutral", crop.get("category", ""))
+
+        risk_tolerance = inputs.get("risk_tolerance")
+        if risk_tolerance:
+            volatility = crop.get("volatility", "Medium")
+            duration = int(crop.get("duration_days", 120) or 120)
+            if risk_tolerance == "low" and (volatility in {"High", "Very High"} or duration > 365):
+                factor("risk", -8, 6, "poor", f"{volatility} volatility / {duration} days")
+            elif risk_tolerance == "medium" and volatility == "Very High":
+                factor("risk", -3, 6, "conditional", "Very high price volatility")
+            else:
+                factor("risk", 6, 6, "compatible", f"{volatility} volatility")
+
+        if inputs.get("farm_size_ha") is not None:
+            farm_size = float(inputs["farm_size_ha"])
+            if farm_size < 0.5 and (input_cost > 100000 or crop.get("duration_days", 0) > 365):
+                factor("farm_scale", -4, 3, "conditional", "High establishment cost for a small holding")
+            else:
+                factor("farm_scale", 3, 3, "good", f"Suitable for {farm_size} ha planning")
+
+        possible = sum(float(item.get("max_points", 0)) for item in breakdown.values()) or 1
+        normalized = max(0.0, min(99.0, score / possible * 100.0))
+        breakdown["summary"] = {
+            "raw_points": round(score, 1),
+            "possible_points": round(possible, 1),
+            "normalized_score": round(normalized, 1),
+        }
+
+        return round(normalized, 1), reasons, breakdown
 
     def _assess_weather_risk(self, forecast: List[Dict], current: Dict) -> Dict[str, Any]:
         """Assess 7-day weather risk for crop scoring."""
@@ -940,6 +1197,7 @@ class CropRecommendationEngine:
         language: str,
         market_price_map: Dict,
         profile: Dict,
+        agronomic_inputs: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         try:
             from .language_service import normalise_language_code, get_crop_name
@@ -950,9 +1208,10 @@ class CropRecommendationEngine:
             get_crop_name = lambda k, l: k.title()
             ALL_CROP_DATA = {}
 
-        season_key = _current_season()
+        inputs = agronomic_inputs or {}
+        season_key = inputs.get("season") or _current_season()
         out = []
-        for score, crop_key, crop, reasons in scored:
+        for score, crop_key, crop, reasons, breakdown in scored:
             msp     = crop.get("msp_per_quintal", 0)
             yield_q = crop.get("yield_per_hectare", 0)
             profit  = crop.get("profit_per_hectare", 0)
@@ -968,22 +1227,32 @@ class CropRecommendationEngine:
             market_price_text = f"₹{market_price}/q" if market_price else "Unavailable"
 
             # Localised crop name
-            crop_name_local = get_crop_name(crop_key, lang) if lang != "en" else crop_key.title()
-            crop_name_hindi = crop.get("name_hindi", crop_key.title())
+            display_name = crop_key.replace("_", " ").title()
+            crop_name_local = get_crop_name(crop_key, lang) if lang != "en" else display_name
+            crop_name_hindi = crop.get("name_hindi", display_name)
 
             # Build suitability reason in the right language
             reason_local = self._localise_reason(reasons, lang, crop_key)
 
+            factor_rows = [value for key, value in breakdown.items() if key != "summary"]
+            supported_rows = [
+                value for value in factor_rows
+                if value.get("status") not in {"uncertain", "neutral"}
+            ]
+            data_completeness = round(
+                len(supported_rows) / max(len(factor_rows), 1), 2
+            )
+
             out.append({
-                "crop_name": crop_key.title(),
+                "crop_name": display_name,
                 "crop_name_hindi": crop_name_hindi,
                 "crop_name_local": crop_name_local,
-                "name": crop_key.title(),
+                "name": display_name,
                 "category": crop.get("category", "General"),
                 "season": _season_label(crop.get("season", season_key)),
                 "season_key": crop.get("season", season_key),
                 "suitability_score": int(min(score, 99)),
-                "confidence": round(min(score / 100.0, 0.98), 2),
+                "confidence": round(min((score / 100.0) * (0.7 + 0.3 * data_completeness), 0.98), 2),
                 "reason": " | ".join(reasons[:3]),
                 "reason_hindi": reason_local,
                 "factors": reasons,
@@ -1005,6 +1274,9 @@ class CropRecommendationEngine:
                 "volatility": crop.get("volatility", "Medium"),
                 "government_support": crop.get("government_support", "MSP"),
                 "states_primary": crop.get("states_primary", [])[:4],
+                "agronomy_source": crop.get("agronomy_source", "ICAR/NHB/state package of practices"),
+                "economics_status": "indicative_estimate",
+                "economics_note": "Planning estimate only; verify local input costs and buyer prices before sowing.",
                 "financials": {
                     "yield": f"{yield_q} q/ha",
                     "profit_potential": f"₹{profit:,}/ha",
@@ -1013,12 +1285,10 @@ class CropRecommendationEngine:
                     "input_cost": f"₹{input_c:,}/ha",
                 },
                 "prediction_data": {
-                    "method": "multi_factor_scoring_v3",
-                    "score_breakdown": {
-                        "season": "see factors",
-                        "soil": "see factors",
-                        "water": "see factors",
-                    },
+                    "method": "multi_factor_scoring_v4",
+                    "score_breakdown": breakdown,
+                    "data_completeness": data_completeness,
+                    "farmer_inputs_used": sorted(inputs),
                 },
                 "outlook": profile.get("_source", ""),
             })

@@ -239,7 +239,7 @@
                     <div class="status-indicator"></div>
                     <div class="service-icon">🌾</div>
                     <h3 class="service-title" data-i18n="service_crops">फसल सुझाव</h3>
-                    <p class="service-description">165+ फसल प्रोफाइल · 126 जिले · लाइव/फॉलबैक मौसम + मंडी भाव</p>
+                    <p class="service-description">200+ फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
                     <div class="service-info-panel" style="border-left-color:#388e3c;">
                         <div class="service-info-panel-label" style="color:#1b5e20;">🌱 Multi-Factor Score</div>
                         <div class="service-info-panel-body">
@@ -438,7 +438,7 @@
 <div class="content-section" id="crop-recommendations-content">
     <div class="container">
         <div class="section-header"><h2>🌾 फसल सुझाव</h2><span class="live-dot ms-2"></span></div>
-        <p class="text-muted mb-4">165+ भारतीय फसल प्रोफाइल · 126 जिले · लाइव/फॉलबैक मौसम + मंडी भाव विश्लेषण</p>
+        <p class="text-muted mb-4">200+ भारतीय फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
         <div class="crop-search-container mb-4" style="position:relative;max-width:560px;">
             <div class="search-box">
                 <i class="fas fa-seedling"></i>
@@ -448,6 +448,68 @@
                 <button class="btn btn-success btn-sm" onclick="searchSpecificCrop()" style="font-size:0.82rem;">खोजें</button>
             </div>
             <div id="cropSuggestions" class="crop-suggestions"></div>
+        </div>
+        <div class="mb-4" style="border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:16px 0;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;">
+                <label class="form-label mb-0">मौसम / Season
+                    <select id="cropRecSeason" class="form-select form-select-sm mt-1">
+                        <option value="">Auto</option><option value="kharif">Kharif</option>
+                        <option value="rabi">Rabi</option><option value="zaid">Zaid</option>
+                        <option value="year_round">Year round</option>
+                    </select>
+                </label>
+                <label class="form-label mb-0">मिट्टी / Soil
+                    <select id="cropRecSoil" class="form-select form-select-sm mt-1">
+                        <option value="">Auto</option><option value="alluvial">Alluvial</option>
+                        <option value="loamy">Loamy</option><option value="sandy_loam">Sandy loam</option>
+                        <option value="clay_loam">Clay loam</option><option value="black">Black</option>
+                        <option value="red">Red</option><option value="laterite">Laterite</option>
+                        <option value="saline">Saline</option>
+                    </select>
+                </label>
+                <label class="form-label mb-0">सिंचाई / Irrigation
+                    <select id="cropRecIrrigation" class="form-select form-select-sm mt-1">
+                        <option value="">Auto</option><option value="rainfed">Rainfed</option>
+                        <option value="drip">Drip</option><option value="sprinkler">Sprinkler</option>
+                        <option value="flood">Flood</option>
+                    </select>
+                </label>
+                <label class="form-label mb-0">Soil pH
+                    <input id="cropRecPh" class="form-control form-control-sm mt-1" type="number" min="0" max="14" step="0.1" placeholder="6.5">
+                </label>
+                <label class="form-label mb-0">बजट ₹/हे.
+                    <input id="cropRecBudget" class="form-control form-control-sm mt-1" type="number" min="0" step="1000" placeholder="60000">
+                </label>
+                <label class="form-label mb-0">जोखिम / Risk
+                    <select id="cropRecRisk" class="form-select form-select-sm mt-1">
+                        <option value="medium">Medium</option><option value="low">Low</option><option value="high">High</option>
+                    </select>
+                </label>
+                <button class="btn btn-success btn-sm" type="button" onclick="loadCropRecommendations()">
+                    <i class="fas fa-sliders-h"></i> विश्लेषण करें
+                </button>
+            </div>
+            <details class="mt-3">
+                <summary style="cursor:pointer;color:#2d5016;font-weight:600;">मिट्टी जाँच और खेत विवरण</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px;margin-top:12px;">
+                    <label class="form-label mb-0">N kg/ha<input id="cropRecN" class="form-control form-control-sm mt-1" type="number" min="0" max="5000"></label>
+                    <label class="form-label mb-0">P kg/ha<input id="cropRecP" class="form-control form-control-sm mt-1" type="number" min="0" max="2000"></label>
+                    <label class="form-label mb-0">K kg/ha<input id="cropRecK" class="form-control form-control-sm mt-1" type="number" min="0" max="5000"></label>
+                    <label class="form-label mb-0">EC dS/m<input id="cropRecEc" class="form-control form-control-sm mt-1" type="number" min="0" max="100" step="0.1"></label>
+                    <label class="form-label mb-0">नमी %<input id="cropRecMoisture" class="form-control form-control-sm mt-1" type="number" min="0" max="100" step="0.1"></label>
+                    <label class="form-label mb-0">Organic carbon %<input id="cropRecOc" class="form-control form-control-sm mt-1" type="number" min="0" max="100" step="0.1"></label>
+                    <label class="form-label mb-0">खेत ha<input id="cropRecFarmSize" class="form-control form-control-sm mt-1" type="number" min="0.01" step="0.01"></label>
+                    <label class="form-label mb-0">पिछली फसल<input id="cropRecPrevious" class="form-control form-control-sm mt-1" maxlength="120" placeholder="wheat"></label>
+                    <label class="form-label mb-0">श्रेणी
+                        <select id="cropRecCategory" class="form-select form-select-sm mt-1">
+                            <option value="">Any</option><option value="vegetable">Vegetable</option>
+                            <option value="pulse">Pulse</option><option value="cereal">Cereal</option>
+                            <option value="fruit">Fruit</option><option value="spice">Spice</option>
+                            <option value="oilseed">Oilseed</option><option value="medicinal">Medicinal</option>
+                        </select>
+                    </label>
+                </div>
+            </details>
         </div>
         <div id="cropsData" class="loading">
             <div class="skeleton-card mb-3">

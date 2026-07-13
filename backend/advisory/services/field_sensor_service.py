@@ -137,7 +137,7 @@ class FieldSensorService:
           2. Fetch Soil Health Card data from government
           3. Merge with IoT sensor data (highest priority)
           4. Fetch 16-day weather forecast
-          5. Score all 80 crops
+          5. Score all canonical crop profiles
           6. Return ranked recommendations with input gap analysis
         """
         ts = datetime.now().isoformat()
@@ -550,7 +550,7 @@ class FieldSensorService:
         state: Optional[str],
     ) -> List[Dict[str, Any]]:
         """
-        Score all 80 crops using field-level data.
+        Score all canonical crop profiles using field-level data.
         Returns sorted list of crop recommendations.
         """
         try:

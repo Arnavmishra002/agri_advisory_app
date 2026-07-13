@@ -1,6 +1,6 @@
 """
 Real-Time Government Data ViewSet
-Delegates to the canonical CropRecommendationEngine v3 and unified services.
+Delegates to the canonical CropRecommendationEngine v4 and unified services.
 No longer depends on the legacy crop recommendation system.
 """
 import logging
@@ -16,7 +16,7 @@ from ...services.crop_catalog import crop_catalog
 from ...services.crop_recommendation_engine import crop_recommendation_engine
 from ...services.language_service import normalise_language_code
 from ...services.unified_realtime_service import market_service, weather_service
-from ..serializers import GovernmentPestInputSerializer, LocationQuerySerializer
+from ..serializers import CropRecommendationQuerySerializer, GovernmentPestInputSerializer, LocationQuerySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -88,17 +88,21 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def crop_recommendations(self, request):
         """
-        Location-aware crop recommendations — uses CropRecommendationEngine v3
-        (80 crops, live weather, mandi prices, district profiles).
+        Location-aware crop recommendations — uses CropRecommendationEngine v4
+        (200+ crops, live weather, mandi prices, district profiles).
         """
         try:
-            serializer = LocationQuerySerializer(data=request.query_params)
+            serializer = CropRecommendationQuerySerializer(data=request.query_params)
             if not serializer.is_valid():
                 return Response({'error': 'Invalid crop recommendation parameters', 'errors': serializer.errors}, status=400)
             params = serializer.validated_data
             ctx  = resolve_request_location(request)
             lang = normalise_language_code(params.get('language', 'hi'))
-            data = crop_recommendation_engine.recommend_from_context(ctx, language=lang)
+            data = crop_recommendation_engine.recommend_from_context(
+                ctx,
+                language=lang,
+                agronomic_inputs=serializer.recommendation_inputs,
+            )
             return Response(attach_location_metadata(data, ctx))
         except Exception as e:
             logger.error("Crop recommendations API error: %s", e)
@@ -165,7 +169,7 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     # ── Crop Search ──────────────────────────────────────────
     @action(detail=False, methods=['get'])
     def crop_search(self, request):
-        """Crop autocomplete using the crop catalog (80+ crops)."""
+        """Crop autocomplete using the canonical recommendation catalog."""
         try:
             serializer = LocationQuerySerializer(data=request.query_params)
             if not serializer.is_valid():

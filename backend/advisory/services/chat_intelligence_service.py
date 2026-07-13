@@ -13,7 +13,7 @@ Features:
 - Live data grounding: weather, mandi prices, crop recommendations, schemes
 - Field-level IoT sensor integration (NPK, pH, moisture, soil temp)
 - District-level soil/climate profile for location-specific advice
-- Comprehensive crop database (150+ crops, full agronomic profiles)
+- Comprehensive crop database (200+ crops, agronomic planning profiles)
 - Disease→Chat bridge: ML photo diagnosis feeds directly into chatbot
 - Gemini AI primary + Qwen2.5+RAG (local) + Rule-based fallback
 - Farmer profile personalisation: crop history, farm size, soil health card

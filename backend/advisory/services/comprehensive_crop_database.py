@@ -1,6 +1,6 @@
 """
 KrishiMitra Comprehensive Crop Database v2.0
-165+ Indian crops with full agronomic, economic and climate profiles.
+200+ Indian crops with agronomic, economic and climate planning profiles.
 
 Fields per crop:
   name_hindi, name_local  – localised names
@@ -14,8 +14,8 @@ Fields per crop:
   duration_days           – harvest period
   yield_per_hectare       – quintals
   msp_per_quintal         – ₹ (0 = no MSP)
-  profit_per_hectare      – realistic net profit ₹
-  input_cost_per_hectare  – ₹
+  profit_per_hectare      – indicative planning estimate ₹
+  input_cost_per_hectare  – indicative planning estimate ₹
   export_potential        – Low | Medium | High | Very High
   market_demand           – Low | Medium | High | Very High
   volatility              – Low | Medium | High | Very High
@@ -64,6 +64,11 @@ def _crop(
     agro_zones: List[str] = None,
     states: List[str] = None,
     name_local: Dict[str, str] = None,
+    ph_min: float = 5.5,
+    ph_max: float = 7.5,
+    salinity_tolerance: str = "Low",
+    nutrient_demand: str = "Medium",
+    agronomy_source: str = "ICAR/NHB/state package of practices",
 ) -> Dict[str, Any]:
     return {
         "name_hindi": name_hindi,
@@ -86,6 +91,12 @@ def _crop(
         "government_support": support,
         "agro_zones": agro_zones or [],
         "states_primary": states or [],
+        "ph_min": ph_min,
+        "ph_max": ph_max,
+        "salinity_tolerance": salinity_tolerance,
+        "nutrient_demand": nutrient_demand,
+        "agronomy_source": agronomy_source,
+        "economics_status": "indicative_estimate",
     }
 
 
@@ -1732,6 +1743,294 @@ ALL_CROP_DATA: Dict[str, Dict[str, Any]] = {
         states=["Tamil Nadu", "Karnataka", "Andhra Pradesh", "Telangana", "Madhya Pradesh"],
     ),
 }
+
+
+# Additional high-use Indian horticulture profiles. These close gaps in the
+# farmer-facing catalog while retaining the same bounded, auditable schema as
+# the original database. Economic figures are planning estimates, never live
+# mandi prices; callers expose that distinction explicitly.
+ALL_CROP_DATA.update({
+    "cucumber": _crop(
+        name_hindi="खीरा", season="zaid", category="Vegetable",
+        soils=LOAMY + SANDY_LOAM, water="Moderate", temp_min=18, temp_max=35,
+        rainfall_mm=500, days=70, yield_q=180, msp=0, input_cost=55000,
+        profit=130000, demand="High", volatility="High", support="MIDH horticulture",
+        agro_zones=["indo_gangetic", "peninsular", "coastal"],
+        states=["Uttar Pradesh", "Karnataka", "Madhya Pradesh", "Maharashtra"], ph_min=5.5, ph_max=7.0,
+    ),
+    "french_bean": _crop(
+        name_hindi="फ्रेंच बीन्स", season="rabi", category="Vegetable",
+        soils=LOAMY + SANDY_LOAM, water="Moderate", temp_min=15, temp_max=27,
+        rainfall_mm=600, days=75, yield_q=100, msp=0, input_cost=60000,
+        profit=125000, demand="High", volatility="High", support="MIDH horticulture",
+        agro_zones=["himalayan", "indo_gangetic", "peninsular"],
+        states=["Himachal Pradesh", "Uttarakhand", "Karnataka", "Maharashtra"], ph_min=5.5, ph_max=6.8, nutrient_demand="High",
+    ),
+    "broad_bean": _crop(
+        name_hindi="बाकला", season="rabi", category="Vegetable",
+        soils=LOAMY + CLAY, water="Moderate", temp_min=10, temp_max=25,
+        rainfall_mm=500, days=110, yield_q=90, msp=0, input_cost=40000,
+        profit=85000, demand="Medium", volatility="Medium", support="State horticulture mission",
+        agro_zones=["himalayan", "indo_gangetic"],
+        states=["Uttar Pradesh", "Punjab", "Himachal Pradesh", "Uttarakhand"], ph_min=6.0, ph_max=7.5,
+    ),
+    "broccoli": _crop(
+        name_hindi="ब्रोकोली", season="rabi", category="Vegetable",
+        soils=LOAMY + SANDY_LOAM, water="Moderate", temp_min=12, temp_max=24,
+        rainfall_mm=500, days=90, yield_q=120, msp=0, input_cost=85000,
+        profit=160000, demand="High", volatility="High", support="MIDH horticulture",
+        agro_zones=["himalayan", "indo_gangetic", "northwest"],
+        states=["Himachal Pradesh", "Uttarakhand", "Punjab", "Haryana"], ph_min=6.0, ph_max=7.0, nutrient_demand="High",
+    ),
+    "knol_khol": _crop(
+        name_hindi="गांठ गोभी", season="rabi", category="Vegetable",
+        soils=LOAMY + SANDY_LOAM, water="Moderate", temp_min=10, temp_max=25,
+        rainfall_mm=500, days=65, yield_q=160, msp=0, input_cost=50000,
+        profit=105000, demand="Medium", volatility="Medium", support="MIDH horticulture",
+        agro_zones=["himalayan", "indo_gangetic"],
+        states=["Jammu and Kashmir", "Himachal Pradesh", "Uttar Pradesh", "West Bengal"], ph_min=5.5, ph_max=6.8,
+    ),
+    "turnip": _crop(
+        name_hindi="शलजम", season="rabi", category="Vegetable",
+        soils=LOAMY + SANDY_LOAM, water="Moderate", temp_min=10, temp_max=25,
+        rainfall_mm=450, days=60, yield_q=180, msp=0, input_cost=35000,
+        profit=75000, demand="Medium", volatility="Medium", support="State horticulture mission",
+        agro_zones=["himalayan", "indo_gangetic", "northwest"],
+        states=["Punjab", "Haryana", "Uttar Pradesh", "Himachal Pradesh"], ph_min=5.5, ph_max=6.8,
+    ),
+    "lettuce": _crop(
+        name_hindi="सलाद पत्ता", season="rabi", category="Vegetable",
+        soils=LOAMY + SANDY_LOAM, water="Moderate", temp_min=10, temp_max=24,
+        rainfall_mm=450, days=55, yield_q=120, msp=0, input_cost=70000,
+        profit=145000, demand="High", volatility="High", support="Protected cultivation support",
+        agro_zones=["himalayan", "northwest", "indo_gangetic"],
+        states=["Himachal Pradesh", "Uttarakhand", "Haryana", "Maharashtra"], ph_min=6.0, ph_max=7.0, nutrient_demand="High",
+    ),
+    "amaranth_greens": _crop(
+        name_hindi="चौलाई साग", season="year_round", category="Vegetable",
+        soils=ALL_SOILS, water="Moderate", temp_min=18, temp_max=35,
+        rainfall_mm=600, days=35, yield_q=100, msp=0, input_cost=25000,
+        profit=65000, demand="High", volatility="Medium", support="Nutrition garden programmes",
+        agro_zones=["indo_gangetic", "peninsular", "coastal", "northeast"],
+        states=["Uttar Pradesh", "Bihar", "West Bengal", "Tamil Nadu", "Karnataka"], ph_min=5.5, ph_max=7.5,
+    ),
+    "bathua": _crop(
+        name_hindi="बथुआ", season="rabi", category="Vegetable",
+        soils=LOAMY + ALLUVIAL, water="Low", temp_min=8, temp_max=24,
+        rainfall_mm=350, days=45, yield_q=70, msp=0, input_cost=18000,
+        profit=48000, demand="Medium", volatility="Medium", support="Nutrition garden programmes",
+        agro_zones=["indo_gangetic", "northwest"],
+        states=["Uttar Pradesh", "Punjab", "Haryana", "Bihar", "Delhi"], ph_min=6.0, ph_max=8.0, salinity_tolerance="Medium",
+    ),
+    "mustard_greens": _crop(
+        name_hindi="सरसों का साग", season="rabi", category="Vegetable",
+        soils=LOAMY + ALLUVIAL, water="Low", temp_min=8, temp_max=24,
+        rainfall_mm=350, days=50, yield_q=90, msp=0, input_cost=22000,
+        profit=60000, demand="High", volatility="Medium", support="Nutrition garden programmes",
+        agro_zones=["northwest", "indo_gangetic"],
+        states=["Punjab", "Haryana", "Uttar Pradesh", "Rajasthan"], ph_min=5.8, ph_max=7.5, salinity_tolerance="Medium",
+    ),
+    "fenugreek_greens": _crop(
+        name_hindi="मेथी साग", season="rabi", category="Vegetable",
+        soils=LOAMY + SANDY_LOAM, water="Low", temp_min=10, temp_max=27,
+        rainfall_mm=350, days=40, yield_q=80, msp=0, input_cost=24000,
+        profit=65000, demand="High", volatility="Medium", support="State horticulture mission",
+        agro_zones=["northwest", "indo_gangetic", "gujarat"],
+        states=["Rajasthan", "Gujarat", "Uttar Pradesh", "Madhya Pradesh"], ph_min=6.0, ph_max=7.5,
+    ),
+    "spring_onion": _crop(
+        name_hindi="हरा प्याज", season="rabi", category="Vegetable",
+        soils=LOAMY + SANDY_LOAM, water="Moderate", temp_min=12, temp_max=28,
+        rainfall_mm=500, days=65, yield_q=120, msp=0, input_cost=50000,
+        profit=110000, demand="High", volatility="High", support="MIDH horticulture",
+        agro_zones=["himalayan", "indo_gangetic", "peninsular"],
+        states=["Maharashtra", "Karnataka", "Himachal Pradesh", "Uttar Pradesh"], ph_min=6.0, ph_max=7.0, nutrient_demand="High",
+    ),
+    "celery": _crop(
+        name_hindi="अजमोद", season="rabi", category="Vegetable",
+        soils=LOAMY + ALLUVIAL, water="High", temp_min=12, temp_max=24,
+        rainfall_mm=700, days=120, yield_q=140, msp=0, input_cost=90000,
+        profit=170000, demand="Medium", volatility="High", support="Protected cultivation support",
+        agro_zones=["himalayan", "northwest"],
+        states=["Punjab", "Haryana", "Himachal Pradesh", "Uttarakhand"], ph_min=6.0, ph_max=7.0, nutrient_demand="High",
+    ),
+    "tapioca": _crop(
+        name_hindi="कसावा/टैपिओका", season="year_round", category="Vegetable",
+        soils=RED + ["Laterite", "Well drained loam"], water="Moderate", temp_min=20, temp_max=35,
+        rainfall_mm=1000, days=300, yield_q=300, msp=0, input_cost=60000,
+        profit=120000, demand="High", volatility="Medium", support="Tuber crops programme",
+        agro_zones=["coastal", "peninsular"],
+        states=["Kerala", "Tamil Nadu", "Andhra Pradesh", "Karnataka"], ph_min=5.5, ph_max=7.0,
+    ),
+    "elephant_foot_yam": _crop(
+        name_hindi="जिमीकंद/सूरन", season="kharif", category="Vegetable",
+        soils=LOAMY + RED, water="Moderate", temp_min=20, temp_max=35,
+        rainfall_mm=1000, days=240, yield_q=350, msp=0, input_cost=120000,
+        profit=230000, demand="High", volatility="Medium", support="Tuber crops programme",
+        agro_zones=["coastal", "peninsular", "indo_gangetic"],
+        states=["Andhra Pradesh", "Odisha", "West Bengal", "Bihar", "Kerala"], ph_min=5.5, ph_max=7.0, nutrient_demand="High",
+    ),
+    "greater_yam": _crop(
+        name_hindi="रतालू", season="kharif", category="Vegetable",
+        soils=LOAMY + RED, water="High", temp_min=22, temp_max=35,
+        rainfall_mm=1200, days=270, yield_q=250, msp=0, input_cost=90000,
+        profit=180000, demand="Medium", volatility="Medium", support="Tuber crops programme",
+        agro_zones=["coastal", "peninsular", "northeast"],
+        states=["Kerala", "Odisha", "Assam", "West Bengal", "Tamil Nadu"], ph_min=5.5, ph_max=7.0,
+    ),
+    "chayote": _crop(
+        name_hindi="चाउ-चाउ/इस्कुस", season="year_round", category="Vegetable",
+        soils=LOAMY + ["Well drained hill soil"], water="High", temp_min=15, temp_max=28,
+        rainfall_mm=1200, days=150, yield_q=220, msp=0, input_cost=70000,
+        profit=145000, demand="Medium", volatility="Medium", support="Hill horticulture",
+        agro_zones=["himalayan", "northeast"],
+        states=["Sikkim", "Meghalaya", "Mizoram", "Himachal Pradesh", "Uttarakhand"], ph_min=5.5, ph_max=6.8,
+    ),
+    "lotus_stem": _crop(
+        name_hindi="कमल ककड़ी", season="kharif", category="Aquatic",
+        soils=CLAY, water="Very High", temp_min=20, temp_max=35,
+        rainfall_mm=1200, days=180, yield_q=150, msp=0, input_cost=65000,
+        profit=130000, demand="High", volatility="Medium", support="Wetland horticulture",
+        agro_zones=["indo_gangetic", "coastal"],
+        states=["Jammu and Kashmir", "Uttar Pradesh", "Bihar", "West Bengal"], ph_min=6.0, ph_max=7.5,
+    ),
+    "water_chestnut": _crop(
+        name_hindi="सिंघाड़ा", season="kharif", category="Aquatic",
+        soils=CLAY, water="Very High", temp_min=20, temp_max=34,
+        rainfall_mm=1200, days=180, yield_q=100, msp=0, input_cost=55000,
+        profit=110000, demand="High", volatility="Medium", support="Wetland horticulture",
+        agro_zones=["indo_gangetic", "central"],
+        states=["Uttar Pradesh", "Bihar", "Madhya Pradesh", "West Bengal"], ph_min=6.0, ph_max=7.5,
+    ),
+    "pear": _crop(
+        name_hindi="नाशपाती", season="year_round", category="Fruit",
+        soils=LOAMY + ["Well drained hill soil"], water="Moderate", temp_min=3, temp_max=28,
+        rainfall_mm=900, days=1460, yield_q=120, msp=0, input_cost=180000,
+        profit=280000, demand="High", volatility="Medium", support="MIDH hill horticulture",
+        agro_zones=["himalayan", "northwest"],
+        states=["Jammu and Kashmir", "Himachal Pradesh", "Uttarakhand", "Punjab"], ph_min=6.0, ph_max=7.5,
+    ),
+    "lemon": _crop(
+        name_hindi="नींबू", season="year_round", category="Fruit",
+        soils=LOAMY + RED, water="Moderate", temp_min=18, temp_max=35,
+        rainfall_mm=750, days=900, yield_q=120, msp=0, input_cost=140000,
+        profit=250000, demand="Very High", volatility="High", support="MIDH citrus mission",
+        agro_zones=["peninsular", "indo_gangetic", "central"],
+        states=["Andhra Pradesh", "Maharashtra", "Gujarat", "Madhya Pradesh", "Assam"], ph_min=5.5, ph_max=7.5,
+    ),
+    "acid_lime": _crop(
+        name_hindi="कागजी नींबू", season="year_round", category="Fruit",
+        soils=LOAMY + RED + SANDY_LOAM, water="Moderate", temp_min=20, temp_max=38,
+        rainfall_mm=700, days=800, yield_q=100, msp=0, input_cost=130000,
+        profit=240000, demand="Very High", volatility="High", support="MIDH citrus mission",
+        agro_zones=["peninsular", "central", "gujarat"],
+        states=["Andhra Pradesh", "Telangana", "Maharashtra", "Gujarat", "Odisha"], ph_min=5.5, ph_max=7.5,
+    ),
+    "kinnow": _crop(
+        name_hindi="किन्नू", season="year_round", category="Fruit",
+        soils=LOAMY + SANDY_LOAM, water="Moderate", temp_min=10, temp_max=35,
+        rainfall_mm=600, days=1095, yield_q=180, msp=0, input_cost=180000,
+        profit=300000, demand="Very High", volatility="High", support="MIDH citrus mission",
+        agro_zones=["northwest", "indo_gangetic"],
+        states=["Punjab", "Haryana", "Rajasthan", "Himachal Pradesh"], ph_min=5.5, ph_max=7.5,
+    ),
+    "ber": _crop(
+        name_hindi="बेर", season="year_round", category="Fruit",
+        soils=ALL_SOILS + ["Saline", "Alkaline"], water="Low", temp_min=10, temp_max=42,
+        rainfall_mm=350, days=1095, yield_q=100, msp=0, input_cost=90000,
+        profit=180000, demand="High", volatility="Medium", support="Dryland horticulture",
+        agro_zones=["thar_desert", "northwest", "gujarat", "central"],
+        states=["Rajasthan", "Gujarat", "Haryana", "Punjab", "Madhya Pradesh"], ph_min=5.5, ph_max=8.5, salinity_tolerance="High",
+    ),
+    "bael": _crop(
+        name_hindi="बेल", season="year_round", category="Fruit",
+        soils=ALL_SOILS, water="Low", temp_min=15, temp_max=42,
+        rainfall_mm=500, days=1460, yield_q=80, msp=0, input_cost=80000,
+        profit=160000, demand="Medium", volatility="Low", support="Dryland horticulture",
+        agro_zones=["indo_gangetic", "central", "peninsular"],
+        states=["Uttar Pradesh", "Bihar", "Madhya Pradesh", "Rajasthan", "Odisha"], ph_min=5.0, ph_max=8.0, salinity_tolerance="Medium",
+    ),
+    "phalsa": _crop(
+        name_hindi="फालसा", season="year_round", category="Fruit",
+        soils=LOAMY + SANDY_LOAM, water="Low", temp_min=18, temp_max=40,
+        rainfall_mm=500, days=730, yield_q=45, msp=0, input_cost=70000,
+        profit=140000, demand="Medium", volatility="High", support="Dryland horticulture",
+        agro_zones=["northwest", "indo_gangetic", "central"],
+        states=["Punjab", "Haryana", "Uttar Pradesh", "Rajasthan"], ph_min=6.0, ph_max=8.0,
+    ),
+    "karonda": _crop(
+        name_hindi="करौंदा", season="year_round", category="Fruit",
+        soils=ALL_SOILS, water="Low", temp_min=18, temp_max=40,
+        rainfall_mm=500, days=900, yield_q=60, msp=0, input_cost=65000,
+        profit=130000, demand="Medium", volatility="Low", support="Dryland horticulture",
+        agro_zones=["central", "indo_gangetic", "peninsular"],
+        states=["Madhya Pradesh", "Uttar Pradesh", "Rajasthan", "Maharashtra"], ph_min=5.0, ph_max=8.0, salinity_tolerance="Medium",
+    ),
+    "passion_fruit": _crop(
+        name_hindi="पैशन फ्रूट", season="year_round", category="Fruit",
+        soils=LOAMY + ["Well drained hill soil"], water="High", temp_min=15, temp_max=30,
+        rainfall_mm=1200, days=540, yield_q=100, msp=0, input_cost=160000,
+        profit=300000, demand="High", volatility="High", support="Hill horticulture",
+        agro_zones=["northeast", "himalayan", "coastal"],
+        states=["Manipur", "Mizoram", "Nagaland", "Sikkim", "Kerala"], ph_min=5.5, ph_max=6.5, nutrient_demand="High",
+    ),
+    "rambutan": _crop(
+        name_hindi="रामबूटान", season="year_round", category="Fruit",
+        soils=RED + LOAMY, water="High", temp_min=22, temp_max=32,
+        rainfall_mm=1800, days=1460, yield_q=100, msp=0, input_cost=260000,
+        profit=420000, demand="High", volatility="High", support="Tropical horticulture",
+        agro_zones=["coastal", "northeast"],
+        states=["Kerala", "Karnataka", "Tamil Nadu", "Assam"], ph_min=5.0, ph_max=6.5, nutrient_demand="High",
+    ),
+    "mangosteen": _crop(
+        name_hindi="मैंगोस्टीन", season="year_round", category="Fruit",
+        soils=RED + LOAMY, water="Very High", temp_min=22, temp_max=32,
+        rainfall_mm=2000, days=2190, yield_q=70, msp=0, input_cost=300000,
+        profit=480000, demand="High", volatility="High", support="Tropical horticulture",
+        agro_zones=["coastal"],
+        states=["Kerala", "Tamil Nadu", "Karnataka"], ph_min=5.0, ph_max=6.5, nutrient_demand="High",
+    ),
+    "mandarin": _crop(
+        name_hindi="मंदारिन संतरा", season="year_round", category="Fruit",
+        soils=LOAMY + RED, water="Moderate", temp_min=10, temp_max=32,
+        rainfall_mm=1000, days=1095, yield_q=140, msp=0, input_cost=200000,
+        profit=320000, demand="Very High", volatility="High", support="MIDH citrus mission",
+        agro_zones=["northeast", "himalayan", "central"],
+        states=["Nagaland", "Assam", "Sikkim", "Madhya Pradesh", "Maharashtra"], ph_min=5.0, ph_max=7.0,
+    ),
+    "sweet_lime": _crop(
+        name_hindi="मौसंबी", season="year_round", category="Fruit",
+        soils=LOAMY + BLACK, water="Moderate", temp_min=18, temp_max=36,
+        rainfall_mm=700, days=1095, yield_q=160, msp=0, input_cost=190000,
+        profit=310000, demand="Very High", volatility="High", support="MIDH citrus mission",
+        agro_zones=["deccan", "central", "peninsular"],
+        states=["Maharashtra", "Telangana", "Andhra Pradesh", "Madhya Pradesh"], ph_min=6.0, ph_max=7.5,
+    ),
+    "saffron": _crop(
+        name_hindi="केसर", season="rabi", category="Spice",
+        soils=LOAMY + ["Calcareous well drained soil"], water="Low", temp_min=-5, temp_max=25,
+        rainfall_mm=400, days=240, yield_q=0.05, msp=0, input_cost=450000,
+        profit=700000, export="Very High", demand="Very High", volatility="High", support="National Saffron Mission",
+        agro_zones=["himalayan"], states=["Jammu and Kashmir", "Himachal Pradesh"],
+        ph_min=6.0, ph_max=8.0, salinity_tolerance="Low", nutrient_demand="High",
+    ),
+    "bay_leaf": _crop(
+        name_hindi="तेजपत्ता", season="year_round", category="Spice",
+        soils=LOAMY + ["Forest loam"], water="Moderate", temp_min=10, temp_max=30,
+        rainfall_mm=1200, days=1095, yield_q=15, msp=0, input_cost=100000,
+        profit=190000, export="High", demand="High", volatility="Medium", support="Spices Board",
+        agro_zones=["himalayan", "northeast"],
+        states=["Uttarakhand", "Sikkim", "Meghalaya", "Arunachal Pradesh"], ph_min=5.5, ph_max=7.0,
+    ),
+    "vanilla": _crop(
+        name_hindi="वनीला", season="year_round", category="Spice",
+        soils=RED + LOAMY, water="High", temp_min=20, temp_max=32,
+        rainfall_mm=1800, days=1095, yield_q=3, msp=0, input_cost=300000,
+        profit=500000, export="Very High", demand="High", volatility="Very High", support="Spices Board",
+        agro_zones=["coastal", "peninsular"],
+        states=["Kerala", "Karnataka", "Tamil Nadu"], ph_min=5.5, ph_max=7.0, nutrient_demand="High",
+    ),
+})
 
 for _crop_key, _msp in MSP_2024_25.items():
     if _crop_key in ALL_CROP_DATA:

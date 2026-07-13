@@ -12,7 +12,7 @@ from ..errors import safe_error_message
 from ...services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
 from ...services.crop_catalog import crop_catalog
 from ...services.crop_recommendation_engine import crop_recommendation_engine
-from ..serializers import LocationQuerySerializer
+from ..serializers import CropRecommendationQuerySerializer, LocationQuerySerializer
 
 # Module-level singleton — avoid instantiating on every request
 try:
@@ -38,7 +38,7 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
 
     def list(self, request):
         try:
-            serializer = LocationQuerySerializer(data=request.query_params)
+            serializer = CropRecommendationQuerySerializer(data=request.query_params)
             if not serializer.is_valid():
                 return Response({"error": "Invalid crop query", "errors": serializer.errors}, status=400)
             params = serializer.validated_data
@@ -51,7 +51,9 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
             )
 
             recommendations = crop_recommendation_engine.recommend_from_context(
-                ctx, language=language
+                ctx,
+                language=language,
+                agronomic_inputs=serializer.recommendation_inputs,
             )
 
             return Response(
@@ -77,14 +79,18 @@ class TrendingCropsViewSet(viewsets.ViewSet):
     def list(self, request):
         """Get trending crops using government APIs"""
         try:
-            serializer = LocationQuerySerializer(data=request.query_params)
+            serializer = CropRecommendationQuerySerializer(data=request.query_params)
             if not serializer.is_valid():
                 return Response({"error": "Invalid trending crop query", "errors": serializer.errors}, status=400)
             params = serializer.validated_data
             ctx = resolve_request_location(request)
             language = params.get("language", "hi")
 
-            rec_data = crop_recommendation_engine.recommend_from_context(ctx, language=language)
+            rec_data = crop_recommendation_engine.recommend_from_context(
+                ctx,
+                language=language,
+                agronomic_inputs=serializer.recommendation_inputs,
+            )
             trending = rec_data.get("recommendations", [])[:10]
 
             return Response(attach_location_metadata({
@@ -131,7 +137,7 @@ class CropViewSet(viewsets.ViewSet):
     def list(self, request):
         """Get crop information using government APIs"""
         try:
-            serializer = LocationQuerySerializer(data=request.query_params)
+            serializer = CropRecommendationQuerySerializer(data=request.query_params)
             if not serializer.is_valid():
                 return Response({"error": "Invalid crop query", "errors": serializer.errors}, status=400)
             params = serializer.validated_data
@@ -147,7 +153,11 @@ class CropViewSet(viewsets.ViewSet):
 
             crop_info = {}
             if crop_name:
-                recs = crop_recommendation_engine.recommend_from_context(ctx, language=language)
+                recs = crop_recommendation_engine.recommend_from_context(
+                    ctx,
+                    language=language,
+                    agronomic_inputs=serializer.recommendation_inputs,
+                )
                 for crop in recs.get("recommendations", []):
                     if crop.get("crop_name", "").lower() == crop_name.lower():
                         crop_info = crop

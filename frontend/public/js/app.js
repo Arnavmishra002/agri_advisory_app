@@ -1716,6 +1716,25 @@
         }
     }
 
+    function buildCropRecommendationQuery() {
+        const params = new URLSearchParams(buildLocationQuery());
+        const fields = {
+            cropRecSeason: 'season', cropRecSoil: 'soil_type',
+            cropRecIrrigation: 'irrigation', cropRecPh: 'ph',
+            cropRecBudget: 'budget_per_hectare', cropRecRisk: 'risk_tolerance',
+            cropRecN: 'nitrogen_kg_ha', cropRecP: 'phosphorus_kg_ha',
+            cropRecK: 'potassium_kg_ha', cropRecEc: 'ec_ds_m',
+            cropRecMoisture: 'moisture_pct', cropRecOc: 'organic_carbon',
+            cropRecFarmSize: 'farm_size_ha', cropRecPrevious: 'previous_crop',
+            cropRecCategory: 'preferred_categories',
+        };
+        Object.entries(fields).forEach(([id, key]) => {
+            const value = document.getElementById(id)?.value?.trim();
+            if (value) params.set(key, value);
+        });
+        return params.toString();
+    }
+
     async function loadCropRecommendations() {
         try {
             const container = document.getElementById('cropsData');
@@ -1724,7 +1743,7 @@
 
             container.innerHTML = `<div class="loading">${(typeof window.t === 'function' ? window.t('loading') : 'Loading...')}</div>`;
 
-            const data = await apiGetJson(`/api/advisories/?${buildLocationQuery()}`);
+            const data = await apiGetJson(`/api/advisories/?${buildCropRecommendationQuery()}`);
             const recommendations = data.recommendations || data.top_4_recommendations || [];
 
             const getCategoryIcon = (cat) => ({'Cereal':'🌾','Pulse':'🫘','Oilseed':'🌻','Vegetable':'🥦','Fruit':'🍎','Spice':'🌶️','Cash':'💰','Millet':'🌿','Fiber':'🧵','Plantation':'🌴','Medicinal':'🌱'}[cat] || '🌱');
@@ -1787,7 +1806,7 @@
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;font-size:0.82rem;">
                             <div style="background:#f0fff0;border-radius:8px;padding:8px;text-align:center;">
                                 <div style="font-weight:700;color:#28a745;">₹${(crop.profit_per_hectare||0).toLocaleString()}</div>
-                                <div style="color:#888;font-size:0.72rem;">लाभ/हे.</div>
+                                <div style="color:#888;font-size:0.72rem;">अनुमानित लाभ/हे.</div>
                             </div>
                             <div style="background:#f0f8ff;border-radius:8px;padding:8px;text-align:center;">
                                 <div style="font-weight:700;color:#1565c0;">${crop.yield_per_hectare||0} q/ha</div>
@@ -1804,12 +1823,13 @@
                         </div>
                         ${crop.market_price && crop.market_is_live ? `<div style="font-size:0.78rem;color:#2e7d32;margin-bottom:6px;">📊 Live mandi: ₹${crop.market_price}/q</div>` : ''}
                         ${hint ? `<div style="background:#fff9c4;border-radius:8px;padding:8px 10px;font-size:0.82rem;color:#333;border-left:3px solid #ffc107;">💡 ${escapeHtml(hint)}</div>` : ''}
-                        <div style="margin-top:8px;font-size:0.75rem;color:#aaa;">${escapeHtml(crop.duration_days||120)} days · ${escapeHtml(String(crop.temperature_range||''))}</div>
+                        <div style="margin-top:8px;font-size:0.75rem;color:#777;">${escapeHtml(crop.duration_days||120)} days · ${escapeHtml(String(crop.temperature_range||''))} · data ${(Number(crop.prediction_data?.data_completeness || 0) * 100).toFixed(0)}%</div>
+                        <div style="margin-top:4px;font-size:0.68rem;color:#999;">लागत/लाभ स्थानीय सत्यापन के लिए संकेतात्मक अनुमान हैं</div>
                     </div>`;
                 });
 
                 html += `</div><div style="margin-top:16px;font-size:0.78rem;color:#888;text-align:center;">
-                    🧬 Engine v3 · 80 crops · ${escapeHtml(data.analysis_method||'multi_factor_scoring_v3')} ·
+                    Engine v4 · ${escapeHtml(String(data.database_size||'200+'))} crops · ${escapeHtml(data.analysis_method||'multi_factor_scoring_v4')} ·
                     ${escapeHtml(data.data_source||'KrishiMitra Agro-Climatic Engine')}
                 </div>`;
                 container.innerHTML = html;

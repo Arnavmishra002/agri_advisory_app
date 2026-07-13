@@ -853,7 +853,7 @@ class UltraDynamicGovernmentAPI:
         latitude: float = None,
         longitude: float = None,
     ) -> Dict[str, Any]:
-        """Public entry: delegates to CropRecommendationEngine v3 (150+ crops, multi-factor)."""
+        """Public entry: delegates to CropRecommendationEngine v4 (200+ crops, multi-factor)."""
         try:
             from .crop_recommendation_engine import crop_recommendation_engine
             result = crop_recommendation_engine.recommend(
