@@ -11,7 +11,11 @@ from rest_framework.test import APIClient
 
 from advisory.api.throttling import ConfigurableRateThrottle
 from advisory.api.validation import decode_base64_image, validate_image_bytes
-from advisory.api.serializers import DiagnosticMultipartPredictInputSerializer
+from advisory.api.serializers import (
+    DiagnosticMultipartPredictInputSerializer,
+    TwilioWebhookInputSerializer,
+    WhatsAppWebhookInputSerializer,
+)
 from advisory.rate_limiters import ExponentialBackoff
 
 
@@ -99,6 +103,36 @@ class StrictRequestSchemaTests(SimpleTestCase):
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertEqual(serializer.validated_data["session_id"], "mobile-diagnostic-session")
+
+    def test_provider_webhook_schemas_reject_unknown_fields(self):
+        twilio = TwilioWebhookInputSerializer(data={"From": "+919876543210", "Body": "hello", "unexpected": "x"})
+        self.assertFalse(twilio.is_valid())
+
+        whatsapp = WhatsAppWebhookInputSerializer(
+            data={"object": "whatsapp_business_account", "entry": [], "unexpected": "x"}
+        )
+        self.assertFalse(whatsapp.is_valid())
+
+    def test_whatsapp_message_schema_bounds_nested_fields(self):
+        serializer = WhatsAppWebhookInputSerializer(
+            data={
+                "object": "whatsapp_business_account",
+                "entry": [{
+                    "id": "business",
+                    "changes": [{
+                        "field": "messages",
+                        "value": {
+                            "messages": [{
+                                "from": "919876543210",
+                                "type": "text",
+                                "text": {"body": "hello"},
+                            }],
+                        },
+                    }],
+                }],
+            }
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
 
 
 class AuthenticationBackoffTests(TestCase):

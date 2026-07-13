@@ -104,6 +104,98 @@ class StrictSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
+class TwilioWebhookInputSerializer(StrictSerializer):
+    """Bounded form contract for Twilio SMS and Voice callbacks."""
+
+    From = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    To = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    Body = serializers.CharField(required=False, allow_blank=True, max_length=4000)
+    SpeechResult = serializers.CharField(required=False, allow_blank=True, max_length=4000)
+    Digits = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    CallSid = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    AccountSid = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    CallStatus = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    Direction = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    MessageSid = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    MessageStatus = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    NumMedia = serializers.CharField(required=False, allow_blank=True, max_length=8)
+    MediaUrl0 = serializers.URLField(required=False, allow_blank=True, max_length=2048)
+    MediaContentType0 = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    RecordingUrl = serializers.URLField(required=False, allow_blank=True, max_length=2048)
+    RecordingSid = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    RecordingStatus = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    RecordingDuration = serializers.CharField(required=False, allow_blank=True, max_length=16)
+    Language = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    Confidence = serializers.CharField(required=False, allow_blank=True, max_length=16)
+    ApiVersion = serializers.CharField(required=False, allow_blank=True, max_length=32)
+
+
+class WhatsAppWebhookInputSerializer(StrictSerializer):
+    """Validate the bounded subset of Meta webhook payloads we consume."""
+
+    object = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    entry = serializers.ListField(
+        required=True,
+        child=serializers.DictField(),
+        max_length=10,
+    )
+
+    @staticmethod
+    def _check_dict(value, allowed, path):
+        if not isinstance(value, Mapping):
+            raise serializers.ValidationError({path: "must be an object"})
+        unknown = set(value) - set(allowed)
+        if unknown:
+            raise serializers.ValidationError(
+                {path: [f"Unexpected field: {field}" for field in sorted(unknown)]}
+            )
+
+    def validate(self, attrs):
+        for entry_index, entry in enumerate(attrs.get("entry", [])):
+            self._check_dict(entry, {"id", "changes"}, f"entry[{entry_index}]")
+            changes = entry.get("changes", [])
+            if not isinstance(changes, list) or len(changes) > 10:
+                raise serializers.ValidationError({f"entry[{entry_index}].changes": "must contain at most 10 items"})
+            for change_index, change in enumerate(changes):
+                path = f"entry[{entry_index}].changes[{change_index}]"
+                self._check_dict(change, {"field", "value"}, path)
+                value = change.get("value", {})
+                self._check_dict(
+                    value,
+                    {"messaging_product", "metadata", "contacts", "messages", "statuses"},
+                    f"{path}.value",
+                )
+                messages = value.get("messages", [])
+                if not isinstance(messages, list) or len(messages) > 10:
+                    raise serializers.ValidationError({f"{path}.value.messages": "must contain at most 10 items"})
+                for message_index, message in enumerate(messages):
+                    message_path = f"{path}.value.messages[{message_index}]"
+                    self._check_dict(
+                        message,
+                        {"from", "id", "timestamp", "type", "text", "audio", "image", "caption", "body"},
+                        message_path,
+                    )
+                    for nested_name, nested_allowed in {
+                        "text": {"body"},
+                        "audio": {"id"},
+                        "image": {"id", "caption", "mime_type", "sha256"},
+                    }.items():
+                        if nested_name in message:
+                            self._check_dict(
+                                message[nested_name],
+                                nested_allowed,
+                                f"{message_path}.{nested_name}",
+                            )
+                    for text_field in ("from", "id", "timestamp", "type", "caption", "body"):
+                        if text_field in message and (
+                            not isinstance(message[text_field], str) or len(message[text_field]) > 4000
+                        ):
+                            raise serializers.ValidationError(
+                                {f"{message_path}.{text_field}": "must be a bounded string"}
+                            )
+        return attrs
+
+
 class StrictQuerySerializer(StrictSerializer):
     """StrictSerializer variant used for query strings as well as JSON bodies."""
 

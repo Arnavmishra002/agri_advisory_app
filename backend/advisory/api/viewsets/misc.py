@@ -39,7 +39,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..errors import safe_error_message
-from ..serializers import AdvisoryAudioInputSerializer, TextToSpeechInputSerializer
+from ..serializers import (
+    AdvisoryAudioInputSerializer,
+    TextToSpeechInputSerializer,
+    TwilioWebhookInputSerializer,
+    WhatsAppWebhookInputSerializer,
+)
 logger = logging.getLogger(__name__)
 
 # ── Environment config ────────────────────────────────────────────────────────
@@ -145,9 +150,13 @@ class SMSIVRViewSet(viewsets.ViewSet):
                     logger.warning("WhatsApp webhook signature mismatch — rejecting")
                     return Response({"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
 
-            body = request.data
-            if not isinstance(body, dict):
-                return Response({"error": "Invalid webhook payload"}, status=status.HTTP_400_BAD_REQUEST)
+            serializer = WhatsAppWebhookInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(
+                    {"error": "Invalid webhook payload", "error_code": "INVALID_WEBHOOK_PAYLOAD", "errors": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            body = serializer.validated_data
             entry = (body.get("entry") or [{}])[0]
             changes = (entry.get("changes") or [{}])[0]
             value = changes.get("value", {})
@@ -422,8 +431,12 @@ class SMSIVRViewSet(viewsets.ViewSet):
         rejected = _reject_invalid_twilio(request)
         if rejected:
             return rejected
-        from_number = request.data.get("From", "")
-        raw_body    = request.data.get("Body", "")
+        serializer = TwilioWebhookInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+        from_number = data.get("From", "")
+        raw_body    = data.get("Body", "")
         if not isinstance(from_number, str) or len(from_number) > 32 or not isinstance(raw_body, str):
             return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
         body = raw_body.strip()[:4000]
@@ -456,7 +469,11 @@ class SMSIVRViewSet(viewsets.ViewSet):
             return rejected
         from django.http import HttpResponse
         
-        from_number = request.data.get("From", "")
+        serializer = TwilioWebhookInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+        from_number = data.get("From", "")
         if not isinstance(from_number, str) or len(from_number) > 32:
             return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
         lang_code = self._get_or_create_profile_language(from_number)
@@ -512,8 +529,12 @@ class SMSIVRViewSet(viewsets.ViewSet):
             return rejected
         from django.http import HttpResponse
         
-        from_number   = request.data.get("From", "")
-        raw_speech    = request.data.get("SpeechResult", "")
+        serializer = TwilioWebhookInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+        from_number   = data.get("From", "")
+        raw_speech    = data.get("SpeechResult", "")
         if not isinstance(from_number, str) or not isinstance(raw_speech, str) or len(from_number) > 32:
             return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
         speech_result = raw_speech.strip()[:4000]
