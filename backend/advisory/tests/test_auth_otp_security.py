@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.core.cache import cache
+from django.conf import settings
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
@@ -54,3 +55,11 @@ class AuthOtpSecurityTests(TestCase):
 
         self.assertEqual(blocked.status_code, 429)
         self.assertEqual(blocked.json()["error_code"], "OTP_VERIFY_RATE_LIMITED")
+
+    def test_otp_limiters_use_configured_settings(self):
+        from advisory.api.viewsets.auth_viewset import otp_rate_limiter, otp_verify_rate_limiter
+
+        self.assertEqual(otp_rate_limiter.capacity, settings.OTP_REQUEST_CAPACITY)
+        self.assertEqual(otp_rate_limiter.window_seconds, settings.OTP_REQUEST_WINDOW_SECONDS)
+        self.assertEqual(otp_verify_rate_limiter.capacity, settings.OTP_VERIFY_CAPACITY)
+        self.assertEqual(otp_verify_rate_limiter.window_seconds, settings.OTP_VERIFY_WINDOW_SECONDS)

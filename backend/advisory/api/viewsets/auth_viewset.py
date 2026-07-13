@@ -51,17 +51,17 @@ from ..serializers import (
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-# ── OTP rate limiter: max 3 OTP requests per phone per hour ──────────────────
+# ── OTP rate limiters ─────────────────────────────────────────────────────────
 # Uses phone number as client_id (not IP) so rate limit is per-user not per-network.
 otp_rate_limiter = AtomicWindowRateLimiter(
     key_prefix="otp",
-    capacity=3,
-    window_seconds=3600,
+    capacity=settings.OTP_REQUEST_CAPACITY,
+    window_seconds=settings.OTP_REQUEST_WINDOW_SECONDS,
 )
 otp_verify_rate_limiter = AtomicWindowRateLimiter(
     key_prefix="otp_verify",
-    capacity=5,
-    window_seconds=3600,
+    capacity=settings.OTP_VERIFY_CAPACITY,
+    window_seconds=settings.OTP_VERIFY_WINDOW_SECONDS,
 )
 otp_backoff = ExponentialBackoff("otp_verify")
 
@@ -177,7 +177,7 @@ class AuthViewSet(viewsets.ViewSet):
                 status=400,
             )
 
-        # Rate limiting: 3 OTPs per phone per hour
+        # Rate limiting: configured per-phone window
         if not otp_rate_limiter.is_allowed(phone):
             return Response(
                 {

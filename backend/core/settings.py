@@ -497,6 +497,13 @@ AUTH_BACKOFF_THRESHOLD = _positive_int_env('AUTH_BACKOFF_THRESHOLD', 5)
 AUTH_BACKOFF_BASE_SECONDS = _non_negative_float_env('AUTH_BACKOFF_BASE_SECONDS', 2)
 AUTH_BACKOFF_MAX_SECONDS = max(1.0, _non_negative_float_env('AUTH_BACKOFF_MAX_SECONDS', 300))
 AUTH_BACKOFF_WINDOW_SECONDS = _positive_int_env('AUTH_BACKOFF_WINDOW_SECONDS', 3600)
+# OTP request and verification windows are independently configurable. Keep
+# these separate from the generic API throttle so operators can tune SMS cost
+# protection without changing normal authentication traffic limits.
+OTP_REQUEST_CAPACITY = _positive_int_env('OTP_REQUEST_CAPACITY', 3)
+OTP_REQUEST_WINDOW_SECONDS = _positive_int_env('OTP_REQUEST_WINDOW_SECONDS', 3600)
+OTP_VERIFY_CAPACITY = _positive_int_env('OTP_VERIFY_CAPACITY', 5)
+OTP_VERIFY_WINDOW_SECONDS = _positive_int_env('OTP_VERIFY_WINDOW_SECONDS', 3600)
 KRISHI_RAKSHA_MAX_UPLOAD_BYTES = int(
     os.environ.get('KRISHI_RAKSHA_MAX_UPLOAD_MB', '5')
 ) * 1024 * 1024
