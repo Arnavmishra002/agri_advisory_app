@@ -18,7 +18,6 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.conf import settings
-from django.conf.urls.static import static
 from .auth_views import StrictTokenObtainPairView, StrictTokenRefreshView
 from . import views
 # from .schema_views import CachedSpectacularAPIView, OptimizedSpectacularSwaggerView
@@ -43,5 +42,3 @@ if getattr(settings, 'SERVE_FRONTEND', False):
             re_path(r'^(?!api/|admin/|static/|media/).*$',
                     views.serve_frontend_index, name='frontend_spa'),
         ]
-
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

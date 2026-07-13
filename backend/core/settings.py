@@ -580,19 +580,17 @@ if SENTRY_DSN and sentry_sdk and DjangoIntegration:
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
 # Request/upload guardrails. Diagnostic endpoints validate decoded image bytes
 # before inference and do not persist them. Any future persisted upload must use
-# the private directory with restrictive permissions and must never be served as
+# this private directory with restrictive permissions and must never be served as
 # executable/static content.
+PRIVATE_UPLOAD_ROOT = os.environ.get('PRIVATE_UPLOAD_ROOT', os.path.join(BASE_DIR, 'private_uploads'))
+MEDIA_URL = '/media/'
+MEDIA_ROOT = PRIVATE_UPLOAD_ROOT
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_MEMORY_SIZE', str(8 * 1024 * 1024)))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('FILE_UPLOAD_MAX_MEMORY_SIZE', str(8 * 1024 * 1024)))
 FILE_UPLOAD_PERMISSIONS = 0o600
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o700
-PRIVATE_UPLOAD_ROOT = os.environ.get('PRIVATE_UPLOAD_ROOT', os.path.join(BASE_DIR, 'private_uploads'))
 
 # Security settings for production
 if not DEBUG:

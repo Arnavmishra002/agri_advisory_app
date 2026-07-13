@@ -98,8 +98,8 @@ services:
       - ml_models:/app/models
       # Static files shared with nginx
       - static_files:/app/backend/staticfiles
-      # Media uploads
-      - media_files:/app/backend/media
+      # Private uploads; no public /media/ route exists
+      - media_files:/app/backend/private_uploads
     depends_on:
       postgres:
         condition: service_healthy

@@ -3,9 +3,11 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.cache import caches
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase, override_settings
+from django.urls import Resolver404, resolve
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.test import APIClient
 
@@ -21,6 +23,11 @@ from advisory.rate_limiters import ExponentialBackoff
 
 
 class ImageValidationTests(SimpleTestCase):
+    def test_upload_root_is_private_and_media_route_is_not_public(self):
+        self.assertEqual(settings.MEDIA_ROOT, settings.PRIVATE_UPLOAD_ROOT)
+        with self.assertRaises(Resolver404):
+            resolve("/media/anything.txt")
+
     def test_invalid_base64_is_rejected_before_inference(self):
         image, error = decode_base64_image("not-base64")
 

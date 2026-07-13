@@ -135,8 +135,10 @@ RUN mkdir -p \
     /app/data \
     /app/models/crop_disease \
     /app/backend/staticfiles \
-    /app/backend/media \
+    /app/backend/private_uploads \
     /app/backend/logs
+
+RUN chmod 0700 /app/backend/private_uploads /app/backend/logs
 
 # ── Collect static assets ─────────────────────────────────────
 # Uses a throwaway SQLite so no DB connection is needed at build time
