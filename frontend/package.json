@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:ui": "node scripts/check-ui-contract.mjs"
   },
   "devDependencies": {
     "vite": "^6.2.0"

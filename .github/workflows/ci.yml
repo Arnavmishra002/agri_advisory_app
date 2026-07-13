@@ -523,6 +523,7 @@ jobs:
           npm ci --no-audit --no-fund
           npm audit --audit-level=high
           node --check public/js/app.js
+          npm run test:ui
           npm run build
 
       - name: Verify dist output

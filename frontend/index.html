@@ -31,7 +31,7 @@
         body { font-family: 'Inter', sans-serif; }
         /* ── Section header decoration ── */
         .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-        .section-header h2 { margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+        .section-header h2 { margin: 0; font-weight: 800; }
         /* Scroll to top button */
         #scrollTopBtn {
             position: fixed; bottom: 90px; right: 20px;
@@ -40,7 +40,6 @@
             font-size: 1.1rem; cursor: pointer; display: none;
             box-shadow: 0 4px 14px rgba(45,80,22,0.4);
             transition: all 0.25s ease; z-index: 999;
-        }
         }
         #scrollTopBtn:hover { transform: translateY(-4px) scale(1.06); }
         #scrollTopBtn.show { display: flex; align-items: center; justify-content: center; }
@@ -54,8 +53,9 @@
      ══════════════════════════════════════════════════════════ -->
 <nav class="navbar navbar-expand-lg">
     <div class="container">
-        <a class="navbar-brand" href="#" onclick="showService('home');return false;">
-            🌾 <span data-i18n="hero_title">KrishiMitra AI</span>
+        <a class="navbar-brand" href="#home" onclick="showService('home');return false;">
+            <span class="brand-mark" aria-hidden="true"><i class="fas fa-wheat-awn"></i></span>
+            <span>KrishiMitra</span>
         </a>
         <div class="d-flex align-items-center gap-2 ms-auto">
             <!-- Dark mode toggle -->
@@ -113,18 +113,17 @@
 <!-- ══════════════════════════════════════════════════════════
      HERO
      ══════════════════════════════════════════════════════════ -->
-<div class="hero-section">
-    <!-- Animated depth orbs (pure CSS, no JS) -->
-    <div class="hero-orb-1"></div>
-    <div class="hero-orb-2"></div>
-    <div class="hero-orb-3"></div>
+<div class="hero-section" id="appHero">
     <div class="container">
 
-        <h1 class="hero-title" data-i18n="hero_title">🌾 KrishiMitra AI</h1>
-        <p class="hero-subtitle" data-i18n="hero_subtitle">किसानों का सबसे अच्छा दोस्त — AI से स्मार्ट खेती करें</p>
+        <div class="hero-copy">
+            <span class="hero-kicker"><i class="fas fa-shield-heart"></i> भरोसेमंद डिजिटल कृषि सहायक</span>
+            <h1 class="hero-title">KrishiMitra AI</h1>
+            <p class="hero-subtitle">मौसम, मंडी, फसल और रोग सलाह — आपके स्थान और खेत के अनुसार</p>
+        </div>
 
         <!-- Live Weather Mini-Widget -->
-        <div class="hero-weather-widget" id="heroWeatherWidget" onclick="showService('weather')" style="display:none;">
+        <button type="button" class="hero-weather-widget" id="heroWeatherWidget" onclick="showService('weather')" style="display:none;" aria-label="पूरा मौसम पूर्वानुमान देखें">
             <div style="font-size:2rem;line-height:1;" id="heroWeatherIcon">🌤️</div>
             <div class="hero-weather-divider"></div>
             <div class="hero-weather-details">
@@ -138,7 +137,7 @@
                 <div style="font-size:0.78rem;opacity:0.85;">🌬️ <span id="heroWind">--</span> km/h</div>
                 <div style="font-size:0.78rem;opacity:0.85;">🌧️ <span id="heroRain">0</span> mm</div>
             </div>
-        </div>
+        </button>
 
         <!-- Location Search -->
         <div class="location-search-container">
@@ -151,8 +150,8 @@
                     onfocus="searchLocations(event)"
                     onkeydown="if(event.key==='Enter'){event.preventDefault();applyManualLocation();}"
                     autocomplete="off">
-                <button class="btn" onclick="applyManualLocation()" title="खोजें">
-                    <i class="fas fa-search"></i> खोजें
+                <button class="btn" type="button" onclick="applyManualLocation()" title="स्थान खोजें">
+                    <i class="fas fa-search"></i> <span>खोजें</span>
                 </button>
             </div>
             <div id="locationSuggestions" class="location-suggestions"></div>
@@ -163,9 +162,16 @@
             <span class="location-label">📍 स्थान:</span>
             <span id="currentLocationDisplay" class="location-name">Delhi</span>
             <span id="locationAccuracyBadge" class="location-accuracy-badge" style="display:none;"></span>
-            <button class="btn btn-sm btn-outline-light" onclick="detectLocation()" style="font-size:0.8rem;border-radius:999px;">
+            <button class="btn btn-sm btn-outline-light" type="button" onclick="detectLocation()">
                 <i class="fas fa-crosshairs"></i> <span data-i18n="detect_location">GPS</span>
             </button>
+        </div>
+
+        <div class="hero-quick-actions" aria-label="मुख्य किसान सेवाएं">
+            <button type="button" onclick="showService('ai-assistant')"><i class="fas fa-comments"></i><span>AI से पूछें</span></button>
+            <button type="button" onclick="showService('crop-recommendations')"><i class="fas fa-seedling"></i><span>फसल चुनें</span></button>
+            <button type="button" onclick="showService('market-prices')"><i class="fas fa-indian-rupee-sign"></i><span>मंडी भाव</span></button>
+            <button type="button" onclick="showService('pest-control')"><i class="fas fa-camera"></i><span>फोटो जांच</span></button>
         </div>
     </div>
 </div>
@@ -177,36 +183,30 @@
     <div class="container">
 
         <!-- Section title -->
-        <div class="text-center mb-2">
-            <h2 style="color:#1a3a0a;font-weight:800;letter-spacing:-0.02em;">किसानों के लिए आवश्यक सेवाएं</h2>
-            <p style="color:#666;font-size:0.92rem;margin-top:4px;">🌾 AI-Powered &nbsp;•&nbsp; Real-Time Data &nbsp;•&nbsp; Government APIs &nbsp;•&nbsp; 22 Languages</p>
+        <div class="services-heading">
+            <div>
+                <span class="section-eyebrow">काम चुनें</span>
+                <h2>आज आपको किस काम में मदद चाहिए?</h2>
+            </div>
+            <p>बड़े और साफ बटन दबाएं। हर सेवा आपके चुने हुए स्थान का उपयोग करती है।</p>
         </div>
 
-        <!-- MSP Stats bar — animated counters via IntersectionObserver -->
-        <div class="stats-bar mb-4" id="statsBar">
-            <div class="stat-item" data-count="2425" data-prefix="₹" data-suffix="">
-                <div class="stat-value" id="stat-wheat">₹2,425</div>
-                <div class="stat-label">🌾 गेहूँ MSP 2024-25</div>
-            </div>
-            <div class="stat-item" data-count="2369" data-prefix="₹" data-suffix="">
-                <div class="stat-value" id="stat-rice">₹2,369</div>
-                <div class="stat-label">🍚 धान MSP 2024-25</div>
-            </div>
-            <div class="stat-item" data-count="6000" data-prefix="₹" data-suffix="">
-                <div class="stat-value" id="stat-pmkisan">₹6,000</div>
-                <div class="stat-label">🏛️ PM-Kisan वार्षिक</div>
-            </div>
-            <div class="stat-item" data-count="4" data-prefix="" data-suffix="%">
-                <div class="stat-value" id="stat-kcc">4%</div>
-                <div class="stat-label">💳 KCC ब्याज दर</div>
-            </div>
-            <div class="stat-item" data-count="80" data-prefix="" data-suffix="">
-                <div class="stat-value" id="stat-crops">80</div>
-                <div class="stat-label">🌱 फसलें विश्लेषण DB</div>
+        <div class="stats-bar mb-4" id="statsBar" aria-label="KrishiMitra की सुविधाएं">
+            <div class="stat-item" data-count="202" data-prefix="" data-suffix="">
+                <div class="stat-value" id="stat-crops">202</div>
+                <div class="stat-label">फसल प्रोफाइल</div>
             </div>
             <div class="stat-item" data-count="22" data-prefix="" data-suffix="">
                 <div class="stat-value" id="stat-langs">22</div>
-                <div class="stat-label">🌐 भारतीय भाषाएं</div>
+                <div class="stat-label">भारतीय भाषाएं</div>
+            </div>
+            <div class="stat-item" data-count="16" data-prefix="" data-suffix=" दिन">
+                <div class="stat-value">16 दिन</div>
+                <div class="stat-label">मौसम पूर्वानुमान</div>
+            </div>
+            <div class="stat-item stat-source-item">
+                <div class="stat-value"><i class="fas fa-circle-check"></i></div>
+                <div class="stat-label">लाइव और fallback साफ चिन्हित</div>
             </div>
         </div>
 
@@ -229,7 +229,7 @@
                             ☀️ PM-KUSUM — <strong>90% सब्सिडी</strong>
                         </div>
                     </div>
-                    <button class="service-button">योजनाएं देखें →</button>
+                    <span class="service-button">योजनाएं देखें <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -239,7 +239,7 @@
                     <div class="status-indicator"></div>
                     <div class="service-icon">🌾</div>
                     <h3 class="service-title" data-i18n="service_crops">फसल सुझाव</h3>
-                    <p class="service-description">200+ फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
+                    <p class="service-description">202 फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
                     <div class="service-info-panel" style="border-left-color:#388e3c;">
                         <div class="service-info-panel-label" style="color:#1b5e20;">🌱 Multi-Factor Score</div>
                         <div class="service-info-panel-body">
@@ -249,7 +249,7 @@
                             📅 सीजन + सिंचाई विश्लेषण
                         </div>
                     </div>
-                    <button class="service-button">फसल सुझाव →</button>
+                    <span class="service-button">फसल सुझाव <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -269,7 +269,7 @@
                             ⚠️ लू / बाढ़ / पाला अलर्ट
                         </div>
                     </div>
-                    <button class="service-button">मौसम देखें →</button>
+                    <span class="service-button">मौसम देखें <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -289,7 +289,7 @@
                             🔄 हर 3 मिनट अपडेट
                         </div>
                     </div>
-                    <button class="service-button">मंडी भाव →</button>
+                    <span class="service-button">मंडी भाव <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -309,7 +309,7 @@
                             📞 ICAR: 1800-180-1551
                         </div>
                     </div>
-                    <button class="service-button" style="background:linear-gradient(135deg,#b71c1c,#e53935);">जांच शुरू →</button>
+                    <span class="service-button">जांच शुरू <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -329,7 +329,7 @@
                             🌤️ "आज खेत में क्या करें?"
                         </div>
                     </div>
-                    <button class="service-button" style="background:linear-gradient(135deg,#4a148c,#7b1fa2);">बात करें →</button>
+                    <span class="service-button">बात करें <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -349,7 +349,7 @@
                             📊 ICAR fertiliser gaps
                         </div>
                     </div>
-                    <button class="service-button" style="background:linear-gradient(135deg,#bf360c,#ff6f00);">खेत जांचें →</button>
+                    <span class="service-button">खेत जांचें <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -357,7 +357,7 @@
 
         <!-- Farming Calendar -->
         <div class="farming-calendar mt-2">
-            <h4 style="color:#1a3a0a;font-weight:800;text-align:center;margin-bottom:20px;letter-spacing:-0.01em;">📅 कृषि कैलेंडर 2025-26</h4>
+            <h4 style="color:#1a3a0a;font-weight:800;text-align:center;margin-bottom:20px;">📅 कृषि मौसम कैलेंडर</h4>
             <div class="row g-3">
                 <div class="col-md-3 col-6">
                     <div class="calendar-season" style="background:#fff3cd;border-left-color:#ffc107;">
@@ -438,7 +438,7 @@
 <div class="content-section" id="crop-recommendations-content">
     <div class="container">
         <div class="section-header"><h2>🌾 फसल सुझाव</h2><span class="live-dot ms-2"></span></div>
-        <p class="text-muted mb-4">200+ भारतीय फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
+        <p class="text-muted mb-4">202 भारतीय फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
         <div class="crop-search-container mb-4" style="position:relative;max-width:560px;">
             <div class="search-box">
                 <i class="fas fa-seedling"></i>
@@ -485,7 +485,7 @@
                         <option value="medium">Medium</option><option value="low">Low</option><option value="high">High</option>
                     </select>
                 </label>
-                <button class="btn btn-success btn-sm" type="button" onclick="loadCropRecommendations()">
+                <button class="btn btn-success btn-sm" id="cropAnalyzeBtn" type="button" onclick="loadCropRecommendations()">
                     <i class="fas fa-sliders-h"></i> विश्लेषण करें
                 </button>
             </div>
@@ -674,7 +674,7 @@
 
             <!-- Run button -->
             <div class="col-12 text-center">
-                <button class="btn btn-lg px-5 py-3 text-white fw-bold rounded-pill shadow"
+                <button class="btn btn-lg px-5 py-3 text-white fw-bold rounded-pill shadow" id="diagnosisRunBtn" type="button"
                     style="background:linear-gradient(135deg,#b71c1c,#e53935);border:none;font-size:1rem;letter-spacing:0.02em;"
                     onclick="runKrishiRakshaDiagnosis()">
                     <i class="fas fa-microscope me-2"></i> Run AI Diagnosis — जांच शुरू करें
@@ -786,7 +786,7 @@
             </div>
 
             <div class="text-center mt-4">
-                <button class="btn btn-lg px-5 py-2 rounded-pill text-white fw-bold"
+                <button class="btn btn-lg px-5 py-2 rounded-pill text-white fw-bold" id="fieldAnalyzeBtn" type="button"
                     style="background:linear-gradient(135deg,#bf360c,#ff6f00);border:none;box-shadow:0 4px 16px rgba(191,54,12,0.35);font-size:0.95rem;"
                     onclick="loadFieldAdvisory()">
                     🔬 फसल सलाह प्राप्त करें
@@ -897,7 +897,7 @@
 
         <!-- Input -->
         <div class="chat-input-row">
-            <button class="chat-voice-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice input">
+            <button class="chat-voice-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice input" aria-label="आवाज से सवाल पूछें">
                 <i class="fas fa-microphone"></i>
             </button>
             <textarea id="messageInput"
@@ -905,11 +905,11 @@
                 rows="1"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleChatUserMessage();}"
                 oninput="autoResizeChatInput(this)"></textarea>
-            <button onclick="clearChat()" class="chat-voice-btn" title="चैट साफ करें">
+            <button id="chatClearBtn" onclick="clearChat()" class="chat-voice-btn" title="चैट साफ करें" aria-label="चैट साफ करें">
                 <i class="fas fa-trash-alt"></i>
             </button>
             <span id="stream-dot" class="stream-dot" style="display: none;" title="Streaming response..."></span>
-            <button class="chat-send-btn" id="chatSendBtn" onclick="handleChatUserMessage()" title="भेजें">
+            <button class="chat-send-btn" id="chatSendBtn" onclick="handleChatUserMessage()" title="भेजें" aria-label="सवाल भेजें">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
@@ -999,7 +999,7 @@
     <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;font-size:0.72rem;opacity:0.5;margin-top:10px;">
       <span>Open-Meteo</span><span>·</span><span>Agmarknet</span><span>·</span><span>data.gov.in</span><span>·</span><span>Local LLM + RAG</span><span>·</span><span>Gemini fallback</span><span>·</span><span>ICAR</span>
     </div>
-    <p style="margin:10px 0 0;font-size:0.7rem;opacity:0.4;">&copy; 2025 KrishiMitra AI &middot; For farmers, by technology</p>
+    <p style="margin:10px 0 0;font-size:0.7rem;opacity:0.55;">&copy; <span id="footerYear">2026</span> KrishiMitra AI &middot; किसानों के लिए डिजिटल कृषि सहायता</p>
   </div>
 </footer>
 
@@ -1243,7 +1243,13 @@ window.toggleVoiceInput = function() {
     }
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     _voiceRecognition = new SpeechRecognition();
-    _voiceRecognition.lang = 'hi-IN';
+    var speechLanguageMap = {
+        hi: 'hi-IN', en: 'en-IN', bn: 'bn-IN', te: 'te-IN', mr: 'mr-IN',
+        ta: 'ta-IN', gu: 'gu-IN', kn: 'kn-IN', ml: 'ml-IN', pa: 'pa-IN',
+        or: 'or-IN', as: 'as-IN', ur: 'ur-IN', ne: 'ne-NP'
+    };
+    var selectedLanguage = window.getCurrentLang ? window.getCurrentLang() : 'hi';
+    _voiceRecognition.lang = speechLanguageMap[selectedLanguage] || 'hi-IN';
     _voiceRecognition.interimResults = false;
     _voiceRecognition.maxAlternatives = 1;
     _voiceRecognition.onstart = function() {

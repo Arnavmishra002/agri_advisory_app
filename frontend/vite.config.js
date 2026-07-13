@@ -35,7 +35,9 @@ function copyDirPlugin(src, dest) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, resolve(__dirname), '');
-  const apiTarget = (env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+  // Use IPv4 explicitly: on macOS, localhost may resolve to ::1 and collide
+  // with a Docker-published service while Django is listening on 127.0.0.1.
+  const apiTarget = (env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
 
   return {
     root: resolve(__dirname),

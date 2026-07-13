@@ -19,7 +19,10 @@
     }
 
     async function apiGetJson(path) {
-        const response = await fetch(apiFetch(path));
+        const response = await fetch(apiFetch(path), {
+            cache: 'no-store',
+            headers: { 'Accept': 'application/json' },
+        });
         if (!response.ok) {
             let detail = '';
             try {
@@ -55,6 +58,14 @@
             throw new Error(`HTTP ${response.status}${detail ? ': ' + detail : ''}`);
         }
         return response.json();
+    }
+
+    function notifyFarmer(message, type = 'info') {
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type, 4500);
+            return;
+        }
+        console[type === 'error' ? 'error' : 'info'](message);
     }
 
     async function apiPostEventStream(path, body, onToken) {
@@ -270,7 +281,6 @@
         // Always pass the active language so all API responses are in the right language
         const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
         q += `&language=${encodeURIComponent(lang)}`;
-        q += `&_t=${Date.now()}`;
         return extraParams ? `${q}&${extraParams}` : q;
     }
 
@@ -413,6 +423,11 @@
     function searchLocations(event) {
         clearTimeout(locationSearchTimeout);
 
+        if (event.key === 'Enter') {
+            hideLocationSuggestions();
+            return;
+        }
+
         const input = event.target;
         const query = input.value.trim();
 
@@ -425,7 +440,7 @@
             let suggestions = filterLocalCitySuggestions(query);
             try {
                 const response = await fetch(
-                    apiFetch(`/api/locations/search/?q=${encodeURIComponent(query)}`),
+                    apiFetch(`/api/locations/search/?q=${encodeURIComponent(query)}&limit=8`),
                 );
                 const data = await response.json();
                 const apiResults = (data.results || []).map(r => ({
@@ -435,7 +450,12 @@
                     lon: r.lon,
                     state: r.state || '',
                     type: r.type || 'place',
-                }));
+                })).filter((result, index, all) => {
+                    const key = `${String(result.name).toLowerCase()}|${String(result.subtitle).toLowerCase()}`;
+                    return all.findIndex(candidate =>
+                        `${String(candidate.name).toLowerCase()}|${String(candidate.subtitle).toLowerCase()}` === key
+                    ) === index;
+                });
                 if (apiResults.length) {
                     const seen = new Set(apiResults.map(r => `${r.lat}:${r.lon}`));
                     for (const local of suggestions) {
@@ -450,7 +470,7 @@
             } catch (err) {
                 console.error('Location search failed:', err);
             }
-            showLocationSuggestions(suggestions);
+            showLocationSuggestions(suggestions.slice(0, 8));
         }, 300);
     }
 
@@ -515,6 +535,7 @@
         const input = document.getElementById('locationSearchInput');
         if (!input || !input.value.trim()) return;
         const query = input.value.trim();
+        clearTimeout(locationSearchTimeout);
         hideLocationSuggestions();
 
         const match = INDIAN_CITIES.find(c => c.name.toLowerCase() === query.toLowerCase())
@@ -621,7 +642,7 @@
     // ── One-time detect (button press) — keeps watching permanently ──────
     function detectLocation() {
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser');
+            notifyFarmer('इस ब्राउज़र में GPS उपलब्ध नहीं है। ऊपर शहर या गाँव खोजें।', 'warning');
             return;
         }
         startContinuousLocationWatch();
@@ -726,18 +747,26 @@
     // ========================================
 
     function showService(serviceName) {
+        const body = document.body;
+        const servicesContainer = document.querySelector('.services-container');
+        const hero = document.getElementById('appHero');
+
         // 'home' — hide all panels and scroll back to services section
         if (serviceName === 'home') {
             const sections = document.querySelectorAll('.content-section');
             sections.forEach(section => { section.style.display = 'none'; });
-            const servicesContainer = document.querySelector('.services-container');
+            body.classList.remove('service-view');
+            if (hero) hero.removeAttribute('aria-hidden');
+            if (servicesContainer) servicesContainer.style.display = '';
             if (servicesContainer) {
-                servicesContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
             // Sync bottom nav & top nav
             if (typeof window._syncBottomNav === 'function') window._syncBottomNav('home');
+            syncTopNavigation('home');
+            closeMobileNavigation();
             return;
         }
 
@@ -748,14 +777,24 @@
 
         const targetSection = document.getElementById(serviceName + '-content');
         if (targetSection) {
+            body.classList.add('service-view');
+            if (hero) hero.setAttribute('aria-hidden', 'true');
+            if (servicesContainer) servicesContainer.style.display = 'none';
             targetSection.style.display = 'block';
-            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const heading = targetSection.querySelector('h2');
+            if (heading) {
+                heading.setAttribute('tabindex', '-1');
+                window.setTimeout(() => heading.focus({ preventScroll: true }), 250);
+            }
         } else {
             console.warn(`⚠️ No content section found for service: ${serviceName}`);
         }
 
         // Sync bottom nav & top nav active states
         if (typeof window._syncBottomNav === 'function') window._syncBottomNav(serviceName);
+        syncTopNavigation(serviceName);
+        closeMobileNavigation();
 
         // Reload live data when user opens a service panel
         const loaders = {
@@ -779,6 +818,35 @@
         }
     }
 
+    function syncTopNavigation(serviceName) {
+        const aliases = {
+            home: 'home', weather: 'weather', 'market-prices': 'market',
+            'government-schemes': 'schemes', 'ai-assistant': 'ai',
+        };
+        document.querySelectorAll('.navbar .nav-link').forEach(link => link.classList.remove('active'));
+        const active = document.getElementById(`nav-${aliases[serviceName] || ''}`);
+        if (active) active.classList.add('active');
+    }
+
+    function closeMobileNavigation() {
+        const menu = document.getElementById('navbarNav');
+        if (!menu || !menu.classList.contains('show')) return;
+        const Collapse = window.bootstrap && window.bootstrap.Collapse;
+        if (Collapse) Collapse.getOrCreateInstance(menu).hide();
+    }
+
+    function addServiceBackButtons() {
+        document.querySelectorAll('.content-section > .container').forEach(container => {
+            if (container.querySelector('.service-back-button')) return;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'service-back-button';
+            button.innerHTML = '<i class="fas fa-arrow-left" aria-hidden="true"></i><span>सभी सेवाएं</span>';
+            button.addEventListener('click', () => showService('home'));
+            container.prepend(button);
+        });
+    }
+
     function setupServiceCards() {
         // Bind service cards — both onclick attribute cards and nav links
         const clickableEls = document.querySelectorAll(
@@ -793,6 +861,17 @@
                 const serviceName = match[1];
                 // Ensure pointer cursor is visible
                 el.style.cursor = 'pointer';
+                if (el.classList.contains('service-card')) {
+                    el.setAttribute('role', 'button');
+                    el.setAttribute('tabindex', '0');
+                    el.setAttribute('aria-label', `${el.querySelector('.service-title')?.textContent || 'सेवा'} खोलें`);
+                    el.addEventListener('keydown', function (event) {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            showService(serviceName);
+                        }
+                    });
+                }
                 el.onclick = function (e) {
                     e.preventDefault();
                     showService(serviceName);
@@ -1197,21 +1276,13 @@
 
         if (isPartial) {
             banner.className = 'market-live-banner market-live-banner--partial';
-            banner.innerHTML = '🟡 Partial live feed — only live rows shown. Some mandis may have delayed data.';
+            banner.innerHTML = '🟡 कुछ मंडियों का ताजा डेटा मिला है। केवल सत्यापित भाव दिखाए जा रहे हैं।';
         } else if (isFallback) {
             banner.className = 'market-live-banner market-live-banner--estimate';
-            banner.innerHTML = '📊 MSP seasonal estimates — NOT live mandi trade prices. '
-                + '<a href="https://data.gov.in/user/register" target="_blank">Register free key</a> for live data.';
+            banner.innerHTML = '📊 यह MSP संदर्भ है, आज का मंडी व्यापार भाव नहीं। बेचने से पहले मंडी से पुष्टि करें।';
         } else if (isUnavailable) {
             banner.className = 'market-live-banner market-live-banner--warn';
-            const reg = data.api_key_registered;
-            if (!reg) {
-                banner.innerHTML = '🔴 Live mandi data needs DATA_GOV_IN_API_KEY — '
-                    + '<a href="https://data.gov.in/user/register" target="_blank" style="color:#856404;font-weight:700;">Register free at data.gov.in</a> '
-                    + '(set key in .env → restart server)';
-            } else {
-                banner.innerHTML = `🔴 ${escapeHtml(data.message || 'Live data temporarily unavailable — try again in a moment.')}`;
-            }
+            banner.innerHTML = '🔴 अभी सत्यापित लाइव मंडी भाव उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
         } else {
             banner.className = 'market-live-banner market-live-banner--warn';
             banner.innerHTML = escapeHtml(data.message || 'Market data status unknown');
@@ -1264,8 +1335,7 @@
 
         } catch (error) {
             container.innerHTML = `<div style="padding:20px;text-align:center;color:#dc3545;">
-                <i class="fas fa-exclamation-triangle"></i> बाजार भाव लोड त्रुटि: ${escapeHtml(error.message)}
-                <br><small>Backend चालू है? — <code>python manage.py runserver</code></small>
+                <i class="fas fa-exclamation-triangle"></i> मंडी भाव अभी लोड नहीं हो पाए। कुछ देर बाद फिर कोशिश करें।
             </div>`;
         }
     }
@@ -1291,25 +1361,14 @@
         const liveLabel = isLive
             ? `${liveDot} Live — ${escapeHtml(data.data_source || 'Agmarknet / data.gov.in')}`
             : isEstimatesOnly
-            ? `${liveDot} MSP अनुमान — असली मंडी भाव नहीं (DATA_GOV_IN_API_KEY सेट करें)`
+            ? `${liveDot} MSP संदर्भ — आज का मंडी व्यापार भाव नहीं`
             : `${liveDot} ${escapeHtml(data.message || 'Live data unavailable')}`;
 
         if (!crops.length) {
-            const setupMsg = data.api_key_registered === false
-                ? `<div style="background:#fff3e0;border-radius:10px;padding:18px;margin-top:10px;">
-                    <h6 style="color:#e65100;">📋 Live मंडी भाव कैसे पाएं?</h6>
-                    <ol style="color:#555;font-size:0.88rem;line-height:2;">
-                        <li><a href="https://data.gov.in/user/register" target="_blank">data.gov.in/user/register</a> पर Free registration करें</li>
-                        <li>API Keys section से अपना key copy करें</li>
-                        <li><code>.env</code> में <code>DATA_GOV_IN_API_KEY=your_key</code> set करें</li>
-                        <li>Server restart करें</li>
-                    </ol>
-                  </div>`
-                : '';
             container.innerHTML = `<div style="padding:20px;text-align:center;">
                 <div style="font-size:0.88rem;color:#888;margin-bottom:10px;">${liveLabel}</div>
-                <p style="color:#856404;">${escapeHtml(data.message || 'कोई मंडी भाव उपलब्ध नहीं')}</p>
-                ${setupMsg}
+                <p style="color:#856404;">अभी इस मंडी के सत्यापित ताजा भाव उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई गई है।</p>
+                <small style="color:#666;">बेचने से पहले मंडी कार्यालय या eNAM से भाव की पुष्टि करें।</small>
             </div>`;
             return;
         }
@@ -1319,7 +1378,7 @@
             <div>
                 <div style="font-size:0.85rem;font-weight:600;">${liveLabel}</div>
                 <div style="font-size:0.75rem;color:#aaa;">${ageText} · ${crops.length} commodities</div>
-                ${data.using_demo_key ? '<div style="font-size:0.72rem;color:#f57f17;">⚠️ Demo key (10 rows max) — register your own DATA_GOV_IN_API_KEY</div>' : ''}
+                ${data.using_demo_key ? '<div style="font-size:0.72rem;color:#f57f17;">⚠️ सीमित आधिकारिक फीड — उपलब्ध सत्यापित पंक्तियां ही दिखाई गई हैं</div>' : ''}
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
                 <span style="font-size:0.85rem;font-weight:700;color:#2d5016;">🏪 ${escapeHtml(selectedMandi)}</span>
@@ -1367,7 +1426,7 @@
 
                 <div style="font-size:0.82rem;line-height:1.9;">
                     <div style="display:flex;justify-content:space-between;">
-                        <span style="color:#666;">MSP 2024-25</span>
+                        <span style="color:#666;">MSP संदर्भ</span>
                         <span style="font-weight:600;color:#555;">₹${msp > 0 ? msp.toLocaleString('hi-IN') : '—'}</span>
                     </div>
                     ${profit !== null ? `<div style="display:flex;justify-content:space-between;">
@@ -1511,7 +1570,7 @@
                     });
                 }
             } else {
-                container.innerHTML = `${liveBadge}<div style="padding:20px;text-align:center;color:#888;">${escapeHtml(data.message || 'मौसम डेटा उपलब्ध नहीं — Backend चालू करें')}</div>`;
+                container.innerHTML = `${liveBadge}<div style="padding:20px;text-align:center;color:#888;">${escapeHtml(data.message || 'मौसम डेटा अभी उपलब्ध नहीं है। कुछ देर बाद फिर कोशिश करें।')}</div>`;
             }
         } catch (error) {
             const container = document.getElementById('weatherData');
@@ -1579,12 +1638,9 @@
             }
         } catch (error) {
             console.error('Schemes error:', error);
-            const hint = error.message.includes('Failed to fetch')
-                ? '<br><small>Backend चालू करें: <code>python manage.py runserver</code> (port 8000) और frontend: <code>npm run dev</code></small>'
-                : '';
             container.innerHTML = `<div style="padding: 20px; text-align: center; color: #dc3545;">
                 <strong>योजनाएं लोड करने में त्रुटि</strong><br>
-                <small>${escapeHtml(error.message)}</small>${hint}
+                <small>कृपया नेटवर्क जांचें और कुछ देर बाद फिर कोशिश करें।</small>
             </div>`;
         }
     }
@@ -1792,7 +1848,7 @@
 
         } catch (err) {
             const container = document.getElementById('fieldAdvisoryResults');
-            if (container) container.innerHTML = `<div style="background:#ffebee;border-radius:10px;padding:20px;color:#c62828;text-align:center;">❌ ${escapeHtml(err.message)}<br><small>Backend: python manage.py runserver</small></div>`;
+            if (container) container.innerHTML = `<div style="background:#ffebee;border-radius:8px;padding:20px;color:#c62828;text-align:center;">❌ खेत की सलाह अभी नहीं मिली। नेटवर्क जांचकर दोबारा कोशिश करें।</div>`;
         }
     }
 
@@ -1875,7 +1931,7 @@
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <span style="background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:0.78rem;">🌤️ Live Open-Meteo</span>
                             <span style="background:${liveMkt ? 'rgba(40,167,69,0.3)' : 'rgba(255,193,7,0.3)'};border-radius:20px;padding:4px 12px;font-size:0.78rem;">
-                                ${liveMkt ? '✅ Live Mandi' : '⚠️ Mandi: set DATA_GOV_IN_API_KEY'}
+                                ${liveMkt ? '✅ Live Mandi' : '⚠️ सत्यापित मंडी भाव उपलब्ध नहीं'}
                             </span>
                         </div>
                     </div>
@@ -1988,13 +2044,17 @@
 
         const crop = (document.getElementById('krCropValue')?.value || cropInput?.value || '').trim();
         if (!crop) {
-            alert('कृपया फसल खोजें और चुनें / Please search and select a crop first');
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = '<div class="farmer-inline-notice warning"><i class="fas fa-seedling"></i><div><strong>पहले फसल चुनें</strong><span>ऊपर फसल का नाम खोजकर सूची से चुनें।</span></div></div>';
+            cropInput?.focus();
             return;
         }
 
         const images = await collectKrishiImages();
         if (Object.keys(images).length === 0) {
-            alert('कृपया कम से कम एक पत्ती/फसल की तस्वीर अपलोड करें\nPlease upload at least one leaf or plant photo.');
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = '<div class="farmer-inline-notice warning"><i class="fas fa-camera"></i><div><strong>कम से कम एक साफ फोटो जोड़ें</strong><span>पत्ती या प्रभावित भाग का नजदीकी फोटो सबसे उपयोगी रहेगा।</span></div></div>';
+            document.getElementById('imgCloseUp')?.focus();
             return;
         }
 
@@ -2181,7 +2241,7 @@
                     is_correct: isCorrect
                 })
             });
-            alert(isCorrect ? 'धन्यवाद! Feedback recorded.' : 'Thank you. We will improve our model.');
+            notifyFarmer(isCorrect ? 'धन्यवाद — आपका feedback दर्ज हो गया।' : 'धन्यवाद — हम इस सलाह की समीक्षा करेंगे।', 'success');
         } catch (error) {
             console.error('Feedback error:', error);
         }
@@ -2191,6 +2251,7 @@
     // AI CHAT FUNCTIONS
     // ========================================
     let lastQuery = '';
+    let chatRequestInFlight = false;
 
     // ── Conversation history (in-memory + localStorage persistence) ──────────
     // Stores last 10 turns as [{role, content}] — sent to backend on every request
@@ -2255,7 +2316,13 @@
         if (!input || !chatMessages) return;
 
         const message = input.value.trim();
-        if (!message) return;
+        if (!message || chatRequestInFlight) return;
+        chatRequestInFlight = true;
+        const sendButton = document.getElementById('chatSendBtn');
+        if (sendButton) {
+            sendButton.disabled = true;
+            sendButton.setAttribute('aria-busy', 'true');
+        }
 
         lastQuery = message;
 
@@ -2305,7 +2372,8 @@
         if (streamDot) streamDot.style.display = 'inline-block';
 
         try {
-            // Push user message into history BEFORE sending (so AI sees it as context for follow-up)
+            // Preserve the prior turns for context; `query` already carries this message.
+            const priorHistory = conversationHistory.slice(-8);
             _pushHistory('user', message);
 
             let partialText = '';
@@ -2337,14 +2405,13 @@
             const requestBody = {
                 query: message,
                 location: currentLocation,
-                latitude: currentLatitude,
-                longitude: currentLongitude,
-                accuracy: currentLocationAccuracy,
                 language: (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : (document.documentElement.lang === 'en' ? 'en' : 'hi')),
                 session_id: sessionId,
-                // Send last 8 turns so backend AI has full multi-turn context
-                history: conversationHistory.slice(-8),
+                history: priorHistory,
             };
+            if (Number.isFinite(currentLatitude)) requestBody.latitude = currentLatitude;
+            if (Number.isFinite(currentLongitude)) requestBody.longitude = currentLongitude;
+            if (Number.isFinite(currentLocationAccuracy)) requestBody.accuracy = currentLocationAccuracy;
             let data;
             try {
                 data = await apiPostEventStream(
@@ -2435,6 +2502,11 @@
             chatMessages.appendChild(errDiv);
         } finally {
             if (streamDot) streamDot.style.display = 'none';
+            chatRequestInFlight = false;
+            if (sendButton) {
+                sendButton.disabled = false;
+                sendButton.removeAttribute('aria-busy');
+            }
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     }
@@ -2626,20 +2698,26 @@
     });
 
     function reloadAllServices() {
-        populateMandiDropdown().then(() => loadMarketPrices()).catch(err => {
-            console.error('Mandi/market load error:', err);
-        });
+        // Weather powers the compact home widget, so keep it current. Other
+        // services load only when opened to save bandwidth on rural networks.
         loadWeatherData();
-        loadGovernmentSchemes();
-        loadCropRecommendations();
-        // Refresh field advisory too if its panel is currently visible
-        const faSection = document.getElementById('field-advisory-content');
-        if (faSection && faSection.style.display !== 'none') {
-            loadFieldAdvisoryWithoutSensor();
-        }
+        const activeSection = Array.from(document.querySelectorAll('.content-section'))
+            .find(section => section.style.display === 'block');
+        if (!activeSection) return;
+        const serviceName = activeSection.id.replace(/-content$/, '');
+        const loaders = {
+            'government-schemes': loadGovernmentSchemes,
+            'crop-recommendations': loadCropRecommendations,
+            'market-prices': () => populateMandiDropdown().then(loadMarketPrices),
+            'field-advisory': loadFieldAdvisoryWithoutSensor,
+        };
+        if (loaders[serviceName]) loaders[serviceName]();
     }
 
     async function bootstrapApp() {
+        addServiceBackButtons();
+        const footerYear = document.getElementById('footerYear');
+        if (footerYear) footerYear.textContent = String(new Date().getFullYear());
         console.log('📊 Page loaded, initializing...');
         setupServiceCards();
         buildChatLanguageSwitcher();
