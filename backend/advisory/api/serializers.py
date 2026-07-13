@@ -200,6 +200,42 @@ class StrictQuerySerializer(StrictSerializer):
     """StrictSerializer variant used for query strings as well as JSON bodies."""
 
 
+class EmptyInputSerializer(StrictSerializer):
+    """Schema for endpoints that intentionally accept no request parameters."""
+
+
+class WhatsAppVerificationQuerySerializer(StrictQuerySerializer):
+    """Strict contract for Meta's three webhook verification parameters."""
+
+    mode = serializers.ChoiceField(choices=("subscribe",))
+    verify_token = serializers.CharField(max_length=512)
+    challenge = serializers.CharField(max_length=2048)
+
+    _META_FIELDS = frozenset({"hub.mode", "hub.verify_token", "hub.challenge"})
+
+    def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            raise serializers.ValidationError("Query parameters are required.")
+        unknown = set(data) - self._META_FIELDS
+        if unknown:
+            raise serializers.ValidationError(
+                {"non_field_errors": [f"Unexpected field: {field}" for field in sorted(unknown)]}
+            )
+        if hasattr(data, "getlist"):
+            repeated = {
+                field: "must be provided once"
+                for field in self._META_FIELDS
+                if len(data.getlist(field)) != 1
+            }
+            if repeated:
+                raise serializers.ValidationError(repeated)
+        return super().to_internal_value({
+            "mode": data.get("hub.mode"),
+            "verify_token": data.get("hub.verify_token"),
+            "challenge": data.get("hub.challenge"),
+        })
+
+
 class LocationQuerySerializer(StrictQuerySerializer):
     """Common, bounded location and pagination query contract."""
 

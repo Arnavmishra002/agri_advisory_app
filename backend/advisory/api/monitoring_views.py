@@ -13,13 +13,14 @@ from django.conf import settings
 from django.db import connection
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..middleware.rate_limiting import get_rate_limit_status, reset_rate_limits
-from .serializers import LocationQuerySerializer, RateLimitResetInputSerializer
+from .serializers import EmptyInputSerializer, LocationQuerySerializer, RateLimitResetInputSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,12 @@ class MonitoringViewSet(viewsets.ViewSet):
         """No-op stub — activity tracking via Sentry/Gemini usage analytics."""
         if not _staff_or_debug(request):
             return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        serializer = EmptyInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "This endpoint does not accept request parameters", "error_code": "UNEXPECTED_INPUT"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({"status": "success", "message": "Activity noted"})
 
 
@@ -165,6 +172,7 @@ class RateLimitViewSet(viewsets.ViewSet):
 # Function-based health views
 # ══════════════════════════════════════════════════════════════
 @csrf_exempt
+@require_GET
 def simple_health_check(request):
     """Simple health check for load balancers — no auth."""
     return JsonResponse({
@@ -175,6 +183,7 @@ def simple_health_check(request):
 
 
 @csrf_exempt
+@require_GET
 def readiness_check(request):
     """Readiness probe — checks DB, cache, Phase 1 AI server, and Ollama."""
     checks: Dict[str, str] = {}
@@ -288,6 +297,7 @@ def _configured_env(name: str) -> bool:
 
 
 @csrf_exempt
+@require_GET
 def launch_readiness_check(request):
     """Production launch gate with explicit, non-secret remediation details."""
     import json
@@ -400,6 +410,7 @@ def launch_readiness_check(request):
 
 
 @csrf_exempt
+@require_GET
 def liveness_check(request):
     """Liveness probe — returns alive if process is responding."""
     return JsonResponse({
@@ -411,6 +422,7 @@ def liveness_check(request):
 
 # ── Data freshness endpoint (Fix 8) ──────────────────────────────────────────
 @csrf_exempt
+@require_GET
 def data_freshness(request):
     """
     GET /api/health/data-freshness/
@@ -500,6 +512,7 @@ def data_freshness(request):
 
 
 @csrf_exempt
+@require_GET
 def sentry_test(request):
     """
     GET /api/health/sentry-test/

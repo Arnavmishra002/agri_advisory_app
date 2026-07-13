@@ -135,6 +135,37 @@ class StrictRequestSchemaTests(SimpleTestCase):
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
 
+    def test_whatsapp_verification_rejects_unknown_query_fields(self):
+        response = self.client.get(
+            "/api/sms-ivr/whatsapp/",
+            {
+                "hub.mode": "subscribe",
+                "hub.verify_token": "token",
+                "hub.challenge": "challenge",
+                "unexpected": "x",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error_code"], "INVALID_WEBHOOK_VERIFICATION")
+
+    @override_settings(DEBUG=True)
+    def test_no_input_endpoints_reject_query_parameters(self):
+        response = self.client.get("/api/forum/", {"unexpected": "x"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error_code"], "UNEXPECTED_INPUT")
+
+        response = self.client.post(
+            "/api/monitoring/record_activity/",
+            {"unexpected": "x"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error_code"], "UNEXPECTED_INPUT")
+
+    def test_health_probes_only_accept_get(self):
+        response = self.client.post("/api/health/readiness/", {"unexpected": "x"}, format="json")
+        self.assertEqual(response.status_code, 405)
+
     def test_tts_history_key_is_not_client_supplied(self):
         anonymous = SimpleNamespace(user=AnonymousUser())
         self.assertEqual(_owned_advisory_audio_session(anonymous), "")

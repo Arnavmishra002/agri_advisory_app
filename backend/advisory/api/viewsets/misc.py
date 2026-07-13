@@ -41,8 +41,10 @@ from rest_framework.response import Response
 from ..errors import safe_error_message
 from ..serializers import (
     AdvisoryAudioInputSerializer,
+    EmptyInputSerializer,
     TextToSpeechInputSerializer,
     TwilioWebhookInputSerializer,
+    WhatsAppVerificationQuerySerializer,
     WhatsAppWebhookInputSerializer,
 )
 logger = logging.getLogger(__name__)
@@ -108,6 +110,12 @@ class SMSIVRViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
     def list(self, request):
+        serializer = EmptyInputSerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "This endpoint does not accept query parameters", "error_code": "UNEXPECTED_INPUT"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({
             "service":  "KrishiMitra WhatsApp/SMS Gateway",
             "status":   "active" if WHATSAPP_TOKEN else "needs WHATSAPP_TOKEN in .env",
@@ -125,9 +133,15 @@ class SMSIVRViewSet(viewsets.ViewSet):
 
     def _verify_webhook(self, request):
         """Meta sends a GET with hub.verify_token to confirm the webhook."""
-        mode      = request.query_params.get("hub.mode")
-        token     = request.query_params.get("hub.verify_token")
-        challenge = request.query_params.get("hub.challenge")
+        serializer = WhatsAppVerificationQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "Invalid WhatsApp verification request", "error_code": "INVALID_WEBHOOK_VERIFICATION"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        mode = serializer.validated_data["mode"]
+        token = serializer.validated_data["verify_token"]
+        challenge = serializer.validated_data["challenge"]
         if not WHATSAPP_VERIFY_TOKEN and not settings.DEBUG:
             return Response({"error": "WhatsApp verification is not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         if mode == "subscribe" and token == WHATSAPP_VERIFY_TOKEN:
@@ -604,6 +618,12 @@ class TextToSpeechViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
     def list(self, request):
+        serializer = EmptyInputSerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "This endpoint does not accept query parameters", "error_code": "UNEXPECTED_INPUT"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({
             "service":   "KrishiMitra Text-to-Speech",
             "engine":    "gTTS (Google TTS, no key needed)",
@@ -712,4 +732,10 @@ class TextToSpeechViewSet(viewsets.ViewSet):
 class ForumPostViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
     def list(self, request):
+        serializer = EmptyInputSerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "This endpoint does not accept query parameters", "error_code": "UNEXPECTED_INPUT"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({"message": "Forum service — coming soon"})
