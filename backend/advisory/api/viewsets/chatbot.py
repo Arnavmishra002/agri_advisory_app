@@ -32,6 +32,7 @@ from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
 from ...services.chat_intelligence_service import chat_intelligence_service, _current_season
 from ...services.session_memory_service import session_memory
 from ..auth_utils import _cors_for_request, _resolve_user_id
+from ..serializers import ChatbotRequestSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -156,17 +157,16 @@ def _parse_request(request) -> Dict[str, Any]:
     Parse and validate request body shared by both the JSON and SSE paths.
     Returns a dict with all needed fields or raises ValueError on bad input.
     """
-    query      = (request.data.get("query") or "").strip()
-    language   = request.data.get("language", "hi")
-    session_id = (request.data.get("session_id") or "").strip() or None
-    _fast_raw  = request.data.get("fast_mode", False)
-    fast_mode  = (
-        _fast_raw is True
-        or (isinstance(_fast_raw, str) and _fast_raw.lower() in ("true", "1", "yes"))
-    )
-    return dict(
-        query=query, language=language, session_id=session_id, fast_mode=fast_mode,
-    )
+    serializer = ChatbotRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        raise ValueError(serializer.errors)
+    parsed = serializer.validated_data
+    return {
+        "query": parsed["query"],
+        "language": parsed.get("language", "hi"),
+        "session_id": parsed.get("session_id") or None,
+        "fast_mode": parsed.get("fast_mode", False),
+    }
 
 
 def _build_history_and_context(request, session_id, language):
@@ -326,7 +326,13 @@ class ChatbotViewSet(viewsets.ViewSet):
         return self._handle_query(request)
 
     def _handle_query(self, request):
-        parsed     = _parse_request(request)
+        try:
+            parsed = _parse_request(request)
+        except ValueError as exc:
+            return Response(
+                {"error": "Invalid chatbot request", "error_code": "INVALID_REQUEST", "details": exc.args[0]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         query      = parsed["query"]
         language   = parsed["language"]
         session_id = parsed["session_id"]
@@ -535,20 +541,28 @@ def stream_chat(request):
     import json as _json
     try:
         body = _json.loads(request.body or b"{}")
-    except Exception:
-        body = {}
+        serializer = ChatbotRequestSerializer(data=body)
+        if not serializer.is_valid():
+            from django.http import JsonResponse
+            return JsonResponse(
+                {"error": "Invalid chatbot request", "error_code": "INVALID_REQUEST", "details": serializer.errors},
+                status=400,
+            )
+        body = serializer.validated_data
+    except (TypeError, ValueError, json.JSONDecodeError):
+        from django.http import JsonResponse
+        return JsonResponse(
+            {"error": "Invalid JSON request", "error_code": "INVALID_JSON"},
+            status=400,
+        )
 
     # Attach parsed body to request.data (DRF-like)
     request.data = body  # type: ignore[attr-defined]
 
-    query      = (body.get("query") or "").strip()
+    query      = body.get("query", "")
     language   = body.get("language", "hi")
     session_id = (body.get("session_id") or "").strip() or None
-    _fast_raw  = body.get("fast_mode", False)
-    fast_mode  = (
-        _fast_raw is True
-        or (isinstance(_fast_raw, str) and _fast_raw.lower() in ("true", "1", "yes"))
-    )
+    fast_mode  = body.get("fast_mode", False)
 
     if not query:
         from django.http import JsonResponse

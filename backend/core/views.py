@@ -5,6 +5,9 @@ from django.http import FileResponse, Http404, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def api_root(request):
@@ -47,4 +50,5 @@ def api_test(request):
             "received_data": data,
         })
     except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=400)
+        logger.exception("API root failed")
+        return JsonResponse({"status": "error", "message": "Service temporarily unavailable", "error_code": "SERVICE_UNAVAILABLE"}, status=503)

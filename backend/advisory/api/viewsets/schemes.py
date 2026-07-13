@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from ..location_utils import attach_location_metadata, resolve_request_location
 from ..errors import safe_error_message
 from ...services.unified_realtime_service import schemes_service
+from ..serializers import LocationQuerySerializer, SchemeEligibilityInputSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,12 @@ class GovernmentSchemesViewSet(viewsets.ViewSet):
 
     def list(self, request):
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "error": "Invalid scheme query", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx = resolve_request_location(request)
-            category = request.GET.get("category")
+            category = params.get("category")
             data = schemes_service.get_schemes(ctx.query_label, category)
             return Response(attach_location_metadata(data, ctx))
         except Exception as exc:
@@ -39,12 +44,10 @@ class GovernmentSchemesViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def eligibility(self, request):
         try:
-            profile = request.data.get("farmer_profile", {})
-            if not isinstance(profile, dict):
-                return Response(
-                    {"status": "error", "message": "farmer_profile must be a JSON object"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            serializer = SchemeEligibilityInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({"status": "error", "message": "Invalid eligibility request", "errors": serializer.errors}, status=400)
+            profile = serializer.validated_data["farmer_profile"]
             data = schemes_service.check_eligibility(profile)
             return Response(data)
         except Exception as exc:

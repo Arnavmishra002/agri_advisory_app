@@ -9,6 +9,7 @@ Usage:
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 import logging
 import os
@@ -123,9 +124,16 @@ class CropDiseasePredictor:
         elif isinstance(image, str) and not image.startswith("/") and len(image) > 200:
             try:
                 b64 = image.split(",", 1)[-1] if "," in image else image
-                raw_bytes = base64.b64decode(b64)
-            except Exception:
-                raw_bytes = None
+                raw_bytes = base64.b64decode(b64, validate=True)
+            except (ValueError, TypeError, binascii.Error):
+                return {
+                    "status": "invalid_image",
+                    "message": "The image could not be decoded. Please upload a clear JPEG, PNG, or WebP photo.",
+                    "crop_name": None,
+                    "disease_name": None,
+                    "confidence": 0.0,
+                    "top_predictions": [],
+                }
 
         if not skip_validation and raw_bytes:
             valid, reason, metrics = validate_plant_image(raw_bytes)
@@ -226,7 +234,7 @@ class CropDiseasePredictor:
     def predict_base64(self, b64_string: str, **kwargs) -> Dict[str, Any]:
         if "," in b64_string:
             b64_string = b64_string.split(",", 1)[1]
-        raw = base64.b64decode(b64_string)
+        raw = base64.b64decode(b64_string, validate=True)
         return self.predict(raw, **kwargs)
 
 

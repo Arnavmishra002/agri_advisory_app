@@ -24,6 +24,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..errors import safe_error_message
+from ..serializers import FarmerCropInputSerializer, FarmerProfileInputSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,13 @@ class FarmerProfileViewSet(viewsets.ViewSet):
         Upserts the current authenticated farmer's profile.
         Client-supplied phone/session_id are not accepted as ownership proof.
         """
-        d     = request.data
+        serializer = FarmerProfileInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors, "error_code": "INVALID_PROFILE"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        d = serializer.validated_data
         try:
             from ...models import FarmerProfile
             profile = self._get_owned_profile(request.user)
@@ -173,12 +180,15 @@ class FarmerProfileViewSet(viewsets.ViewSet):
         }
         Appends to the authenticated farmer's crop_history list (max 6 entries kept).
         """
-        d      = request.data
+        serializer = FarmerCropInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors, "error_code": "INVALID_CROP_HISTORY"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        d = serializer.validated_data
         season = d.get("season", "")
-        crop   = d.get("crop", "")
-
-        if not crop:
-            return Response({"error": "crop is required"}, status=status.HTTP_400_BAD_REQUEST)
+        crop = d["crop"]
 
         try:
             profile = self._get_owned_profile(request.user)
@@ -248,7 +258,13 @@ class FarmerProfileViewSet(viewsets.ViewSet):
                 )
 
         if request.method in ["PATCH", "PUT"]:
-            d = request.data
+            serializer = FarmerProfileInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(
+                    {"error": serializer.errors, "error_code": "INVALID_PROFILE"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            d = serializer.validated_data
             field_map = {
                 "location_name":     "location_name",
                 "state":             "state",

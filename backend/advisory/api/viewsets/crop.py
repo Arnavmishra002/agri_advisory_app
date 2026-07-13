@@ -12,6 +12,7 @@ from ..errors import safe_error_message
 from ...services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
 from ...services.crop_catalog import crop_catalog
 from ...services.crop_recommendation_engine import crop_recommendation_engine
+from ..serializers import LocationQuerySerializer
 
 # Module-level singleton — avoid instantiating on every request
 try:
@@ -37,8 +38,12 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
 
     def list(self, request):
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid crop query", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx = resolve_request_location(request)
-            language = request.query_params.get("language", "hi")
+            language = params.get("language", "hi")
 
             logger.info(
                 "Crop recommendations (intelligent engine) for %s @ %s,%s",
@@ -72,8 +77,12 @@ class TrendingCropsViewSet(viewsets.ViewSet):
     def list(self, request):
         """Get trending crops using government APIs"""
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid trending crop query", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx = resolve_request_location(request)
-            language = request.query_params.get("language", "hi")
+            language = params.get("language", "hi")
 
             rec_data = crop_recommendation_engine.recommend_from_context(ctx, language=language)
             trending = rec_data.get("recommendations", [])[:10]
@@ -105,11 +114,12 @@ class CropViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"])
     def search(self, request):
         """Google-style crop autocomplete (mandi, diagnostics, advisory)."""
-        query = request.query_params.get("q", "").strip()
-        try:
-            limit = min(int(request.query_params.get("limit", 10)), 20)
-        except (ValueError, TypeError):
-            limit = 10
+        serializer = LocationQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response({"error": "Invalid crop search parameters", "errors": serializer.errors}, status=400)
+        params = serializer.validated_data
+        query = params.get("q", "").strip()
+        limit = min(params.get("limit", 10), 20)
         results = crop_catalog.search(query, limit=limit) if query else crop_catalog.popular(limit)
         return Response({
             "query": query,
@@ -121,9 +131,13 @@ class CropViewSet(viewsets.ViewSet):
     def list(self, request):
         """Get crop information using government APIs"""
         try:
-            crop_name = request.query_params.get("crop", "")
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid crop query", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
+            crop_name = params.get("crop", "")
             ctx = resolve_request_location(request)
-            language = request.query_params.get("language", "hi")
+            language = params.get("language", "hi")
 
             gov_data = self.gov_api.get_comprehensive_government_data(
                 location=ctx.query_label,

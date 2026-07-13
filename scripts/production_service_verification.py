@@ -28,7 +28,6 @@ sys.path.insert(0, BACKEND)
 os.chdir(BACKEND)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-os.environ["SECRET_KEY"] = os.environ.get("SECRET_KEY", "production-verify-local-secret")
 os.environ["DEBUG"] = "True"
 os.environ.setdefault("DATABASE_URL", "sqlite:///production_verify.sqlite3")
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")

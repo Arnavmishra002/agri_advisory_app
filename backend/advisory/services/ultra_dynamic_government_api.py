@@ -292,11 +292,12 @@ class UltraDynamicGovernmentAPI:
                     'coordinates': {'lat': latitude, 'lon': longitude}
                 }
                 
-        except Exception as e:
-            logger.error(f"Error in comprehensive government data fetch: {e}")
+        except Exception:
+            logger.exception("Error in comprehensive government data fetch")
             return {
                 'status': 'error',
-                'error': str(e),
+                'error': 'Government data is temporarily unavailable',
+                'error_code': 'GOVERNMENT_DATA_UNAVAILABLE',
                 'government_data': {},
                 'data_reliability': {'reliability_score': 0.0, 'sources_count': 0, 'success_rate': 0},
                 'response_time': time.time() - start_time,
@@ -342,7 +343,7 @@ class UltraDynamicGovernmentAPI:
         try:
             # OpenWeatherMap API (free tier)
             import os
-            api_key = os.getenv('OPENWEATHER_API_KEY', 'demo')
+            api_key = os.getenv('OPENWEATHER_API_KEY', '')
             if api_key == 'demo':
                 return None  # Skip if no real API key
             url = f"https://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&appid={api_key}&units=metric&lang=hi"
@@ -408,7 +409,7 @@ class UltraDynamicGovernmentAPI:
         """Try WeatherAPI for real-time weather"""
         try:
             # WeatherAPI (free tier - 1 million calls/month)
-            api_key = os.getenv('WEATHERAPI_KEY', 'demo')
+            api_key = os.getenv('WEATHERAPI_KEY', '')
             if api_key == 'demo':
                 return None  # Skip if no real API key
             url = f"http://api.weatherapi.com/v1/current.json?key={api_key}&q={latitude},{longitude}&lang=hi"
@@ -466,7 +467,7 @@ class UltraDynamicGovernmentAPI:
         """Try AccuWeather API for real-time weather"""
         try:
             # AccuWeather API (free tier - 50 calls/day)
-            api_key = os.getenv('ACCUWEATHER_API_KEY', 'demo')
+            api_key = os.getenv('ACCUWEATHER_API_KEY', '')
             if api_key == 'demo':
                 return None  # Skip if no real API key
             

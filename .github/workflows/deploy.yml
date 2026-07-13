@@ -61,7 +61,7 @@ jobs:
       - name: Django check and migrations
         working-directory: backend
         env:
-          SECRET_KEY: pre-deploy-check-key
+          SECRET_KEY: ${{ secrets.CI_SECRET_KEY }}
           DEBUG: "True"
           DATABASE_URL: sqlite:////tmp/pre-deploy.db
           ALLOWED_HOSTS: localhost,testserver

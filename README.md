@@ -272,11 +272,28 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `GOOGLE_AI_API_KEY` | Optional | Gemini fallback for chatbot |
 | `OPENWEATHER_API_KEY` | Optional | OpenWeather fallback; Open-Meteo works without a key |
 | `REDIS_URL` | Production | Shared cache, rate limits, Celery broker |
+| `RATE_LIMIT_ENABLED` | Production | Enables API and chatbot-stream throttling |
+| `RATE_LIMIT_FAIL_OPEN` | Development only | Allow traffic when the rate-limit cache is unavailable; keep `false` in production |
+| `RATE_LIMIT_PUBLIC_RPM/RPH/RPD` | Optional | Public per-IP minute/hour/day limits |
+| `RATE_LIMIT_AUTHENTICATED_RPM/RPH/RPD` | Optional | Authenticated per-IP and per-account limits |
+| `RATE_LIMIT_AUTH_RPM/RPH/RPD` | Optional | Login, OTP, and registration limits |
+| `RATE_LIMIT_HEAVY_RPM/RPH/RPD` | Optional | Diagnostics, pest, and TTS limits |
+| `RATE_LIMIT_CHAT_*`, `RATE_LIMIT_DATA_*`, `RATE_LIMIT_DIAG_*`, `RATE_LIMIT_DEFAULT_*`, `RATE_LIMIT_NOMINATIM_*` | Optional | Token-bucket capacity and refill settings for non-HTTP integrations |
+| `AUTH_BACKOFF_THRESHOLD` | Optional | Failed OTP attempts before progressive delay |
+| `AUTH_BACKOFF_BASE_SECONDS` | Optional | Initial OTP backoff delay |
+| `AUTH_BACKOFF_MAX_SECONDS` | Optional | Maximum OTP backoff delay |
+| `AUTH_BACKOFF_WINDOW_SECONDS` | Optional | Failed-attempt counter lifetime |
+| `KRISHI_RAKSHA_MAX_UPLOAD_MB` | Optional | Maximum decoded diagnostic image size; default `5` |
+| `DATA_UPLOAD_MAX_MEMORY_SIZE` | Optional | Django request parser limit in bytes; default `8388608` |
+| `FILE_UPLOAD_MAX_MEMORY_SIZE` | Optional | Django in-memory file limit in bytes; default `8388608` |
+| `PRIVATE_UPLOAD_ROOT` | Optional | Private future-upload directory; never expose it as static/media content |
 | `SENTRY_DSN` | Production | Error tracing without exposing farmer PII |
 | `LAUNCH_CHECK` | CI/deploy | Return HTTP 503 from strict launch checks when blockers remain |
 | `SERVE_FRONTEND` | Optional | Serve `frontend/dist/` from Django |
 | `VITE_API_BASE_URL` | Frontend | Browser API base URL |
 | `PHASE1_BASE_URL` | Optional | Django -> Phase 1 service URL |
+| `PHASE1_CORS_ALLOWED_ORIGINS` | Optional | Explicit browser origins allowed to call Phase 1; empty means no cross-origin access |
+| `PHASE1_ALLOW_ALL_CORS` | Development only | Allows wildcard Phase 1 CORS only when `DEBUG=true`; keep `false` in production |
 | `PHASE1_TIMEOUT_S` | Optional | Phase 1 request timeout |
 | `PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S` | Optional | Max wait for first streamed local-AI token |
 | `PHASE1_STREAM_IDLE_TIMEOUT_S` | Optional | Max idle gap between streamed local-AI tokens |
@@ -292,6 +309,31 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | Optional | SMS/IVR integration |
 | `GROQ_API_KEY` | Optional | Voice transcription for WhatsApp audio |
 | `MQTT_BROKER_HOST` | Optional | ESP32/IoT telemetry ingestion |
+
+## Security And API Contracts
+
+- Farmer profile reads and writes require JWT authentication and are always
+  resolved from the authenticated farmer. Legacy `phone`/`session_id` fields
+  may be accepted for compatibility but are ignored for ownership.
+- Saving IoT sensor readings requires JWT authentication. Public field
+  recommendations remain read-only and may use anonymous GPS data.
+- OTP request/verification and password registration use strict schemas,
+  per-IP/per-account limits, and progressive backoff after repeated failures.
+- Chatbot JSON and SSE requests share one strict schema. Unknown fields,
+  malformed coordinates, oversized history, and invalid language values are
+  rejected with a safe 400 response.
+- The Phase 1 FastAPI service rejects unknown body fields, bounds nested farmer,
+  history, and sensor payloads, and has no wildcard CORS by default.
+- Diagnostic and pest image uploads are decoded before inference. Only JPEG,
+  PNG, and WebP images within the configured size/pixel limits are accepted;
+  uploads are processed in memory and are not persisted by these endpoints.
+- Nginx denies public `/media/` access. Any future persisted upload must use
+  `PRIVATE_UPLOAD_ROOT` with restrictive permissions and an authenticated download
+  endpoint rather than static file serving.
+- Production errors return stable farmer-safe messages and error codes. Full
+  exception details remain in server logs/Sentry only.
+- The DRF rate limiter uses atomic shared-cache counters. Set `REDIS_URL` in
+  production so limits and OTP backoff are consistent across workers.
 
 ## Verification
 

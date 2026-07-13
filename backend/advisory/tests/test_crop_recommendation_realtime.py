@@ -1,4 +1,8 @@
 import json
+import os
+import time
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import patch
 
 from django.core.cache import cache
 from django.test import SimpleTestCase
@@ -9,6 +13,7 @@ from advisory.services.crop_recommendation_engine import (
     CROP_REC_HEALTH_CACHE_KEY,
     CropRecommendationEngine,
 )
+import advisory.services.crop_recommendation_engine as crop_engine
 
 
 class CropRecommendationRealtimeTests(SimpleTestCase):
@@ -83,3 +88,27 @@ class CropRecommendationRealtimeTests(SimpleTestCase):
 
         self.assertEqual(payload["crop_recommendation"]["status"], "degraded")
         self.assertEqual(payload["crop_recommendation"]["location"], "Lucknow")
+
+    def test_slow_realtime_sources_return_within_caller_budget(self):
+        pool = ThreadPoolExecutor(max_workers=2)
+
+        def slow_source(*args, **kwargs):
+            time.sleep(0.2)
+            return {}
+
+        try:
+            with patch.object(crop_engine, "_REC_FETCH_POOL", pool), patch.dict(
+                os.environ, {"CROP_REC_REALTIME_TIMEOUT_S": "0.01"}
+            ), patch.object(crop_engine.weather_service, "get_weather", side_effect=slow_source), patch.object(
+                crop_engine.market_service, "get_prices", side_effect=slow_source
+            ):
+                started = time.monotonic()
+                _, _, status = CropRecommendationEngine()._fetch_realtime_context(
+                    "Lucknow", 26.8467, 80.9462, "Uttar Pradesh", "en"
+                )
+                elapsed = time.monotonic() - started
+
+            self.assertLess(elapsed, 0.15)
+            self.assertEqual(status, {"weather": "timeout", "market": "timeout"})
+        finally:
+            pool.shutdown(wait=True)

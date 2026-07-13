@@ -40,23 +40,30 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from ...rate_limiters import SharedRateLimiter
+from ...rate_limiters import AtomicWindowRateLimiter, ExponentialBackoff, client_ip_from_request
+from ..serializers import (
+    OTPRequestInputSerializer,
+    OTPVerifyInputSerializer,
+    RegistrationInputSerializer,
+    LogoutInputSerializer,
+)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
 # ── OTP rate limiter: max 3 OTP requests per phone per hour ──────────────────
 # Uses phone number as client_id (not IP) so rate limit is per-user not per-network.
-otp_rate_limiter = SharedRateLimiter(
+otp_rate_limiter = AtomicWindowRateLimiter(
     key_prefix="otp",
     capacity=3,
-    fill_rate=3 / 3600,  # refill 3 tokens over 1 hour (steady state = 3/hr)
+    window_seconds=3600,
 )
-otp_verify_rate_limiter = SharedRateLimiter(
+otp_verify_rate_limiter = AtomicWindowRateLimiter(
     key_prefix="otp_verify",
     capacity=5,
-    fill_rate=5 / 3600,  # refill 5 verification attempts over 1 hour
+    window_seconds=3600,
 )
+otp_backoff = ExponentialBackoff("otp_verify")
 
 # Indian mobile number: optional +, optional 91, then 6-9 followed by 9 digits
 _PHONE_RE = re.compile(r"^\+?91?[6-9]\d{9}$")
@@ -119,6 +126,27 @@ def _send_otp_sms(phone: str, otp: str) -> bool:
         return False
 
 
+def _auth_identifiers(request, phone: str) -> tuple[str, str]:
+    """Return independent IP and account keys for OTP failure backoff."""
+    return f"ip:{client_ip_from_request(request)}", f"phone:{phone}"
+
+
+def _backoff_response(request, identifiers: tuple[str, str]):
+    retry_after = max((otp_backoff.retry_after(identifier) for identifier in identifiers), default=0)
+    if retry_after <= 0:
+        return None
+    return Response(
+        {
+            "error": "Too many verification attempts. Please wait before trying again.",
+            "error_code": "OTP_VERIFY_RATE_LIMITED",
+            "error_hi": "बहुत अधिक प्रयास। कृपया कुछ देर बाद फिर कोशिश करें।",
+            "retry_after": retry_after,
+        },
+        status=429,
+        headers={"Retry-After": str(retry_after)},
+    )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 class AuthViewSet(viewsets.ViewSet):
     """
@@ -137,12 +165,10 @@ class AuthViewSet(viewsets.ViewSet):
         Response:     { "success": true, "expires_in": 600, "sms_sent": bool }
         Dev mode only: { ..., "dev_otp": "123456" }
         """
-        phone_raw = (request.data.get("phone_number") or "").strip()
-        if not phone_raw:
-            return Response(
-                {"error": "phone_number is required", "error_code": "MISSING_PHONE"},
-                status=400,
-            )
+        serializer = OTPRequestInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors, "error_code": "INVALID_REQUEST"}, status=400)
+        phone_raw = serializer.validated_data["phone_number"]
 
         phone = _normalise_phone(phone_raw)
         if not _PHONE_RE.match(phone):
@@ -192,17 +218,18 @@ class AuthViewSet(viewsets.ViewSet):
         }
         Response: { "access": "...", "refresh": "...", "user": {...} }
         """
-        phone_raw  = (request.data.get("phone_number") or "").strip()
-        otp_code   = (request.data.get("otp_code") or "").strip()
-        session_id = (request.data.get("session_id") or "").strip()
-
-        if not phone_raw or not otp_code:
-            return Response(
-                {"error": "phone_number and otp_code are required", "error_code": "MISSING_FIELDS"},
-                status=400,
-            )
+        serializer = OTPVerifyInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors, "error_code": "INVALID_REQUEST"}, status=400)
+        phone_raw = serializer.validated_data["phone_number"]
+        otp_code = serializer.validated_data["otp_code"]
+        session_id = serializer.validated_data.get("session_id", "")
 
         phone = _normalise_phone(phone_raw)
+        identifiers = _auth_identifiers(request, phone)
+        blocked = _backoff_response(request, identifiers)
+        if blocked:
+            return blocked
 
         if not otp_verify_rate_limiter.is_allowed(phone):
             return Response(
@@ -217,6 +244,8 @@ class AuthViewSet(viewsets.ViewSet):
         # Check OTP from cache
         stored_otp = cache.get(f"otp:{phone}")
         if not stored_otp:
+            for identifier in identifiers:
+                otp_backoff.record_failure(identifier)
             return Response(
                 {
                     "error": "OTP has expired. Please request a new one.",
@@ -227,6 +256,8 @@ class AuthViewSet(viewsets.ViewSet):
             )
 
         if stored_otp != otp_code:
+            for identifier in identifiers:
+                otp_backoff.record_failure(identifier)
             return Response(
                 {
                     "error": "Invalid OTP. Please check and try again.",
@@ -239,6 +270,8 @@ class AuthViewSet(viewsets.ViewSet):
         # OTP verified — delete it (one-time use)
         cache.delete(f"otp:{phone}")
         otp_verify_rate_limiter.reset(phone)
+        for identifier in identifiers:
+            otp_backoff.clear(identifier)
 
         # Get or create User (username = phone digits without +)
         username = phone.lstrip("+").replace(" ", "")
@@ -303,24 +336,25 @@ class AuthViewSet(viewsets.ViewSet):
             "session_id": "sess_xxxx"       (optional)
         }
         """
-        username   = (request.data.get("username") or "").strip()
-        password   = (request.data.get("password") or "").strip()
-        phone_raw  = (request.data.get("phone_number") or "").strip()
-        name       = (request.data.get("name") or "").strip()
-        state      = (request.data.get("state") or "").strip()
-        language   = (request.data.get("language") or "hi").strip()
-        session_id = (request.data.get("session_id") or "").strip()
-
-        # Validation
-        if not username:
-            return Response({"error": "username is required", "error_code": "MISSING_USERNAME"}, status=400)
-        if not password:
-            return Response({"error": "password is required", "error_code": "MISSING_PASSWORD"}, status=400)
-        if len(password) < 8:
-            return Response(
-                {"error": "Password must be at least 8 characters.", "error_code": "PASSWORD_TOO_SHORT"},
-                status=400,
-            )
+        serializer = RegistrationInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors, "error_code": "INVALID_REQUEST"}, status=400)
+        validated = serializer.validated_data
+        username = validated["username"]
+        password = validated["password"]
+        phone_raw = validated.get("phone_number", "")
+        name = validated.get("name", "")
+        state = validated.get("state", "")
+        language = validated.get("language", "hi")
+        session_id = validated.get("session_id", "")
+        phone_normalised = ""
+        if phone_raw:
+            phone_normalised = _normalise_phone(phone_raw)
+            if not _PHONE_RE.match(phone_normalised):
+                return Response(
+                    {"error": "Invalid Indian mobile number.", "error_code": "INVALID_PHONE"},
+                    status=400,
+                )
         if User.objects.filter(username=username).exists():
             return Response(
                 {"error": "This username is already taken. Please choose another.", "error_code": "USERNAME_TAKEN"},
@@ -341,13 +375,6 @@ class AuthViewSet(viewsets.ViewSet):
         )
 
         # Create FarmerProfile
-        phone_normalised = ""
-        if phone_raw:
-            try:
-                phone_normalised = _normalise_phone(phone_raw)
-            except Exception:
-                phone_normalised = phone_raw
-
         try:
             from ...models import FarmerProfile
             profile_defaults = {
@@ -407,12 +434,11 @@ class AuthViewSet(viewsets.ViewSet):
 
         try:
             from ...models import FarmerProfile
-            # Try to find profile by phone number (username for OTP users) or session_id
-            session_id = request.query_params.get("session_id", "")
+            # Resolve only through the authenticated user's phone/username. A
+            # client-supplied session_id must never select another farmer's PII.
             profile = (
                 FarmerProfile.objects.filter(phone_number=f"+91{user.username}").first()
                 or FarmerProfile.objects.filter(phone_number=user.username).first()
-                or (FarmerProfile.objects.filter(session_id=session_id).first() if session_id else None)
             )
             if profile:
                 profile_data = {
@@ -454,7 +480,10 @@ class AuthViewSet(viewsets.ViewSet):
         Request body: { "refresh": "<refresh_token>" }  (optional)
         """
         try:
-            refresh_token = request.data.get("refresh", "")
+            serializer = LogoutInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({"success": False, "message": "Invalid logout request", "errors": serializer.errors}, status=400)
+            refresh_token = serializer.validated_data.get("refresh", "")
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()

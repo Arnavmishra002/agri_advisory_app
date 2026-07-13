@@ -16,6 +16,7 @@ from ...services.crop_catalog import crop_catalog
 from ...services.crop_recommendation_engine import crop_recommendation_engine
 from ...services.language_service import normalise_language_code
 from ...services.unified_realtime_service import market_service, weather_service
+from ..serializers import GovernmentPestInputSerializer, LocationQuerySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +44,12 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     def weather(self, request):
         """Real-time weather — delegates to unified WeatherService (Open-Meteo)."""
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid weather parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx  = resolve_request_location(request)
-            lang = normalise_language_code(request.query_params.get('language', 'hi'))
+            lang = normalise_language_code(params.get('language', 'hi'))
             data = weather_service.get_weather(ctx.query_label, ctx.latitude, ctx.longitude, lang=lang)
             return Response(attach_location_metadata(data, ctx))
         except Exception as e:
@@ -57,12 +62,16 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     def market_prices(self, request):
         """Real-time mandi prices — delegates to unified MarketPricesService."""
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid market parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx   = resolve_request_location(request)
-            mandi = request.query_params.get('mandi')
-            crop  = request.query_params.get('crop')
+            mandi = params.get('mandi')
+            crop  = params.get('crop')
             norm  = crop_catalog.normalize(crop) if crop else None
             commodity = norm['name'] if norm else crop
-            include_estimates = request.query_params.get('include_estimates', '').lower() in ('1', 'true', 'yes')
+            include_estimates = params.get('include_estimates', False)
 
             data = market_service.get_prices(
                 ctx.query_label, mandi=mandi, crop=commodity,
@@ -83,8 +92,12 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
         (80 crops, live weather, mandi prices, district profiles).
         """
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid crop recommendation parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx  = resolve_request_location(request)
-            lang = normalise_language_code(request.query_params.get('language', 'hi'))
+            lang = normalise_language_code(params.get('language', 'hi'))
             data = crop_recommendation_engine.recommend_from_context(ctx, language=lang)
             return Response(attach_location_metadata(data, ctx))
         except Exception as e:
@@ -97,9 +110,13 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     def pest_detection(self, request):
         """Pest guidance for a crop/location — use /api/diagnostics/detect/ for image-based."""
         try:
-            crop     = request.data.get('crop', 'Wheat')
-            location = request.data.get('location', 'Delhi')
-            language = request.data.get('language', 'hi')
+            serializer = GovernmentPestInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid pest request', 'errors': serializer.errors}, status=400)
+            data = serializer.validated_data
+            crop     = data.get('crop', 'Wheat')
+            location = data.get('location', 'Delhi')
+            language = data.get('language', 'hi')
             pest_data = self.gov_api.get_pest_control_recommendations(crop, location, language=language)
             return Response({
                 'status': 'success',
@@ -119,8 +136,12 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     def mandi_search(self, request):
         """Search mandis near the user's location."""
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid mandi search parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx   = resolve_request_location(request)
-            query = request.query_params.get('q', '').strip()
+            query = params.get('q', '').strip()
 
             mandi_data = market_service.list_mandis(
                 ctx.query_label, lat=ctx.latitude, lon=ctx.longitude, state=ctx.state or None
@@ -146,12 +167,16 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     def crop_search(self, request):
         """Crop autocomplete using the crop catalog (80+ crops)."""
         try:
-            query = (request.query_params.get('crop') or request.query_params.get('q', '')).strip()
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid crop search parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
+            query = (params.get('crop') or params.get('q', '')).strip()
             if not query:
                 return Response({'error': 'Provide crop or q parameter'},
                                 status=status.HTTP_400_BAD_REQUEST)
             try:
-                limit = min(int(request.query_params.get('limit', 20)), 50)
+                limit = min(params.get('limit', 20), 50)
             except (ValueError, TypeError):
                 limit = 20
 

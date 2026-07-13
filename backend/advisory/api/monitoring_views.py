@@ -18,6 +18,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..middleware.rate_limiting import get_rate_limit_status, reset_rate_limits
+from .serializers import LocationQuerySerializer, RateLimitResetInputSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,7 @@ class MonitoringViewSet(viewsets.ViewSet):
             }, status=status.HTTP_200_OK)
         except Exception as e:
             logger.exception("system_health error: %s", e)
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "System health is temporarily unavailable", "error_code": "HEALTH_UNAVAILABLE"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["get"])
     def performance_summary(self, request):
@@ -133,7 +134,7 @@ class RateLimitViewSet(viewsets.ViewSet):
         try:
             client_ip = request.META.get("REMOTE_ADDR", "127.0.0.1")
             user_id   = request.user.id if request.user.is_authenticated else None
-            client_id = f"user_{user_id}" if user_id else f"ip_{client_ip}"
+            client_id = f"user:{user_id}" if user_id else f"ip:{client_ip}"
             return Response({
                 "client_id":   client_id,
                 "rate_limits": get_rate_limit_status(client_id),
@@ -141,21 +142,22 @@ class RateLimitViewSet(viewsets.ViewSet):
             })
         except Exception as e:
             logger.exception("rate limit status error: %s", e)
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "Rate limit status is temporarily unavailable", "error_code": "RATE_STATUS_UNAVAILABLE"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["post"])
     def reset(self, request):
         try:
             if not (request.user.is_staff or request.user.is_superuser):
                 return Response({"error": "Insufficient permissions"}, status=status.HTTP_403_FORBIDDEN)
-            client_id = request.data.get("client_id")
-            if not client_id:
-                return Response({"error": "client_id required"}, status=status.HTTP_400_BAD_REQUEST)
+            serializer = RateLimitResetInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid rate-limit reset request", "errors": serializer.errors}, status=400)
+            client_id = serializer.validated_data["client_id"]
             reset_rate_limits(client_id)
             return Response({"status": "success", "message": f"Rate limits reset for {client_id}"})
         except Exception as e:
             logger.exception("rate limit reset error: %s", e)
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "Rate limit reset failed", "error_code": "RATE_RESET_FAILED"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -292,9 +294,12 @@ def launch_readiness_check(request):
     except Exception:
         runtime_checks = {}
 
+    query_serializer = LocationQuerySerializer(data=request.GET)
+    if not query_serializer.is_valid():
+        return JsonResponse({"status": "blocked_for_launch", "error": "Invalid readiness parameters", "errors": query_serializer.errors}, status=400)
     strict = (
         os.environ.get("LAUNCH_CHECK", "false").lower() in {"1", "true", "yes"}
-        or request.GET.get("strict", "false").lower() in {"1", "true", "yes"}
+        or query_serializer.validated_data.get("strict", False)
     )
     blockers = []
 
@@ -440,7 +445,8 @@ def data_freshness(request):
             ),
         }
     except Exception as exc:
-        result["market"] = {"error": str(exc)}
+        logger.exception("market readiness probe failed")
+        result["market"] = {"status": "unavailable", "error_code": "MARKET_READINESS_UNAVAILABLE"}
 
     # ── Weather (Open-Meteo) ──────────────────────────────────
     try:
@@ -455,7 +461,8 @@ def data_freshness(request):
             "note": "Weather cache is per-location; probe checks Delhi as sentinel.",
         }
     except Exception as exc:
-        result["weather"] = {"error": str(exc)}
+        logger.exception("weather readiness probe failed")
+        result["weather"] = {"status": "unavailable", "error_code": "WEATHER_READINESS_UNAVAILABLE"}
 
     # ── RAG / Phase1 ──────────────────────────────────────────
     try:
@@ -482,7 +489,8 @@ def data_freshness(request):
             "sources": {},
         }
     except Exception as exc:
-        result["crop_recommendation"] = {"error": str(exc)}
+        logger.exception("crop recommendation readiness probe failed")
+        result["crop_recommendation"] = {"status": "unavailable", "error_code": "CROP_READINESS_UNAVAILABLE"}
 
     return JsonResponse(result)
 
@@ -504,4 +512,8 @@ def sentry_test(request):
             return JsonResponse({"status": "ok", "sentry": "event_sent"})
         return JsonResponse({"status": "ok", "sentry": "not_configured"})
     except Exception as exc:
-        return JsonResponse({"status": "ok", "sentry": f"error: {exc}"})
+        logger.exception("Sentry test failed")
+        return JsonResponse(
+            {"status": "error", "sentry": "unavailable", "error_code": "SENTRY_TEST_FAILED"},
+            status=503,
+        )

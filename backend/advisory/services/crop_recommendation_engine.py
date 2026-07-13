@@ -19,7 +19,7 @@ import logging
 import os
 import re
 import atexit
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeout
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -350,38 +350,28 @@ class CropRecommendationEngine:
             ): "market",
         }
 
-        try:
-            for fut in as_completed(futures, timeout=timeout_s):
-                key = futures[fut]
-                try:
-                    result = fut.result() or {}
-                    if key == "weather":
-                        weather = result
-                    else:
-                        market = result
-                    status_map[key] = result.get("status") or (
-                        "live" if result.get("is_live") else "success"
-                    )
-                except Exception as exc:
-                    logger.warning("Crop rec %s fetch failed: %s", key, exc)
-                    status_map[key] = "error"
-        except FuturesTimeout:
-            for fut, key in futures.items():
-                if fut.done() and not fut.cancelled():
-                    try:
-                        result = fut.result(timeout=0) or {}
-                        if key == "weather":
-                            weather = result
-                        else:
-                            market = result
-                        status_map[key] = result.get("status") or (
-                            "live" if result.get("is_live") else "success"
-                        )
-                    except Exception:
-                        status_map[key] = "error"
-                elif not fut.done():
-                    fut.cancel()
-                    status_map[key] = "timeout"
+        done, pending = wait(futures, timeout=timeout_s)
+        for fut in done:
+            key = futures[fut]
+            try:
+                result = fut.result() or {}
+                if key == "weather":
+                    weather = result
+                else:
+                    market = result
+                status_map[key] = result.get("status") or (
+                    "live" if result.get("is_live") else "success"
+                )
+            except Exception as exc:
+                logger.warning("Crop rec %s fetch failed: %s", key, exc)
+                status_map[key] = "error"
+
+        for fut in pending:
+            key = futures[fut]
+            # The shared worker may still be completing an HTTP call. The
+            # caller is bounded here while service-level HTTP timeouts finish it.
+            status_map[key] = "timeout"
+        if pending:
             logger.warning(
                 "Crop recommendation realtime fetch timed out after %.1fs for %s",
                 timeout_s,

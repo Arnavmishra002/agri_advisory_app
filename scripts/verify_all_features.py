@@ -18,7 +18,6 @@ sys.path.insert(0, BACKEND)
 os.chdir(BACKEND)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-os.environ.setdefault("SECRET_KEY", "verify-local")
 os.environ.setdefault("DATABASE_URL", "sqlite:///verify_features.sqlite3")
 
 import django

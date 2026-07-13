@@ -14,12 +14,11 @@ if [ ! -f "backend/manage.py" ] && [ ! -f "manage.py" ]; then
     exit 1
 fi
 
-# Check if git is initialized
-if [ ! -d ".git" ]; then
-    echo "📦 Initializing git repository..."
-    git init
-    git add .
-    git commit -m "Initial commit for deployment"
+# Never initialize or stage a repository implicitly from a deployment helper.
+# This script validates an existing checkout; commits remain an explicit user action.
+if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
+    echo "❌ Error: run this script from an existing Git checkout"
+    exit 1
 fi
 
 # Check if requirements-production.txt exists
@@ -47,10 +46,6 @@ echo "   - Use rootDir: backend"
 echo "   - Use Build Command: pip install -r requirements-production.txt && python manage.py collectstatic --noinput  (from backend/)"
 echo "   - Use Start Command: gunicorn core.wsgi:application --bind 0.0.0.0:\$PORT"
 echo "   - Set DEBUG=False"
-echo ""
-echo "3. Your app will be available at: https://your-app-name.onrender.com"
-echo ""
-echo "🎉 Happy farming with your online agricultural advisory app!"
 
 echo ""
 echo "3. Your app will be available at: https://your-app-name.onrender.com"

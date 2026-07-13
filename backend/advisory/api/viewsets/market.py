@@ -12,6 +12,7 @@ from ..location_utils import attach_location_metadata, resolve_request_location
 from ..errors import safe_error_message
 from ...services.crop_catalog import crop_catalog
 from ...services.unified_realtime_service import market_service
+from ..serializers import LocationQuerySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -27,15 +28,17 @@ class MarketPricesViewSet(viewsets.ViewSet):
         no estimated price.
         """
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "error": "Invalid market query", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx = resolve_request_location(request)
-            mandi = request.GET.get("mandi")
-            crop  = request.GET.get("crop") or request.GET.get("q")
+            mandi = params.get("mandi")
+            crop  = params.get("crop") or params.get("q")
             norm  = crop_catalog.normalize(crop) if crop else None
             commodity = norm["name"] if norm else crop
 
-            include_estimates = request.GET.get("include_estimates", "").lower() in (
-                "1", "true", "yes",
-            )
+            include_estimates = params.get("include_estimates", False)
 
             data = market_service.get_prices(
                 ctx.query_label,
@@ -72,12 +75,12 @@ class MarketPricesViewSet(viewsets.ViewSet):
         Returns the closest mandis first. Use ?radius_km=200 to expand range.
         """
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "error": "Invalid mandi parameters", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx = resolve_request_location(request)
-            try:
-                radius_km = float(request.GET.get("radius_km", 150))
-                radius_km = max(10, min(radius_km, 500))   # clamp 10–500 km
-            except (ValueError, TypeError):
-                radius_km = 150
+            radius_km = max(10, min(params.get("radius_km", 150), 500))
 
             data = market_service.list_mandis(
                 ctx.query_label,
@@ -114,12 +117,14 @@ class MarketPricesViewSet(viewsets.ViewSet):
                               because synthetic prices are never returned
         """
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "error": "Invalid mandi price parameters", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx  = resolve_request_location(request)
-            mandi = request.GET.get("mandi", "").strip()
-            crop  = request.GET.get("crop", "").strip() or None
-            include_estimates = request.GET.get("include_estimates", "").lower() in (
-                "1", "true", "yes",
-            )
+            mandi = params.get("mandi", "").strip()
+            crop  = params.get("crop", "").strip() or None
+            include_estimates = params.get("include_estimates", False)
 
             if not mandi:
                 return Response(
@@ -167,11 +172,12 @@ class MarketPricesViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="crop-search")
     def crop_search(self, request):
         """Google-style crop autocomplete for mandi price lookup."""
-        query = request.query_params.get("q", "").strip()
-        try:
-            limit = min(int(request.query_params.get("limit", 10)), 20)
-        except (ValueError, TypeError):
-            limit = 10
+        serializer = LocationQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response({"error": "Invalid crop search parameters", "errors": serializer.errors}, status=400)
+        params = serializer.validated_data
+        query = params.get("q", "").strip()
+        limit = min(params.get("limit", 10), 20)
         results = crop_catalog.search(query, limit=limit) if query else crop_catalog.popular(limit)
         return Response({
             "query": query,
@@ -188,6 +194,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
         """
         try:
             from ...services.data_gov_mandi_client import data_gov_mandi_client
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "message": "Invalid market status parameters", "errors": serializer.errors}, status=400)
             ctx = resolve_request_location(request)
             has_datagov_key = data_gov_mandi_client.has_valid_api_key()
 

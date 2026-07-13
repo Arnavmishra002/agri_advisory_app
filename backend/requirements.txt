@@ -5,15 +5,15 @@
 
 # ── Django core ────────────────────────────────────────────────
 Django>=5.2,<6.0
-djangorestframework>=3.15.0
-django-cors-headers>=4.3.0
-django-filter>=24.0
-drf-spectacular>=0.27.0         # OpenAPI schema + Swagger UI
-djangorestframework-simplejwt>=5.3.0
+djangorestframework>=3.15.0,<3.18
+django-cors-headers>=4.3.0,<5
+django-filter>=24.0,<27
+drf-spectacular>=0.27.0,<0.31         # OpenAPI schema + Swagger UI
+djangorestframework-simplejwt>=5.3.0,<6
 
 # ── Production server ──────────────────────────────────────────
-gunicorn>=22.0.0
-whitenoise>=6.7.0               # Static file serving (no Nginx needed for API-only)
+gunicorn>=22.0.0,<27
+whitenoise>=6.7.0,<7               # Static file serving (no Nginx needed for API-only)
 
 # ── Database ───────────────────────────────────────────────────
 psycopg2-binary>=2.9.9          # PostgreSQL adapter
@@ -24,15 +24,15 @@ python-decouple>=3.8
 python-dotenv>=1.0.0            # .env auto-loading in manage.py / wsgi.py
 
 # ── HTTP & External APIs ───────────────────────────────────────
-requests>=2.32.0
-urllib3>=2.2.0                  # Fixed: no longer pinned to <2.0
+requests>=2.32.0,<3
+urllib3>=2.2.0,<3                  # Fixed: no longer pinned to <2.0
 
 # ── Google Gemini AI (chatbot grounding) ───────────────────────
 google-generativeai>=0.8.0
 
 # ── Data processing ────────────────────────────────────────────
-numpy>=1.26.0
-pandas>=2.2.0
+numpy>=1.26.0,<2.0
+pandas>=2.2.0,<3.0
 python-dateutil>=2.9.0
 pytz>=2024.1
 
@@ -69,8 +69,8 @@ Pillow>=10.0.0
 # ── Local LLM / Phase 1 RAG service ─────────────────────────────
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
-chromadb>=0.5.0
+chromadb>=0.5.0,<0.6.0             # Compatible with the checked-in Chroma 0.5 store
 
 # ── Scikit-learn (crop ML scoring helpers) ─────────────────────
-scikit-learn>=1.5.0
+scikit-learn>=1.5.0,<2.0
 joblib>=1.4.0

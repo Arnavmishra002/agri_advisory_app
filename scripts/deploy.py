@@ -5,20 +5,25 @@ Automates GitHub and Render deployment process
 """
 
 import os
+import shlex
 import subprocess
 import sys
 import json
 from datetime import datetime
+from pathlib import Path
 
 def run_command(command, description=""):
-    """Run a shell command and return the result"""
-    print(f"Running: {description or command}")
+    """Run an explicit argv command without invoking a shell."""
+    if isinstance(command, str):
+        raise TypeError("run_command requires an argument list, not a shell string")
+    display = shlex.join(str(part) for part in command)
+    print(f"Running: {description or display}")
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
-        print(f"✅ Success: {description or command}")
+        result = subprocess.run(list(command), check=True, capture_output=True, text=True)
+        print(f"✅ Success: {description or display}")
         return result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error: {description or command}")
+        print(f"❌ Error: {description or display}")
         print(f"Error output: {e.stderr}")
         return None
 
@@ -32,34 +37,47 @@ def check_git_status():
         return False
     
     # Show git status
-    run_command("git status", "Git Status")
+    run_command(["git", "status", "--short"], "Git Status")
     
     # Show staged changes
-    staged = run_command("git diff --cached --name-only", "Staged Changes")
+    staged = run_command(["git", "diff", "--cached", "--name-only"], "Staged Changes")
     if staged:
         print(f"📝 Staged files:\n{staged}")
     
     # Show unstaged changes
-    unstaged = run_command("git diff --name-only", "Unstaged Changes")
+    unstaged = run_command(["git", "diff", "--name-only"], "Unstaged Changes")
     if unstaged:
         print(f"📝 Unstaged files:\n{unstaged}")
     
     return True
 
 def commit_changes():
-    """Commit all changes to git"""
+    """Commit only paths explicitly listed in DEPLOY_FILES."""
     print("📝 Committing Changes...")
-    
-    # Add all files
-    run_command("git add .", "Adding all files")
+
+    files = [item.strip() for item in os.environ.get("DEPLOY_FILES", "").split(",") if item.strip()]
+    if not files:
+        print("❌ Refusing to stage files implicitly. Set DEPLOY_FILES to a comma-separated allow-list.")
+        return False
+    for file_path in files:
+        path = Path(file_path)
+        if path.is_absolute() or ".." in path.parts:
+            print(f"❌ Invalid deployment path: {file_path}")
+            return False
+        if not path.exists():
+            print(f"❌ Deployment file does not exist: {file_path}")
+            return False
+
+    if run_command(["git", "add", "--", *files], "Adding explicitly selected files") is None:
+        return False
     
     # Commit with timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     commit_message = f"Update Krishimitra AI - {timestamp}"
     
-    result = run_command(f'git commit -m "{commit_message}"', "Committing changes")
+    result = run_command(["git", "commit", "-m", commit_message], "Committing changes")
     
-    if result:
+    if result is not None:
         print("✅ Changes committed successfully")
         return True
     else:
@@ -71,7 +89,7 @@ def push_to_github():
     print("🚀 Pushing to GitHub...")
     
     # Get current branch
-    branch_result = run_command("git branch --show-current", "Getting current branch")
+    branch_result = run_command(["git", "branch", "--show-current"], "Getting current branch")
     if not branch_result:
         print("❌ Could not determine current branch")
         return False
@@ -80,7 +98,7 @@ def push_to_github():
     print(f"📋 Current branch: {current_branch}")
     
     # Push to GitHub
-    result = run_command(f"git push origin {current_branch}", f"Pushing to GitHub ({current_branch})")
+    result = run_command(["git", "push", "origin", current_branch], f"Pushing to GitHub ({current_branch})")
     
     if result:
         print("✅ Successfully pushed to GitHub")

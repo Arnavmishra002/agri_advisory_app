@@ -60,11 +60,12 @@ class KrishiRakshaPestService:
                 longitude,
                 state,
             )
-        except Exception as e:
-            logger.error(f"Error in KrishiRaksha pipeline: {e}")
+        except Exception:
+            logger.exception("Error in KrishiRaksha pipeline")
             return {
                 "status": "error",
-                "message": str(e),
+                "message": "Diagnosis is temporarily unavailable. Please try again with a clear leaf photo.",
+                "error_code": "DIAGNOSIS_UNAVAILABLE",
                 "diagnosis": self._photo_required_diagnosis(crop_name or "crop"),
             }
 

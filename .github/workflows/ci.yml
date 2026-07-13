@@ -2,7 +2,7 @@ name: KrishiMitra CI
 
 on:
   push:
-    branches: [main, master, develop, staging, feature/premium-ui]
+    branches: [main, master, develop, staging, feature/premium-ui, 'improve/**', 'fix/**']
   pull_request:
     branches: [main, master, develop]
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
 # ── Environment available to every job ────────────────────────
 env:
   DJANGO_SETTINGS_MODULE: core.settings
-  SECRET_KEY:             "ci-only-krishimitra-test-key-not-production"
+  SECRET_KEY:             ${{ secrets.CI_SECRET_KEY }}
   DEBUG:                  "True"
   DATABASE_URL:           sqlite:///ci_test_db.sqlite3
   DATA_GOV_IN_API_KEY:    ""
@@ -41,6 +41,14 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Dependency consistency and vulnerability audit
+        run: |
+          pip check
+          pip install --disable-pip-version-check --quiet pip-audit
+          pip-audit -r requirements.txt --strict --progress-spinner off
+          pip-audit -r requirements-ml.txt --strict --progress-spinner off
+          pip-audit -r requirements-production.txt --strict --progress-spinner off
+
       # ── Django health ────────────────────────────────────────
       - name: Django system check
         run: python manage.py check
@@ -65,7 +73,7 @@ jobs:
           import sys, os
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
-                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DEBUG':'True',
                              'DATABASE_URL':'sqlite:///ci.db'})
           import django; django.setup()
           from advisory.api.urls import router, urlpatterns
@@ -92,7 +100,7 @@ jobs:
           import sys, os
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
-                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DEBUG':'True',
                              'DATABASE_URL':'sqlite:///ci.db'})
           import django; django.setup()
           from advisory.services.language_service import SUPPORTED_LANGUAGES
@@ -132,6 +140,31 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: python3 phase1/rag/eval_retrieval.py --static
 
+      - name: Phase 1 strict input and CORS contract
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import sys
+
+          sys.path.insert(0, "phase1")
+          from main import ChatRequest, _phase1_cors_origins
+
+          ChatRequest(query="wheat advice", history=[{"role": "user", "content": "hello"}])
+          try:
+              ChatRequest(query="wheat advice", unexpected="must reject")
+          except Exception:
+              pass
+          else:
+              raise AssertionError("Phase 1 accepted an unknown request field")
+
+          os.environ["DEBUG"] = "false"
+          os.environ["PHASE1_ALLOW_ALL_CORS"] = "true"
+          os.environ["PHASE1_CORS_ALLOWED_ORIGINS"] = ""
+          assert _phase1_cors_origins() == [], "Phase 1 enabled wildcard CORS outside DEBUG"
+          print("Phase 1 strict schema and production CORS contract passed")
+          PY
+
       # ── Farmer-critical API contracts ────────────────────────
       - name: Farmer-critical API behavior
         working-directory: ${{ github.workspace }}
@@ -146,7 +179,6 @@ jobs:
           sys.path.insert(0, "backend")
           os.environ.update({
               "DJANGO_SETTINGS_MODULE": "core.settings",
-              "SECRET_KEY": "ci-test",
               "DEBUG": "True",
               "DATABASE_URL": "sqlite:///ci.db",
               "CROP_REC_REALTIME_TIMEOUT_S": "0.2",
@@ -269,7 +301,7 @@ jobs:
           import sys, os, time
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
-                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DEBUG':'True',
                              'DATABASE_URL':'sqlite:///ci.db'})
           import django; django.setup()
           from django.test.utils import override_settings
@@ -307,7 +339,7 @@ jobs:
           import sys, os
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
-                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DEBUG':'True',
                              'DATABASE_URL':'sqlite:///ci.db'})
           import django; django.setup()
           from advisory.services.chat_intelligence_service import (
@@ -355,7 +387,7 @@ jobs:
           import sys, os
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
-                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DEBUG':'True',
                              'DATABASE_URL':'sqlite:///ci.db'})
           # No REDIS_URL → _USE_CELERY must be False → sync path
           import django; django.setup()
@@ -375,7 +407,7 @@ jobs:
           import inspect, sys, os
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
-                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DEBUG':'True',
                              'DATABASE_URL':'sqlite:///ci.db'})
           import django; django.setup()
           from advisory.services.session_memory_service import SessionMemoryService
@@ -398,7 +430,7 @@ jobs:
           import sys, os
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
-                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DEBUG':'True',
                              'DATABASE_URL':'sqlite:///ci.db'})
           import django; django.setup()
           from advisory.management.commands.warm_cache import Command
@@ -414,7 +446,7 @@ jobs:
           import sys, os
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
-                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DEBUG':'True',
                              'DATABASE_URL':'sqlite:///ci.db'})
           import django; django.setup()
           from advisory.services.crop_recommendation_engine import CropRecommendationEngine, _current_season
@@ -435,7 +467,7 @@ jobs:
           import sys, os
           sys.path.insert(0,'backend')
           os.environ.update({'DJANGO_SETTINGS_MODULE':'core.settings',
-                             'SECRET_KEY':'ci-test','DEBUG':'True',
+                             'DEBUG':'True',
                              'DATABASE_URL':'sqlite:///ci.db'})
           import django; django.setup()
           from advisory.services.field_sensor_service import field_sensor_service
@@ -488,6 +520,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci --no-audit --no-fund
+          npm audit --audit-level=high
           node --check public/js/app.js
           npm run build
 
@@ -561,17 +594,33 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Validate Docker Compose contract
+        env:
+          SECRET_KEY: ${{ secrets.CI_SECRET_KEY }}
+        run: |
+          if [ -z "$SECRET_KEY" ]; then
+            SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"
+            export SECRET_KEY
+          fi
+          docker compose config --quiet
+          docker compose config | grep -q "PHASE1_CORS_ALLOWED_ORIGINS"
+          echo "Docker Compose contract passed"
+
       - name: Build and start API plus Phase 1
         env:
           APP_PORT: "8001"
           PHASE1_PORT: "8002"
           DEBUG: "True"
           RATE_LIMIT_ENABLED: "false"
-          SECRET_KEY: "ci-docker-test-key"
+          SECRET_KEY: ${{ secrets.CI_SECRET_KEY }}
           DATABASE_URL: "sqlite:////app/data/ci.db"
           DOCKER_PHASE1_TIMEOUT_S: "2"
           DOCKER_OLLAMA_CHAT_TIMEOUT_S: "2"
         run: |
+          if [ -z "$SECRET_KEY" ]; then
+            SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"
+            export SECRET_KEY
+          fi
           docker compose build web
           docker compose --profile ai up --no-build -d web phase1
 

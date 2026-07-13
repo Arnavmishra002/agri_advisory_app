@@ -19,10 +19,11 @@ Endpoints:
 
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 # ── Ensure phase1 modules are importable ─────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent))
@@ -34,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger("krishimitra")
 
 try:
-    from fastapi import FastAPI, HTTPException, Query
+    from fastapi import FastAPI, HTTPException, Query, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import StreamingResponse
     from pydantic import BaseModel, Field
@@ -58,11 +59,21 @@ app = FastAPI(
     version="1.0.0",
 )
 
+
+def _phase1_cors_origins() -> list[str]:
+    raw = os.environ.get("PHASE1_CORS_ALLOWED_ORIGINS", "")
+    origins = [item.strip() for item in raw.split(",") if item.strip()]
+    allow_all = os.environ.get("PHASE1_ALLOW_ALL_CORS", "false").lower() in {"1", "true", "yes"}
+    debug = os.environ.get("DEBUG", "false").lower() == "true"
+    if allow_all and debug:
+        return ["*"]
+    return origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],       # tighten in production
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_phase1_cors_origins(),
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -87,19 +98,56 @@ def root():
 
 
 # ── Request / Response models ─────────────────────────────────────────────────
-class ChatRequest(BaseModel):
-    query:    str              = Field(..., min_length=1, max_length=2000)
-    language: str              = Field("hi", description="hi|en|mr|ta|te|gu|pa|bn|auto")
-    location: Optional[str]   = Field(None, description="City or district name")
+class _StrictModel(BaseModel):
+    class Config:
+        extra = "forbid"
+
+
+class HistoryEntry(_StrictModel):
+    role: Literal["user", "assistant"] = "user"
+    content: str = Field(..., min_length=1, max_length=2000)
+
+
+class SensorContextPayload(_StrictModel):
+    moisture_pct: Optional[float] = Field(None, ge=0, le=100)
+    moisture_status: Optional[str] = Field(None, max_length=40)
+    soil_temp_c: Optional[float] = Field(None, ge=-20, le=80)
+    ph: Optional[float] = Field(None, ge=0, le=14)
+    nitrogen_kg_ha: Optional[float] = Field(None, ge=0, le=5000)
+    phosphorus_kg_ha: Optional[float] = Field(None, ge=0, le=2000)
+    potassium_kg_ha: Optional[float] = Field(None, ge=0, le=5000)
+    temp_c: Optional[float] = Field(None, ge=-50, le=70)
+    humidity_pct: Optional[float] = Field(None, ge=0, le=100)
+    source: Optional[str] = Field(None, max_length=120)
+
+
+class FarmerProfilePayload(_StrictModel):
+    location: Optional[str] = Field(None, max_length=200)
+    state: Optional[str] = Field(None, max_length=120)
+    farm_size_bigha: Optional[float] = Field(None, ge=0, le=1_000_000)
+    current_crop: Optional[str] = Field(None, max_length=120)
+    current_season: Optional[str] = Field(None, max_length=40)
+    soil_ph: Optional[float] = Field(None, ge=0, le=14)
+    irrigation_type: Optional[str] = Field(None, max_length=40)
+    crop_history: Optional[str] = Field(None, max_length=2000)
+    has_pm_kisan: Optional[bool] = None
+    has_kcc: Optional[bool] = None
+    language: Optional[str] = Field(None, max_length=20)
+    sensor_reading: Optional[SensorContextPayload] = None
+
+
+class ChatRequest(_StrictModel):
+    query: str = Field(..., min_length=1, max_length=2000)
+    language: str = Field("hi", min_length=2, max_length=20, description="Language code")
+    location: Optional[str] = Field(None, max_length=200)
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
-    crop:     Optional[str]   = Field(None, description="Current crop being grown")
-    season:   Optional[str]   = Field(None, description="Kharif / Rabi / Zaid")
-    history:  Optional[List[dict]] = Field(default_factory=list,
-                                           description="Previous [{role,content}] turns")
-    sensor_context:  Optional[dict] = Field(None, description="IoT sensor readings if available")
-    farmer_profile:  Optional[dict] = Field(None, description="Farmer profile context for personalisation")
-    stream:   bool             = Field(False, description="Stream tokens in real-time")
+    crop: Optional[str] = Field(None, max_length=120)
+    season: Optional[str] = Field(None, max_length=40)
+    history: List[HistoryEntry] = Field(default_factory=list, max_length=20)
+    sensor_context: Optional[SensorContextPayload] = None
+    farmer_profile: Optional[FarmerProfilePayload] = None
+    stream: bool = False
 
     class Config:
         json_schema_extra = {
@@ -112,6 +160,13 @@ class ChatRequest(BaseModel):
             }
         }
 
+
+def _model_dict(value):
+    if value is None:
+        return None
+    if hasattr(value, "model_dump"):
+        return value.model_dump(exclude_none=True)
+    return value.dict(exclude_none=True)
 
 class ChatResponse(BaseModel):
     response:    str
@@ -195,19 +250,18 @@ async def chat_endpoint(req: ChatRequest):
         )
 
     # 3. Build prompt
-    farmer_profile = {
-        "location": req.location,
-        "crop":     req.crop,
-        "season":   req.season,
-        **(req.farmer_profile or {}),   # merge full profile if provided
-    }
     prompt = build_farming_prompt(
         question=req.query,
         rag_chunks=rag_texts,
         weather_summary=weather_summary or None,
-        sensor_data=req.sensor_context,
-        farmer_profile=farmer_profile,
-        conversation_history=req.history,
+        sensor_data=_model_dict(req.sensor_context),
+        farmer_profile={
+            "location": req.location,
+            "crop": req.crop,
+            "season": req.season,
+            **(_model_dict(req.farmer_profile) or {}),
+        },
+        conversation_history=[_model_dict(item) for item in req.history],
     )
 
     # 4. Generate response via Qwen
@@ -254,14 +308,14 @@ async def chat_stream_endpoint(req: ChatRequest):
         question=req.query,
         rag_chunks=rag_texts,
         weather_summary=weather_summary or None,
-        sensor_data=req.sensor_context,
+        sensor_data=_model_dict(req.sensor_context),
         farmer_profile={
             "location": req.location,
             "crop":     req.crop,
             "season":   req.season,
-            **(req.farmer_profile or {}),   # Fix 3: merge full profile, consistent with /chat
+            **(_model_dict(req.farmer_profile) or {}),
         },
-        conversation_history=req.history,
+        conversation_history=[_model_dict(item) for item in req.history],
     )
 
     def _token_generator():
@@ -308,17 +362,21 @@ def rag_status():
         "vector_store_ready": rag_ok,
         "knowledge_files":    len(files),
         "categories": sorted({f.parent.name for f in files}),
-        "chroma_dir": str(Path(__file__).parent / "chroma_db"),
+        "chroma_storage": "server_local",
         "ingest_command": "python3 rag/ingest.py",
     }
 
 
 @app.get("/rag/search")
 def rag_search(
-    q: str = Query(..., description="Test search query"),
+    request: Request,
+    q: str = Query(..., min_length=1, max_length=2000, description="Test search query"),
     k: int = Query(3, ge=1, le=10),
 ):
     """Manually test what the RAG retrieves for a given query."""
+    unknown = set(request.query_params) - {"q", "k"}
+    if unknown:
+        raise HTTPException(status_code=400, detail="Unexpected query parameter")
     results = retrieve_with_sources(q, k=k)
     return {
         "query":   q,

@@ -14,7 +14,6 @@ import subprocess
 import time
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-os.environ.setdefault("SECRET_KEY", "local-check-key-krishimitra")
 os.environ.setdefault("DEBUG", "True")
 os.environ.setdefault("DATABASE_URL", "sqlite:///check_db.sqlite3")
 os.environ.setdefault("GOOGLE_AI_API_KEY", "")

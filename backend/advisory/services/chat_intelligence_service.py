@@ -29,7 +29,7 @@ import re
 import re as _re
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeout
+from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -1079,35 +1079,25 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 futures[_DATA_FETCH_POOL.submit(_fetch_prices)] = "prices"
             if needs_iot:
                 futures[_DATA_FETCH_POOL.submit(_fetch_iot)] = "iot"
-            try:
-                for fut in as_completed(futures, timeout=_CHAT_REALTIME_TIMEOUT_S):
-                    key = futures[fut]
-                    try:
-                        result = fut.result()
-                        if key == "weather":
-                            weather_data = result or {}
-                        elif key == "prices":
-                            prices_data = result or {}
-                        elif key == "iot":
-                            sc = result
-                    except Exception as exc:
-                        logger.warning("Fetch failed for %s: %s", key, exc)
-            except FuturesTimeout:
-                pending = []
-                for fut, key in futures.items():
-                    if fut.done() and not fut.cancelled():
-                        try:
-                            result = fut.result(timeout=0)
-                            if key == "weather" and not weather_data:
-                                weather_data = result or {}
-                            elif key == "prices" and not prices_data:
-                                prices_data = result or {}
-                            elif key == "iot" and sc.source == "none":
-                                sc = result
-                        except Exception:
-                            pass
-                    elif not fut.done():
-                        pending.append(key)
+            done, pending_futures = wait(futures, timeout=_CHAT_REALTIME_TIMEOUT_S)
+            for fut in done:
+                key = futures[fut]
+                try:
+                    result = fut.result()
+                    if key == "weather":
+                        weather_data = result or {}
+                    elif key == "prices":
+                        prices_data = result or {}
+                    elif key == "iot":
+                        sc = result
+                except Exception as exc:
+                    logger.warning("Fetch failed for %s: %s", key, exc)
+
+            pending = []
+            for fut in pending_futures:
+                key = futures[fut]
+                pending.append(key)
+            if pending:
                 logger.warning(
                     "Concurrent fetch timed out after %.1fs for %s — using partial data; "
                     "pending=%s will finish under service HTTP timeouts",

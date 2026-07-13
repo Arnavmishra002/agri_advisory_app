@@ -28,6 +28,7 @@ import io
 import json
 import logging
 import os
+import base64
 import urllib.request
 
 from django.utils.decorators import method_decorator
@@ -38,17 +39,48 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..errors import safe_error_message
+from ..serializers import AdvisoryAudioInputSerializer, TextToSpeechInputSerializer
 logger = logging.getLogger(__name__)
 
 # ── Environment config ────────────────────────────────────────────────────────
 WHATSAPP_TOKEN        = os.getenv("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_ID     = os.getenv("WHATSAPP_PHONE_ID", "")
-WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "krishimitra-webhook")
+WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
 WHATSAPP_APP_SECRET   = os.getenv("WHATSAPP_APP_SECRET", "")
 TWILIO_SID            = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_TOKEN          = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_FROM           = os.getenv("TWILIO_FROM_NUMBER", "")
 GROQ_API_KEY          = os.getenv("GROQ_API_KEY", "")   # for Whisper STT (free tier)
+
+
+def _twilio_signature_valid(request) -> bool:
+    """Validate Twilio webhooks; only local DEBUG may run without a token."""
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
+    if not auth_token:
+        from django.conf import settings
+        return bool(settings.DEBUG)
+    signature = request.headers.get("X-Twilio-Signature", "")
+    if not signature:
+        return False
+    params = request.POST or getattr(request, "data", {}) or {}
+    signed = request.build_absolute_uri()
+    for key in sorted(params):
+        values = params.getlist(key) if hasattr(params, "getlist") else [params[key]]
+        signed += key + "".join(str(value) for value in values)
+    expected = base64.b64encode(
+        hmac.new(auth_token.encode(), signed.encode(), hashlib.sha1).digest()
+    ).decode()
+    return hmac.compare_digest(signature, expected)
+
+
+def _reject_invalid_twilio(request):
+    if _twilio_signature_valid(request):
+        return None
+    logger.warning("Rejected unsigned or invalid Twilio webhook")
+    return Response(
+        {"error": "Webhook signature validation failed", "error_code": "INVALID_WEBHOOK_SIGNATURE"},
+        status=status.HTTP_401_UNAUTHORIZED,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -83,6 +115,8 @@ class SMSIVRViewSet(viewsets.ViewSet):
         mode      = request.query_params.get("hub.mode")
         token     = request.query_params.get("hub.verify_token")
         challenge = request.query_params.get("hub.challenge")
+        if not WHATSAPP_VERIFY_TOKEN and not settings.DEBUG:
+            return Response({"error": "WhatsApp verification is not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         if mode == "subscribe" and token == WHATSAPP_VERIFY_TOKEN:
             logger.info("WhatsApp webhook verified successfully")
             from django.http import HttpResponse
@@ -92,6 +126,11 @@ class SMSIVRViewSet(viewsets.ViewSet):
     def _handle_whatsapp_message(self, request):
         """Process incoming WhatsApp messages and reply via the AI chatbot."""
         try:
+            if not WHATSAPP_APP_SECRET and not settings.DEBUG:
+                logger.error("WhatsApp webhook rejected: WHATSAPP_APP_SECRET is not configured")
+                return Response({"error": "WhatsApp webhook is not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            if len(request.body) > 1_048_576:
+                return Response({"error": "Webhook payload is too large"}, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
             # Optional signature verification
             if WHATSAPP_APP_SECRET:
                 # FIX 2a: guard against None header (some load balancers omit it)
@@ -107,6 +146,8 @@ class SMSIVRViewSet(viewsets.ViewSet):
                     return Response({"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
 
             body = request.data
+            if not isinstance(body, dict):
+                return Response({"error": "Invalid webhook payload"}, status=status.HTTP_400_BAD_REQUEST)
             entry = (body.get("entry") or [{}])[0]
             changes = (entry.get("changes") or [{}])[0]
             value = changes.get("value", {})
@@ -378,8 +419,14 @@ class SMSIVRViewSet(viewsets.ViewSet):
         Twilio SMS webhook — POST /api/sms-ivr/sms/
         Twilio sends: From, Body, etc. as form data.
         """
+        rejected = _reject_invalid_twilio(request)
+        if rejected:
+            return rejected
         from_number = request.data.get("From", "")
-        body        = request.data.get("Body", "").strip()
+        raw_body    = request.data.get("Body", "")
+        if not isinstance(from_number, str) or len(from_number) > 32 or not isinstance(raw_body, str):
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        body = raw_body.strip()[:4000]
         if not from_number or not body:
             return Response("<Response/>", content_type="text/xml")
 
@@ -404,9 +451,14 @@ class SMSIVRViewSet(viewsets.ViewSet):
         Twilio Voice webhook — POST /api/sms-ivr/voice/
         Incoming phone call: play welcome greeting and gather speech input.
         """
+        rejected = _reject_invalid_twilio(request)
+        if rejected:
+            return rejected
         from django.http import HttpResponse
         
         from_number = request.data.get("From", "")
+        if not isinstance(from_number, str) or len(from_number) > 32:
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
         lang_code = self._get_or_create_profile_language(from_number)
         
         # Map simple language codes to Twilio voice locales
@@ -455,10 +507,16 @@ class SMSIVRViewSet(viewsets.ViewSet):
         """
         Twilio Voice speech gathering callback — POST /api/sms-ivr/voice-callback/
         """
+        rejected = _reject_invalid_twilio(request)
+        if rejected:
+            return rejected
         from django.http import HttpResponse
         
         from_number   = request.data.get("From", "")
-        speech_result = request.data.get("SpeechResult", "").strip()
+        raw_speech    = request.data.get("SpeechResult", "")
+        if not isinstance(from_number, str) or not isinstance(raw_speech, str) or len(from_number) > 32:
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        speech_result = raw_speech.strip()[:4000]
         
         lang_code = self._get_or_create_profile_language(from_number)
         
@@ -528,11 +586,16 @@ class TextToSpeechViewSet(viewsets.ViewSet):
     def generate(self, request):
         """Generate MP3 from text. Safe to call without API keys."""
         if request.method == "GET":
-            text     = request.query_params.get("text", "").strip()
-            language = request.query_params.get("language", "hi")
+            serializer = TextToSpeechInputSerializer(data=request.query_params)
         else:
-            text     = (request.data.get("text") or "").strip()
-            language = request.data.get("language", "hi")
+            serializer = TextToSpeechInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors, "error_code": "INVALID_TTS_REQUEST"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        text = serializer.validated_data["text"]
+        language = serializer.validated_data["language"]
 
         if not text:
             return Response({"error": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -547,9 +610,15 @@ class TextToSpeechViewSet(viewsets.ViewSet):
         Body: {"query": "सरसों में माहू", "language": "hi", "session_id": "sess_..."}
         Returns: audio/mpeg
         """
-        query      = (request.data.get("query") or "").strip()
-        language   = request.data.get("language", "hi")
-        session_id = request.data.get("session_id", "")
+        serializer = AdvisoryAudioInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors, "error_code": "INVALID_ADVISORY_AUDIO_REQUEST"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        query = serializer.validated_data["query"]
+        language = serializer.validated_data["language"]
+        session_id = serializer.validated_data.get("session_id", "")
 
         if not query:
             return Response({"error": "query required"}, status=status.HTTP_400_BAD_REQUEST)

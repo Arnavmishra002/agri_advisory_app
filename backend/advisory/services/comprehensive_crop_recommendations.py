@@ -1568,9 +1568,9 @@ class ComprehensiveCropRecommendations:
                 'timestamp': datetime.now().isoformat()
             }
             
-        except Exception as e:
-            logger.error(f"Error in specific crop search: {e}")
-            return {'error': f'Error analyzing crop: {str(e)}'}
+        except Exception:
+            logger.exception("Error in specific crop search")
+            return {'error': 'Crop analysis is temporarily unavailable', 'error_code': 'CROP_ANALYSIS_UNAVAILABLE'}
     
     def _analyze_crop_comprehensive(self, crop_name: str, crop_info: Dict, location: str, 
                                  weather_data: Dict, soil_data: Dict, market_data: Dict) -> Dict[str, Any]:
@@ -2097,9 +2097,9 @@ class ComprehensiveCropRecommendations:
         """Search for specific crop information"""
         try:
             return self.search_specific_crop(crop_name, location, latitude, longitude)
-        except Exception as e:
-            logger.error(f"Error in search_crop: {e}")
-            return {'error': f'Error searching for crop: {str(e)}'}
+        except Exception:
+            logger.exception("Error in search_crop")
+            return {'error': 'Crop search is temporarily unavailable', 'error_code': 'CROP_SEARCH_UNAVAILABLE'}
     
     def _get_seasonal_crops(self, season: str) -> List[str]:
         """Get crops for specific season"""

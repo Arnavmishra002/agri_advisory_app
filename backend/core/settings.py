@@ -15,6 +15,7 @@ import os
 import sys
 import time
 from datetime import timedelta
+from django.core.management.utils import get_random_secret_key
 
 _RUNNING_PYTEST = bool(
     os.environ.get("PYTEST_CURRENT_TEST")
@@ -46,8 +47,10 @@ except ImportError:
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-_INSECURE_DEV_SECRET = 'django-insecure-3^7he##1_fnu8)9z1nm)^)mzwl%74q8go9x6h4l0=$#am8si%6'
-SECRET_KEY = os.environ.get('SECRET_KEY', _INSECURE_DEV_SECRET)
+# Local development gets a per-process random key instead of shipping a
+# reusable secret in source control. Production still requires SECRET_KEY.
+_SECRET_KEY_FROM_ENV = os.environ.get('SECRET_KEY', '').strip()
+SECRET_KEY = _SECRET_KEY_FROM_ENV or get_random_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
@@ -84,7 +87,7 @@ USE_X_FORWARDED_HOST = True
 
 if (
     not DEBUG
-    and os.environ.get('SECRET_KEY', '') in ('', _INSECURE_DEV_SECRET)
+    and not _SECRET_KEY_FROM_ENV
 ):
     from django.core.exceptions import ImproperlyConfigured
     raise ImproperlyConfigured(
@@ -211,6 +214,9 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'advisory.api.throttling.ConfigurableRateThrottle',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
@@ -442,6 +448,55 @@ if SERVE_FRONTEND and FRONTEND_DIST.is_dir():
 RATE_LIMIT_ENABLED = os.environ.get(
     'RATE_LIMIT_ENABLED', 'false' if DEBUG else 'true'
 ).lower() == 'true'
+RATE_LIMIT_FAIL_OPEN = os.environ.get(
+    'RATE_LIMIT_FAIL_OPEN', 'true' if DEBUG else 'false'
+).lower() == 'true'
+
+
+def _positive_int_env(name, default):
+    try:
+        return max(1, int(os.environ.get(name, str(default))))
+    except (TypeError, ValueError):
+        return max(1, int(default))
+
+
+def _non_negative_float_env(name, default):
+    try:
+        return max(0.0, float(os.environ.get(name, str(default))))
+    except (TypeError, ValueError):
+        return max(0.0, float(default))
+
+
+# All API rate thresholds are environment-configurable. The defaults are
+# conservative development/production starting points, not code-level policy.
+RATE_LIMIT_PUBLIC_RPM = _positive_int_env('RATE_LIMIT_PUBLIC_RPM', 100)
+RATE_LIMIT_PUBLIC_RPH = _positive_int_env('RATE_LIMIT_PUBLIC_RPH', 2000)
+RATE_LIMIT_PUBLIC_RPD = _positive_int_env('RATE_LIMIT_PUBLIC_RPD', 20000)
+RATE_LIMIT_AUTHENTICATED_RPM = _positive_int_env('RATE_LIMIT_AUTHENTICATED_RPM', 240)
+RATE_LIMIT_AUTHENTICATED_RPH = _positive_int_env('RATE_LIMIT_AUTHENTICATED_RPH', 5000)
+RATE_LIMIT_AUTHENTICATED_RPD = _positive_int_env('RATE_LIMIT_AUTHENTICATED_RPD', 50000)
+RATE_LIMIT_AUTH_RPM = _positive_int_env('RATE_LIMIT_AUTH_RPM', 20)
+RATE_LIMIT_AUTH_RPH = _positive_int_env('RATE_LIMIT_AUTH_RPH', 100)
+RATE_LIMIT_AUTH_RPD = _positive_int_env('RATE_LIMIT_AUTH_RPD', 500)
+RATE_LIMIT_HEAVY_RPM = _positive_int_env('RATE_LIMIT_HEAVY_RPM', 20)
+RATE_LIMIT_HEAVY_RPH = _positive_int_env('RATE_LIMIT_HEAVY_RPH', 300)
+RATE_LIMIT_HEAVY_RPD = _positive_int_env('RATE_LIMIT_HEAVY_RPD', 3000)
+# Legacy service limiters are still used by a few background and integration
+# paths. Keep their thresholds configurable just like the HTTP throttles.
+RATE_LIMIT_CHAT_CAPACITY = _positive_int_env('RATE_LIMIT_CHAT_CAPACITY', 60)
+RATE_LIMIT_CHAT_FILL_RATE = _non_negative_float_env('RATE_LIMIT_CHAT_FILL_RATE', 1.0)
+RATE_LIMIT_DATA_CAPACITY = _positive_int_env('RATE_LIMIT_DATA_CAPACITY', 120)
+RATE_LIMIT_DATA_FILL_RATE = _non_negative_float_env('RATE_LIMIT_DATA_FILL_RATE', 2.0)
+RATE_LIMIT_DIAG_CAPACITY = _positive_int_env('RATE_LIMIT_DIAG_CAPACITY', 20)
+RATE_LIMIT_DIAG_FILL_RATE = _non_negative_float_env('RATE_LIMIT_DIAG_FILL_RATE', 0.33)
+RATE_LIMIT_DEFAULT_CAPACITY = _positive_int_env('RATE_LIMIT_DEFAULT_CAPACITY', 200)
+RATE_LIMIT_DEFAULT_FILL_RATE = _non_negative_float_env('RATE_LIMIT_DEFAULT_FILL_RATE', 3.0)
+RATE_LIMIT_NOMINATIM_CAPACITY = _positive_int_env('RATE_LIMIT_NOMINATIM_CAPACITY', 10)
+RATE_LIMIT_NOMINATIM_FILL_RATE = _non_negative_float_env('RATE_LIMIT_NOMINATIM_FILL_RATE', 1.0)
+AUTH_BACKOFF_THRESHOLD = _positive_int_env('AUTH_BACKOFF_THRESHOLD', 5)
+AUTH_BACKOFF_BASE_SECONDS = _non_negative_float_env('AUTH_BACKOFF_BASE_SECONDS', 2)
+AUTH_BACKOFF_MAX_SECONDS = max(1.0, _non_negative_float_env('AUTH_BACKOFF_MAX_SECONDS', 300))
+AUTH_BACKOFF_WINDOW_SECONDS = _positive_int_env('AUTH_BACKOFF_WINDOW_SECONDS', 3600)
 KRISHI_RAKSHA_MAX_UPLOAD_BYTES = int(
     os.environ.get('KRISHI_RAKSHA_MAX_UPLOAD_MB', '5')
 ) * 1024 * 1024
@@ -522,6 +577,16 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Request/upload guardrails. Diagnostic endpoints validate decoded image bytes
+# before inference and do not persist them. Any future persisted upload must use
+# the private directory with restrictive permissions and must never be served as
+# executable/static content.
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_MEMORY_SIZE', str(8 * 1024 * 1024)))
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('FILE_UPLOAD_MAX_MEMORY_SIZE', str(8 * 1024 * 1024)))
+FILE_UPLOAD_PERMISSIONS = 0o600
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o700
+PRIVATE_UPLOAD_ROOT = os.environ.get('PRIVATE_UPLOAD_ROOT', os.path.join(BASE_DIR, 'private_uploads'))
+
 # Security settings for production
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
@@ -556,7 +621,7 @@ else:
     CSP_HEADERS = {}
 
 # Validate SECRET_KEY at startup — crash fast rather than run insecure
-_insecure_key = os.environ.get('SECRET_KEY', '') in ('', _INSECURE_DEV_SECRET)
+_insecure_key = not _SECRET_KEY_FROM_ENV
 if not DEBUG and _insecure_key and not _RUNNING_PYTEST:
     raise RuntimeError(
         'FATAL: SECRET_KEY is not set or is the insecure dev default.\n'
