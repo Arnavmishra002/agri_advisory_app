@@ -479,17 +479,29 @@ def _stream_generator(
 
     response_time_ms = int((time.monotonic() - t0) * 1000)
     full_response = "".join(full_response_parts)
+    data_source = result_meta.get("data_source", "")
+    sources = [source for source in result_meta.get("sources", []) if source]
+    if not sources and data_source:
+        sources = [data_source]
 
     yield _sse_frame({
         "done":            True,
         "intent":          result_meta.get("intent", ""),
         "language":        result_meta.get("language", language),
-        "data_source":     result_meta.get("data_source", ""),
+        "data_source":     data_source,
         "crops_detected":  result_meta.get("crops_detected", []),
         "chatbot_diagnostics": result_meta.get("chatbot_diagnostics", {}),
         "ai_data_quality": result_meta.get("ai_data_quality", {}),
+        "sources":         sources,
+        "crop_suggestions": result_meta.get("crop_suggestions", []),
         "response_time_ms": response_time_ms,
         "session_id":      session_id,
+        "context": {
+            "intent": result_meta.get("intent", ""),
+            "crops_detected": result_meta.get("crops_detected", []),
+            "language": result_meta.get("language", language),
+            "memory_active": bool(session_id),
+        },
     })
 
     # Post-stream writes (same as JSON endpoint)

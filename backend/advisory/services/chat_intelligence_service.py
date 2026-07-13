@@ -4065,6 +4065,7 @@ def _answer_stream(
             "season": season,
             "chatbot_diagnostics": diagnostics,
             "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
+            "sources": [data_source] if data_source else [],
         }
 
     if intent == INTENT_GREETING and not crops_mentioned:
@@ -4247,6 +4248,8 @@ def _answer_stream(
         "season":          result.get("season", season),
         "chatbot_diagnostics": result.get("chatbot_diagnostics", dict(_chat_meta())),
         "ai_data_quality": result.get("ai_data_quality", {}),
+        "sources": result.get("sources", []),
+        "crop_suggestions": result.get("crop_suggestions", []),
     }
 
 

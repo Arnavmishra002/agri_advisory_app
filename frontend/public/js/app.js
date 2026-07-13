@@ -57,6 +57,104 @@
         return response.json();
     }
 
+    async function apiPostEventStream(path, body, onToken) {
+        const authHeaders = (window.KM_Auth && KM_Auth.isLoggedIn())
+            ? KM_Auth.getAuthHeaders()
+            : {};
+        const controller = new AbortController();
+        const totalTimer = setTimeout(() => controller.abort('total_timeout'), 60000);
+        let idleTimer = null;
+        const resetIdleTimer = () => {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => controller.abort('idle_timeout'), 20000);
+        };
+        resetIdleTimer();
+
+        try {
+            const response = await fetch(apiFetch(path), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream',
+                    ...authHeaders,
+                },
+                body: JSON.stringify(body),
+                signal: controller.signal,
+            });
+            if (!response.ok) {
+                let detail = '';
+                try {
+                    const errBody = await response.json();
+                    detail = errBody.message || errBody.error || '';
+                } catch (e) {
+                    detail = '';
+                }
+                throw new Error(`HTTP ${response.status}${detail ? ': ' + detail : ''}`);
+            }
+            if (!response.body || typeof response.body.getReader !== 'function') {
+                const unsupported = new Error('Streaming is not supported by this browser');
+                unsupported.code = 'STREAM_UNSUPPORTED';
+                throw unsupported;
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+            let answer = '';
+            let metadata = null;
+
+            const consumeFrame = (frame) => {
+                const payloadText = frame
+                    .split('\n')
+                    .filter(line => line.startsWith('data:'))
+                    .map(line => line.slice(5).trimStart())
+                    .join('\n');
+                if (!payloadText) return;
+                const payload = JSON.parse(payloadText);
+                if (payload.error) {
+                    throw new Error(payload.detail || payload.error);
+                }
+                if (payload.token) {
+                    answer += payload.token;
+                    if (typeof onToken === 'function') onToken(payload.token, answer);
+                }
+                if (payload.done) metadata = payload;
+            };
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                resetIdleTimer();
+                buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+                let boundary = buffer.indexOf('\n\n');
+                while (boundary !== -1) {
+                    consumeFrame(buffer.slice(0, boundary));
+                    buffer = buffer.slice(boundary + 2);
+                    boundary = buffer.indexOf('\n\n');
+                }
+            }
+            buffer += decoder.decode();
+            if (buffer.trim()) consumeFrame(buffer.trim());
+            if (!metadata || !metadata.done) {
+                throw new Error('AI response ended before completion');
+            }
+            return {
+                ...metadata,
+                status: 'success',
+                response: answer,
+                answer,
+            };
+        } catch (error) {
+            if (error && error.name === 'AbortError') {
+                throw new Error('AI response timed out. Please try again.');
+            }
+            throw error;
+        } finally {
+            clearTimeout(totalTimer);
+            clearTimeout(idleTimer);
+        }
+    }
+
     // Global variables
     let currentLocation = 'Delhi';
     let currentLatitude = 28.7041;
@@ -95,13 +193,22 @@
         try {
             const key = 'krishi_session_id';
             let id = localStorage.getItem(key);
-            if (!id) {
-                id = 'sess_' + Date.now();
+            const isLegacyTimestampId = /^sess_\d{10,}$/.test(id || '');
+            if (!id || isLegacyTimestampId) {
+                if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                    id = 'sess_' + window.crypto.randomUUID();
+                } else if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+                    const bytes = new Uint8Array(16);
+                    window.crypto.getRandomValues(bytes);
+                    id = 'sess_' + Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+                } else {
+                    throw new Error('Secure random session IDs are unavailable');
+                }
                 localStorage.setItem(key, id);
             }
             return id;
         } catch (e) {
-            return 'sess_' + Date.now();
+            return '';
         }
     })();
     // Expose for auth.js guest session migration
@@ -113,6 +220,10 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+
+    const renderChatText = (value) => escapeHtml(value)
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
 
     const INDIAN_CITIES = [
         { name: 'Delhi', state: 'Delhi', lat: 28.7041, lon: 77.1025 },
@@ -2127,7 +2238,7 @@
                 avatar.textContent = '🌾';
                 const bubble = document.createElement('div');
                 bubble.className = 'chat-bubble-bot';
-                bubble.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(msg.content) + '</div>';
+                bubble.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + renderChatText(msg.content) + '</div>';
                 row.appendChild(avatar);
                 row.appendChild(bubble);
                 chatMessages.appendChild(row);
@@ -2197,7 +2308,33 @@
             // Push user message into history BEFORE sending (so AI sees it as context for follow-up)
             _pushHistory('user', message);
 
-            const data = await apiPostJson('/api/chatbot/query/', {
+            let partialText = '';
+            let partialContent = null;
+            const renderPartial = (_token, fullText) => {
+                partialText = fullText;
+                if (!partialContent) {
+                    skeletonRow.className = 'chat-message-bot';
+                    skeletonRow.innerHTML = '';
+                    const avatar = document.createElement('div');
+                    avatar.className = 'chat-avatar';
+                    avatar.textContent = '🌾';
+                    const bubble = document.createElement('div');
+                    bubble.className = 'chat-bubble-bot';
+                    const heading = document.createElement('strong');
+                    heading.style.color = '#2d5016';
+                    heading.textContent = 'KrishiMitra AI';
+                    partialContent = document.createElement('div');
+                    partialContent.style.cssText = 'margin-top:6px;line-height:1.7;white-space:pre-wrap;';
+                    bubble.appendChild(heading);
+                    bubble.appendChild(partialContent);
+                    skeletonRow.appendChild(avatar);
+                    skeletonRow.appendChild(bubble);
+                }
+                partialContent.textContent = fullText;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
+
+            const requestBody = {
                 query: message,
                 location: currentLocation,
                 latitude: currentLatitude,
@@ -2207,7 +2344,18 @@
                 session_id: sessionId,
                 // Send last 8 turns so backend AI has full multi-turn context
                 history: conversationHistory.slice(-8),
-            });
+            };
+            let data;
+            try {
+                data = await apiPostEventStream(
+                    '/api/chatbot/stream/',
+                    requestBody,
+                    renderPartial,
+                );
+            } catch (streamError) {
+                if (partialText || streamError.code !== 'STREAM_UNSUPPORTED') throw streamError;
+                data = await apiPostJson('/api/chatbot/query/', requestBody);
+            }
             const botReply = data.response || data.answer || data.message || 'मुझे समझ नहीं आया, कृपया फिर से पूछें।';
 
             // Persist bot reply to conversation history
@@ -2261,7 +2409,7 @@
             botAvatar.textContent = '🌾';
             const botDiv = document.createElement('div');
             botDiv.className = 'chat-bubble-bot';
-            botDiv.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(botReply) + '</div>' + extra;
+            botDiv.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + renderChatText(botReply) + '</div>' + extra;
             
             // Bot timestamp
             const botTime = document.createElement('span');
