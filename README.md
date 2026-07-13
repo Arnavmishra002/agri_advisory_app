@@ -147,6 +147,12 @@ bash start.sh
 uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
+`phase1/start.sh` fingerprints every `.txt` and `.pdf` knowledge source and
+rebuilds Chroma only when the content changes. Docker performs the same check
+and stores the generated index in the `krishimitra_rag_data` volume. Set
+`RAG_INDEX_REQUIRED=true` in production to stop startup when fresh knowledge
+cannot be indexed; the default local setting starts in a clearly degraded mode.
+
 Check it:
 
 ```bash
@@ -405,6 +411,8 @@ Recommended production setup:
    `CSRF_TRUSTED_ORIGINS` set to production values.
 9. `PHASE1_BASE_URL`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, and
    `CHAT_LOCAL_AI_MAX_CONCURRENCY` matched to the deployed CPU/RAM capacity.
+10. `RAG_INDEX_REQUIRED=true` so stale or missing local knowledge blocks the
+    production Phase 1 service instead of silently weakening answers.
 
 Before launch, the strict readiness endpoint must return `ready`. Missing Redis,
 mandi key, Phase 1/RAG, configured Ollama model, production-candidate disease

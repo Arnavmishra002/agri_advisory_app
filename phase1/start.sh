@@ -51,13 +51,8 @@ if [ "$KB_COUNT" -lt "5" ]; then
 fi
 echo "✅  Knowledge base: $KB_COUNT files"
 
-# Build vector store if not done
-CHROMA_EXISTS=$([ -d "chroma_db" ] && echo "yes" || echo "no")
-if [ "$CHROMA_EXISTS" = "no" ]; then
-  echo ""
-  echo "🔢  Building vector store (2-5 min)..."
-  python3 rag/ingest.py
-fi
+# Build or refresh the vector store when knowledge source files change.
+python3 rag/ensure_index.py
 echo "✅  Vector store ready"
 
 # Start FastAPI server

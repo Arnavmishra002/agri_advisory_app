@@ -19,12 +19,20 @@ import re
 import sys
 import time
 import urllib.request
+import uuid
 from pathlib import Path
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from rag.kb_fingerprint import knowledge_fingerprint
+else:
+    from .kb_fingerprint import knowledge_fingerprint
 
 ROOT       = Path(__file__).parent.parent
 KB_DIR     = ROOT / "knowledge_base"
 CHROMA_DIR = ROOT / "chroma_db"
 COLLECTION = "krishimitra_kb"
+FINGERPRINT_FILE = CHROMA_DIR / "kb_fingerprint.txt"
 EMBED_MODEL = "nomic-embed-text"
 OLLAMA_URL  = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 
@@ -57,6 +65,20 @@ _CROP_TERMS = {
     "brinjal": ("brinjal", "eggplant", "बैंगन"),
     "chilli": ("chilli", "chili", "pepper", "मिर्च"),
     "okra": ("okra", "bhindi", "भिंडी"),
+    "cucumber": ("cucumber", "khira", "खीरा"),
+    "french_bean": ("french bean", "green bean", "फ्रेंच बीन"),
+    "broccoli": ("broccoli", "ब्रोकली"),
+    "turnip": ("turnip", "shaljam", "शलजम"),
+    "leafy_greens": ("amaranth greens", "bathua", "mustard greens", "fenugreek greens", "बथुआ", "मेथी"),
+    "tapioca": ("tapioca", "cassava", "कसावा"),
+    "yam": ("elephant foot yam", "greater yam", "suran", "सूरन"),
+    "pear": ("pear", "nashpati", "नाशपाती"),
+    "citrus": ("lemon", "acid lime", "kinnow", "mandarin", "sweet lime", "mosambi", "किन्नू", "मौसम्बी"),
+    "ber": ("ber", "indian jujube", "बेर"),
+    "bael": ("bael", "bel fruit", "बेल"),
+    "underutilized_fruit": ("phalsa", "karonda", "passion fruit", "rambutan", "mangosteen", "करौंदा", "फालसा"),
+    "saffron": ("saffron", "kesar", "केसर"),
+    "vanilla": ("vanilla", "वेनिला"),
     "mango": ("mango", "आम"),
     "banana": ("banana", "केला"),
     "pomegranate": ("pomegranate", "अनार"),
@@ -321,18 +343,12 @@ def main():
     CHROMA_DIR.mkdir(parents=True, exist_ok=True)
     client = cdb.PersistentClient(path=str(CHROMA_DIR))
 
-    # Delete old collection if exists
-    try:
-        client.delete_collection(COLLECTION)
-        print(f"🗑   Old collection '{COLLECTION}' deleted")
-    except Exception:
-        pass
-
+    build_collection_name = f"krishimitra_build_{uuid.uuid4().hex[:12]}"
     collection = client.create_collection(
-        name=COLLECTION,
+        name=build_collection_name,
         metadata={"hnsw:space": "cosine"},
     )
-    print(f"✅  Created collection '{COLLECTION}' with cosine similarity")
+    print(f"✅  Created temporary collection '{build_collection_name}'")
 
     # ── Embed and store in batches ────────────────────────────────────────────
     print(f"\n🔢  Embedding {len(all_chunks)} chunks with {EMBED_MODEL}...")
@@ -348,7 +364,9 @@ def main():
             vectors = embed(texts)
         except Exception as e:
             print(f"  ❌  Embed batch {start}-{start+len(batch)} failed: {e}")
-            continue
+            client.delete_collection(build_collection_name)
+            print("  Existing RAG collection was preserved")
+            return 1
 
         ids       = [f"chunk_{start + i}" for i in range(len(batch))]
         metadatas = [{k: v for k, v in c.items() if k != "text"} for c in batch]
@@ -367,6 +385,23 @@ def main():
 
     # ── Verify ────────────────────────────────────────────────────────────────
     final_count = collection.count()
+    if final_count != total:
+        client.delete_collection(build_collection_name)
+        print(f"❌  Incomplete build: expected {total} vectors, stored {final_count}")
+        print("  Existing RAG collection was preserved")
+        return 1
+
+    try:
+        client.delete_collection(COLLECTION)
+    except Exception:
+        pass
+    collection.modify(name=COLLECTION)
+    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+    fingerprint = knowledge_fingerprint(KB_DIR)
+    temporary_marker = FINGERPRINT_FILE.with_suffix(".tmp")
+    temporary_marker.write_text(fingerprint + "\n", encoding="ascii")
+    temporary_marker.replace(FINGERPRINT_FILE)
+
     total_time  = round(time.time() - t0, 1)
     print(f"\n✅  Done — {final_count} vectors stored in {total_time}s")
     print(f"📦  Chroma DB: {CHROMA_DIR}")
@@ -406,7 +441,8 @@ def main():
     print("  Ingestion complete. Start the server:")
     print("  uvicorn main:app --port 8001 --reload")
     print("═" * 55 + "\n")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

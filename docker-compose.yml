@@ -183,10 +183,11 @@ services:
     container_name: krishimitra_phase1
     working_dir: /app/phase1
     command: >
-      uvicorn main:app
-        --host 0.0.0.0
-        --port 8001
-        --workers 1
+      bash -c "python3 rag/ensure_index.py &&
+      exec uvicorn main:app
+      --host 0.0.0.0
+      --port 8001
+      --workers 1"
     environment:
       PYTHONPATH: /app/backend:/app/phase1
       DJANGO_SETTINGS_MODULE: core.settings
@@ -197,12 +198,14 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-krishimitra-llm}
       OLLAMA_CHAT_TIMEOUT_S: ${DOCKER_OLLAMA_CHAT_TIMEOUT_S:-12}
       OLLAMA_STREAM_TIMEOUT_S: ${DOCKER_OLLAMA_STREAM_TIMEOUT_S:-60}
+      RAG_INDEX_REQUIRED: ${RAG_INDEX_REQUIRED:-false}
       PHASE1_CORS_ALLOWED_ORIGINS: ${PHASE1_CORS_ALLOWED_ORIGINS:-}
       PHASE1_ALLOW_ALL_CORS: ${PHASE1_ALLOW_ALL_CORS:-false}
     ports:
       - "${PHASE1_PORT:-8002}:8001"
     volumes:
       - app_data:/app/data
+      - rag_data:/app/phase1/chroma_db
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8001/health"]
@@ -332,6 +335,8 @@ volumes:
     name: krishimitra_postgres_data
   redis_data:
     name: krishimitra_redis_data
+  rag_data:
+    name: krishimitra_rag_data
   mosquitto_data:
     name: krishimitra_mosquitto_data
   mosquitto_log:

@@ -11,7 +11,7 @@ Design:
   - Only hits Gemini API if Qwen is also unavailable
 
 Coverage:
-  - Sowing times (rabi/kharif/zaid) for 80+ crops
+  - Sowing and suitability planning for 200+ crop profiles
   - Fertilizer doses (NPK + micronutrients) for 40+ crops
   - Irrigation schedules for 30+ crops
   - MSP 2024-25 for all MSP-covered crops

@@ -56,6 +56,10 @@ CASES = [
     ("stored grain pest phosphine fumigation", {"stored_grain_pest_management.txt"}),
     ("banana fruit crop spacing fertilizer", {"horticulture_fruits.txt"}),
     ("polyhouse tomato cucumber subsidy", {"polyhouse_greenhouse_farming.txt", "government_schemes_complete.txt"}),
+    ("cucumber french bean broccoli season and soil", {"indian_horticulture_extended.txt"}),
+    ("tapioca elephant foot yam cultivation", {"indian_horticulture_extended.txt"}),
+    ("बेर किन्नू नींबू बागवानी", {"indian_horticulture_extended.txt"}),
+    ("saffron vanilla climate requirements", {"indian_horticulture_extended.txt"}),
 ]
 
 REQUIRED_METADATA = {
