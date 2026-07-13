@@ -1258,6 +1258,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 state=ctx.state if hasattr(ctx, "state") else None,
                 language=lang,
                 weather_context=_wc_to_dict(wc),
+                allow_local_llm=False,
             )
             kb_text = _usable_text(kb_result.get("answer"))
             if kb_text:
@@ -4098,6 +4099,7 @@ def _answer_stream(
             state=getattr(ctx, "state", None),
             language=lang,
             weather_context=None,
+            allow_local_llm=False,
         )
         kb_text = (kb_result.get("answer") or "").strip()
         if kb_text:

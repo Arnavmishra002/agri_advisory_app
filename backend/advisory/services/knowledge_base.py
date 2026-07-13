@@ -266,6 +266,7 @@ class KnowledgeBase:
         state: Optional[str] = None,
         language: str = "hi",
         weather_context: Optional[Dict[str, Any]] = None,
+        allow_local_llm: bool = True,
     ) -> Dict[str, Any]:
         """
         Try to answer from local KB first, then Qwen, then return None.
@@ -287,16 +288,25 @@ class KnowledgeBase:
                 "used_credits":   False,
             }
 
-        # Try KrishiMitra LLM (local Ollama — free)
-        llm_result = self._ask_local_llm(query, detected_crop, state, language, weather_context)
-        if llm_result:
-            return {
-                "answer":        llm_result,
-                "source":        "krishimitra_llm_local",
-                "confidence":    "medium",
-                "crop_detected": detected_crop,
-                "used_credits":  False,
-            }
+        # Standalone callers may opt into the legacy local-LLM fallback. The
+        # chatbot disables it here because its next tier is Phase 1 RAG and
+        # then direct Ollama; calling Ollama in both tiers doubles latency.
+        if allow_local_llm:
+            llm_result = self._ask_local_llm(
+                query,
+                detected_crop,
+                state,
+                language,
+                weather_context,
+            )
+            if llm_result:
+                return {
+                    "answer":        llm_result,
+                    "source":        "krishimitra_llm_local",
+                    "confidence":    "medium",
+                    "crop_detected": detected_crop,
+                    "used_credits":  False,
+                }
 
         # Signal: escalate to Gemini
         return {
