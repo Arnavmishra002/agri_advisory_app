@@ -58,6 +58,14 @@ TWILIO_FROM           = os.getenv("TWILIO_FROM_NUMBER", "")
 GROQ_API_KEY          = os.getenv("GROQ_API_KEY", "")   # for Whisper STT (free tier)
 
 
+def _owned_advisory_audio_session(request) -> str:
+    """Return a server-owned TTS history key; never trust a client session id."""
+    user = getattr(request, "user", None)
+    if user is not None and getattr(user, "is_authenticated", False):
+        return f"user:{user.pk}"
+    return ""
+
+
 def _twilio_signature_valid(request) -> bool:
     """Validate Twilio webhooks; only local DEBUG may run without a token."""
     auth_token = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
@@ -639,7 +647,10 @@ class TextToSpeechViewSet(viewsets.ViewSet):
             )
         query = serializer.validated_data["query"]
         language = serializer.validated_data["language"]
-        session_id = serializer.validated_data.get("session_id", "")
+        # The request field remains accepted for client compatibility, but it
+        # is never used as a database lookup key. Anonymous audio requests do
+        # not load conversation history; authenticated users use their own key.
+        session_id = _owned_advisory_audio_session(request)
 
         if not query:
             return Response({"error": "query required"}, status=status.HTTP_400_BAD_REQUEST)

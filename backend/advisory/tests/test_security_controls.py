@@ -16,6 +16,7 @@ from advisory.api.serializers import (
     TwilioWebhookInputSerializer,
     WhatsAppWebhookInputSerializer,
 )
+from advisory.api.viewsets.misc import _owned_advisory_audio_session
 from advisory.rate_limiters import ExponentialBackoff
 
 
@@ -133,6 +134,15 @@ class StrictRequestSchemaTests(SimpleTestCase):
             }
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_tts_history_key_is_not_client_supplied(self):
+        anonymous = SimpleNamespace(user=AnonymousUser())
+        self.assertEqual(_owned_advisory_audio_session(anonymous), "")
+
+        authenticated = SimpleNamespace(
+            user=SimpleNamespace(is_authenticated=True, pk=42)
+        )
+        self.assertEqual(_owned_advisory_audio_session(authenticated), "user:42")
 
 
 class AuthenticationBackoffTests(TestCase):
