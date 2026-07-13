@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.http import JsonResponse
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
-from advisory.api.monitoring_views import launch_readiness_check
+from advisory.api.monitoring_views import launch_readiness_check, readiness_check
 
 
 def _runtime_readiness(*, healthy: bool) -> JsonResponse:
@@ -71,3 +71,16 @@ class LaunchReadinessTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(body["status"], "ready")
         self.assertEqual(body["blockers"], [])
+
+    @patch("advisory.api.monitoring_views.connection")
+    @patch("urllib.request.urlopen", side_effect=OSError("upstream secret"))
+    def test_readiness_does_not_expose_internal_exception_text(self, _urlopen, connection_mock):
+        connection_mock.cursor.side_effect = RuntimeError("db secret path")
+        response = readiness_check(RequestFactory().get("/api/health/readiness/"))
+        body = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(body["checks"]["database"], "unavailable")
+        rendered = json.dumps(body)
+        self.assertNotIn("db secret path", rendered)
+        self.assertNotIn("upstream secret", rendered)

@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 
 from django.conf import settings
+from django.db import connection
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status, viewsets
@@ -181,12 +182,12 @@ def readiness_check(request):
 
     # ── Database ──────────────────────────────────────────────────────────────
     try:
-        from django.db import connection
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
         checks["database"] = "ok"
     except Exception as e:
-        checks["database"] = f"error: {e}"
+        logger.exception("readiness database check failed: %s", e)
+        checks["database"] = "unavailable"
         overall_ok = False
 
     # ── Cache ─────────────────────────────────────────────────────────────────
@@ -195,7 +196,8 @@ def readiness_check(request):
         cache.set("readiness_probe", "ok", 10)
         checks["cache"] = "ok" if cache.get("readiness_probe") == "ok" else "miss"
     except Exception as e:
-        checks["cache"] = f"error: {e}"
+        logger.exception("readiness cache check failed: %s", e)
+        checks["cache"] = "unavailable"
 
     # ── Phase 1 AI server (Qwen + RAG) ────────────────────────────────────────
     try:
@@ -246,7 +248,8 @@ def readiness_check(request):
             f"{local_ai.get('max_concurrency')}, phase1_cb={cb_label})"
         )
     except Exception as exc:
-        checks["chatbot_runtime"] = f"unknown: {exc}"
+        logger.exception("readiness chatbot runtime check failed: %s", exc)
+        checks["chatbot_runtime"] = "unavailable"
 
     # ── Crop disease ML model ────────────────────────────────────────────────
     try:
@@ -264,7 +267,8 @@ def readiness_check(request):
                 f"missing ({model_path.name}); diagnostics use advisory_fallback"
             )
     except Exception as exc:
-        checks["crop_disease_model"] = f"unknown: {exc}"
+        logger.exception("readiness crop disease model check failed: %s", exc)
+        checks["crop_disease_model"] = "unavailable"
 
     status_code = 200 if overall_ok else 503
     return JsonResponse({
