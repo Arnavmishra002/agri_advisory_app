@@ -78,3 +78,42 @@ class ChatStreamEndpointTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error_code"], "INVALID_REQUEST")
+
+    @patch("advisory.api.viewsets.chatbot._dispatch_writes")
+    @patch("advisory.api.viewsets.chatbot._load_farmer_context", return_value={})
+    @patch(
+        "advisory.api.viewsets.chatbot._build_history_and_context",
+        return_value=([], {}, "mr"),
+    )
+    @patch("advisory.api.viewsets.chatbot.chat_intelligence_service.answer_stream")
+    def test_stream_accepts_a_supported_regional_language(
+        self,
+        answer_stream,
+        _history_context,
+        _farmer_context,
+        _dispatch_writes,
+    ):
+        answer_stream.return_value = iter([
+            "नमस्कार",
+            {"__done__": True, "intent": "greeting", "language": "mr"},
+        ])
+
+        response = self.client.post(
+            "/api/chatbot/stream/",
+            data=json.dumps({"query": "नमस्कार", "language": "mr"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        frames = "".join(part.decode("utf-8") for part in response.streaming_content)
+        self.assertIn("नमस्कार", frames)
+
+    def test_stream_rejects_an_unsupported_language(self):
+        response = self.client.post(
+            "/api/chatbot/stream/",
+            data=json.dumps({"query": "hello", "language": "xx"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("language", response.json()["details"])

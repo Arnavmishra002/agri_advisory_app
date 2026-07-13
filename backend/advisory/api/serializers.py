@@ -3,6 +3,7 @@ import re
 
 from rest_framework import serializers
 from ..models import CropAdvisory, Crop, User, ForumPost # Update import for models
+from ..services.language_service import SUPPORTED_LANGUAGES
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -469,7 +470,7 @@ class ChatHistoryEntrySerializer(StrictSerializer):
 class ChatbotRequestSerializer(StrictSerializer):
     query = serializers.CharField(max_length=2000, trim_whitespace=True)
     language = serializers.ChoiceField(
-        choices=("hi", "en", "hinglish", "auto"), default="hi"
+        choices=tuple(SUPPORTED_LANGUAGES), default="hi"
     )
     session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
     fast_mode = serializers.BooleanField(required=False, default=False)

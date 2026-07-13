@@ -49,10 +49,13 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         hindi = self.service.answer("नमस्ते", self.ctx, language="hi")
         elapsed_ms = (time.monotonic() - started) * 1000
         english = self.service.answer("hello", self.ctx, language="en")
+        marathi = self.service.answer("नमस्कार", self.ctx, language="mr")
 
         self.assertLess(elapsed_ms, 500)
         self.assertRegex(hindi["response"], r"[\u0900-\u097F]")
         self.assertNotRegex(english["response"], r"[\u0900-\u097F]")
+        self.assertIn("नमस्कार शेतकरी", marathi["response"])
+        self.assertNotIn("Hello Farmer", marathi["response"])
         self.assertEqual(hindi["ai_data_quality"]["tier"], "instant_rule")
 
     @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")

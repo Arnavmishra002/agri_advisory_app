@@ -2633,6 +2633,37 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         if intent == INTENT_GREETING:
             location_line_hi = f"📍 आपकी लोकेशन: **{loc}**\n" if loc else ""
             location_line_en = f"📍 Your location: **{loc}**\n" if loc else ""
+            regional_greetings = {
+                "bn": "নমস্কার কৃষক",
+                "te": "నమస్కారం రైతు",
+                "mr": "नमस्कार शेतकरी",
+                "ta": "வணக்கம் விவசாயி",
+                "gu": "નમસ્તે ખેડૂત",
+                "kn": "ನಮಸ್ಕಾರ ರೈತ",
+                "ml": "നമസ്കാരം കർഷകരേ",
+                "pa": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਜੀ",
+                "or": "ନମସ୍କାର ଚାଷୀ",
+                "as": "নমস্কাৰ কৃষক",
+                "ur": "سلام کسان",
+                "mai": "नमस्कार किसान",
+                "sa": "नमस्ते कृषक",
+                "ne": "नमस्कार किसान",
+                "kok": "नमस्कार शेतकार",
+                "mni": "ꯈꯨꯔꯨꯝꯖꯔꯤ",
+                "sd": "سلام هاري",
+                "ks": "آداب کسان",
+                "bo": "नमस्कार आबादार",
+                "doi": "नमस्कार किसान जी",
+                "sat": "ᱡᱚᱦᱟᱨ ᱪᱟᱥᱤ",
+            }
+            if lang in regional_greetings:
+                location_line = f"📍 **{loc}**\n" if loc else ""
+                return alert_prefix + (
+                    f"{regional_greetings[lang]}! 🌾 **KrishiMitra AI**\n\n"
+                    f"{location_line}"
+                    "🌦️  💰  🌾  🐛  🏛️\n\n"
+                    "📞 **1800-180-1551**"
+                )
             msgs = {
                 "hi": (
                     f"नमस्ते किसान भाई! 🌾 मैं **KrishiMitra AI** हूँ — आपका स्मार्ट कृषि सहायक।\n\n"
