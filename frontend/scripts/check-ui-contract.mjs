@@ -114,6 +114,11 @@ check(
   'Chat history must support deleting an individual archived conversation',
 );
 check(
+  app.includes("OFFLINE_CACHE_PREFIX") && app.includes("_saveOfflineResult") &&
+    app.includes("_loadOfflineResult") && app.includes("cached_stale"),
+  'Weather, official mandi, and crop results must have location-specific labeled offline caches',
+);
+check(
   !html.includes("openModal('profile')"),
   'Profile action must not pass an unsupported auth modal tab',
 );

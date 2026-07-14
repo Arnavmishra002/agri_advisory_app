@@ -629,6 +629,54 @@
         } catch (_) { return null; }
     }
 
+    const OFFLINE_CACHE_PREFIX = 'km_offline_v1';
+
+    function _offlineCacheKey(service, variant) {
+        if (!hasConfirmedLocation()) return '';
+        const lat = Number(currentLatitude).toFixed(3);
+        const lon = Number(currentLongitude).toFixed(3);
+        const suffix = String(variant || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
+        return `${OFFLINE_CACHE_PREFIX}:${service}:${lat}:${lon}:${suffix}`;
+    }
+
+    function _saveOfflineResult(service, variant, data) {
+        const key = _offlineCacheKey(service, variant);
+        if (!key || !data) return;
+        try {
+            localStorage.setItem(key, JSON.stringify({
+                saved_at: new Date().toISOString(),
+                location: currentLocation,
+                latitude: currentLatitude,
+                longitude: currentLongitude,
+                data,
+            }));
+        } catch (error) {
+            console.warn('Offline cache unavailable', error);
+        }
+    }
+
+    function _loadOfflineResult(service, variant, maxAgeHours) {
+        const key = _offlineCacheKey(service, variant);
+        if (!key) return null;
+        try {
+            const entry = JSON.parse(localStorage.getItem(key) || 'null');
+            const savedAt = entry && Date.parse(entry.saved_at);
+            if (!entry || !entry.data || !Number.isFinite(savedAt)) return null;
+            if (Date.now() - savedAt > maxAgeHours * 60 * 60 * 1000) return null;
+            const data = JSON.parse(JSON.stringify(entry.data));
+            data.is_live = false;
+            data.status = 'cached_stale';
+            data.freshness = 'cached_stale';
+            data.is_stale = true;
+            data.cached_at = entry.saved_at;
+            data.data_source = `Cached successful response from ${new Date(savedAt).toLocaleString('hi-IN')}`;
+            data._offline_cache = true;
+            return data;
+        } catch (error) {
+            return null;
+        }
+    }
+
     // ── Reverse geocode helper ────────────────────────────────────────────
     async function _reverseGeocode(lat, lon, accuracy) {
         // Backend endpoint expects 'latitude'/'longitude' (not 'lat'/'lon')
@@ -1360,7 +1408,10 @@
 
         banner.style.display = 'block';
 
-        if (isPartial) {
+        if (data._offline_cache) {
+            banner.className = 'market-live-banner market-live-banner--partial';
+            banner.innerHTML = `🕒 ऑफलाइन: ${escapeHtml(data.cached_at || '')} का अंतिम सत्यापित मंडी डेटा। बेचने से पहले नया भाव जांचें।`;
+        } else if (isPartial) {
             banner.className = 'market-live-banner market-live-banner--partial';
             banner.innerHTML = '🟡 कुछ मंडियों का ताजा डेटा मिला है। केवल सत्यापित भाव दिखाए जा रहे हैं।';
         } else if (isFallback) {
@@ -1407,6 +1458,7 @@
             let data;
 
             // Use mandi-specific endpoint when a mandi is selected (more accurate)
+            const marketCacheVariant = `${currentMandi || 'nearby'}:${currentCropSearch || 'all'}`;
             if (currentMandi && currentMandi.trim()) {
                 let mandiPath = `/api/market-prices/mandi-prices/?${buildLocationQuery()}`;
                 mandiPath += `&mandi=${encodeURIComponent(currentMandi)}`;
@@ -1417,6 +1469,10 @@
                 let marketPath = `/api/market-prices/?${buildLocationQuery()}`;
                 if (currentCropSearch) marketPath += `&crop=${encodeURIComponent(currentCropSearch)}`;
                 data = await apiGetJson(marketPath);
+            }
+
+            if (data.is_live === true) {
+                _saveOfflineResult('mandi', marketCacheVariant, data);
             }
 
             _mandiLastFetchedAt = new Date();
@@ -1432,9 +1488,16 @@
             }, refreshMs);
 
         } catch (error) {
-            container.innerHTML = `<div style="padding:20px;text-align:center;color:#dc3545;">
-                <i class="fas fa-exclamation-triangle"></i> मंडी भाव अभी लोड नहीं हो पाए। कुछ देर बाद फिर कोशिश करें।
-            </div>`;
+            const marketCacheVariant = `${currentMandi || 'nearby'}:${currentCropSearch || 'all'}`;
+            const cached = _loadOfflineResult('mandi', marketCacheVariant, 72);
+            if (cached) {
+                updateMarketLiveBanner(cached);
+                _renderMarketPrices(cached, container);
+            } else {
+                container.innerHTML = `<div style="padding:20px;text-align:center;color:#dc3545;">
+                    <i class="fas fa-exclamation-triangle"></i> मंडी भाव अभी लोड नहीं हो पाए। कुछ देर बाद फिर कोशिश करें।
+                </div>`;
+            }
         }
     }
 
@@ -1608,7 +1671,14 @@
 
             container.innerHTML = `<div class="loading">${(typeof window.t === 'function' ? window.t('loading') : 'Loading...')}</div>`;
 
-            const data = await apiGetJson(`/api/weather/?${buildLocationQuery()}`);
+            let data;
+            try {
+                data = await apiGetJson(`/api/weather/?${buildLocationQuery()}`);
+                if (data.is_live === true) _saveOfflineResult('weather', 'forecast', data);
+            } catch (networkError) {
+                data = _loadOfflineResult('weather', 'forecast', 48);
+                if (!data) throw networkError;
+            }
             window.lastWeatherData = data;
 
             const weather = data.current_weather || data.current || {};
@@ -1618,7 +1688,7 @@
             const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
 
             const liveBadge = data.is_live === false
-                ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#856404;">⚠️ ${escapeHtml(data.data_source || 'Estimated — all APIs unavailable')}</div>`
+                ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#856404;">${data._offline_cache ? '🕒 Cached/stale' : '⚠️ Unavailable'}: ${escapeHtml(data.data_source || 'No weather values available')}</div>`
                 : `<div style="background:#d4edda;border:1px solid #c3e6cb;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#155724;">✅ Live: ${escapeHtml(data.data_source || 'Open-Meteo (Real-time, Free, 1km)')} · Real-time</div>`;
 
             if (weather && weather.temperature != null) {
@@ -2056,7 +2126,20 @@
 
             container.innerHTML = `<div class="loading">${(typeof window.t === 'function' ? window.t('loading') : 'Loading...')}</div>`;
 
-            const data = await apiGetJson(`/api/advisories/?${buildCropRecommendationQuery()}`);
+            const cropQuery = buildCropRecommendationQuery();
+            let data;
+            try {
+                data = await apiGetJson(`/api/advisories/?${cropQuery}`);
+                if ((data.recommendations || data.top_4_recommendations || []).length) {
+                    _saveOfflineResult('crops', cropQuery, data);
+                }
+            } catch (networkError) {
+                data = _loadOfflineResult('crops', cropQuery, 168);
+                if (!data) throw networkError;
+                data.weather_is_live = false;
+                data.market_is_live = false;
+                data.data_quality_status = 'cached_stale';
+            }
             const recommendations = data.recommendations || data.top_4_recommendations || [];
 
             const getCategoryIcon = (cat) => ({'Cereal':'🌾','Pulse':'🫘','Oilseed':'🌻','Vegetable':'🥦','Fruit':'🍎','Spice':'🌶️','Cash':'💰','Millet':'🌿','Fiber':'🧵','Plantation':'🌴','Medicinal':'🌱'}[cat] || '🌱');
@@ -2075,7 +2158,7 @@
                             <div style="opacity:0.88;font-size:0.85rem;">${escapeHtml(agro ? 'Zone: ' + agro : '')}</div>
                         </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <span style="background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:0.78rem;">🌤️ Live Open-Meteo</span>
+                            <span style="background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:0.78rem;">${data._offline_cache ? '🕒 Cached recommendation' : (data.weather_is_live ? '🌤️ Live weather' : '⚠️ Weather unavailable')}</span>
                             <span style="background:${liveMkt ? 'rgba(40,167,69,0.3)' : 'rgba(255,193,7,0.3)'};border-radius:20px;padding:4px 12px;font-size:0.78rem;">
                                 ${liveMkt ? '✅ Live Mandi' : '⚠️ सत्यापित मंडी भाव उपलब्ध नहीं'}
                             </span>
