@@ -754,6 +754,7 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
     # ── GOVERNMENT SCHEMES ───────────────────────────────────────
     (INTENT_GOVERNMENT_SCHEME, [
         r"\b(pm[- ]?kisan|pmfby|kcc|kusum|enam|yojana|योजना|subsidy|सब्सिडी|अनुदान|fasal\s*bima|kisan\s*credit|soil\s*health\s*card|pm\s*kusum)\b",
+        r"(पीएम[-\s]?किसान|प्रधानमंत्री\s*किसान|किसान\s*सम्मान).*(पात्रता|आवेदन|किस्त|स्थिति|लाभ)",
         r"\b(sarkaar|sarkaari|government|सरकार|सरकारी|kendriya|rajya)\s*(yojana|योजना|scheme|help|sahayata|paisa|madad)\b",
         r"\b(paise|पैसे|rupaye|amount|installment|kist)\s*(kab\s*aayega|kab\s*milega|कब\s*आएगा|status|check|track)\b",
         r"\b(apply|avedan|आवेदन|register|पंजीयन|form|फॉर्म)\s*(kaise|कैसे|how|karna|karein|bharna)\b",
@@ -768,6 +769,7 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
         r"\b(pest|keet|कीट|rog|रोग|blight|blast|disease|worm|caterpillar|sundi|सुंडी|wilting|fungus|fungal|spray|davai|दवाई|pesticide|insecticide|fungicide|neem)\b",
         # Symptom-based
         r"\b(patti|पत्ती|leaf|leaves|fruit|फल|root|जड़|fasal|crop|stem|tana|तना)\s*(mein|में|pe|पर|ki|का|की)\s*(problem|kuch|नुकसान|damage|pili|पीली|sukh|सूख|kala|काला|safed|सफेद|laal|red|curl|mur|hole)\b",
+        r"\b(?:leaf|leaves|stem|stems|root|roots|fruit|fruits)\b.{0,30}\b(?:spot|spots|lesion|lesions|brown|black|yellow|curl|wilting|rot)\b",
         r"\b(kyon|क्यों|why)\s*(sukh|mur|pil|gir|सूख|मुरझा|पीली|झड|curl|fall|rot|sada)\b",
         # Named pests
         r"\b(sundi|afid|aphid|mite|thrips|whitefly|सफेद\s*मक्खी|माहू|टिड्डा|locust|stem\s*borer|bollworm|armyworm|jassid|planthopper)\b",
@@ -804,6 +806,7 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
     #       "barish ke baad sinchai" routes correctly
     (INTENT_IRRIGATION, [
         r"\b(irrigation|sinchai|सिंचाई|drip|sprinkler|borewell|tubewell|pump|AWD|solar\s*pump|kusum)\b",
+        r"\b(irrigate|irrigated|irrigating|watered|watering)\b",
         r"\b(pani|पानी|water)\s*(kab|kitna|कब|कितना|when|how\s*much|dene\s*ka\s*samay|schedule|de|dene|lagao)\b",
         r"\b(sinchai|सिंचाई|irrigat)\s*(kab|kaise|कब|कैसे|when|schedule|time|kitni|times)\b",
         # "kitne din baad pani de" patterns
@@ -2354,7 +2357,15 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         """Replace common Hinglish variations with canonical forms so regexes match."""
         t = text.lower()
         for wrong, right in self._HINGLISH_NORM.items():
-            t = t.replace(wrong, right)
+            # Raw substring replacement corrupts unrelated English words (for
+            # example Marathi "tur" inside "maturity"). Match complete terms,
+            # while still allowing multi-word colloquial phrases.
+            t = re.sub(
+                rf"(?<!\w){re.escape(wrong)}(?!\w)",
+                right,
+                t,
+                flags=re.IGNORECASE,
+            )
         return t
 
     def classify_query(self, query: str) -> Tuple[str, List[Dict[str, Any]]]:

@@ -178,13 +178,20 @@ def detect_query_language(query: str, fallback: str = "hi") -> str:
         return fallback if fallback in devanagari_languages else "hi"
 
     latin_text = text.lower()
-    hinglish_markers = re.findall(
-        r"\b(kya|ka|ki|ke|kal|aaj|parson|mausam|baarish|barish|kaisa|kaisi|"
-        r"hoga|hogi|hai|hain|batao|bataiye|fasal|kheti|mandi|bhav|daam|"
-        r"lagaun|ugaun|sinchai|khad|dawai|rog|keet)\b",
+    # A single borrowed agriculture word such as "mandi" is common in
+    # otherwise-English questions. Treat grammar words as strong Hinglish
+    # evidence, or require two agriculture terms before changing language.
+    grammar_markers = re.findall(
+        r"\b(kya|ka|ki|ke|me|mein|kal|aaj|parson|kaisa|kaisi|kaise|"
+        r"hoga|hogi|hai|hain|batao|bataiye|karu|dalu|dena|lagaun|ugaun)\b",
         latin_text,
     )
-    if hinglish_markers:
+    agriculture_markers = set(re.findall(
+        r"\b(mausam|baarish|barish|fasal|kheti|mandi|bhav|daam|sinchai|"
+        r"khad|dawai|rog|keet|gehu|dhan|kapas)\b",
+        latin_text,
+    ))
+    if grammar_markers or len(agriculture_markers) >= 2:
         return "hinglish"
     return "en"
 
