@@ -124,6 +124,38 @@ def _usable_text(value: Any) -> Optional[str]:
         return None
     return value
 
+
+_PESTICIDE_DOSE_PATTERN = re.compile(
+    r"\b\d+(?:\.\d+)?\s*(?:%|m?l\s*/\s*l|g\s*/\s*l|kg\s*/\s*ha|g\s*/\s*ha|m?l\s*/\s*ha)\b",
+    re.IGNORECASE,
+)
+_ATTRIBUTABLE_PESTICIDE_SOURCE = re.compile(
+    r"(?:https?://[^\s]*(?:icar|ppqs|cibrc)[^\s]*|"
+    r"(?:icar|ppqs|cib&rc|cibrc).{0,80}(?:document|package of practices|label|registration)"
+    r".{0,40}(?:title|number|no\.?|https?://))",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _safe_model_text(value: Any, intent: str) -> Optional[str]:
+    """Reject generated claims that need evidence the response does not provide."""
+    text = _usable_text(value)
+    if not text:
+        return None
+    if _PESTICIDE_DOSE_PATTERN.search(text) and not _ATTRIBUTABLE_PESTICIDE_SOURCE.search(text):
+        logger.warning("Rejected generated answer with unattributed pesticide dose")
+        _set_chat_meta(fallback_reason="unattributed_pesticide_dose_rejected")
+        return None
+    if intent == "pest_disease" and re.search(
+        r"\b(?:confirmed|definitely|certainly|diagnosed as|is infected with)\b",
+        text,
+        re.IGNORECASE,
+    ):
+        logger.warning("Rejected generated answer claiming unverified disease classification")
+        _set_chat_meta(fallback_reason="unverified_disease_claim_rejected")
+        return None
+    return text
+
 def _env_float(name: str, default: float) -> float:
     try:
         return float(_os.environ.get(name, str(default)))
@@ -1300,11 +1332,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # model composes a fresh answer for the exact query; Gemini is optional,
         # and structured rules remain the always-available fallback.
         # fast_mode=True skips all LLM composition and uses structured rules.
+        # Disease/photo classification is disabled for beta, so pest queries
+        # always use the transparent symptom-advisory path.
         response_text: Optional[str] = None
         data_source   = "KrishiMitra Advisory Engine"
+        model_composition_allowed = not fast_mode and intent != INTENT_PEST_DISEASE
 
         # ── Tier 0: Local Knowledge Base (instant, zero AI credits) ──────────
-        kb_grounding = "" if fast_mode else self._local_kb_grounding(
+        kb_grounding = "" if not model_composition_allowed else self._local_kb_grounding(
             query=query,
             crops=crops_mentioned,
             ctx=ctx,
@@ -1313,28 +1348,28 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         )
 
         # Tier 1: krishimitra-llm — analyses ALL real-time data before responding
-        if not response_text and not fast_mode:
-            response_text = _usable_text(self._qwen_rag_answer(
+        if not response_text and model_composition_allowed:
+            response_text = _safe_model_text(self._qwen_rag_answer(
                 query=query, ctx=ctx, lang=lang, history=history,
                 sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
                 local_kb_context=kb_grounding,
-            ))
+            ), intent)
             if response_text:
                 data_source = _chat_meta().get("source_label") or "KrishiMitra local RAG"
 
         # Tier 2: Gemini API — optional cloud, only when LLM unavailable
         has_gemini = _is_valid_gemini_key(gemini_service.api_key)
-        if not response_text and has_gemini and not fast_mode:
+        if not response_text and has_gemini and model_composition_allowed:
             try:
                 rendered = self._render_grounded_prompt(
                     query=query, ctx=ctx, sc=sc, wc=wc, rag=rag,
                     market_price_str=market_str, history_block=history_block,
                     lang=lang, season=season,
                 )
-                response_text = _usable_text(gemini_service.generate(
+                response_text = _safe_model_text(gemini_service.generate(
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
-                ))
+                ), intent)
                 if response_text:
                     _set_chat_meta(selected_tier="gemini", fallback_reason="")
                     data_source = "Gemini AI + Official gov APIs"
@@ -1732,9 +1767,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "2. SOIL MOISTURE RULE: If moisture is Adequate/High → NEVER recommend irrigation. State the exact %.\n"
             "3. SPRAY RULE: If spray is blocked → NEVER recommend spraying. Say 'barish ke baad karein'.\n"
             "4. LANGUAGE: Reply in EXACTLY the same language as the farmer's question. Hindi→Hindi, Hinglish→Hinglish.\n"
-            "5. NUMBERS: Quote EXACT numbers from the data — MSP ₹X/q, dose Xg/L, interval X days. No guessing.\n"
+            "5. NUMBERS: Quote EXACT numbers from supplied verified data. Never guess.\n"
             "6. PERSONALISE: If you know the farmer's crop, farm size, or past history, use it in your answer.\n"
-            "7. ICAR FIRST: For pesticide doses, always cite ICAR POP. Never exceed label dose.\n"
+            "7. PESTICIDE SAFETY: Give a dose only with a named current PPQS/CIB&RC label or package "
+            "document plus its URL/document number. Otherwise defer to KVK.\n"
             "8. FORMAT: Bullet points for action steps. Bold key numbers. End with ONE next step today.\n"
             "9. SENSOR CONFLICT: If farmer asks to irrigate but sensor says Adequate → explain why not.\n"
             "10. MARKET: If farmer asks selling price, compare current mandi rate vs MSP. Advise when to sell.\n"
@@ -2092,9 +2128,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         if intent == INTENT_PEST_DISEASE:
             snippets.append(
-                "ICAR IPM Package of Practices: Prefer neem oil (5ml/L) as first-line "
-                "treatment. Chemical control: Imidacloprid 17.8SL @ 0.25ml/L for sucking "
-                "pests; Mancozeb 75WP @ 2.5g/L for fungal diseases. Source: ICAR/PPQS."
+                "Use IPM first: isolate affected plants, inspect both leaf surfaces, avoid "
+                "waterlogging, and record symptom onset. Do not select a pesticide or dose "
+                "until the crop and diagnosis are confirmed against the current registered "
+                "PPQS/CIB&RC product label or a named state package of practices."
             )
 
         if intent == INTENT_FERTILIZER:

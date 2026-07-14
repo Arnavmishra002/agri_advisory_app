@@ -226,6 +226,49 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
 
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
     @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
+    def test_disease_query_never_calls_generative_classifier(self, qwen, weather):
+        weather.return_value = {
+            "status": "unavailable",
+            "is_live": False,
+            "current": {},
+            "forecast_7day": [],
+        }
+
+        result = self.service.answer(
+            "Rice leaves have blast spots, identify disease and dose",
+            self.ctx,
+            language="en",
+        )
+
+        qwen.assert_not_called()
+        self.assertIn("not a diagnosis", result["response"])
+        self.assertNotRegex(result["response"], r"\b\d+(?:\.\d+)?\s*(?:ml|g)\s*/\s*l\b")
+
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
+    def test_unattributed_generated_pesticide_dose_is_rejected(self, qwen, weather):
+        weather.return_value = {
+            "status": "unavailable",
+            "is_live": False,
+            "current": {},
+            "forecast_7day": [],
+        }
+        qwen.return_value = "Use product X at 2.5 g/L."
+
+        result = self.service.answer(
+            "How should I manage my crop safely?",
+            self.ctx,
+            language="en",
+        )
+
+        self.assertNotIn("2.5 g/L", result["response"])
+        self.assertEqual(
+            result["chatbot_diagnostics"]["fallback_reason"],
+            "unattributed_pesticide_dose_rejected",
+        )
+
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
     def test_kb_facts_are_grounding_for_fresh_question_specific_answer(
         self,
