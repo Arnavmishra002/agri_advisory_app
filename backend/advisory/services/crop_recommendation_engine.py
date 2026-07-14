@@ -151,6 +151,9 @@ class CropRecommendationEngine:
         weather_is_live = bool(weather.get("is_live"))
         market_is_live = bool(live_market.get("is_live"))
         data_quality = self._data_quality_summary(weather, live_market, realtime_status)
+        missing_confidence_inputs = self._missing_confidence_inputs(
+            inputs, weather_is_live, market_is_live
+        )
         self._record_data_source_health(
             location,
             state or profile.get("state", ""),
@@ -187,6 +190,8 @@ class CropRecommendationEngine:
             "data_source": self._data_source_label(weather, live_market),
             "analysis_method": "multi_factor_scoring_v4",
             "database_size": len(ALL_CROP_DATA),
+            "crop_profile_version": "2026.07-beta1",
+            "confidence_inputs_missing": missing_confidence_inputs,
             "input_parameters": inputs,
             "factors_analyzed": self._factors_analyzed(
                 profile,
@@ -199,6 +204,20 @@ class CropRecommendationEngine:
             "timestamp": datetime.now().isoformat(),
             "language": language,
         }
+
+    @staticmethod
+    def _missing_confidence_inputs(
+        inputs: Dict[str, Any], weather_is_live: bool, market_is_live: bool
+    ) -> List[str]:
+        missing = [
+            key for key in ("soil_type", "irrigation", "previous_crop")
+            if inputs.get(key) in (None, "")
+        ]
+        if not weather_is_live:
+            missing.append("live_weather")
+        if not market_is_live:
+            missing.append("verified_market_price")
+        return missing
 
     @staticmethod
     def _normalise_agronomic_inputs(values: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -1210,6 +1229,10 @@ class CropRecommendationEngine:
 
         inputs = agronomic_inputs or {}
         season_key = inputs.get("season") or _current_season()
+        missing_farmer_inputs = [
+            key for key in ("soil_type", "irrigation", "previous_crop")
+            if inputs.get(key) in (None, "")
+        ]
         out = []
         for score, crop_key, crop, reasons, breakdown in scored:
             msp     = crop.get("msp_per_quintal", 0)
@@ -1243,6 +1266,14 @@ class CropRecommendationEngine:
                 len(supported_rows) / max(len(factor_rows), 1), 2
             )
 
+            input_quality = max(0.55, 1.0 - (0.1 * len(missing_farmer_inputs)))
+            if not mkt.get("is_live", False):
+                input_quality = max(0.5, input_quality - 0.08)
+            confidence = min(
+                (score / 100.0) * (0.7 + 0.3 * data_completeness) * input_quality,
+                0.98,
+            )
+
             out.append({
                 "crop_name": display_name,
                 "crop_name_hindi": crop_name_hindi,
@@ -1252,7 +1283,10 @@ class CropRecommendationEngine:
                 "season": _season_label(crop.get("season", season_key)),
                 "season_key": crop.get("season", season_key),
                 "suitability_score": int(min(score, 99)),
-                "confidence": round(min((score / 100.0) * (0.7 + 0.3 * data_completeness), 0.98), 2),
+                "confidence": round(confidence, 2),
+                "confidence_inputs_missing": missing_farmer_inputs + (
+                    [] if mkt.get("is_live", False) else ["verified_market_price"]
+                ),
                 "reason": " | ".join(reasons[:3]),
                 "reason_hindi": reason_local,
                 "factors": reasons,
@@ -1274,6 +1308,9 @@ class CropRecommendationEngine:
                 "volatility": crop.get("volatility", "Medium"),
                 "government_support": crop.get("government_support", "MSP"),
                 "states_primary": crop.get("states_primary", [])[:4],
+                "district_suitability": crop.get("district_suitability", {}),
+                "rotation": crop.get("rotation", {}),
+                "market_mapping": crop.get("market_mapping", {}),
                 "agronomy_source": crop.get("agronomy_source", "ICAR/NHB/state package of practices"),
                 "economics_status": "indicative_estimate",
                 "economics_note": "Planning estimate only; verify local input costs and buyer prices before sowing.",

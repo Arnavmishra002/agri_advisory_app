@@ -5,7 +5,11 @@ from rest_framework.test import APIRequestFactory
 
 from advisory.api.viewsets.crop import CropAdvisoryViewSet
 from advisory.api.viewsets.government import RealTimeGovernmentDataViewSet
-from advisory.services.comprehensive_crop_database import ALL_CROP_DATA
+from advisory.services.comprehensive_crop_database import (
+    ALL_CROP_DATA,
+    comprehensive_crop_database,
+    validate_crop_profiles,
+)
 from advisory.services.crop_catalog import crop_catalog
 from advisory.services.crop_recommendation_engine import crop_recommendation_engine
 
@@ -69,6 +73,20 @@ class CropDatabaseCoverageTests(SimpleTestCase):
         }.items():
             with self.subTest(query=query):
                 self.assertEqual(crop_catalog.normalize(query)["id"], expected_id)
+
+    def test_all_profiles_satisfy_farmer_ready_contract(self):
+        self.assertEqual(len(ALL_CROP_DATA), 202)
+        self.assertEqual(validate_crop_profiles(), [])
+        self.assertEqual(comprehensive_crop_database.count(), 202)
+        for crop_id, profile in ALL_CROP_DATA.items():
+            with self.subTest(crop=crop_id):
+                self.assertTrue(profile["aliases"])
+                self.assertEqual(profile["market_mapping"]["price_policy"], "fresh_official_row_only")
+                self.assertFalse(profile["district_suitability"]["static_district_claims"])
+
+    def test_profile_facade_returns_canonical_crop(self):
+        profile = comprehensive_crop_database.get_crop_info("wheat")
+        self.assertEqual(profile["name_hindi"], "गेहूँ")
 
 
 class CropRecommendationPersonalizationTests(SimpleTestCase):

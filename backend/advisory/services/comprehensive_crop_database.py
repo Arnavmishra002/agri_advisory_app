@@ -24,7 +24,7 @@ Fields per crop:
   states_primary          – list of states where this is a major crop
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from .msp_data import MSP_2024_25
 
@@ -2035,3 +2035,111 @@ ALL_CROP_DATA.update({
 for _crop_key, _msp in MSP_2024_25.items():
     if _crop_key in ALL_CROP_DATA:
         ALL_CROP_DATA[_crop_key]["msp_per_quintal"] = _msp
+
+
+_OFFICIAL_COMMODITY_NAMES = {
+    "rice": "Paddy(Common)",
+    "bajra": "Bajra(Pearl Millet/Cumbu)",
+    "jowar": "Jowar(Sorghum)",
+    "ragi": "Ragi(Finger Millet)",
+    "gram": "Bengal Gram(Gram)(Whole)",
+    "tur": "Red Gram/Arhar/Tur(Whole)",
+    "moong": "Green Gram(Moong)(Whole)",
+    "urad": "Black Gram(Urd Beans)(Whole)",
+    "masoor": "Lentil(Masur)(Whole)",
+    "areca_nut": "Arecanut(Betelnut/Supari)",
+}
+
+_ROTATION_AFTER = {
+    "Cereal": ["Pulse", "Oilseed", "Vegetable"],
+    "Millet": ["Pulse", "Oilseed"],
+    "Pulse": ["Cereal", "Millet", "Vegetable"],
+    "Oilseed": ["Pulse", "Cereal"],
+    "Vegetable": ["Pulse", "Cereal", "Green Manure"],
+}
+
+
+def _enrich_profile_contracts() -> None:
+    """Attach conservative lookup and rotation metadata to every profile."""
+    for crop_id, profile in ALL_CROP_DATA.items():
+        display_name = crop_id.replace("_", " ").title()
+        aliases = {
+            crop_id,
+            crop_id.replace("_", " "),
+            display_name,
+            str(profile.get("name_hindi") or ""),
+        }
+        aliases.update(str(value) for value in (profile.get("name_local") or {}).values())
+        profile["aliases"] = sorted(value.strip() for value in aliases if value.strip())
+        profile["rotation"] = {
+            "avoid_immediate_repeat": True,
+            "preferred_previous_categories": _ROTATION_AFTER.get(
+                profile.get("category"), ["Pulse", "Cereal"]
+            ),
+            "basis": "category_level_rule",
+        }
+        profile["district_suitability"] = {
+            "mode": "runtime_district_profile_then_state_and_agro_zone",
+            "states": list(profile.get("states_primary") or []),
+            "agro_zones": list(profile.get("agro_zones") or []),
+            "static_district_claims": False,
+        }
+        profile["market_mapping"] = {
+            "official_commodity": _OFFICIAL_COMMODITY_NAMES.get(crop_id, display_name),
+            "aliases": profile["aliases"],
+            "price_policy": "fresh_official_row_only",
+        }
+        profile["profile_version"] = "2026.07-beta1"
+
+
+_REQUIRED_PROFILE_FIELDS = {
+    "name_hindi", "aliases", "season", "category", "soil_preference",
+    "water_requirement", "temperature_min", "temperature_max", "rainfall_mm",
+    "duration_days", "rotation", "district_suitability", "market_mapping",
+    "agro_zones", "states_primary", "agronomy_source", "profile_version",
+}
+
+
+def validate_crop_profiles() -> List[Dict[str, str]]:
+    """Return deterministic validation errors for the complete recommendation catalog."""
+    errors: List[Dict[str, str]] = []
+    valid_seasons = {"rabi", "kharif", "zaid", "year_round"}
+    valid_water = {"Low", "Moderate", "High", "Very High"}
+    for crop_id, profile in ALL_CROP_DATA.items():
+        missing = sorted(
+            field for field in _REQUIRED_PROFILE_FIELDS
+            if profile.get(field) in (None, "", [])
+        )
+        if missing:
+            errors.append({"crop": crop_id, "error": f"missing: {', '.join(missing)}"})
+        if profile.get("season") not in valid_seasons:
+            errors.append({"crop": crop_id, "error": "invalid season"})
+        if profile.get("water_requirement") not in valid_water:
+            errors.append({"crop": crop_id, "error": "invalid water requirement"})
+        if float(profile.get("temperature_min", 0)) >= float(profile.get("temperature_max", 0)):
+            errors.append({"crop": crop_id, "error": "invalid temperature range"})
+        if float(profile.get("ph_min", 0)) >= float(profile.get("ph_max", 0)):
+            errors.append({"crop": crop_id, "error": "invalid pH range"})
+        if int(profile.get("duration_days", 0)) <= 0:
+            errors.append({"crop": crop_id, "error": "invalid duration"})
+    return errors
+
+
+class ComprehensiveCropDatabase:
+    """Backward-compatible read-only facade over the canonical crop profiles."""
+
+    @staticmethod
+    def get_crop_info(crop_id: str) -> Optional[Dict[str, Any]]:
+        return ALL_CROP_DATA.get(str(crop_id or "").strip().lower().replace("-", "_"))
+
+    @staticmethod
+    def count() -> int:
+        return len(ALL_CROP_DATA)
+
+    @staticmethod
+    def validation_errors() -> List[Dict[str, str]]:
+        return validate_crop_profiles()
+
+
+_enrich_profile_contracts()
+comprehensive_crop_database = ComprehensiveCropDatabase()
