@@ -3260,6 +3260,42 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         + f"📞 KVK/ICAR: 1800-180-1551"
                     ),
                 }.get(lang, "Upload leaf photo in KrishiRaksha for disease ID. Use neem oil first. Call 1800-180-1551.")
+            # Classification is intentionally disabled for launch. Historical
+            # rule data above is used only to name possible symptom matches; it
+            # must never emit a pesticide or dose without an attributable,
+            # current PPQS/CIB&RC label.
+            possible = []
+            if crop_id and crop_id in _DISEASE_DB:
+                possible = [item[0] for item in relevant[:3]]
+            possible_text = ", ".join(possible) if possible else "not yet narrowed down"
+            body = {
+                "hi": (
+                    f"🐛 **लक्षण-आधारित फसल सलाह{crop_hint} — {loc}**\n\n"
+                    f"संभावित समस्याएं (पक्की पहचान नहीं): {possible_text}\n\n"
+                    "📸 पत्ती के ऊपर-नीचे, तने और पूरी पौध की साफ फोटो अपलोड करें। "
+                    "अभी रोग वर्गीकरण बंद है; ऐप केवल फसल, लक्षण और मौसम के आधार पर सलाह देता है।\n\n"
+                    "✅ प्रभावित भाग अलग रखें, जलभराव से बचें और लक्षण कब शुरू हुए यह लिखें।\n"
+                    "💊 पक्की पहचान के बिना दवा या मात्रा न चुनें। KVK/कृषि अधिकारी से निदान और "
+                    "PPQS/CIB&RC पंजीकृत लेबल की पुष्टि करें।\n"
+                    + ("⚠️ अगले 48 घंटे बारिश की संभावना है, अभी छिड़काव न करें।\n" if wc.spray_blocked else "")
+                    + "\n📞 KVK/ICAR: 1800-180-1551"
+                ),
+                "en": (
+                    f"🐛 **Crop Symptom Advisory{crop_hint} — {loc}**\n\n"
+                    f"Possible issues (not a diagnosis): {possible_text}\n\n"
+                    "📸 Upload clear photos of both leaf surfaces, the stem, and the whole plant. "
+                    "Disease classification is disabled; the app provides advisory from crop, symptoms, and weather only.\n\n"
+                    "✅ Isolate affected parts, avoid waterlogging, and note when symptoms began.\n"
+                    "💊 Do not choose a chemical or dose without a confirmed diagnosis. Ask a KVK or agriculture officer "
+                    "to verify the registered PPQS/CIB&RC label.\n"
+                    + ("⚠️ Rain is possible within 48 hours; do not spray now.\n" if wc.spray_blocked else "")
+                    + "\n📞 KVK/ICAR: 1800-180-1551"
+                ),
+            }.get(
+                lang,
+                "Upload clear crop photos for symptom advisory. Disease classification is disabled; "
+                "confirm any treatment with your KVK and the registered product label.",
+            )
             return alert_prefix + spray_warning + body
 
         # ── FERTILIZER ────────────────────────────────────────────
@@ -4412,7 +4448,7 @@ def _answer_stream(
         and re.search(r"\b(msp|minimum\s+support|न्यूनतम\s+समर्थन)\b", query, re.I)
         and not re.search(r"\b(mandi|मंडी|bhav|भाव|rate|daam|दाम|price|कीमत)\b", query, re.I)
     )
-    if sensor_context or intent == INTENT_WEATHER or (
+    if sensor_context or intent == INTENT_PEST_DISEASE or intent == INTENT_WEATHER or (
         intent == INTENT_MARKET_PRICE and not is_msp_policy_query
     ):
         result = self.answer(

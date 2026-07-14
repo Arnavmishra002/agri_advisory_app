@@ -118,7 +118,7 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
 
         chunks = list(
             self.service.answer_stream(
-                "rice blast control",
+                "rice crop management advice",
                 self.ctx,
                 language="en",
                 farmer_profile={"current_crop": "rice"},
@@ -152,7 +152,7 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
     ):
         kb_answer.return_value = {"answer": "verified rice facts", "source": "knowledge_base"}
 
-        chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
+        chunks = list(self.service.answer_stream("rice crop management advice", self.ctx, language="en"))
 
         text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
         self.assertIn("grounded start", text)
@@ -179,7 +179,7 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         gemini_service.api_key = ""
         self.assertTrue(chat_module._acquire_local_ai_slot())
         try:
-            chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
+            chunks = list(self.service.answer_stream("rice crop management advice", self.ctx, language="en"))
         finally:
             chat_module._release_local_ai_slot()
 
@@ -269,7 +269,7 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         }
 
         with patch.object(self.service, "answer", return_value=canonical) as answer:
-            chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
+            chunks = list(self.service.answer_stream("rice crop management advice", self.ctx, language="en"))
 
         text = "".join(c for c in chunks if isinstance(c, str))
         self.assertEqual(text, canonical["response"])

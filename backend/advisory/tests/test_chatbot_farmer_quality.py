@@ -204,6 +204,27 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(result["ai_data_quality"]["tier"], "verified_realtime")
 
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_disease_fallback_never_claims_classification_or_unsourced_dose(self, weather):
+        weather.return_value = {
+            "status": "fallback",
+            "is_live": False,
+            "current": {},
+            "forecast_7day": [],
+        }
+
+        result = self.service.answer(
+            "Rice leaves have blast spots, what should I spray?",
+            self.ctx,
+            language="en",
+            fast_mode=True,
+        )
+
+        self.assertNotRegex(result["response"], r"\b\d+(?:\.\d+)?\s*(?:ml|g)\s*/\s*l\b")
+        self.assertNotIn("identifies 150+", result["response"])
+        self.assertIn("advisory", result["response"].lower())
+        self.assertIn("KVK", result["response"])
+
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
     @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
     def test_kb_facts_are_grounding_for_fresh_question_specific_answer(
