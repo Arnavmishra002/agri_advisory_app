@@ -2287,20 +2287,29 @@
             return;
         }
 
+        const diagnosticSessionId = `diag-${
+            window.crypto && typeof window.crypto.randomUUID === 'function'
+                ? window.crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+        }`;
+
         // Show loading state
         resultsContainer.style.display = 'block';
         resultsContainer.innerHTML = `
             <div class="text-center p-5">
                 <i class="fas fa-spinner fa-spin fa-3x text-success"></i>
-                <h4 class="mt-3">Analyzing ${escapeHtml(crop.charAt(0).toUpperCase() + crop.slice(1))}...</h4>
-                <p>Plant validation • EfficientNet-B3 • Weather check...</p>
+                <h4 class="mt-3">${escapeHtml(crop.charAt(0).toUpperCase() + crop.slice(1))} की फोटो देखी जा रही है...</h4>
+                <p>Photo quality • symptom guidance • weather check...</p>
             </div>
         `;
 
         try {
+            const authHeaders = (window.KM_Auth && KM_Auth.isLoggedIn())
+                ? KM_Auth.getAuthHeaders()
+                : {};
             const response = await fetch(apiFetch('/api/diagnostics/detect/'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
                 body: JSON.stringify({
                     crop: crop,
                     location: currentLocation,
@@ -2308,7 +2317,7 @@
                     longitude: currentLongitude,
                     accuracy: currentLocationAccuracy,
                     images: images,
-                    session_id: sessionId,
+                    session_id: diagnosticSessionId,
                 }),
             });
 
@@ -2317,6 +2326,7 @@
 
             const okStatuses = ['success', 'advisory_fallback', 'low_confidence', 'not_plant', 'photo_required', 'model_unavailable', 'tensorflow_missing'];
             if (okStatuses.includes(data.status)) {
+                lastDiagnosticSessionId = diagnosticSessionId;
                 displayKrishiRakshaResults(data);
             } else {
                 resultsContainer.innerHTML = `
@@ -2334,6 +2344,8 @@
             `;
         }
     }
+
+    let lastDiagnosticSessionId = '';
 
     function displayKrishiRakshaResults(data) {
         const resultsContainer = document.getElementById('krishiRakshaResults');
@@ -2438,38 +2450,52 @@
             `;
         });
 
-        html += `
-            </div>
-
-            <!-- Feedback Section -->
+        html += '</div>';
+        const canSubmitOwnedFeedback = Boolean(
+            window.KM_Auth && KM_Auth.isLoggedIn() && lastDiagnosticSessionId
+        );
+        html += canSubmitOwnedFeedback ? `
             <div class="card mt-4 shadow-sm">
                 <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0"><i class="fas fa-comment-dots"></i> Was this diagnosis helpful?</h5>
+                    <h5 class="mb-0"><i class="fas fa-comment-dots"></i> क्या यह सलाह उपयोगी थी?</h5>
                 </div>
                 <div class="card-body text-center">
                     <button class="btn btn-success me-2" onclick="submitKRFeedback(true)">
-                        <i class="fas fa-thumbs-up"></i> Yes, Accurate
+                        <i class="fas fa-thumbs-up"></i> हाँ, उपयोगी
                     </button>
                     <button class="btn btn-danger" onclick="submitKRFeedback(false)">
-                        <i class="fas fa-thumbs-down"></i> No, Incorrect
+                        <i class="fas fa-thumbs-down"></i> समीक्षा चाहिए
                     </button>
+                    <div class="small text-muted mt-2">Feedback agronomist review के बाद ही knowledge base में जा सकता है।</div>
                 </div>
-            </div>
-        `;
+            </div>` : `
+            <div class="farmer-inline-notice info mt-4">
+                <i class="fas fa-lock"></i>
+                <div><strong>सलाह पर feedback देने के लिए लॉगिन करें</strong><span>फोटो सलाह guest mode में उपलब्ध है; login केवल सुरक्षित ownership के लिए जरूरी है।</span></div>
+            </div>`;
 
         resultsContainer.innerHTML = html;
     }
 
     async function submitKRFeedback(isCorrect) {
+        if (!(window.KM_Auth && KM_Auth.isLoggedIn()) || !lastDiagnosticSessionId) {
+            notifyFarmer('Feedback सुरक्षित रूप से भेजने के लिए पहले लॉगिन करें।', 'warning');
+            if (window.KM_Auth) KM_Auth.openModal('phone');
+            return;
+        }
         try {
-            await fetch(apiFetch('/api/diagnostics/feedback/'), {
+            const response = await fetch(apiFetch('/api/diagnostics/feedback/'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...KM_Auth.getAuthHeaders(),
+                },
                 body: JSON.stringify({
-                    session_id: sessionId,
+                    session_id: lastDiagnosticSessionId,
                     is_correct: isCorrect
                 })
             });
+            if (!response.ok) throw new Error(`Feedback failed: ${response.status}`);
             notifyFarmer(isCorrect ? 'धन्यवाद — आपका feedback दर्ज हो गया।' : 'धन्यवाद — हम इस सलाह की समीक्षा करेंगे।', 'success');
         } catch (error) {
             console.error('Feedback error:', error);

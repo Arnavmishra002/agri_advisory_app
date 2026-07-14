@@ -101,6 +101,12 @@ check(
   'Refresh token must be stored only for the current browser session',
 );
 check(
+  app.includes("window.crypto.randomUUID") &&
+    app.includes("lastDiagnosticSessionId = diagnosticSessionId") &&
+    app.includes("...KM_Auth.getAuthHeaders()"),
+  'Each diagnosis and owned feedback must use a fresh ID plus authenticated headers',
+);
+check(
   !auth.includes("localStorage.setItem(LS_REFRESH") &&
     auth.includes("localStorage.removeItem(LEGACY_LS_REFRESH)"),
   'Persistent legacy refresh tokens must be removed from localStorage',
