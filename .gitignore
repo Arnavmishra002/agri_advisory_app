@@ -398,3 +398,7 @@ backend/verify_features.sqlite3
 
 # Phase1 ChromaDB vector store (generated locally)
 phase1/chroma_db/
+
+# Playwright output (CI uploads reports/traces as artifacts)
+frontend/test-results/
+frontend/playwright-report/

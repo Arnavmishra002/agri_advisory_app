@@ -82,12 +82,6 @@
       }
       this._resetAuthUi();
       this.switchTab(tab);
-      var self = this;
-      el.addEventListener('shown.bs.modal', function clearRestoredAuthFields() {
-        el.removeEventListener('shown.bs.modal', clearRestoredAuthFields);
-        self._resetAuthUi();
-        self.switchTab(tab);
-      });
       this._bsModal.show();
     },
 

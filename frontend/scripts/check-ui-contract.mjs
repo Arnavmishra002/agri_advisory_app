@@ -87,8 +87,9 @@ check(
   'Opening auth must clear stale registration/login fields before selecting a tab',
 );
 check(
-  auth.includes("addEventListener('hidden.bs.modal'") && auth.includes("addEventListener('shown.bs.modal'"),
-  'Auth fields must reset after modal close and after browser autofill restoration',
+  auth.includes("addEventListener('hidden.bs.modal'") &&
+    !auth.includes("addEventListener('shown.bs.modal'"),
+  'Auth fields must reset on close without a shown-event race that erases farmer input',
 );
 check(
   auth.includes("window.showService('ai-assistant')"),
