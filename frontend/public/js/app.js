@@ -2402,8 +2402,25 @@
     // ── Conversation history (in-memory + localStorage persistence) ──────────
     // Stores last 10 turns as [{role, content}] — sent to backend on every request
     // so the AI has full multi-turn context.
-    const CHAT_HISTORY_KEY = 'km_chat_history_' + sessionId;
-    const CHAT_ARCHIVE_KEY = 'km_chat_archives_' + sessionId;
+    const GUEST_CHAT_OWNER = `guest:${sessionId}`;
+    function _storedChatOwner() {
+        try {
+            const user = JSON.parse(localStorage.getItem('km_user') || 'null');
+            if (user && user.id != null) return `user:${user.id}`;
+        } catch (e) {}
+        return GUEST_CHAT_OWNER;
+    }
+    function _chatStorageKeys(owner) {
+        const token = String(owner || GUEST_CHAT_OWNER).replace(/[^a-zA-Z0-9:_-]/g, '_');
+        return {
+            history: `km_chat_history_${token}`,
+            archives: `km_chat_archives_${token}`,
+        };
+    }
+    let chatOwner = _storedChatOwner();
+    let chatKeys = _chatStorageKeys(chatOwner);
+    let CHAT_HISTORY_KEY = chatKeys.history;
+    let CHAT_ARCHIVE_KEY = chatKeys.archives;
     const MAX_HISTORY_CLIENT = 10;
     const MAX_CHAT_ARCHIVES = 10;
     let conversationHistory = (() => {
@@ -2419,6 +2436,44 @@
             return Array.isArray(parsed) ? parsed : [];
         } catch (e) { return []; }
     })();
+
+    function _readChatArray(key) {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) { return []; }
+    }
+
+    function _switchChatOwner(user, migrateGuest) {
+        const nextOwner = user && user.id != null ? `user:${user.id}` : GUEST_CHAT_OWNER;
+        if (nextOwner === chatOwner) return;
+        const nextKeys = _chatStorageKeys(nextOwner);
+        if (migrateGuest && chatOwner === GUEST_CHAT_OWNER && nextOwner.startsWith('user:')) {
+            if (!localStorage.getItem(nextKeys.history) && conversationHistory.length) {
+                localStorage.setItem(nextKeys.history, JSON.stringify(conversationHistory));
+            }
+            if (!localStorage.getItem(nextKeys.archives) && archivedConversations.length) {
+                localStorage.setItem(nextKeys.archives, JSON.stringify(archivedConversations));
+            }
+            localStorage.removeItem(CHAT_HISTORY_KEY);
+            localStorage.removeItem(CHAT_ARCHIVE_KEY);
+        }
+        chatOwner = nextOwner;
+        chatKeys = nextKeys;
+        CHAT_HISTORY_KEY = nextKeys.history;
+        CHAT_ARCHIVE_KEY = nextKeys.archives;
+        conversationHistory = _readChatArray(CHAT_HISTORY_KEY);
+        archivedConversations = _readChatArray(CHAT_ARCHIVE_KEY);
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) chatMessages.innerHTML = '';
+        _restoreChatHistory();
+        _renderArchivedChats();
+    }
+
+    window.addEventListener('km:auth-changed', event => {
+        const detail = event.detail || {};
+        _switchChatOwner(detail.user || null, detail.guestSessionMigrated === true);
+    });
 
     function _persistArchivedChats() {
         try {
@@ -2478,6 +2533,8 @@
         }
         if (clearButton) clearButton.style.display = 'block';
         archivedConversations.forEach(conversation => {
+            const row = document.createElement('div');
+            row.className = 'chat-history-item-row';
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'chat-history-item';
@@ -2492,7 +2549,16 @@
             button.appendChild(title);
             button.appendChild(meta);
             button.addEventListener('click', () => restoreArchivedChat(conversation.id));
-            list.appendChild(button);
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'chat-history-delete';
+            remove.title = 'बातचीत हटाएं';
+            remove.setAttribute('aria-label', `${conversation.title || 'कृषि बातचीत'} हटाएं`);
+            remove.innerHTML = '<i class="fas fa-trash-alt" aria-hidden="true"></i>';
+            remove.addEventListener('click', () => deleteArchivedChat(conversation.id));
+            row.appendChild(button);
+            row.appendChild(remove);
+            list.appendChild(row);
         });
     }
 
@@ -2527,6 +2593,12 @@
         if (!window.confirm('इस डिवाइस से पुरानी बातचीत हटाएं?')) return;
         archivedConversations = [];
         try { localStorage.removeItem(CHAT_ARCHIVE_KEY); } catch (e) {}
+        _renderArchivedChats();
+    }
+
+    function deleteArchivedChat(conversationId) {
+        archivedConversations = archivedConversations.filter(item => item.id !== conversationId);
+        _persistArchivedChats();
         _renderArchivedChats();
     }
 

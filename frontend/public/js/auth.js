@@ -321,6 +321,9 @@
       self._resetAuthUi();
       self.closeModal();
       self._updateNavbar();
+      window.dispatchEvent(new CustomEvent('km:auth-changed', {
+        detail: { user: null, guestSessionMigrated: false }
+      }));
       if (window.showToast) showToast('✅ लॉगआउट सफल', 'success', 2000);
     },
 
@@ -380,6 +383,12 @@
       try { sessionStorage.setItem(SS_REFRESH, data.refresh); } catch (e) {}
       this._scheduleRefresh();
       this._updateNavbar();
+      window.dispatchEvent(new CustomEvent('km:auth-changed', {
+        detail: {
+          user: data.user || null,
+          guestSessionMigrated: data.guest_session_migrated === true
+        }
+      }));
       this.closeModal();
       this._resetAuthUi();
       var name = (data.user && data.user.name) ? data.user.name : 'किसान';

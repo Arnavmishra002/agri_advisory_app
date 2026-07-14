@@ -53,6 +53,7 @@ class GuestRegistrationMigrationTests(TestCase):
             format="json",
         )
         self.assertEqual(registration.status_code, 201, registration.data)
+        self.assertTrue(registration.data["guest_session_migrated"])
 
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {registration.data['access']}")
         profile = client.get("/api/users/me/")

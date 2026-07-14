@@ -336,6 +336,7 @@ class AuthViewSet(viewsets.ViewSet):
         return Response({
             "access":  str(refresh.access_token),
             "refresh": str(refresh),
+            "guest_session_migrated": bool(verified_guest_session),
             "user": {
                 "id":       user.id,
                 "username": username,
@@ -439,6 +440,7 @@ class AuthViewSet(viewsets.ViewSet):
             {
                 "access":  str(refresh.access_token),
                 "refresh": str(refresh),
+                "guest_session_migrated": bool(verified_guest_session),
                 "user": {
                     "id":       user.id,
                     "username": username,

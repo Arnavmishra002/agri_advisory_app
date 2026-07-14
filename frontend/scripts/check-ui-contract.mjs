@@ -105,6 +105,15 @@ check(
   'Persistent legacy refresh tokens must be removed from localStorage',
 );
 check(
+  app.includes("GUEST_CHAT_OWNER") && app.includes("km:auth-changed") &&
+    app.includes("guestSessionMigrated === true"),
+  'Chat history must be isolated by guest/user identity and migrate only with signed backend proof',
+);
+check(
+  app.includes("deleteArchivedChat") && app.includes("chat-history-delete"),
+  'Chat history must support deleting an individual archived conversation',
+);
+check(
   !html.includes("openModal('profile')"),
   'Profile action must not pass an unsupported auth modal tab',
 );
