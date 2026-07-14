@@ -351,8 +351,8 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 
 ## Verification
 
-This repo currently uses smoke checks and CI contract tests rather than a pytest
-suite.
+This repo uses Django regression tests, deterministic service verifiers,
+Playwright browser journeys, dependency audits, and Docker smoke checks.
 
 Backend:
 
@@ -360,6 +360,7 @@ Backend:
 python3 -m compileall -q backend phase1 scripts custom_llm_trainer
 python manage.py check
 python manage.py makemigrations --check --dry-run
+python manage.py test advisory.tests
 python scripts/check_before_push.py
 ```
 
@@ -369,13 +370,15 @@ Frontend:
 cd frontend
 node --check public/js/app.js
 npm audit --audit-level=high
+npm run test:ui
+npm run test:e2e
 npm run build
 ```
 
 Mobile:
 
 ```bash
-cd mobile/krishimitra
+cd mobile/krishimitra_app
 flutter analyze
 ```
 
@@ -391,11 +394,11 @@ curl "http://127.0.0.1:8000/api/crops/search/?q=makhana"
 ## GitHub Actions
 
 The CI workflow validates backend routes and farmer-critical API behavior,
-frontend build health, mobile analysis, code quality rules, and Docker build
-contracts. It starts the API and Phase 1 containers, checks both health routes,
-and verifies an instant chatbot greeting. Quick-service and production reports
-are uploaded as Actions artifacts for 14 days even though generated `docs/`
-reports are ignored locally. Pull requests should be green before merging.
+desktop/mobile-width Playwright journeys, frontend build health, mobile
+analysis, code quality rules, and Docker build contracts. It starts the API and
+Phase 1 containers, checks both health routes, and verifies an instant chatbot
+greeting. Quick-service, browser-failure, and production reports are uploaded
+as Actions artifacts for 14 days. Pull requests should be green before merging.
 
 For a deployed pre-launch gate, set repository variable `LAUNCH_CHECK=true` and
 `LAUNCH_READINESS_URL=https://your-api.example.com`. The optional Actions job
@@ -443,6 +446,9 @@ rates. Farmer image classification remains disabled unless metadata quality is
 Render/Railway style API-only deployments can use `Procfile`, `render.yaml`,
 or `scripts/deploy.sh`. Combined single-container deployments should build the
 frontend first and set `SERVE_FRONTEND=true`.
+
+The production procedures, stop conditions, incident responses, and rollback
+checks are in `docs/FARMER_BETA_RUNBOOK.md`.
 
 ## Troubleshooting
 

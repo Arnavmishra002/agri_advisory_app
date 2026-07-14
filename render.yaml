@@ -32,6 +32,12 @@ services:
         value: "False"
       - key: STRICT_PRODUCTION_CONFIG
         value: "true"
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
       - key: PYTHON_VERSION
         value: "3.11.0"
       - key: NODE_VERSION
@@ -86,11 +92,13 @@ services:
       - key: FETCH_POOL_WORKERS
         value: "8"
       - key: PHASE1_TIMEOUT_S
-        value: "25"
+        value: "8"
       - key: PHASE1_BASE_URL
         sync: false
       - key: PHASE1_SERVICE_TOKEN
         sync: false
+      - key: CHAT_LOCAL_AI_MAX_CONCURRENCY
+        value: "2"
       - key: RAG_INDEX_REQUIRED
         value: "true"
       - key: DISEASE_CLASSIFICATION_ENABLED
@@ -104,6 +112,10 @@ services:
         value: "krishimitra-llm"
       - key: RATE_LIMIT_ENABLED
         value: "true"
+      - key: RATE_LIMIT_FAIL_OPEN
+        value: "false"
+      - key: LAUNCH_CHECK
+        value: "false"
 
   - type: worker
     name: agri-advisory-mqtt-worker

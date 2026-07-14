@@ -226,6 +226,11 @@ backups/
 docs/
 *.md
 
+# Keep reviewed operational docs; generated reports remain ignored.
+!docs/
+docs/*
+!docs/FARMER_BETA_RUNBOOK.md
+
 LICENSE
 CHANGELOG.md
 
