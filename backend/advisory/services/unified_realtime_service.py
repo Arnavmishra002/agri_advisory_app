@@ -230,7 +230,14 @@ class WeatherService:
         """Get complete weather data with 7-day forecast in the requested language."""
         try:
             if lat is None or lon is None:
-                lat, lon = self._geocode(location)
+                coordinates = self._geocode(location)
+                if coordinates is None:
+                    return self._static_fallback(
+                        location,
+                        lang=lang,
+                        reason="location_not_resolved",
+                    )
+                lat, lon = coordinates
 
             # Try Open-Meteo first (FREE, highly reliable)
             data = self._fetch_open_meteo(lat, lon, location, lang=lang)
@@ -249,7 +256,7 @@ class WeatherService:
             logger.error(f"Weather error for {location}: {e}")
             return self._static_fallback(location, lang=lang)
 
-    def _geocode(self, location: str) -> Tuple[float, float]:
+    def _geocode(self, location: str) -> Optional[Tuple[float, float]]:
         """Convert location name to coordinates.
 
         Bug 4 fix: replaced unbounded in-process dict with a two-tier cache:
@@ -260,8 +267,8 @@ class WeatherService:
         The old code cached forever in the process — yesterday's geocode for a
         misspelled village survived until a dyno restart.
         """
-        key_norm  = location.lower().strip()
-        cache_key = f"geocode:{key_norm}"
+        key_norm = location.lower().strip()
+        cache_key = f"geocode:{_cache_token(key_norm)}"
 
         # L1: in-process dict (fast path)
         if key_norm in self._coord_cache:
@@ -307,10 +314,8 @@ class WeatherService:
         except Exception as exc:
             logger.warning("Nominatim geocoding failed for %r: %s", location, exc)
 
-        # Default: New Delhi
-        default = (28.6139, 77.2090)
-        logger.warning("Geocoding failed for %r — defaulting to New Delhi", location)
-        return default
+        logger.warning("Geocoding failed for %r; no coordinates substituted", location)
+        return None
 
     def _write_geocode_cache(
         self, key_norm: str, coords: Tuple[float, float], cache_key: str
@@ -406,6 +411,10 @@ class WeatherService:
                 "latitude": lat,
                 "longitude": lon,
                 "data_source": "Open-Meteo (Real-time, Free)",
+                "provider": "open-meteo",
+                "observation_time": curr.get("time"),
+                "freshness": "live",
+                "is_stale": False,
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "language": lang,
                 "current": current_data,
@@ -453,6 +462,10 @@ class WeatherService:
                 "is_live": True,
                 "location": location,
                 "data_source": "OpenWeatherMap",
+                "provider": "openweathermap",
+                "observation_time": current_item.get("dt_txt"),
+                "freshness": "live",
+                "is_stale": False,
                 "language": lang,
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "current": current_data,
@@ -466,13 +479,23 @@ class WeatherService:
             logger.error(f"OWM error: {e}")
             return None
 
-    def _static_fallback(self, location: str, lang: str = "hi") -> Dict:
+    def _static_fallback(
+        self,
+        location: str,
+        lang: str = "hi",
+        reason: str = "providers_unavailable",
+    ) -> Dict:
         """Last-resort fallback with honest labeling."""
         return {
-            "status": "fallback",
+            "status": "unavailable",
             "is_live": False,
             "location": location,
-            "data_source": "Estimated (all APIs unavailable)",
+            "data_source": "Unavailable (no weather values substituted)",
+            "provider": "unavailable",
+            "observation_time": None,
+            "freshness": "unavailable",
+            "is_stale": True,
+            "unavailable_reason": reason,
             "language": lang,
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "current": {
