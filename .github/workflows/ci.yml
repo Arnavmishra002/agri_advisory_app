@@ -2,7 +2,7 @@ name: KrishiMitra CI
 
 on:
   push:
-    branches: [main, master, develop, staging, feature/premium-ui, 'improve/**', 'fix/**']
+    branches: [main, master, develop, staging, feature/premium-ui, 'improve/**', 'fix/**', 'codex/**']
   pull_request:
     branches: [main, master, develop]
   workflow_dispatch:
@@ -55,6 +55,14 @@ jobs:
 
       - name: Migrations apply cleanly
         run: python manage.py migrate --noinput
+
+      - name: Compilation, migration drift, and full backend tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 -m compileall -q backend phase1 scripts custom_llm_trainer
+          cd backend
+          python manage.py makemigrations --check --dry-run
+          python manage.py test advisory.tests --verbosity 1
 
       - name: Migration 0011 (IoTSensorReading composite index) present
         run: |
@@ -677,17 +685,22 @@ jobs:
         if: always()
         run: docker compose --profile ai down -v --remove-orphans
 
-  # Optional strict gate for a deployed environment. Enable repository variable
-  # LAUNCH_CHECK=true and set LAUNCH_READINESS_URL to the deployed API base URL.
+  # Always runs so the latest workflow has a visible launch-gate result. It
+  # becomes a strict deployed-environment gate when LAUNCH_CHECK=true.
   launch-gate:
     name: Farmer launch gate
     runs-on: ubuntu-latest
-    if: vars.LAUNCH_CHECK == 'true'
     steps:
       - name: Require deployed services to be launch-ready
         env:
+          LAUNCH_CHECK: ${{ vars.LAUNCH_CHECK }}
           LAUNCH_READINESS_URL: ${{ vars.LAUNCH_READINESS_URL }}
         run: |
+          if [ "$LAUNCH_CHECK" != "true" ]; then
+            echo "Launch check is in development mode; Docker readiness is enforced by the Docker job."
+            echo "Set LAUNCH_CHECK=true and LAUNCH_READINESS_URL before public beta."
+            exit 0
+          fi
           test -n "$LAUNCH_READINESS_URL"
           curl -fsS "${LAUNCH_READINESS_URL%/}/api/health/launch-readiness/?strict=true"
 
@@ -759,7 +772,7 @@ jobs:
   # ── CI Gate ──────────────────────────────────────────────────
   ci-complete:
     name: ✅ CI Complete
-    needs: [backend, frontend, mobile, docker, lint]
+    needs: [backend, frontend, mobile, docker, launch-gate, lint]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -769,11 +782,13 @@ jobs:
           echo "Frontend: ${{ needs.frontend.result }}"
           echo "Mobile:   ${{ needs.mobile.result }}"
           echo "Docker:   ${{ needs.docker.result }}"
+          echo "Launch:   ${{ needs.launch-gate.result }}"
           echo "Lint:     ${{ needs.lint.result }}"
           if [ "${{ needs.backend.result }}"  != "success" ] || \
              [ "${{ needs.frontend.result }}" != "success" ] || \
              [ "${{ needs.mobile.result }}"   != "success" ] || \
-             [ "${{ needs.docker.result }}"   != "success" ]; then
+             [ "${{ needs.docker.result }}"   != "success" ] || \
+             [ "${{ needs.launch-gate.result }}" != "success" ]; then
             echo "❌ CI failed"
             exit 1
           fi
