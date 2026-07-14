@@ -233,3 +233,19 @@ class AuthenticationBackoffTests(TestCase):
         self.assertIn(first.status_code, (400, 401))
         self.assertEqual(second.status_code, 429)
         self.assertEqual(second.data["error_code"], "AUTH_BACKOFF")
+
+    def test_password_login_accepts_email_identifier(self):
+        get_user_model().objects.create_user(
+            username="email-farmer",
+            email="farmer@example.in",
+            password="correct-password",
+        )
+
+        response = self.client.post(
+            "/api/token/",
+            {"username": "FARMER@example.in", "password": "correct-password"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertIn("access", response.data)

@@ -443,6 +443,7 @@ class OTPVerifyInputSerializer(StrictSerializer):
     phone_number = serializers.CharField(min_length=10, max_length=16, trim_whitespace=True)
     otp_code = serializers.RegexField(regex=r"^\d{6}$")
     session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    guest_session_token = serializers.CharField(required=False, allow_blank=True, max_length=4096)
 
 
 class RegistrationInputSerializer(StrictSerializer):
@@ -460,6 +461,7 @@ class RegistrationInputSerializer(StrictSerializer):
         default="hi",
     )
     session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    guest_session_token = serializers.CharField(required=False, allow_blank=True, max_length=4096)
 
 
 class ChatHistoryEntrySerializer(StrictSerializer):

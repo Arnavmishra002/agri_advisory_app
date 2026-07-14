@@ -34,6 +34,7 @@ from ..location_utils import attach_location_metadata, resolve_request_location
 from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
 from ...services.chat_intelligence_service import chat_intelligence_service, _current_season
 from ...services.session_memory_service import session_memory
+from ...services.guest_session_service import make_guest_session_token
 from ..auth_utils import _cors_for_request, _resolve_user_id
 from ..serializers import ChatbotFeedbackSerializer, ChatbotRequestSerializer
 
@@ -513,6 +514,7 @@ class ChatbotViewSet(viewsets.ViewSet):
             "response_time_ms": response_time_ms,
             "timestamp":        _now_utc.isoformat(),
             "session_id":       session_id,
+            "guest_session_token": make_guest_session_token(session_id or ""),
             "feedback_token": _make_chat_feedback_token(
                 session_id, query, result.get("response", "")
             ),
@@ -596,6 +598,7 @@ def _stream_generator(
         "crop_suggestions": result_meta.get("crop_suggestions", []),
         "response_time_ms": response_time_ms,
         "session_id":      session_id,
+        "guest_session_token": make_guest_session_token(session_id or ""),
         "feedback_token": _make_chat_feedback_token(
             session_id, query, full_response
         ),

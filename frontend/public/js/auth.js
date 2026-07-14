@@ -5,7 +5,7 @@
  * management, auto-refresh, navbar state, and guest mode.
  *
  * Design:
- *   - Token storage: localStorage (km_access_token, km_refresh_token, km_user)
+ *   - Token storage: access/user in localStorage; refresh in sessionStorage
  *   - Auto-refresh: 55 minutes after login (access token lives 60 min)
  *   - OTP flow: phone → request → 6-digit boxes → verify → logged in
  *   - Guest mode: close modal, session_id from app.js used as anonymous id
@@ -26,8 +26,9 @@
 
   /* ── Constants ──────────────────────────────────────────────── */
   var LS_ACCESS  = 'km_access_token';
-  var LS_REFRESH = 'km_refresh_token';
   var LS_USER    = 'km_user';
+  var SS_REFRESH = 'km_refresh_token';
+  var LEGACY_LS_REFRESH = 'km_refresh_token';
   var REFRESH_MS = 55 * 60 * 1000;   // refresh 5 min before 60-min expiry
   var OTP_RESEND_S = 60;              // resend OTP countdown seconds
 
@@ -45,8 +46,9 @@
     init: function () {
       try {
         var tok  = localStorage.getItem(LS_ACCESS);
-        var ref  = localStorage.getItem(LS_REFRESH);
+        var ref  = sessionStorage.getItem(SS_REFRESH);
         var user = localStorage.getItem(LS_USER);
+        localStorage.removeItem(LEGACY_LS_REFRESH);
         if (tok && user) {
           this._accessToken  = tok;
           this._refreshToken = ref;
@@ -179,10 +181,12 @@
       self._setLoading('btnVerifyOtp', 'spinnerVerifyOtp', true);
 
       var sessionId = (window._getSessionId && window._getSessionId()) || '';
+      var guestSessionToken = (window._getGuestSessionToken && window._getGuestSessionToken()) || '';
       self._post('/api/users/otp/verify/', {
         phone_number: self._currentPhone,
         otp_code:     digits,
         session_id:   sessionId,
+        guest_session_token: guestSessionToken,
       })
         .then(function (data) {
           self._onLoginSuccess(data);
@@ -239,6 +243,7 @@
       var phone     = ((document.getElementById('regPhoneInput')    || {}).value || '').replace(/\D/g, '');
       var state     = ((document.getElementById('regStateInput')    || {}).value || '').trim();
       var sessionId = (window._getSessionId && window._getSessionId()) || '';
+      var guestSessionToken = (window._getGuestSessionToken && window._getGuestSessionToken()) || '';
 
       if (!username) { self._setError('registerError', 'Username जरूरी है'); return; }
       if (!password) { self._setError('registerError', 'Password जरूरी है'); return; }
@@ -254,6 +259,7 @@
         state:        state,
         language:     (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'hi'),
         session_id:   sessionId,
+        guest_session_token: guestSessionToken,
       })
         .then(function (data) {
           self._onLoginSuccess(data);
@@ -307,9 +313,10 @@
       self._user         = null;
       try {
         localStorage.removeItem(LS_ACCESS);
-        localStorage.removeItem(LS_REFRESH);
+        localStorage.removeItem(LEGACY_LS_REFRESH);
         localStorage.removeItem(LS_USER);
       } catch (e) {}
+      try { sessionStorage.removeItem(SS_REFRESH); } catch (e) {}
       if (self._refreshTimer) { clearTimeout(self._refreshTimer); self._refreshTimer = null; }
       self._resetAuthUi();
       self.closeModal();
@@ -367,9 +374,10 @@
       this._user         = data.user;
       try {
         localStorage.setItem(LS_ACCESS,  data.access);
-        localStorage.setItem(LS_REFRESH, data.refresh);
         localStorage.setItem(LS_USER,    JSON.stringify(data.user));
+        localStorage.removeItem(LEGACY_LS_REFRESH);
       } catch (e) {}
+      try { sessionStorage.setItem(SS_REFRESH, data.refresh); } catch (e) {}
       this._scheduleRefresh();
       this._updateNavbar();
       this.closeModal();

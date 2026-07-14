@@ -245,6 +245,11 @@
     })();
     // Expose for auth.js guest session migration
     window._getSessionId = () => sessionId;
+    const GUEST_SESSION_TOKEN_KEY = 'km_guest_session_token';
+    window._getGuestSessionToken = () => {
+        try { return sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY) || ''; }
+        catch (e) { return ''; }
+    };
 
     const escapeHtml = (s) => String(s || '')
         .replace(/&/g, '&amp;')
@@ -2677,6 +2682,9 @@
                 data = await apiPostJson('/api/chatbot/query/', requestBody);
             }
             const botReply = data.response || data.answer || data.message || 'मुझे समझ नहीं आया, कृपया फिर से पूछें।';
+            if (data.guest_session_token) {
+                try { sessionStorage.setItem(GUEST_SESSION_TOKEN_KEY, data.guest_session_token); } catch (e) {}
+            }
 
             // Persist bot reply to conversation history
             _pushHistory('assistant', botReply, data.intent);

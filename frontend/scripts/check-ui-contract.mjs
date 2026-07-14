@@ -95,6 +95,16 @@ check(
   'Profile action must navigate to the existing AI assistant/profile panel',
 );
 check(
+  auth.includes("sessionStorage.getItem(SS_REFRESH)") &&
+    auth.includes("sessionStorage.setItem(SS_REFRESH, data.refresh)"),
+  'Refresh token must be stored only for the current browser session',
+);
+check(
+  !auth.includes("localStorage.setItem(LS_REFRESH") &&
+    auth.includes("localStorage.removeItem(LEGACY_LS_REFRESH)"),
+  'Persistent legacy refresh tokens must be removed from localStorage',
+);
+check(
   !html.includes("openModal('profile')"),
   'Profile action must not pass an unsupported auth modal tab',
 );
