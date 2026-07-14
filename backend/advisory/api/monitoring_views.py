@@ -194,9 +194,11 @@ def readiness_check(request):
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
         checks["database"] = "ok"
+        checks["database_backend"] = connection.vendor
     except Exception as e:
         logger.exception("readiness database check failed: %s", e)
         checks["database"] = "unavailable"
+        checks["database_backend"] = "unavailable"
         overall_ok = False
 
     # ── Cache ─────────────────────────────────────────────────────────────────
@@ -208,17 +210,42 @@ def readiness_check(request):
         logger.exception("readiness cache check failed: %s", e)
         checks["cache"] = "unavailable"
 
+    # Shared Redis is a distinct production dependency. A working LocMem cache
+    # must never make launch readiness claim cross-worker protection is active.
+    try:
+        from django.core.cache import caches
+        redis_backend = settings.CACHES.get("rate_limit", {}).get("BACKEND", "")
+        if "RedisCache" not in redis_backend:
+            checks["redis"] = "not_configured"
+        else:
+            redis_cache = caches["rate_limit"]
+            redis_cache.set("launch_readiness_probe", "ok", 10)
+            checks["redis"] = (
+                "ok (shared)"
+                if redis_cache.get("launch_readiness_probe") == "ok"
+                else "unavailable"
+            )
+    except Exception as exc:
+        logger.exception("readiness redis check failed: %s", exc)
+        checks["redis"] = "unavailable"
+
     # ── Phase 1 AI server (Qwen + RAG) ────────────────────────────────────────
     try:
         import urllib.request
         phase1_base = os.environ.get("PHASE1_BASE_URL") or os.environ.get("PHASE1_URL", "http://127.0.0.1:8001")
         if phase1_base.rstrip("/").endswith("/chat"):
             phase1_base = phase1_base.rstrip("/")[:-5]
-        req = urllib.request.Request(phase1_base.rstrip("/") + "/health")
+        headers = {}
+        phase1_token = os.environ.get("PHASE1_SERVICE_TOKEN", "").strip()
+        if phase1_token:
+            headers["Authorization"] = f"Bearer {phase1_token}"
+        req = urllib.request.Request(
+            phase1_base.rstrip("/") + "/health", headers=headers
+        )
         with urllib.request.urlopen(req, timeout=2) as resp:
             import json
             h = json.loads(resp.read())
-            if h.get("status") == "healthy":
+            if h.get("status") == "healthy" and h.get("rag") is True and h.get("ollama") is True:
                 checks["phase1_ai"] = f"ok (rag={h.get('rag')}, ollama={h.get('ollama')})"
             else:
                 checks["phase1_ai"] = f"degraded: {h.get('status')}"
@@ -326,14 +353,33 @@ def launch_readiness_check(request):
         })
 
     database_ok = str(runtime_checks.get("database", "")).startswith("ok")
-    phase1_ok = str(runtime_checks.get("phase1_ai", "")).startswith("ok")
+    postgres_ok = runtime_checks.get("database_backend") == "postgresql"
+    redis_ok = str(runtime_checks.get("redis", "")).startswith("ok")
+    phase1_status = str(runtime_checks.get("phase1_ai", ""))
+    phase1_ok = (
+        phase1_status.startswith("ok")
+        and "rag=True" in phase1_status
+        and "ollama=True" in phase1_status
+    )
     ollama_status = str(runtime_checks.get("ollama", ""))
     ollama_ok = ollama_status.startswith("ok") and "present=yes" in ollama_status
     disease_ok = str(runtime_checks.get("crop_disease_model", "")).startswith("ok")
-    redis_required = not settings.DEBUG and bool(settings.RATE_LIMIT_ENABLED)
-    redis_ok = _configured_env("REDIS_URL")
     data_gov_ok = _configured_env("DATA_GOV_IN_API_KEY")
     sentry_ok = bool(getattr(settings, "SENTRY_DSN", None))
+    debug_ok = not settings.DEBUG
+    rate_limit_ok = bool(settings.RATE_LIMIT_ENABLED)
+    strict_config_ok = bool(getattr(settings, "STRICT_PRODUCTION_CONFIG", False))
+    rag_required = os.environ.get("RAG_INDEX_REQUIRED", "false").lower() in {"1", "true", "yes"}
+    phase1_auth_ok = _configured_env("PHASE1_SERVICE_TOKEN")
+    disease_classification_enabled = os.environ.get(
+        "DISEASE_CLASSIFICATION_ENABLED", "false"
+    ).lower() in {"1", "true", "yes"}
+    allowed_hosts_ok = bool(settings.ALLOWED_HOSTS) and "*" not in settings.ALLOWED_HOSTS
+    cors_ok = not bool(getattr(settings, "CORS_ALLOW_ALL_ORIGINS", False))
+    twilio_ok = all(
+        _configured_env(name)
+        for name in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER")
+    )
 
     if not database_ok:
         block(
@@ -342,7 +388,27 @@ def launch_readiness_check(request):
             "The farmer data service is not ready.",
             "Verify DATABASE_URL and database connectivity.",
         )
-    if redis_required and not redis_ok:
+    if not postgres_ok:
+        block(
+            "postgresql_required",
+            "database",
+            "Production is not using managed PostgreSQL.",
+            "Set DATABASE_URL to the managed PostgreSQL connection string.",
+        )
+    if not debug_ok:
+        block("debug_enabled", "django", "Debug mode is enabled.", "Set DEBUG=false.")
+    if not rate_limit_ok:
+        block(
+            "rate_limiting_disabled", "security",
+            "Production request limits are disabled.", "Set RATE_LIMIT_ENABLED=true.",
+        )
+    if not strict_config_ok:
+        block(
+            "strict_config_disabled", "configuration",
+            "Production fail-fast configuration is disabled.",
+            "Set STRICT_PRODUCTION_CONFIG=true after all required secrets are configured.",
+        )
+    if not redis_ok:
         block(
             "redis_required",
             "redis",
@@ -370,12 +436,35 @@ def launch_readiness_check(request):
             "The configured local language model is not available.",
             "Install OLLAMA_MODEL and verify the Ollama tags endpoint.",
         )
-    if not disease_ok:
+    if not rag_required:
+        block(
+            "rag_index_not_required", "local_ai",
+            "Phase 1 can start without its knowledge index.", "Set RAG_INDEX_REQUIRED=true.",
+        )
+    if not phase1_auth_ok:
+        block(
+            "phase1_service_token_missing", "local_ai",
+            "Phase 1 service authentication is not configured.",
+            "Set the same PHASE1_SERVICE_TOKEN on Django and Phase 1.",
+        )
+    if disease_classification_enabled and not disease_ok:
         block(
             "disease_model_unverified",
             "diagnostics",
             "Image disease classification is not production-verified.",
             "Keep advisory fallback enabled until model quality is production_candidate.",
+        )
+    if not allowed_hosts_ok or not cors_ok:
+        block(
+            "invalid_origins", "http_security",
+            "Production host or origin restrictions are unsafe.",
+            "Set explicit ALLOWED_HOSTS and disable wildcard CORS.",
+        )
+    if not twilio_ok:
+        block(
+            "otp_provider_unconfigured", "authentication",
+            "Farmer OTP delivery is not configured.",
+            "Set Twilio account, auth token, and sender number secrets.",
         )
     if not sentry_ok:
         block(
@@ -385,7 +474,11 @@ def launch_readiness_check(request):
             "Set SENTRY_DSN before farmer launch.",
         )
 
-    status_label = "blocked_for_launch" if blockers else "ready"
+    status_label = (
+        "blocked_for_launch" if strict and blockers
+        else "degraded" if blockers
+        else "ready"
+    )
     http_status = 503 if strict and blockers else 200
     return JsonResponse({
         "status": status_label,
@@ -397,11 +490,22 @@ def launch_readiness_check(request):
         ),
         "checks": {
             "database": database_ok,
-            "redis": redis_ok if redis_required else "not_required_in_debug",
+            "postgresql": postgres_ok,
+            "debug_disabled": debug_ok,
+            "rate_limiting": rate_limit_ok,
+            "strict_production_config": strict_config_ok,
+            "redis": redis_ok,
             "data_gov_in_api_key": data_gov_ok,
             "phase1_rag": phase1_ok,
             "ollama_model": ollama_ok,
             "disease_model": disease_ok,
+            "disease_mode": (
+                "classification" if disease_classification_enabled else "advisory_fallback"
+            ),
+            "rag_index_required": rag_required,
+            "phase1_service_auth": phase1_auth_ok,
+            "origins_restricted": allowed_hosts_ok and cors_ok,
+            "otp_provider": twilio_ok,
             "sentry": sentry_ok,
         },
         "blockers": blockers,

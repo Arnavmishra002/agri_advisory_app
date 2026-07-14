@@ -451,6 +451,15 @@ RATE_LIMIT_ENABLED = os.environ.get(
 RATE_LIMIT_FAIL_OPEN = os.environ.get(
     'RATE_LIMIT_FAIL_OPEN', 'true' if DEBUG else 'false'
 ).lower() == 'true'
+STRICT_PRODUCTION_CONFIG = os.environ.get(
+    'STRICT_PRODUCTION_CONFIG', 'false'
+).lower() == 'true'
+
+if STRICT_PRODUCTION_CONFIG and not DEBUG and RATE_LIMIT_ENABLED and not _REDIS_URL:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "STRICT_PRODUCTION_CONFIG=true requires REDIS_URL when rate limiting is enabled."
+    )
 
 
 def _positive_int_env(name, default):
