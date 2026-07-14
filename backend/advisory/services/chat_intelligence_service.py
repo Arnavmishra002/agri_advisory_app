@@ -358,6 +358,13 @@ def _phase1_endpoint(path: str) -> str:
         return explicit.rstrip("/")
     return _phase1_base_url() + path
 
+def _phase1_headers() -> Dict[str, str]:
+    headers = {"Content-Type": "application/json"}
+    token = _os.environ.get("PHASE1_SERVICE_TOKEN", "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
 def _cb_is_open() -> bool:
     import time
     from django.core.cache import caches
@@ -1499,7 +1506,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 resp = requests.post(
                     PHASE1_URL,
                     data=payload,
-                    headers={"Content-Type": "application/json"},
+                    headers=_phase1_headers(),
                     timeout=_PHASE1_TIMEOUT,
                 )
                 phase1_latency = int((_time.monotonic() - phase1_started) * 1000)
@@ -4489,7 +4496,7 @@ def _answer_stream(
             with requests.post(
                 PHASE1_STREAM_URL,
                 data=payload,
-                headers={"Content-Type": "application/json"},
+                headers=_phase1_headers(),
                 stream=True,
                 timeout=_PHASE1_STREAM_TIMEOUT,
             ) as resp:
