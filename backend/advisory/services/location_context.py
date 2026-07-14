@@ -5,8 +5,7 @@ Unified Indian location resolution for all KrishiMitra services.
 Priority (Uber/Rapido-style):
   1. GPS coordinates + accuracy (≤10 m → building-level reverse geocode)
   2. Text search (village / town / city / society name)
-  3. IP geolocation (coarse)
-  4. Default (Delhi) — clearly labeled
+  3. Explicit unconfirmed state with no substituted coordinates
 
 All realtime services (weather, mandi, crop, pest, chatbot) should use
 ``location_resolver.resolve()`` or ``LocationContext`` from API helpers.
@@ -111,8 +110,8 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 class LocationContext:
     """Resolved location used by every advisory service."""
 
-    latitude: float
-    longitude: float
+    latitude: Optional[float]
+    longitude: Optional[float]
     display_name: str
     city: str = ""
     village: str = ""
@@ -162,7 +161,7 @@ class LocationResolver:
         longitude: Optional[float] = None,
         location_query: Optional[str] = None,
         accuracy_meters: Optional[float] = None,
-        use_ip_fallback: bool = True,
+        use_ip_fallback: bool = False,
     ) -> LocationContext:
         if latitude is not None and longitude is not None:
             try:
@@ -191,9 +190,7 @@ class LocationResolver:
             return self._text_fallback_context(query)
 
         if use_ip_fallback:
-            ctx = self._resolve_ip()
-            if ctx:
-                return ctx
+            logger.warning("IP location fallback was requested but is disabled for farmer advice")
 
         return self._default_context()
 
@@ -498,8 +495,8 @@ class LocationResolver:
     def _text_fallback_context(self, query: str) -> LocationContext:
         """Last resort when geocoders fail but user provided a place name."""
         return LocationContext(
-            latitude=DEFAULT_LAT,
-            longitude=DEFAULT_LON,
+            latitude=None,
+            longitude=None,
             display_name=query.strip(),
             city=query.strip(),
             source="text_query_ungeocoded",
@@ -607,14 +604,14 @@ class LocationResolver:
 
     def _default_context(self) -> LocationContext:
         return LocationContext(
-            latitude=DEFAULT_LAT,
-            longitude=DEFAULT_LON,
-            display_name="Delhi",
-            city="Delhi",
-            state="Delhi",
-            region="North",
-            source="default_fallback",
-            confidence=0.3,
+            latitude=None,
+            longitude=None,
+            display_name="Location not confirmed",
+            city="",
+            state="",
+            region="",
+            source="unconfirmed",
+            confidence=0.0,
             accuracy_label="low",
         )
 
