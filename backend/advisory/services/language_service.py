@@ -14,6 +14,7 @@ Frontend responsibility (see app.js i18n block):
 """
 
 from __future__ import annotations
+import re
 from typing import Dict, Optional
 
 # ── Supported languages ────────────────────────────────────────────────────
@@ -139,6 +140,53 @@ def normalise_language_code(code: Optional[str]) -> str:
     if short in SUPPORTED_LANGUAGES:
         return short
     return "hi"
+
+
+_SCRIPT_LANGUAGE_RANGES = (
+    ("te", "\u0c00", "\u0c7f"),
+    ("ta", "\u0b80", "\u0bff"),
+    ("gu", "\u0a80", "\u0aff"),
+    ("kn", "\u0c80", "\u0cff"),
+    ("ml", "\u0d00", "\u0d7f"),
+    ("pa", "\u0a00", "\u0a7f"),
+    ("or", "\u0b00", "\u0b7f"),
+    ("sat", "\u1c50", "\u1c7f"),
+)
+
+
+def detect_query_language(query: str, fallback: str = "hi") -> str:
+    """Detect the query script plus common Romanised Hindi/Hinglish markers.
+
+    Script detection is deterministic and dependency-free, which keeps chat
+    startup fast on low-resource deployments. Ambiguous shared scripts use the
+    farmer's selected/state language as the fallback.
+    """
+    text = str(query or "").strip()
+    fallback = normalise_language_code(fallback)
+    if not text:
+        return fallback
+
+    for language, start, end in _SCRIPT_LANGUAGE_RANGES:
+        if any(start <= char <= end for char in text):
+            return language
+    if any("\u0980" <= char <= "\u09ff" for char in text):
+        return fallback if fallback in {"bn", "as", "mni"} else "bn"
+    if any("\u0600" <= char <= "\u06ff" for char in text):
+        return fallback if fallback in {"ur", "sd", "ks"} else "ur"
+    if any("\u0900" <= char <= "\u097f" for char in text):
+        devanagari_languages = {"hi", "mr", "mai", "sa", "ne", "kok", "doi", "bo"}
+        return fallback if fallback in devanagari_languages else "hi"
+
+    latin_text = text.lower()
+    hinglish_markers = re.findall(
+        r"\b(kya|ka|ki|ke|kal|aaj|parson|mausam|baarish|barish|kaisa|kaisi|"
+        r"hoga|hogi|hai|hain|batao|bataiye|fasal|kheti|mandi|bhav|daam|"
+        r"lagaun|ugaun|sinchai|khad|dawai|rog|keet)\b",
+        latin_text,
+    )
+    if hinglish_markers:
+        return "hinglish"
+    return "en"
 
 
 def get_ui_string(key: str, lang: str) -> str:

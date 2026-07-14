@@ -58,24 +58,50 @@
 
       // Wire OTP digit box keyboard navigation
       this._wireOtpInputs();
+      var self = this;
+      var authModal = document.getElementById('authModal');
+      if (authModal && !authModal.dataset.authResetBound) {
+        authModal.dataset.authResetBound = 'true';
+        authModal.addEventListener('hidden.bs.modal', function () {
+          self._resetAuthUi();
+          self.switchTab('phone');
+        });
+      }
     },
 
     /* ── openModal ───────────────────────────────────────────── */
     openModal: function (tab) {
       tab = tab || 'phone';
+      if (['phone', 'password', 'register'].indexOf(tab) === -1) tab = 'phone';
       var el = document.getElementById('authModal');
       if (!el) return;
       if (!this._bsModal) {
         this._bsModal = new bootstrap.Modal(el, { backdrop: true });
       }
+      this._resetAuthUi();
       this.switchTab(tab);
-      this._clearAllErrors();
+      var self = this;
+      el.addEventListener('shown.bs.modal', function clearRestoredAuthFields() {
+        el.removeEventListener('shown.bs.modal', clearRestoredAuthFields);
+        self._resetAuthUi();
+        self.switchTab(tab);
+      });
       this._bsModal.show();
     },
 
     /* ── closeModal ──────────────────────────────────────────── */
     closeModal: function () {
       if (this._bsModal) this._bsModal.hide();
+    },
+
+    openProfile: function () {
+      if (typeof window.showService === 'function') window.showService('ai-assistant');
+      var profile = document.getElementById('farmerProfileCard');
+      if (profile) {
+        profile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var firstInput = profile.querySelector('input,select');
+        if (firstInput) setTimeout(function () { firstInput.focus(); }, 350);
+      }
     },
 
     /* ── switchTab ───────────────────────────────────────────── */
@@ -193,7 +219,7 @@
           });
         })
         .catch(function (err) {
-          var msg = (err.detail || err.error || 'गलत username या password');
+          var msg = self._errorMessage(err, 'गलत username या password');
           if (msg === 'No active account found with the given credentials') {
             msg = 'गलत username या password';
           }
@@ -226,14 +252,14 @@
         name:         name,
         phone_number: phone,
         state:        state,
-        language:     (window._currentLang || 'hi'),
+        language:     (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'hi'),
         session_id:   sessionId,
       })
         .then(function (data) {
           self._onLoginSuccess(data);
         })
         .catch(function (err) {
-          self._setError('registerError', err.error || 'पंजीकरण में समस्या आई');
+          self._setError('registerError', self._errorMessage(err, 'पंजीकरण में समस्या आई'));
         })
         .finally(function () {
           self._setLoading('btnRegister', 'spinnerRegister', false);
@@ -285,6 +311,8 @@
         localStorage.removeItem(LS_USER);
       } catch (e) {}
       if (self._refreshTimer) { clearTimeout(self._refreshTimer); self._refreshTimer = null; }
+      self._resetAuthUi();
+      self.closeModal();
       self._updateNavbar();
       if (window.showToast) showToast('✅ लॉगआउट सफल', 'success', 2000);
     },
@@ -345,6 +373,7 @@
       this._scheduleRefresh();
       this._updateNavbar();
       this.closeModal();
+      this._resetAuthUi();
       var name = (data.user && data.user.name) ? data.user.name : 'किसान';
       if (window.showToast) showToast('🌾 नमस्ते ' + name + '! लॉगिन सफल', 'success');
     },
@@ -457,6 +486,66 @@
         var el = document.getElementById(id);
         if (el) { el.textContent = ''; el.style.display = 'none'; }
       });
+    },
+
+    _resetAuthUi: function () {
+      var self = this;
+      [
+        'authPhoneInput', 'authUsernameInput', 'authPasswordInput',
+        'regNameInput', 'regUsernameInput', 'regPasswordInput',
+        'regPhoneInput', 'regStateInput'
+      ].forEach(function (id) {
+        var input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+      document.querySelectorAll('#otpInputGroup .otp-digit').forEach(function (input) {
+        input.value = '';
+      });
+      ['authPasswordInput', 'regPasswordInput'].forEach(function (id) {
+        var input = document.getElementById(id);
+        if (input) input.type = 'password';
+      });
+      document.querySelectorAll('.auth-password-toggle i').forEach(function (icon) {
+        icon.className = 'fas fa-eye';
+      });
+      var step1 = document.getElementById('otpStep1');
+      var step2 = document.getElementById('otpStep2');
+      var phoneDisplay = document.getElementById('otpPhoneDisplay');
+      var countdown = document.getElementById('otpCountdown');
+      var resend = document.getElementById('btnResendOtp');
+      if (step1) step1.style.display = '';
+      if (step2) step2.style.display = 'none';
+      if (phoneDisplay) phoneDisplay.textContent = '';
+      if (countdown) countdown.textContent = '';
+      if (resend) resend.disabled = true;
+      if (self._countdownTimer) {
+        clearInterval(self._countdownTimer);
+        self._countdownTimer = null;
+      }
+      self._currentPhone = null;
+      self._clearAllErrors();
+      [
+        ['btnSendOtp', 'spinnerSendOtp'],
+        ['btnVerifyOtp', 'spinnerVerifyOtp'],
+        ['btnLoginPassword', 'spinnerLoginPassword'],
+        ['btnRegister', 'spinnerRegister']
+      ].forEach(function (ids) { self._setLoading(ids[0], ids[1], false); });
+    },
+
+    _errorMessage: function (error, fallback) {
+      if (!error) return fallback;
+      var value = error.detail || error.error_hi || error.error || error.message;
+      if (typeof value === 'string') return value;
+      if (value && typeof value === 'object') {
+        var messages = [];
+        Object.keys(value).forEach(function (field) {
+          var fieldValue = value[field];
+          var text = Array.isArray(fieldValue) ? fieldValue.join(' ') : String(fieldValue || '');
+          if (text) messages.push(field + ': ' + text);
+        });
+        if (messages.length) return messages.join(' ');
+      }
+      return fallback;
     },
 
     /* ── _setLoading ─────────────────────────────────────────── */

@@ -1275,6 +1275,87 @@ class MarketPricesService:
         cls._mandi_coord_cache = lookup
         return lookup
 
+    def get_nearby_live_prices(
+        self,
+        location: str,
+        *,
+        selected_mandi: str,
+        crop: str = None,
+        lat: float = None,
+        lon: float = None,
+        state: str = None,
+        radius_km: float = 150,
+        limit: int = 8,
+    ) -> List[Dict[str, Any]]:
+        """Return fresh official rows from other mandis near the selected mandi.
+
+        These rows are intentionally separate from ``top_crops`` so callers
+        cannot mistake a nearby mandi's price for the selected mandi's price.
+        Rows without verifiable coordinates or a live marker are excluded.
+        """
+        coordinates = self._mandi_coordinate_lookup()
+        selected_key = str(selected_mandi or "").strip().lower()
+        origin = coordinates.get(selected_key)
+        if origin is None and lat is not None and lon is not None:
+            origin = (float(lat), float(lon))
+        if origin is None:
+            return []
+
+        live_data = self.get_prices(
+            location,
+            mandi=None,
+            crop=crop,
+            lat=lat,
+            lon=lon,
+            state=state,
+            include_estimates=False,
+        )
+        if live_data.get("is_live") is not True:
+            return []
+
+        alternatives: List[Dict[str, Any]] = []
+        seen = set()
+        for source_row in live_data.get("top_crops") or []:
+            if source_row.get("is_live") is not True:
+                continue
+            mandi_name = str(source_row.get("mandi_name") or "").strip()
+            mandi_key = mandi_name.lower()
+            if not mandi_name or self._mandi_name_matches(mandi_name, selected_key):
+                continue
+            row_coords = coordinates.get(mandi_key)
+            if row_coords is None:
+                row_coords = next(
+                    (
+                        value
+                        for name, value in coordinates.items()
+                        if self._mandi_name_matches(mandi_name, name)
+                    ),
+                    None,
+                )
+            if row_coords is None:
+                continue
+            distance_km = _haversine_km(origin[0], origin[1], row_coords[0], row_coords[1])
+            if distance_km > max(1, min(float(radius_km), 500)):
+                continue
+            unique_key = (
+                mandi_key,
+                str(source_row.get("crop_name") or "").strip().lower(),
+                str(source_row.get("variety") or "").strip().lower(),
+            )
+            if unique_key in seen:
+                continue
+            seen.add(unique_key)
+            row = dict(source_row)
+            row["distance_km"] = round(distance_km, 1)
+            row["is_live"] = True
+            row["price_source"] = row.get("price_source") or "live_mandi"
+            row["data_source"] = live_data.get("data_source", "Agmarknet/data.gov.in")
+            row["reported_date"] = row.get("date") or live_data.get("reported_date")
+            alternatives.append(row)
+
+        alternatives.sort(key=lambda item: (item["distance_km"], item["mandi_name"].lower()))
+        return alternatives[:max(1, min(int(limit), 20))]
+
     def _enrich_and_sort_mandis(
         self,
         mandis: List[Dict[str, Any]],

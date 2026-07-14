@@ -37,6 +37,22 @@ def resolve_request_location(request: Request) -> LocationContext:
   Accepts: latitude/longitude (or lat/lon), accuracy/accuracy_meters, location text.
   GPS coordinates always win when valid (India bounds).
     """
+    location_confirmed = _get_param(request, "location_confirmed")
+    if location_confirmed is False or str(location_confirmed).strip().lower() in {
+        "0", "false", "no", "off"
+    }:
+        return LocationContext(
+            latitude=22.9734,
+            longitude=78.6569,
+            display_name="",
+            country="India",
+            location_type="country",
+            accuracy_label="unknown",
+            source="unconfirmed",
+            confidence=0.0,
+            is_gps=False,
+        )
+
     lat = _float_param(_get_param(
         request, "latitude", "lat", "gps_lat", "gps_latitude"
     ))

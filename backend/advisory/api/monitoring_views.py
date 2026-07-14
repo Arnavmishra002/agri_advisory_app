@@ -232,7 +232,7 @@ def readiness_check(request):
         with urllib.request.urlopen(req, timeout=2) as resp:
             import json
             models = [m["name"] for m in json.loads(resp.read()).get("models", [])]
-            desired_model = os.environ.get("OLLAMA_MODEL", "krishimitra-llm").strip()
+            desired_model = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b").strip()
             desired_base = desired_model.split(":", 1)[0]
             model_present = any(
                 model == desired_model or model.split(":", 1)[0] == desired_base

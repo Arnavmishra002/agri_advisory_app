@@ -147,6 +147,7 @@ class ChatRequest(_StrictModel):
     history: List[HistoryEntry] = Field(default_factory=list, max_length=20)
     sensor_context: Optional[SensorContextPayload] = None
     farmer_profile: Optional[FarmerProfilePayload] = None
+    verified_knowledge: Optional[str] = Field(None, max_length=3000)
     stream: bool = False
 
     class Config:
@@ -207,14 +208,18 @@ def _get_weather_summary(location: str, lat: float, lon: float, lang: str) -> st
             return ""
         w = ws.get_weather(location, lat, lon, lang=lang)
         cur     = w.get("current") or {}
-        alerts  = w.get("farming_alerts") or []
+        alerts = [
+            str(alert)
+            for alert in (w.get("farming_alerts") or [])
+            if "uv" not in str(alert).casefold()
+        ]
         forecast = (w.get("forecast_7day") or [])[:3]
         lines = [
             f"Current: {cur.get('temperature')}°C, {cur.get('condition', '')}",
             f"Air humidity: {cur.get('humidity')}% (not soil moisture)",
         ]
         if alerts:
-            lines.append(f"ALERT: {' | '.join(str(a) for a in alerts[:2])}")
+            lines.append(f"ALERT: {' | '.join(alerts[:2])}")
         if forecast:
             fc_text = "; ".join(
                 f"{d.get('date')}: {d.get('max_temp')}°C rain {d.get('rainfall_mm', 0)}mm"
@@ -253,6 +258,7 @@ async def chat_endpoint(req: ChatRequest):
     prompt = build_farming_prompt(
         question=req.query,
         rag_chunks=rag_texts,
+        verified_knowledge=req.verified_knowledge,
         weather_summary=weather_summary or None,
         sensor_data=_model_dict(req.sensor_context),
         farmer_profile={
@@ -264,17 +270,11 @@ async def chat_endpoint(req: ChatRequest):
         conversation_history=[_model_dict(item) for item in req.history],
     )
 
-    # 4. Generate response via Qwen
-    # Bug 6 fix: if Qwen returns empty string (e.g. Ollama overloaded),
-    # return a safe fallback message instead of letting Pydantic validation
-    # reject the empty string and emit a 422 to the Django caller.
-    _OFFLINE_MSG = (
-        "माफ़ करें, AI सेवा अभी व्यस्त है। "
-        "Kisan Helpline: 1800-180-1551 (Free, 24x7)\n\n"
-        "Sorry, AI service is temporarily busy. "
-        "Please call Kisan Helpline: 1800-180-1551 (Free, 24x7)"
-    )
-    response_text = chat(prompt) or _OFFLINE_MSG
+    # An empty model result is a service failure, not an answer. Returning 503
+    # lets Django continue through direct Ollama and its grounded rule fallback.
+    response_text = chat(prompt)
+    if not response_text:
+        raise HTTPException(status_code=503, detail="Local AI model unavailable")
 
     return ChatResponse(
         response=response_text,
@@ -307,6 +307,7 @@ async def chat_stream_endpoint(req: ChatRequest):
     prompt = build_farming_prompt(
         question=req.query,
         rag_chunks=rag_texts,
+        verified_knowledge=req.verified_knowledge,
         weather_summary=weather_summary or None,
         sensor_data=_model_dict(req.sensor_context),
         farmer_profile={

@@ -455,7 +455,7 @@ class RegistrationInputSerializer(StrictSerializer):
     state = serializers.CharField(required=False, allow_blank=True, max_length=100)
     language = serializers.ChoiceField(
         required=False,
-        choices=("hi", "en", "hinglish"),
+        choices=tuple(SUPPORTED_LANGUAGES),
         default="hi",
     )
     session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
@@ -474,6 +474,7 @@ class ChatbotRequestSerializer(StrictSerializer):
     )
     session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
     fast_mode = serializers.BooleanField(required=False, default=False)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
     history = serializers.ListField(
         required=False,
         child=ChatHistoryEntrySerializer(),
@@ -498,6 +499,17 @@ class ChatbotRequestSerializer(StrictSerializer):
     place = serializers.CharField(required=False, allow_blank=True, max_length=200)
     address = serializers.CharField(required=False, allow_blank=True, max_length=300)
     state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+
+
+class ChatbotFeedbackSerializer(StrictSerializer):
+    feedback_token = serializers.CharField(max_length=4096, trim_whitespace=True)
+    is_helpful = serializers.BooleanField()
+    feedback_text = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        trim_whitespace=True,
+    )
 
 
 class FarmerCropHistoryEntrySerializer(StrictSerializer):

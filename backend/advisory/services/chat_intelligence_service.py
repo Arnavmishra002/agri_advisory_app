@@ -31,7 +31,7 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -39,6 +39,7 @@ import requests
 from .crop_catalog import crop_catalog
 from .crop_recommendation_engine import crop_recommendation_engine
 from .language_service import (
+    detect_query_language,
     normalise_language_code,
     get_gemini_language_instruction,
     get_language_for_state,
@@ -103,12 +104,25 @@ def _safe_temp(temp_str: str, fallback: float = 25.0) -> float:
         return fallback
 
 
+def _is_ai_unavailable_text(value: str) -> bool:
+    normalized = str(value or "").strip().lower()
+    markers = (
+        "ai सेवा ऑफलाइन",
+        "ai सेवा में त्रुटि",
+        "ai service is currently offline",
+        "[stream error",
+    )
+    return any(marker in normalized for marker in markers)
+
+
 def _usable_text(value: Any) -> Optional[str]:
-    """Accept only non-empty model text, never truthy mock/object values."""
+    """Accept real model text, never objects or transport-status messages."""
     if not isinstance(value, str):
         return None
     value = value.strip()
-    return value or None
+    if not value or _is_ai_unavailable_text(value):
+        return None
+    return value
 
 def _env_float(name: str, default: float) -> float:
     try:
@@ -130,8 +144,8 @@ _PHASE1_CONNECT_TIMEOUT_S: float = _env_float("PHASE1_CONNECT_TIMEOUT_S", min(2.
 _PHASE1_READ_TIMEOUT_S:    float = _env_float("PHASE1_READ_TIMEOUT_S", _PHASE1_TIMEOUT_S)
 _PHASE1_TIMEOUT: Tuple[float, float] = (_PHASE1_CONNECT_TIMEOUT_S, _PHASE1_READ_TIMEOUT_S)
 _PHASE1_STREAM_CONNECT_TIMEOUT_S: float = _env_float("PHASE1_STREAM_CONNECT_TIMEOUT_S", _PHASE1_CONNECT_TIMEOUT_S)
-_PHASE1_STREAM_READ_TIMEOUT_S:    float = _env_float("PHASE1_STREAM_READ_TIMEOUT_S", 15.0)
-_PHASE1_STREAM_TOTAL_TIMEOUT_S:   float = _env_float("PHASE1_STREAM_TOTAL_TIMEOUT_S", 30.0)
+_PHASE1_STREAM_READ_TIMEOUT_S:    float = _env_float("PHASE1_STREAM_READ_TIMEOUT_S", 18.0)
+_PHASE1_STREAM_TOTAL_TIMEOUT_S:   float = _env_float("PHASE1_STREAM_TOTAL_TIMEOUT_S", 40.0)
 _PHASE1_STREAM_TIMEOUT: Tuple[float, float] = (
     _PHASE1_STREAM_CONNECT_TIMEOUT_S,
     _PHASE1_STREAM_READ_TIMEOUT_S,
@@ -151,7 +165,7 @@ _OLLAMA_DIRECT_TIMEOUT: Tuple[float, float] = (
 )
 _CHAT_REALTIME_TIMEOUT_S:float = _env_float("CHAT_REALTIME_TIMEOUT_S", 5.0)
 _CHAT_LOCAL_AI_MAX_CONCURRENCY: int = max(1, _env_int("CHAT_LOCAL_AI_MAX_CONCURRENCY", 1))
-_PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S: float = _env_float("PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S", 8.0)
+_PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S: float = _env_float("PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S", 12.0)
 _PHASE1_STREAM_IDLE_TIMEOUT_S: float = _env_float(
     "PHASE1_STREAM_IDLE_TIMEOUT_S",
     _PHASE1_STREAM_READ_TIMEOUT_S,
@@ -298,6 +312,7 @@ def chatbot_quality_metadata(
         "knowledge_base_local_llm": ("Local knowledge AI", "local_ai", 15000),
         "phase1_rag_ollama": ("Local AI + knowledge base", "local_ai", 15000),
         "phase1_rag_ollama_stream": ("Local AI + knowledge base", "local_ai", 15000),
+        "phase1_partial_stream": ("Local AI response interrupted", "degraded", 15000),
         "direct_ollama": ("Local AI fallback", "local_ai", 15000),
         "gemini": ("Cloud AI fallback", "cloud_fallback", 15000),
         "gemini_stream": ("Cloud AI fallback", "cloud_fallback", 15000),
@@ -911,8 +926,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         _reset_chat_meta()
         answer_started = _time.monotonic()
 
-        if language == "auto" and ctx.state:
-            lang = get_language_for_state(ctx.state)
+        if language == "auto":
+            lang = detect_query_language(
+                query,
+                fallback=get_language_for_state(ctx.state) if ctx.state else "hi",
+            )
 
         if not query:
             _set_chat_meta(selected_tier="empty_query", total_llm_ms=0)
@@ -1015,6 +1033,37 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     _named_ctx.latitude, _named_ctx.longitude,
                 )
                 ctx = _named_ctx
+
+        location_required_intents = {
+            INTENT_WEATHER,
+            INTENT_CROP_RECOMMENDATION,
+            INTENT_MARKET_PRICE,
+            INTENT_IRRIGATION,
+            INTENT_SOIL,
+        }
+        if getattr(ctx, "source", "") == "unconfirmed" and intent in location_required_intents:
+            now = datetime.now(tz=timezone.utc)
+            _set_chat_meta(
+                selected_tier="location_required",
+                fallback_reason="location_not_confirmed",
+                total_llm_ms=0,
+            )
+            response_text = self._location_required_response(lang)
+            diagnostics = dict(_chat_meta())
+            data_source = "KrishiMitra location check"
+            return {
+                "response": response_text,
+                "intent": intent,
+                "sources": [],
+                "crops_detected": [crop["name"] for crop in crops_mentioned],
+                "crop_suggestions": [],
+                "language": lang,
+                "data_source": data_source,
+                "timestamp": now.isoformat(),
+                "location_context": ctx.to_dict(),
+                "chatbot_diagnostics": diagnostics,
+                "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
+            }
 
         # ── Concurrent data fetch ─────────────────────────────────
         weather_data: Dict[str, Any] = {}
@@ -1234,61 +1283,31 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         season = _current_season(now.month)
 
         # ── Generate response ─────────────────────────────────────
-        # Priority chain (offline-first, AI-credit-saving):
-        #   0. Local Knowledge Base  — instant pre-built Q&A (0 AI credits)
-        #      Covers: MSP, sowing, fertilizer, irrigation, pests, schemes
-        #      ~80% hit rate → zero credits for most farmer queries
-        #   1. krishimitra-llm / Qwen2.5:7b — local Ollama (0 AI credits)
-        #      Covers: complex / multi-step / novel queries
-        #   2. Gemini API — cloud (costs AI credits)
-        #      Only when: key is set AND Tiers 0+1 both returned nothing
-        #   3. Rule-based — instant ICAR-grounded fallback (always works)
-        #
-        # fast_mode=True: only Tier 0 + Tier 3 run (no LLM at all)
+        # KB matches are factual grounding, not final prose. The local RAG
+        # model composes a fresh answer for the exact query; Gemini is optional,
+        # and structured rules remain the always-available fallback.
+        # fast_mode=True skips all LLM composition and uses structured rules.
         response_text: Optional[str] = None
         data_source   = "KrishiMitra Advisory Engine"
 
         # ── Tier 0: Local Knowledge Base (instant, zero AI credits) ──────────
-        try:
-            from .knowledge_base import knowledge_base
-            crop_id = crops_mentioned[0].get("id") if crops_mentioned else None
-            kb_result = knowledge_base.answer(
-                query=query,
-                crop=crop_id,
-                state=ctx.state if hasattr(ctx, "state") else None,
-                language=lang,
-                weather_context=_wc_to_dict(wc),
-                allow_local_llm=False,
-            )
-            kb_text = _usable_text(kb_result.get("answer"))
-            if kb_text:
-                response_text = kb_text
-                kb_source = kb_result.get("source", "knowledge_base")
-                _set_chat_meta(
-                    selected_tier=(
-                        "knowledge_base"
-                        if kb_source == "knowledge_base"
-                        else "knowledge_base_local_llm"
-                    ),
-                    fallback_reason="",
-                )
-                data_source = (
-                    "KrishiMitra KB (instant)"
-                    if kb_source == "knowledge_base"
-                    else "krishimitra-llm (fine-tuned KCC model)"
-                )
-                logger.info("KB Tier 0: answered via %s for intent=%s", kb_source, intent)
-        except Exception as exc:
-            logger.warning("KB Tier 0 error: %s", exc)
+        kb_grounding = "" if fast_mode else self._local_kb_grounding(
+            query=query,
+            crops=crops_mentioned,
+            ctx=ctx,
+            lang=lang,
+            wc=wc,
+        )
 
         # Tier 1: krishimitra-llm — analyses ALL real-time data before responding
         if not response_text and not fast_mode:
             response_text = _usable_text(self._qwen_rag_answer(
                 query=query, ctx=ctx, lang=lang, history=history,
                 sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
+                local_kb_context=kb_grounding,
             ))
             if response_text:
-                data_source = _chat_meta().get("source_label") or "krishimitra-llm (fine-tuned KCC model)"
+                data_source = _chat_meta().get("source_label") or "KrishiMitra local RAG"
 
         # Tier 2: Gemini API — optional cloud, only when LLM unavailable
         has_gemini = _is_valid_gemini_key(gemini_service.api_key)
@@ -1350,6 +1369,32 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
     # ── Tier 2: Qwen 2.5 7B + RAG (local Phase 1 server) ────────
 
+    def _local_kb_grounding(
+        self,
+        query: str,
+        crops: List[Dict[str, Any]],
+        ctx: LocationContext,
+        lang: str,
+        wc: WeatherConstraints,
+    ) -> str:
+        """Retrieve trusted KB facts for composition without returning canned text."""
+        try:
+            from .knowledge_base import knowledge_base
+
+            crop_id = crops[0].get("id") if crops else None
+            result = knowledge_base.answer(
+                query=query,
+                crop=crop_id,
+                state=getattr(ctx, "state", None),
+                language=lang,
+                weather_context=_wc_to_dict(wc),
+                allow_local_llm=False,
+            )
+            return _usable_text(result.get("answer")) or ""
+        except Exception as exc:
+            logger.warning("Local KB grounding unavailable: %s", exc)
+            return ""
+
     def _qwen_rag_answer(
         self,
         query: str,
@@ -1360,6 +1405,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         wc: WeatherConstraints,
         market_str: str,
         farmer_profile: Optional[Dict[str, Any]] = None,
+        local_kb_context: str = "",
     ) -> Optional[str]:
         """
         Tier 2: krishimitra-llm (fine-tuned custom model) via two paths:
@@ -1431,6 +1477,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "history":        clean_history,
             "sensor_context": sensor_ctx,
             "farmer_profile": farmer_profile,
+            "verified_knowledge": local_kb_context[:3000] or None,
             "stream":         False,
         }, ensure_ascii=False).encode("utf-8")
 
@@ -1458,7 +1505,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         selected_tier="phase1_rag_ollama",
                         fallback_reason="",
                         phase1_latency_ms=phase1_latency,
-                        source_label="krishimitra-llm via Phase1 RAG",
+                        source_label="KrishiMitra local RAG",
                     )
                     logger.info(
                         "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
@@ -1493,7 +1540,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # ── Path B: Direct Ollama — Ultra-Rich Context (all real-time data) ─────
         OLLAMA_BASE  = _os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
         OLLAMA_URL   = f"{OLLAMA_BASE}/api/chat"
-        OLLAMA_MODEL = _os.environ.get("OLLAMA_MODEL", "krishimitra-llm")
+        OLLAMA_MODEL = _os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
         prompt_parts: List[str] = []
         now          = datetime.now(tz=timezone.utc)
@@ -1561,6 +1608,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # 3. Live mandi prices with MSP comparison
         if market_str and market_str.strip() not in ("", "N/A", "No live price rows today"):
             prompt_parts.append(f"[LIVE MANDI PRICES — {ctx.display_name}]\n{market_str}")
+
+        if local_kb_context:
+            prompt_parts.append(
+                "[LOCAL VERIFIED KNOWLEDGE — USE AS FACTS, DO NOT COPY VERBATIM]\n"
+                + local_kb_context[:1400]
+            )
 
         # 4. Farmer profile — EVERYTHING we know about this farmer
         if farmer_profile:
@@ -1673,7 +1726,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "10. MARKET: If farmer asks selling price, compare current mandi rate vs MSP. Advise when to sell.\n"
             "11. THIN CONTEXT: If the supplied weather, market, sensor, or ICAR/GOVERNMENT ADVISORY sections "
             "do not contain enough verified facts for a dose, disease certainty, eligibility, or price claim, "
-            "say you do not have enough verified context and suggest the nearest KVK/agriculture officer."
+            "say you do not have enough verified context and suggest the nearest KVK/agriculture officer.\n"
+            "12. COMPOSE: Answer the farmer's exact question in fresh, natural wording. Treat knowledge-base "
+            "text as factual notes, not a stored answer. Do not copy retrieved paragraphs verbatim.\n"
+            "13. RELEVANCE: Start with the direct answer. Include only details that help this question, then "
+            "give concise steps. Ask one clarifying question only when a required fact is missing."
         )
 
         ollama_payload = json.dumps({
@@ -1712,7 +1769,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 _set_chat_meta(
                     selected_tier="direct_ollama",
                     ollama_latency_ms=ollama_latency,
-                    source_label="krishimitra-llm direct Ollama",
+                    source_label="KrishiMitra local Ollama",
                 )
                 logger.info(
                     "krishimitra-llm direct Ollama: '%s...' — %d chars",
@@ -2174,6 +2231,25 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # These prevent intent misrouting when two keywords from different
         # intents appear in the same sentence.
 
+        # Indic combining marks make regex word boundaries unreliable. Route
+        # explicit sowing questions before generic crop-recommendation rules.
+        has_sowing_term = any(
+            term in q
+            for term in (
+                "बुवाई", "बुआई", "buwai", "buai", "sowing", "when to sow",
+                "how to sow", "कब बोएं", "कैसे बोएं",
+            )
+        )
+        asks_sowing_detail = any(
+            term in q
+            for term in (
+                "समय", "तरीका", "कैसे", "कब", "गहराई", "दूरी", "बीज दर",
+                "time", "when", "how", "method", "depth", "spacing", "seed rate",
+            )
+        )
+        if has_sowing_term and asks_sowing_detail:
+            return INTENT_SOWING, crops_mentioned
+
         # "barish ke baad [X me] sinchai" → IRRIGATION (not WEATHER)
         # Allow up to ~5 words between "barish ke baad" and "sinchai/pani"
         if re.search(
@@ -2246,17 +2322,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 phrase = " ".join(tokens[i:i + length])
                 if len(phrase) < 2:
                     continue
-                norm = crop_catalog.normalize(phrase)
+                # Entity extraction must be exact. Autocomplete-style fuzzy
+                # matching turns Hinglish time words such as "kal" into crops
+                # such as Kale/Kalmegh and pollutes weather/mandi answers.
+                norm = crop_catalog.normalize(phrase, allow_fuzzy=False)
                 # FIX: was norm["id"] — crashes when normalize() returns None
                 if norm and norm.get("id") and norm["id"] not in seen:
                     seen.add(norm["id"])
                     found.append(norm)
-        if not found:
-            for r in crop_catalog.search(text, limit=3):
-                # FIX: was r["id"] — search() can return dicts without "id" key
-                if r.get("id") and r["id"] not in seen:
-                    seen.add(r["id"])
-                    found.append(r)
         return found[:5]
 
     def _extract_query_entities(self, query: str) -> Dict[str, Any]:
@@ -2687,6 +2760,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     f"• Why are tomato leaves turning yellow?\n\n"
                     f"📞 Kisan Helpline: **1800-180-1551** (Free, 24x7)"
                 ),
+                "hinglish": (
+                    f"Namaste Kisan! 🌾 Main **KrishiMitra AI** hoon — aapka farming assistant.\n\n"
+                    f"{location_line_en}"
+                    f"🗓️ Season: **{season}**\n"
+                    "Aap Hindi, Hinglish, English ya apni regional language mein pooch sakte hain.\n"
+                    "Jaise: kal baarish hogi, gehu ka mandi bhav, ya pattiyan peeli kyon hain?\n\n"
+                    "📞 Kisan Helpline: **1800-180-1551** (Free, 24x7)"
+                ),
             }
             return alert_prefix + msgs.get(lang, msgs["en"])
 
@@ -2695,7 +2776,42 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             forecast_lines = [l for l in context_block.splitlines() if l.strip().startswith("202")]
             alerts = [l for l in context_block.splitlines() if "[ALERT]" in l]
 
-            resp = {
+            wants_tomorrow = bool(re.search(r"\b(kal|tomorrow|कल)\b", query, re.I))
+            tomorrow_date = (now + timedelta(days=1)).date().isoformat()
+            tomorrow_line = next(
+                (line.strip() for line in forecast_lines if line.strip().startswith(tomorrow_date)),
+                "",
+            )
+            tomorrow_values = re.search(
+                r"max\s+([\d.]+)°C,\s*rain\s+([\d.]+)mm,\s*prob\s+([\d.]+)%",
+                tomorrow_line,
+                re.I,
+            )
+
+            if wants_tomorrow and tomorrow_values:
+                max_temp, rain_mm, rain_probability = tomorrow_values.groups()
+                resp = {
+                    "hi": (
+                        f"🌦️ **कल {loc} का मौसम:**\n\n"
+                        f"🌡️ अधिकतम तापमान **{max_temp}°C** रहेगा। "
+                        f"बारिश की संभावना **{rain_probability}%** है और लगभग **{rain_mm} mm** बारिश हो सकती है।\n"
+                        f"{'🚨 ' + farming_advice if farming_advice else '✅ खेत का काम बारिश की संभावना देखकर तय करें।'}\n\n"
+                    ),
+                    "hinglish": (
+                        f"🌦️ **Kal {loc} ka mausam:**\n\n"
+                        f"🌡️ Maximum temperature **{max_temp}°C** rahega. "
+                        f"Baarish ki probability **{rain_probability}%** hai aur lagbhag **{rain_mm} mm** rain ho sakti hai.\n"
+                        "✅ Field work aur irrigation ka decision rain probability dekhkar karein.\n\n"
+                    ),
+                    "en": (
+                        f"🌦️ **Tomorrow in {loc}:**\n\n"
+                        f"🌡️ Maximum temperature **{max_temp}°C**. Rain probability is "
+                        f"**{rain_probability}%**, with about **{rain_mm} mm** forecast.\n"
+                        "✅ Plan field work and irrigation around the rain probability.\n\n"
+                    ),
+                }.get(lang, f"Tomorrow in {loc}: max {max_temp}°C, rain {rain_mm}mm ({rain_probability}%).\n\n")
+            else:
+                resp = {
                 "hi": (
                     f"🌦️ **{loc}** का लाइव मौसम ({now.strftime('%d %B %Y')}):\n\n"
                     f"🌡️ तापमान: **{temp}°C** | 💧 नमी: **{humidity}%** | 🌬️ {cond}\n"
@@ -2706,18 +2822,32 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     f"🌡️ Temp: **{temp}°C** | 💧 Humidity: **{humidity}%** | {cond}\n"
                     f"{'🚨 ' + farming_advice if farming_advice else '✅ Normal farming conditions'}\n\n"
                 ),
-            }.get(lang, f"Weather {loc}: {temp}°C, {cond}. {farming_advice}\n\n")
+                "hinglish": (
+                    f"🌦️ **{loc} ka live mausam ({now.strftime('%d %B %Y')}):**\n\n"
+                    f"🌡️ Temperature **{temp}°C** | 💧 Humidity **{humidity}%** | {cond}\n"
+                    f"{'🚨 ' + farming_advice if farming_advice else '✅ Normal farming activities jaari rakh sakte hain.'}\n\n"
+                ),
+                }.get(lang, f"Weather {loc}: {temp}°C, {cond}. {farming_advice}\n\n")
 
             if alerts:
                 resp += ("⚠️ **कृषि चेतावनी:**\n" if lang == "hi" else "⚠️ **Farming Alerts:**\n")
                 resp += "\n".join(a.replace("[ALERT]", "").strip() for a in alerts[:3]) + "\n\n"
 
             if forecast_lines:
-                resp += ("📅 **7 दिन का पूर्वानुमान:**\n" if lang == "hi" else "📅 **7-Day Forecast:**\n")
+                forecast_header = (
+                    "📅 **7 दिन का पूर्वानुमान:**\n"
+                    if lang == "hi"
+                    else "📅 **Agle dinon ka forecast:**\n"
+                    if lang == "hinglish"
+                    else "📅 **7-Day Forecast:**\n"
+                )
+                resp += forecast_header
                 resp += "\n".join(f"• {l.strip()}" for l in forecast_lines[:5]) + "\n\n"
 
             resp += "🌐 IMD: **mausam.imd.gov.in** | Meghdoot App"
-            return alert_prefix + resp
+            # Weather renders its structured alert list above. Prefixing the
+            # same WeatherConstraints text duplicates every warning.
+            return resp
 
         # ── CROP RECOMMENDATION ──────────────────────────────────
         if intent in (INTENT_CROP_RECOMMENDATION, INTENT_CROP_INFO):
@@ -3970,6 +4100,25 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "pa": "ਕਿਰਪਾ ਕਰਕੇ ਆਪਣਾ ਸਵਾਲ ਲਿਖੋ।",
         }.get(lang, "Please type your question.")
 
+    def _location_required_response(self, lang: str) -> str:
+        messages = {
+            "hi": (
+                "आपके इलाके की सही जानकारी देने के लिए पहले अपना स्थान चुनें। "
+                "ऊपर GPS दबाएं या शहर, जिला या गाँव खोजें। स्थान पक्का होने के बाद मैं "
+                "स्थानीय मौसम, नज़दीकी मंडी और फसल सलाह दूँगा।"
+            ),
+            "hinglish": (
+                "Sahi local jawab ke liye pehle apni location confirm karein. "
+                "Upar GPS dabayein ya city, district ya village search karein."
+            ),
+            "en": (
+                "Please confirm your location first using GPS or by searching for your "
+                "city, district, or village. Then I can provide local weather, nearby mandi "
+                "prices, and crop advice without guessing your location."
+            ),
+        }
+        return messages.get(lang, messages["en"])
+
     # ── Crop suggestion cards ─────────────────────────────────────
 
     def _crop_suggestions_for_intent(
@@ -4066,6 +4215,11 @@ def _answer_stream(
 
     query = (query or "").strip()
     lang  = normalise_language_code(language)
+    if language == "auto":
+        lang = detect_query_language(
+            query,
+            fallback=get_language_for_state(ctx.state) if ctx.state else "hi",
+        )
     _reset_chat_meta()
 
     if not query:
@@ -4121,45 +4275,85 @@ def _answer_stream(
         yield _done_payload("KrishiMitra Advisory Engine")
         return
 
-    # ── Tier 0: Local KB first, matching the JSON path ─────────────
-    try:
-        from .knowledge_base import knowledge_base
-        crop_id = crops_mentioned[0].get("id") if crops_mentioned else None
-        kb_result = knowledge_base.answer(
-            query=query,
-            crop=crop_id,
-            state=getattr(ctx, "state", None),
-            language=lang,
-            weather_context=None,
-            allow_local_llm=False,
+    location_required_intents = {
+        INTENT_WEATHER,
+        INTENT_CROP_RECOMMENDATION,
+        INTENT_MARKET_PRICE,
+        INTENT_IRRIGATION,
+        INTENT_SOIL,
+    }
+    named_location = self._extract_query_location(query) if intent in location_required_intents else None
+    if getattr(ctx, "source", "") == "unconfirmed" and intent in location_required_intents and named_location is None:
+        _set_chat_meta(
+            selected_tier="location_required",
+            fallback_reason="location_not_confirmed",
+            total_llm_ms=0,
         )
-        kb_text = (kb_result.get("answer") or "").strip()
-        if kb_text:
-            source = kb_result.get("source", "knowledge_base")
-            _set_chat_meta(
-                selected_tier=(
-                    "knowledge_base"
-                    if source == "knowledge_base"
-                    else "knowledge_base_local_llm"
-                ),
-                fallback_reason="",
-                total_llm_ms=int((_time.monotonic() - stream_started) * 1000),
-            )
-            for token in _yield_answer_chunks(kb_text):
-                yield token
-            data_source = (
-                "KrishiMitra KB (instant)"
-                if source == "knowledge_base"
-                else "krishimitra-llm (fine-tuned KCC model)"
-            )
-            yield _done_payload(data_source)
-            return
-    except Exception as exc:
-        logger.warning("KB stream tier failed (%s) — trying Phase1 stream", exc)
+        for token in _yield_answer_chunks(self._location_required_response(lang)):
+            yield token
+        yield _done_payload("KrishiMitra location check")
+        return
+
+    # Weather and mandi questions must use the same verified-data pipeline as
+    # the JSON endpoint. Streaming these intents through Phase 1 can replace a
+    # valid live lookup with an unrelated model/offline message, which is both
+    # confusing and unsafe for price decisions. The grounded answer is still
+    # delivered incrementally to the SSE client in small chunks.
+    is_msp_policy_query = bool(
+        intent == INTENT_MARKET_PRICE
+        and re.search(r"\b(msp|minimum\s+support|न्यूनतम\s+समर्थन)\b", query, re.I)
+        and not re.search(r"\b(mandi|मंडी|bhav|भाव|rate|daam|दाम|price|कीमत)\b", query, re.I)
+    )
+    if intent == INTENT_WEATHER or (
+        intent == INTENT_MARKET_PRICE and not is_msp_policy_query
+    ):
+        result = self.answer(
+            query=query,
+            ctx=ctx,
+            language=language,
+            history=history,
+            farmer_profile=farmer_profile,
+            fast_mode=True,
+        )
+        response_text = str(result.get("response") or self._empty_response(lang))
+        for token in _yield_answer_chunks(response_text):
+            yield token
+        yield {
+            "__done__": True,
+            "intent": result.get("intent", intent),
+            "language": result.get("language", lang),
+            "data_source": result.get("data_source", "KrishiMitra Advisory Engine"),
+            "crops_detected": result.get(
+                "crops_detected", [c["name"] for c in crops_mentioned]
+            ),
+            "crop_suggestions": result.get("crop_suggestions", []),
+            "season": season,
+            "timestamp": result.get("timestamp", now.isoformat()),
+            "location_context": result.get("location_context"),
+            "chatbot_diagnostics": result.get("chatbot_diagnostics", {}),
+            "ai_data_quality": result.get("ai_data_quality", {}),
+            "sources": result.get("sources", []),
+        }
+        return
+
+    # ── Local RAG composition ────────────────────────────────────────────
+    # Give Phase 1 the exact local KB hit as highest-priority evidence. Its
+    # vector RAG retrieval remains useful supplementary context, but is broader
+    # and can otherwise surface a nearby yet incorrect crop practice.
+    verified_knowledge = self._local_kb_grounding(
+        query=query,
+        crops=crops_mentioned,
+        ctx=ctx,
+        lang=lang,
+        wc=WeatherConstraints(),
+    )
 
     # ── Tier 1: Phase 1 Ollama/RAG streaming ───────────────────────
+    phase1_stream_attempted = False
+    phase1_stream_failure_reason = ""
     if not fast_mode:
         stream_slot_held = False
+        partial_stream_text: List[str] = []
         try:
             PHASE1_STREAM_URL = _phase1_endpoint("/chat/stream")
             crop_hint = crops_mentioned[0].get("name") if crops_mentioned else None
@@ -4174,6 +4368,7 @@ def _answer_stream(
                 "history": [{"role": m.get("role","user"), "content": m.get("content","")}
                              for m in (history or [])[-6:] if m.get("content")],
                 "farmer_profile": farmer_profile,
+                "verified_knowledge": verified_knowledge[:3000] or None,
                 "stream": True,
             }, ensure_ascii=False).encode()
             if not _acquire_local_ai_slot():
@@ -4183,6 +4378,7 @@ def _answer_stream(
                 yield _done_payload("local_ai_busy_fallback")
                 return
             stream_slot_held = True
+            phase1_stream_attempted = True
             with requests.post(
                 PHASE1_STREAM_URL,
                 data=payload,
@@ -4194,8 +4390,11 @@ def _answer_stream(
                 phase1_started = _time.monotonic()
                 last_token_at = phase1_started
                 first_token_seen = False
-                full_text = []
-                for raw in resp.iter_lines():
+                full_text = partial_stream_text
+                # Phase 1 emits very small NDJSON token frames. The requests
+                # default (512-byte chunks) buffers many tokens and can make a
+                # healthy stream look stalled until the read timeout fires.
+                for raw in resp.iter_lines(chunk_size=1):
                     now_mono = _time.monotonic()
                     if now_mono - phase1_started > _PHASE1_STREAM_TOTAL_TIMEOUT_S:
                         raise TimeoutError(
@@ -4216,18 +4415,20 @@ def _answer_stream(
                         continue
                     try:
                         obj = _json.loads(line)
-                        if obj.get("done"):
-                            break
-                        token = obj.get("token", "")
-                        if token:
-                            if not first_token_seen:
-                                _set_chat_meta(first_token_ms=int((now_mono - phase1_started) * 1000))
-                                first_token_seen = True
-                            last_token_at = now_mono
-                            full_text.append(token)
-                            yield token
-                    except Exception:
+                    except (TypeError, ValueError):
                         continue
+                    if obj.get("done"):
+                        break
+                    token = obj.get("token", "")
+                    if token:
+                        if _is_ai_unavailable_text(token):
+                            raise RuntimeError("Phase1 reported local model unavailable")
+                        if not first_token_seen:
+                            _set_chat_meta(first_token_ms=int((now_mono - phase1_started) * 1000))
+                            first_token_seen = True
+                        last_token_at = now_mono
+                        full_text.append(token)
+                        yield token
                 if full_text:
                     _set_chat_meta(
                         selected_tier="phase1_rag_ollama_stream",
@@ -4237,33 +4438,59 @@ def _answer_stream(
                     )
                     _release_local_ai_slot()
                     stream_slot_held = False
-                    yield _done_payload("krishimitra-llm (stream)")
+                    yield _done_payload("KrishiMitra local RAG (stream)")
                     return
             if stream_slot_held:
                 _release_local_ai_slot()
                 stream_slot_held = False
-            _set_chat_meta(fallback_reason="phase1_stream_empty_response")
+            phase1_stream_failure_reason = "phase1_stream_empty_response"
+            _set_chat_meta(fallback_reason=phase1_stream_failure_reason)
         except Exception as exc:
             if stream_slot_held:
                 _release_local_ai_slot()
                 stream_slot_held = False
+            phase1_stream_failure_reason = f"phase1_stream_{type(exc).__name__}"
             _set_chat_meta(
-                fallback_reason=f"phase1_stream_{type(exc).__name__}",
+                fallback_reason=phase1_stream_failure_reason,
                 total_llm_ms=int((_time.monotonic() - stream_started) * 1000),
             )
+            if partial_stream_text:
+                interruption_text = {
+                    "hi": "\n\n⚠️ स्थानीय AI का उत्तर बीच में रुक गया। कृपया दोबारा पूछें।",
+                    "hinglish": "\n\n⚠️ Local AI ka jawab beech mein ruk gaya. Kripya dobara poochhein.",
+                    "en": "\n\n⚠️ The local AI response was interrupted. Please try the question again.",
+                }.get(lang, "\n\n⚠️ The local AI response was interrupted. Please try again.")
+                yield interruption_text
+                _set_chat_meta(selected_tier="phase1_partial_stream")
+                yield _done_payload("KrishiMitra local RAG (partial)")
+                return
             logger.debug("Phase1 stream unavailable (%s) — non-stream fallback", exc)
 
-    # Use the canonical JSON chain after a stream failure. The context flag
-    # prevents a second Phase 1 attempt, so fallback order remains direct
-    # Ollama -> Gemini -> safe rules without doubling the timeout budget.
-    skip_token = _SKIP_PHASE1_ONCE.set(not fast_mode)
+    # A failed Phase 1 stream can leave the same host Ollama generation running
+    # after the HTTP client disconnects. Retrying direct Ollama here queues a
+    # duplicate request behind it and turns one timeout into two. Use the
+    # canonical grounded rule path after an actual stream attempt; JSON calls
+    # still keep the full Phase 1 -> direct Ollama -> Gemini fallback chain.
+    fallback_fast_mode = fast_mode or phase1_stream_attempted
+    skip_token = _SKIP_PHASE1_ONCE.set(phase1_stream_attempted)
     try:
         result = self.answer(
             query, ctx, language=language, history=history,
-            farmer_profile=farmer_profile, fast_mode=fast_mode,
+            farmer_profile=farmer_profile, fast_mode=fallback_fast_mode,
         )
     finally:
         _SKIP_PHASE1_ONCE.reset(skip_token)
+    if phase1_stream_attempted:
+        diagnostics = dict(result.get("chatbot_diagnostics") or {})
+        diagnostics.update({
+            "selected_tier": "rule_based_fallback",
+            "fallback_reason": phase1_stream_failure_reason or "phase1_stream_failed",
+            "total_llm_ms": int((_time.monotonic() - stream_started) * 1000),
+        })
+        result["chatbot_diagnostics"] = diagnostics
+        result["ai_data_quality"] = chatbot_quality_metadata(
+            result.get("data_source", "KrishiMitra Advisory Engine"), diagnostics
+        )
     full_text = result.get("response", "")
     # Yield in ~50-char chunks so the SSE bubble still fills in progressively
     chunk_size = 50

@@ -8,6 +8,8 @@ v4.0 — SSE streaming endpoint + Celery async writes + Sentry spans
 """
 
 import json
+import hashlib
+import hmac
 import logging
 import os
 import time
@@ -15,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List
 
 import sentry_sdk
+from django.core import signing
 from django.db.models import Q
 from django.http import StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -25,16 +28,37 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from ...models import FarmerProfile, IoTSensorReading
+from ...models import FarmerInteractionLog, FarmerProfile, IoTSensorReading
 from ..errors import safe_error_message
 from ..location_utils import attach_location_metadata, resolve_request_location
 from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
 from ...services.chat_intelligence_service import chat_intelligence_service, _current_season
 from ...services.session_memory_service import session_memory
 from ..auth_utils import _cors_for_request, _resolve_user_id
-from ..serializers import ChatbotRequestSerializer
+from ..serializers import ChatbotFeedbackSerializer, ChatbotRequestSerializer
 
 logger = logging.getLogger(__name__)
+
+_CHAT_FEEDBACK_SALT = "krishimitra.chat-feedback.v1"
+_CHAT_FEEDBACK_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+
+
+def _chat_text_digest(value: str) -> str:
+    return hashlib.sha256((value or "").encode("utf-8")).hexdigest()
+
+
+def _make_chat_feedback_token(session_id: str, query: str, response: str) -> str:
+    if not session_id or not query or not response:
+        return ""
+    return signing.dumps(
+        {
+            "session_id": session_id,
+            "query_sha256": _chat_text_digest(query),
+            "response_sha256": _chat_text_digest(response),
+        },
+        salt=_CHAT_FEEDBACK_SALT,
+        compress=True,
+    )
 
 # ── Celery availability flag ──────────────────────────────────
 # Checked once at import time; avoids per-request os.getenv overhead.
@@ -325,6 +349,65 @@ class ChatbotViewSet(viewsets.ViewSet):
     def query(self, request):
         return self._handle_query(request)
 
+    @action(detail=False, methods=["post"])
+    def feedback(self, request):
+        """Attach reviewed-learning feedback to the exact signed chat response."""
+        serializer = ChatbotFeedbackSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "Invalid chatbot feedback", "details": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        values = serializer.validated_data
+        try:
+            payload = signing.loads(
+                values["feedback_token"],
+                salt=_CHAT_FEEDBACK_SALT,
+                max_age=_CHAT_FEEDBACK_MAX_AGE_SECONDS,
+            )
+        except signing.BadSignature:
+            return Response(
+                {"error": "Feedback token is invalid or expired"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        session_id = str(payload.get("session_id") or "")
+        query_digest = str(payload.get("query_sha256") or "")
+        response_digest = str(payload.get("response_sha256") or "")
+        matching_interaction = None
+        for interaction in FarmerInteractionLog.objects.filter(
+            session_id=session_id
+        ).order_by("-created_at")[:20]:
+            query_matches = hmac.compare_digest(
+                _chat_text_digest(interaction.query), query_digest
+            )
+            response_matches = hmac.compare_digest(
+                _chat_text_digest(interaction.response), response_digest
+            )
+            if query_matches and response_matches:
+                matching_interaction = interaction
+                break
+        if matching_interaction is None:
+            return Response(
+                {"error": "The matching AI response is not available for feedback"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_helpful = values["is_helpful"]
+        matching_interaction.is_helpful = is_helpful
+        matching_interaction.feedback_score = 5 if is_helpful else 1
+        matching_interaction.feedback_text = values.get("feedback_text", "")
+        matching_interaction.save(
+            update_fields=["is_helpful", "feedback_score", "feedback_text"]
+        )
+        return Response(
+            {
+                "status": "success",
+                "message": "Feedback saved for quality review",
+                "learning_mode": "reviewed_feedback",
+            }
+        )
+
     def _handle_query(self, request):
         try:
             parsed = _parse_request(request)
@@ -422,6 +505,9 @@ class ChatbotViewSet(viewsets.ViewSet):
             "response_time_ms": response_time_ms,
             "timestamp":        _now_utc.isoformat(),
             "session_id":       session_id,
+            "feedback_token": _make_chat_feedback_token(
+                session_id, query, result.get("response", "")
+            ),
             "context": {
                 "intent":         result.get("intent"),
                 "crops_detected": result.get("crops_detected", []),
@@ -496,6 +582,9 @@ def _stream_generator(
         "crop_suggestions": result_meta.get("crop_suggestions", []),
         "response_time_ms": response_time_ms,
         "session_id":      session_id,
+        "feedback_token": _make_chat_feedback_token(
+            session_id, query, full_response
+        ),
         "context": {
             "intent": result_meta.get("intent", ""),
             "crops_detected": result_meta.get("crops_detected", []),

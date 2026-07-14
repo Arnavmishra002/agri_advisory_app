@@ -1,12 +1,13 @@
 """
-Official Agmarknet 2.0 REST API (api.agmarknet.gov.in/v1).
+Official Agmarknet 2.0 dashboard API (api.agmarknet.gov.in/v1).
 
-Used for live mandi modal/min/max prices when data.gov.in is slow or unavailable.
+Used for live mandi prices when data.gov.in is slow or unavailable.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 AGMARKNET_BASE = "https://api.agmarknet.gov.in/v1"
 DEFAULT_TIMEOUT = (5, 30)  # connect, read seconds
+DASHBOARD_NAME = "marketwise_price_arrival"
 
 # Location substring -> possible Agmarknet / data.gov.in state labels
 STATE_NAME_ALIASES: Dict[str, List[str]] = {
@@ -66,6 +68,8 @@ STATE_NAME_ALIASES: Dict[str, List[str]] = {
     "madurai": ["Tamil Nadu"],
     "ranchi": ["Jharkhand"],
     "raipur": ["Chhattisgarh"],
+    "chhattisgarh": ["Chattisgarh"],
+    "odisha": ["Odisha", "Orissa"],
     "dehradun": ["Uttarakhand"],
     "shimla": ["Himachal Pradesh"],
     "srinagar": ["Jammu and Kashmir"],
@@ -104,6 +108,7 @@ class AgmarknetClient:
         self._filters_cache: Optional[Dict[str, Any]] = None
         self._filters_cache_at: Optional[datetime] = None
         self._filters_ttl = timedelta(hours=12)
+        self._rate_limited_until = 0.0
 
     def list_markets_for_location(
         self,
@@ -202,20 +207,34 @@ class AgmarknetClient:
             )
             return None
 
-        base_payload: Dict[str, Any] = {"state_id": state_id}
+        base_payload: Dict[str, Any] = {
+            "dashboard": DASHBOARD_NAME,
+            "state": state_id,
+            "format": "json",
+            "page": 1,
+            "limit": 100,
+        }
         if crop:
             commodity_id = self._resolve_commodity_id(crop, filters)
             if commodity_id:
-                base_payload["commodity_id"] = commodity_id
+                base_payload["commodity"] = [commodity_id]
         if mandi:
-            market_id = self._resolve_market_id(mandi, state_id, filters)
-            if market_id:
-                base_payload["market_id"] = market_id
+            market = self._resolve_market(mandi, state_id, filters)
+            if not market:
+                logger.info("Agmarknet: market '%s' is not registered for state %s", mandi, state_name)
+                return None
+            base_payload["market"] = [market[0]]
+            if market[1] is not None:
+                base_payload["district"] = [market[1]]
 
         records: List[Dict[str, Any]] = []
-        for day_offset in range(4):
-            day = (date.today() - timedelta(days=day_offset)).strftime("%d-%m-%Y")
-            payload = {**base_payload, "from_date": day, "to_date": day}
+        # Omitting date asks Agmarknet for its latest published trading day and
+        # normally needs one request. Explicit recent dates are only a fallback.
+        payloads = [base_payload] + [
+            {**base_payload, "date": (date.today() - timedelta(days=offset)).isoformat()}
+            for offset in range(4)
+        ]
+        for payload in payloads:
             report = self._post_report(payload)
             if not report:
                 continue
@@ -236,6 +255,11 @@ class AgmarknetClient:
             "location": location,
             "state": state_name,
             "data_source": "Agmarknet 2.0 API (api.agmarknet.gov.in)",
+            "data_source_short": "Agmarknet 2.0 live",
+            "reported_date": crops[0].get("reported_date", ""),
+            "coverage": "market" if mandi else "state",
+            "api_key_registered": False,
+            "using_demo_key": False,
             "timestamp": datetime.now().isoformat(),
             "top_crops": crops[:20],
             "total_records": len(crops),
@@ -250,7 +274,8 @@ class AgmarknetClient:
 
         try:
             resp = self.session.get(
-                f"{AGMARKNET_BASE}/daily-price-arrival/filters",
+                f"{AGMARKNET_BASE}/dashboard-filters/",
+                params={"dashboard_name": DASHBOARD_NAME},
                 timeout=DEFAULT_TIMEOUT,
             )
             if resp.status_code != 200:
@@ -269,22 +294,26 @@ class AgmarknetClient:
             return None
 
     def _post_report(self, payload: Dict[str, Any]) -> Optional[Any]:
-        url = f"{AGMARKNET_BASE}/daily-price-arrival/report"
-        # Portal uses form-encoded query params (not JSON body)
-        attempts = (
-            {"data": payload, "headers": {"Content-Type": "application/x-www-form-urlencoded"}},
-            {"json": payload},
-        )
-        for kwargs in attempts:
-            try:
-                resp = self.session.post(url, timeout=DEFAULT_TIMEOUT, **kwargs)
-                if resp.status_code != 200:
-                    continue
-                return resp.json()
-            except requests.RequestException:
-                continue
-        logger.warning("Agmarknet report failed for %s", payload)
-        return None
+        url = f"{AGMARKNET_BASE}/dashboard-data/"
+        if time.monotonic() < self._rate_limited_until:
+            return None
+        try:
+            resp = self.session.post(url, json=payload, timeout=DEFAULT_TIMEOUT)
+            if resp.status_code == 429:
+                try:
+                    retry_after = max(10, min(int(resp.headers.get("Retry-After", "60")), 300))
+                except (TypeError, ValueError):
+                    retry_after = 60
+                self._rate_limited_until = time.monotonic() + retry_after
+                logger.warning("Agmarknet dashboard rate limited; retrying after %ss", retry_after)
+                return None
+            if resp.status_code != 200:
+                logger.warning("Agmarknet dashboard HTTP %s", resp.status_code)
+                return None
+            return resp.json()
+        except (requests.RequestException, ValueError) as exc:
+            logger.warning("Agmarknet dashboard request failed: %s", exc)
+            return None
 
     def _resolve_state(
         self, location: str, filters: Dict[str, Any]
@@ -357,11 +386,12 @@ class AgmarknetClient:
                 return item.get("commodity_id") or item.get("id") or item.get("cmdt_id")
         return None
 
-    def _resolve_market_id(
+    def _resolve_market(
         self, mandi: str, state_id: Any, filters: Dict[str, Any]
-    ) -> Optional[Any]:
+    ) -> Optional[Tuple[Any, Optional[Any]]]:
         markets = self._list_from_filters(filters, "market_data", "market", "markets", "market_list")
         mandi_l = mandi.lower().strip()
+        mandi_core = self._market_core_name(mandi_l)
         for item in markets:
             if not isinstance(item, dict):
                 continue
@@ -374,9 +404,24 @@ class AgmarknetClient:
                 or item.get("Market")
                 or ""
             ).lower()
-            if mandi_l in name or name in mandi_l:
-                return item.get("market_id") or item.get("id")
+            name_core = self._market_core_name(name)
+            if (
+                mandi_l in name
+                or name in mandi_l
+                or (mandi_core and mandi_core == name_core)
+            ):
+                market_id = item.get("market_id") or item.get("id")
+                district_id = item.get("district_id") or item.get("districtId")
+                return market_id, district_id
         return None
+
+    @staticmethod
+    def _market_core_name(value: str) -> str:
+        suffixes = {"mandi", "market", "apmc", "committee", "yard"}
+        return " ".join(
+            token for token in str(value or "").lower().replace("-", " ").split()
+            if token not in suffixes
+        ).strip()
 
     @staticmethod
     def _list_from_filters(filters: Dict[str, Any], *keys: str) -> List[Any]:
@@ -431,7 +476,8 @@ class AgmarknetClient:
         crops: List[Dict[str, Any]] = []
         for rec in records:
             crop_name = (
-                rec.get("commodity_name")
+                rec.get("cmdt_name")
+                or rec.get("commodity_name")
                 or rec.get("Commodity")
                 or rec.get("commodity")
                 or rec.get("crop")
@@ -442,6 +488,7 @@ class AgmarknetClient:
 
             modal = self._pick_price(
                 rec,
+                "as_on_price",
                 "modal_price",
                 "Modal Price",
                 "Modal_x0020_Price",
@@ -457,28 +504,25 @@ class AgmarknetClient:
             max_p = self._pick_price(
                 rec, "max_price", "Max Price", "Max_x0020_Price", "max"
             )
-            min_p = min_p if min_p is not None else round(modal * 0.95, 2)
-            max_p = max_p if max_p is not None else round(modal * 1.05, 2)
-
             crop_key = str(crop_name).lower().strip()
-            msp = MSP_2024_25.get(crop_key)
+            msp = self._pick_price(rec, "msp_price") or MSP_2024_25.get(crop_key)
             profit = round(((modal - msp) / msp * 100), 1) if msp else None
 
             crops.append({
                 "crop_name": str(crop_name).title(),
                 "crop_name_hindi": CROP_HINDI.get(crop_key, crop_name),
-                "price_source": "live_mandi",
+                "price_source": "agmarknet_market_live" if mandi else "agmarknet_state_average",
                 "is_live": True,
                 "mandi_name": (
                     rec.get("market_name")
                     or rec.get("Market")
                     or rec.get("market")
                     or mandi
-                    or f"{location} मंडी"
+                    or f"{state} Agmarknet average"
                 ),
                 "state": rec.get("state_name") or rec.get("State") or state,
-                "min_price": round(min_p, 2),
-                "max_price": round(max_p, 2),
+                "min_price": round(min_p, 2) if min_p is not None else None,
+                "max_price": round(max_p, 2) if max_p is not None else None,
                 "modal_price": round(modal, 2),
                 "msp": msp,
                 "profit_vs_msp": profit,
@@ -486,10 +530,18 @@ class AgmarknetClient:
                 "variety": rec.get("variety_name") or rec.get("Variety") or "",
                 "grade": rec.get("grade") or rec.get("Grade") or "",
                 "date": (
-                    rec.get("arrival_date")
+                    rec.get("reported_date")
+                    or rec.get("arrival_date")
                     or rec.get("Arrival_Date")
                     or rec.get("date")
                     or date.today().strftime("%d/%m/%Y")
+                ),
+                "reported_date": (
+                    rec.get("reported_date")
+                    or rec.get("arrival_date")
+                    or rec.get("Arrival_Date")
+                    or rec.get("date")
+                    or ""
                 ),
                 "unit": "₹/quintal",
             })

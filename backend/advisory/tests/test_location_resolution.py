@@ -8,6 +8,20 @@ from advisory.services.location_context import LocationContext
 
 
 class LocationResolutionTests(TestCase):
+    def test_explicit_unconfirmed_location_never_falls_back_to_delhi_or_ip(self):
+        request = SimpleNamespace(
+            query_params={},
+            data={"location_confirmed": False},
+        )
+
+        with patch("advisory.api.location_utils.location_resolver.resolve") as resolver:
+            ctx = resolve_request_location(request)
+
+        resolver.assert_not_called()
+        self.assertEqual(ctx.display_name, "")
+        self.assertEqual(ctx.source, "unconfirmed")
+        self.assertEqual(ctx.confidence, 0.0)
+
     def test_location_name_payload_is_used_as_text_location(self):
         request = SimpleNamespace(
             query_params={},
@@ -34,4 +48,3 @@ class LocationResolutionTests(TestCase):
         )
         self.assertEqual(ctx.display_name, "Lucknow")
         self.assertEqual(ctx.state, "Uttar Pradesh")
-

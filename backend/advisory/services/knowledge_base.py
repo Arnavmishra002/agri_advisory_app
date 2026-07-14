@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 # ── KrishiMitra LLM / Ollama config ───────────────────────────────────────────
 _OLLAMA_BASE    = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-_OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "krishimitra-llm")
+_OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
 _OLLAMA_TIMEOUT = (
     float(os.getenv("OLLAMA_CONNECT_TIMEOUT_S", "2")),
     float(os.getenv("OLLAMA_READ_TIMEOUT_S", "12")),

@@ -47,8 +47,10 @@ agri_advisory_app/
   rule-based farmer-safe fallback.
 - Weather uses Open-Meteo without an API key. `OPENWEATHER_API_KEY` is optional.
 - Mandi prices use only fresh, dated official Agmarknet/data.gov.in rows.
-  Without a valid `DATA_GOV_IN_API_KEY`, state and mandi coverage may be
-  unavailable; the app never substitutes synthetic or MSP-estimate prices.
+  Agmarknet 2.0 provides current state-level rows without a key. A valid
+  `DATA_GOV_IN_API_KEY` adds fuller commodity and exact-mandi coverage. The app
+  never substitutes synthetic or MSP-estimate prices when an official row is
+  absent.
 - Crop recommendations use 200+ canonical Indian crop profiles and combine
   location, season, weather, soil, irrigation, optional soil-test readings,
   farmer budget, crop rotation, and verified market signals. Static cost and
@@ -138,7 +140,7 @@ Create the custom local model if needed:
 
 ```bash
 cd custom_llm_trainer
-ollama create krishimitra-llm -f Modelfile
+ollama pull qwen2.5:7b
 ```
 
 Start Phase 1 locally:
@@ -278,7 +280,7 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `ALLOWED_HOSTS` | Production | Django host allow-list |
 | `CORS_ALLOWED_ORIGINS` | Production | Frontend origins allowed to call API |
 | `CSRF_TRUSTED_ORIGINS` | Production | Trusted origins for state-changing requests |
-| `DATA_GOV_IN_API_KEY` | Recommended | Fuller live mandi coverage |
+| `DATA_GOV_IN_API_KEY` | Recommended | Fuller commodity and exact-mandi coverage beyond the no-key Agmarknet state feed |
 | `MANDI_MAX_DATA_AGE_HOURS` | Optional | Maximum accepted age for an official daily mandi row; default `72` |
 | `GOOGLE_AI_API_KEY` | Optional | Gemini fallback for chatbot |
 | `OPENWEATHER_API_KEY` | Optional | OpenWeather fallback; Open-Meteo works without a key |
@@ -305,6 +307,7 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `PHASE1_BASE_URL` | Optional | Django -> Phase 1 service URL |
 | `PHASE1_CORS_ALLOWED_ORIGINS` | Optional | Explicit browser origins allowed to call Phase 1; empty means no cross-origin access |
 | `PHASE1_ALLOW_ALL_CORS` | Development only | Allows wildcard Phase 1 CORS only when `DEBUG=true`; keep `false` in production |
+| `OLLAMA_MODEL` | Optional | Local composition model; `qwen2.5:7b` is the current quality-tested default |
 | `PHASE1_TIMEOUT_S` | Optional | Phase 1 request timeout |
 | `PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S` | Optional | Max wait for first streamed local-AI token |
 | `PHASE1_STREAM_IDLE_TIMEOUT_S` | Optional | Max idle gap between streamed local-AI tokens |

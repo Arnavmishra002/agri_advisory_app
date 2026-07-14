@@ -24,7 +24,8 @@ class _FakeStreamingResponse:
     def raise_for_status(self):
         return None
 
-    def iter_lines(self):
+    def iter_lines(self, **kwargs):
+        self.iter_lines_kwargs = kwargs
         return iter([
             json.dumps({"token": "local "}).encode("utf-8") + b"\n",
             json.dumps({"token": "rag"}).encode("utf-8") + b"\n",
@@ -41,6 +42,22 @@ class _FakeJSONResponse:
 
     def json(self):
         return self.payload
+
+
+class _FakeOfflineStreamingResponse(_FakeStreamingResponse):
+    def iter_lines(self, **kwargs):
+        self.iter_lines_kwargs = kwargs
+        return iter([
+            json.dumps({"token": "AI सेवा ऑफलाइन है। Kisan Helpline: 1800-180-1551"}).encode("utf-8") + b"\n",
+            json.dumps({"done": True}).encode("utf-8") + b"\n",
+        ])
+
+
+class _FakeInterruptedStreamingResponse(_FakeStreamingResponse):
+    def iter_lines(self, **kwargs):
+        self.iter_lines_kwargs = kwargs
+        yield json.dumps({"token": "grounded start"}).encode("utf-8") + b"\n"
+        raise requests.Timeout("stream interrupted")
 
 
 class _FakeGeminiChunk:
@@ -63,18 +80,30 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         )
 
     @patch("advisory.services.chat_intelligence_service._is_valid_gemini_key", return_value=True)
+    @patch("advisory.services.chat_intelligence_service.requests.post", return_value=_FakeStreamingResponse())
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
-    def test_stream_uses_local_kb_before_gemini(self, kb_answer, gemini_key_check):
+    def test_stream_composes_kb_backed_question_with_local_rag(
+        self,
+        kb_answer,
+        requests_post,
+        gemini_key_check,
+    ):
         kb_answer.return_value = {
-            "answer": "KB answer",
+            "answer": "Stored KB answer",
             "source": "knowledge_base",
             "confidence": "high",
         }
 
         chunks = list(self.service.answer_stream("wheat MSP", self.ctx, language="en"))
 
-        self.assertIn("KB answer", "".join(c for c in chunks if isinstance(c, str)))
-        self.assertEqual(chunks[-1]["data_source"], "KrishiMitra KB (instant)")
+        text = "".join(c for c in chunks if isinstance(c, str))
+        self.assertEqual(text, "local rag")
+        self.assertNotIn("Stored KB answer", text)
+        self.assertEqual(chunks[-1]["data_source"], "KrishiMitra local RAG (stream)")
+        requests_post.assert_called_once()
+        kb_answer.assert_called_once()
+        payload = json.loads(requests_post.call_args.kwargs["data"].decode("utf-8"))
+        self.assertEqual(payload["verified_knowledge"], "Stored KB answer")
         gemini_key_check.assert_not_called()
 
     @patch("advisory.services.chat_intelligence_service._is_valid_gemini_key", return_value=True)
@@ -98,17 +127,40 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
 
         text = "".join(c for c in chunks if isinstance(c, str))
         self.assertEqual(text, "local rag")
-        self.assertEqual(chunks[-1]["data_source"], "krishimitra-llm (stream)")
+        self.assertEqual(chunks[-1]["data_source"], "KrishiMitra local RAG (stream)")
         gemini_key_check.assert_not_called()
 
         self.assertEqual(requests_post.call_args.kwargs["timeout"], chat_module._PHASE1_STREAM_TIMEOUT)
         self.assertTrue(requests_post.call_args.kwargs["stream"])
+        self.assertEqual(requests_post.return_value.iter_lines_kwargs["chunk_size"], 1)
         payload = json.loads(requests_post.call_args.kwargs["data"].decode("utf-8"))
         self.assertEqual(payload["location"], "Lucknow")
         self.assertEqual(payload["latitude"], 26.8467)
         self.assertEqual(payload["longitude"], 80.9462)
         self.assertEqual(payload["crop"], "Rice")
         self.assertEqual(payload["farmer_profile"]["current_crop"], "rice")
+
+    @patch(
+        "advisory.services.chat_intelligence_service.requests.post",
+        return_value=_FakeInterruptedStreamingResponse(),
+    )
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_partial_stream_does_not_append_a_second_fallback_answer(
+        self,
+        kb_answer,
+        requests_post,
+    ):
+        kb_answer.return_value = {"answer": "verified rice facts", "source": "knowledge_base"}
+
+        chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
+
+        text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+        self.assertIn("grounded start", text)
+        self.assertIn("response was interrupted", text)
+        self.assertNotIn("Kisan Helpline", text)
+        self.assertEqual(chunks[-1]["chatbot_diagnostics"]["selected_tier"], "phase1_partial_stream")
+        self.assertEqual(chunks[-1]["data_source"], "KrishiMitra local RAG (partial)")
+        requests_post.assert_called_once()
 
     @patch("advisory.services.chat_intelligence_service.gemini_service")
     @patch("advisory.services.chat_intelligence_service.requests.post")
@@ -150,11 +202,52 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         kb_answer.assert_not_called()
         requests_post.assert_not_called()
 
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_hinglish_weather_stream_uses_grounded_realtime_path(
+        self,
+        kb_answer,
+        requests_post,
+    ):
+        canonical = {
+            "response": "Kal Lucknow mein 29°C aur halki baarish ka anuman hai.",
+            "intent": "weather",
+            "language": "hi",
+            "data_source": "Verified realtime weather data",
+            "crops_detected": [],
+            "sources": ["Open-Meteo live"],
+            "chatbot_diagnostics": {"selected_tier": "verified_realtime"},
+            "ai_data_quality": {
+                "tier": "verified_realtime",
+                "label": "Verified live data",
+                "status": "live",
+            },
+        }
+
+        with patch.object(self.service, "answer", return_value=canonical) as answer:
+            chunks = list(
+                self.service.answer_stream(
+                    "kal ka mausam Kaisa hoga",
+                    self.ctx,
+                    language="hi",
+                )
+            )
+
+        text = "".join(c for c in chunks if isinstance(c, str))
+        done = chunks[-1]
+        self.assertEqual(text, canonical["response"])
+        self.assertEqual(done["intent"], "weather")
+        self.assertEqual(done["data_source"], "Verified realtime weather data")
+        self.assertEqual(done["ai_data_quality"]["tier"], "verified_realtime")
+        answer.assert_called_once()
+        kb_answer.assert_not_called()
+        requests_post.assert_not_called()
+
     @patch("google.generativeai.GenerativeModel", return_value=_FakeGeminiModel())
     @patch("advisory.services.chat_intelligence_service._is_valid_gemini_key", return_value=True)
     @patch("advisory.services.chat_intelligence_service.requests.post", side_effect=requests.Timeout("phase1 stalled"))
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
-    def test_stream_uses_canonical_local_fallback_chain_before_cloud_stream(
+    def test_stream_timeout_uses_fast_grounded_fallback_without_second_llm_attempt(
         self,
         kb_answer,
         requests_post,
@@ -167,21 +260,51 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
             "confidence": "low",
         }
         canonical = {
-            "response": "direct ollama answer",
+            "response": "Verified safe advisory for the exact question.",
             "intent": "pest_disease",
             "language": "en",
-            "data_source": "Ollama direct local model",
+            "data_source": "KrishiMitra Advisory Engine",
             "crops_detected": ["Rice"],
-            "chatbot_diagnostics": {"selected_tier": "direct_ollama"},
+            "chatbot_diagnostics": {"selected_tier": "rule_based_fallback"},
         }
 
         with patch.object(self.service, "answer", return_value=canonical) as answer:
             chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
 
         text = "".join(c for c in chunks if isinstance(c, str))
-        self.assertEqual(text, "direct ollama answer")
+        self.assertEqual(text, canonical["response"])
         answer.assert_called_once()
+        self.assertTrue(answer.call_args.kwargs["fast_mode"])
         gemini_model.assert_not_called()
+
+    @patch(
+        "advisory.services.chat_intelligence_service.requests.post",
+        return_value=_FakeOfflineStreamingResponse(),
+    )
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_phase1_offline_text_is_not_shown_as_an_answer(self, kb_answer, requests_post):
+        kb_answer.return_value = {"answer": None, "source": "escalate_to_gemini"}
+        canonical = {
+            "response": "Verified safe fallback for the exact question.",
+            "intent": "pest_disease",
+            "language": "en",
+            "data_source": "KrishiMitra Advisory Engine",
+            "crops_detected": [],
+            "chatbot_diagnostics": {"selected_tier": "rule_based_fallback"},
+        }
+
+        with patch.object(self.service, "answer", return_value=canonical):
+            chunks = list(
+                self.service.answer_stream(
+                    "What should I do for leaf spots?",
+                    self.ctx,
+                    language="en",
+                )
+            )
+
+        text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+        self.assertEqual(text, canonical["response"])
+        self.assertNotIn("ऑफलाइन", text)
 
 
 class ChatLocalLLMTimeoutTests(SimpleTestCase):

@@ -82,7 +82,7 @@
                             <i class="fas fa-phone me-2 text-success"></i><span id="navUserPhone"></span>
                         </span></li>
                         <li><hr class="dropdown-divider my-1"></li>
-                        <li><a class="dropdown-item" href="#" onclick="window.KM_Auth&&KM_Auth.openModal('profile');return false;" style="font-size:0.85rem;">
+                        <li><a class="dropdown-item" href="#" onclick="window.KM_Auth&&KM_Auth.openProfile();return false;" style="font-size:0.85rem;">
                             <i class="fas fa-user me-2 text-success"></i><span data-i18n="nav_profile">मेरी प्रोफ़ाइल</span>
                         </a></li>
                         <li><hr class="dropdown-divider my-1"></li>
@@ -160,7 +160,7 @@
         <!-- Current location bar -->
         <div class="current-location-display mt-3">
             <span class="location-label">📍 स्थान:</span>
-            <span id="currentLocationDisplay" class="location-name">Delhi</span>
+            <span id="currentLocationDisplay" class="location-name">स्थान चुनें या GPS चलाएं</span>
             <span id="locationAccuracyBadge" class="location-accuracy-badge" style="display:none;"></span>
             <button class="btn btn-sm btn-outline-light" type="button" onclick="detectLocation()">
                 <i class="fas fa-crosshairs"></i> <span data-i18n="detect_location">GPS</span>
@@ -873,6 +873,13 @@
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
             <span style="font-size:0.8rem;color:#666;">AI Engine:</span>
             <span id="aiStatusBadge" style="display:inline-block;background:#f3e5f5;color:#4a148c;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;">📚 Loading...</span>
+            <span style="flex:1;"></span>
+            <button type="button" id="chatHistoryBtn" class="chat-toolbar-btn" onclick="openChatHistory()" title="पुरानी बातचीत" aria-label="पुरानी बातचीत खोलें">
+                <i class="fas fa-history"></i>
+            </button>
+            <button type="button" id="chatNewBtn" class="chat-toolbar-btn" onclick="clearChat()" title="नई बातचीत" aria-label="नई बातचीत शुरू करें">
+                <i class="fas fa-plus"></i>
+            </button>
         </div>
 
         <!-- Chat window -->
@@ -905,14 +912,27 @@
                 rows="1"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleChatUserMessage();}"
                 oninput="autoResizeChatInput(this)"></textarea>
-            <button id="chatClearBtn" onclick="clearChat()" class="chat-voice-btn" title="चैट साफ करें" aria-label="चैट साफ करें">
-                <i class="fas fa-trash-alt"></i>
-            </button>
             <span id="stream-dot" class="stream-dot" style="display: none;" title="Streaming response..."></span>
             <button class="chat-send-btn" id="chatSendBtn" onclick="handleChatUserMessage()" title="भेजें" aria-label="सवाल भेजें">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
+
+        <dialog id="chatHistoryDialog" class="chat-history-dialog" aria-labelledby="chatHistoryTitle">
+            <div class="chat-history-header">
+                <div>
+                    <strong id="chatHistoryTitle">पुरानी बातचीत</strong>
+                    <small>यह इतिहास केवल इसी डिवाइस पर रहता है।</small>
+                </div>
+                <button type="button" class="chat-toolbar-btn" onclick="closeChatHistory()" title="बंद करें" aria-label="इतिहास बंद करें">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="chatHistoryList" class="chat-history-list"></div>
+            <button type="button" id="chatHistoryClearAllBtn" class="chat-history-clear" onclick="clearArchivedChats()">
+                <i class="fas fa-trash-alt"></i> पुराना इतिहास हटाएं
+            </button>
+        </dialog>
 
         <!-- Quick info -->
         <div style="margin-top:14px;background:#fff8e1;border-radius:10px;padding:10px 14px;font-size:0.82rem;color:#856404;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1298,13 +1318,13 @@ window.toggleVoiceInput = function() {
         <button type="button" class="btn-close auth-close-btn" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="auth-tabs-row">
-        <button class="auth-tab-btn active" id="tabBtnPhone" onclick="KM_Auth.switchTab('phone')">
+        <button type="button" class="auth-tab-btn active" id="tabBtnPhone" onclick="KM_Auth.switchTab('phone')">
           <i class="fas fa-mobile-alt me-1"></i><span>OTP Login</span>
         </button>
-        <button class="auth-tab-btn" id="tabBtnPassword" onclick="KM_Auth.switchTab('password')">
+        <button type="button" class="auth-tab-btn" id="tabBtnPassword" onclick="KM_Auth.switchTab('password')">
           <i class="fas fa-lock me-1"></i><span>Password</span>
         </button>
-        <button class="auth-tab-btn" id="tabBtnRegister" onclick="KM_Auth.switchTab('register')">
+        <button type="button" class="auth-tab-btn" id="tabBtnRegister" onclick="KM_Auth.switchTab('register')">
           <i class="fas fa-user-plus me-1"></i><span>Register</span>
         </button>
       </div>
@@ -1321,18 +1341,18 @@ window.toggleVoiceInput = function() {
                 onkeydown="if(event.key==='Enter'){KM_Auth.requestOtp();}">
             </div>
             <div class="auth-error-msg" id="otpPhoneError"></div>
-            <button class="auth-btn-primary mt-2" id="btnSendOtp" onclick="KM_Auth.requestOtp()">
+            <button type="button" class="auth-btn-primary mt-2" id="btnSendOtp" onclick="KM_Auth.requestOtp()">
               <span data-i18n="auth_send_otp">OTP भेजें</span>
               <span class="auth-btn-spinner d-none" id="spinnerSendOtp"><i class="fas fa-circle-notch fa-spin"></i></span>
             </button>
             <div class="auth-divider"><span data-i18n="auth_or_divider">या</span></div>
-            <button class="auth-btn-ghost" onclick="KM_Auth.continueAsGuest()">
+            <button type="button" class="auth-btn-ghost" onclick="KM_Auth.continueAsGuest()">
               👤 <span data-i18n="auth_guest_continue">Guest के रूप में जारी रखें</span>
             </button>
           </div>
           <div id="otpStep2" style="display:none;">
             <div class="auth-back-row">
-              <button class="auth-back-btn" onclick="KM_Auth.backToPhoneStep()">
+              <button type="button" class="auth-back-btn" onclick="KM_Auth.backToPhoneStep()">
                 <i class="fas fa-arrow-left me-1"></i> वापस
               </button>
               <span class="auth-phone-display" id="otpPhoneDisplay"></span>
@@ -1348,12 +1368,12 @@ window.toggleVoiceInput = function() {
             </div>
             <div class="auth-error-msg" id="otpVerifyError"></div>
             <div class="auth-success-msg" id="otpVerifySuccess"></div>
-            <button class="auth-btn-primary" id="btnVerifyOtp" onclick="KM_Auth.verifyOtp()">
+            <button type="button" class="auth-btn-primary" id="btnVerifyOtp" onclick="KM_Auth.verifyOtp()">
               <span data-i18n="auth_verify_otp">OTP सत्यापित करें</span>
               <span class="auth-btn-spinner d-none" id="spinnerVerifyOtp"><i class="fas fa-circle-notch fa-spin"></i></span>
             </button>
             <div class="auth-resend-row">
-              <button class="auth-resend-btn" id="btnResendOtp" onclick="KM_Auth.resendOtp()" disabled>
+              <button type="button" class="auth-resend-btn" id="btnResendOtp" onclick="KM_Auth.resendOtp()" disabled>
                 <span data-i18n="auth_resend_otp">OTP दोबारा भेजें</span>
               </button>
               <span class="auth-countdown" id="otpCountdown"></span>
@@ -1378,7 +1398,7 @@ window.toggleVoiceInput = function() {
           </div>
           <div class="auth-error-msg" id="passwordLoginError"></div>
           <div class="auth-success-msg" id="passwordLoginSuccess"></div>
-          <button class="auth-btn-primary mt-3" id="btnLoginPassword" onclick="KM_Auth.loginPassword()">
+          <button type="button" class="auth-btn-primary mt-3" id="btnLoginPassword" onclick="KM_Auth.loginPassword()">
             <span data-i18n="auth_login">लॉगिन करें</span>
             <span class="auth-btn-spinner d-none" id="spinnerLoginPassword"><i class="fas fa-circle-notch fa-spin"></i></span>
           </button>
@@ -1386,9 +1406,9 @@ window.toggleVoiceInput = function() {
         <!-- TAB 3: Register -->
         <div id="authTabRegister" class="auth-tab-panel" style="display:none;">
           <label class="auth-label" for="regNameInput">👤 नाम (वैकल्पिक)</label>
-          <input type="text" id="regNameInput" class="auth-input" placeholder="Ramesh Kumar" autocomplete="name">
+          <input type="text" id="regNameInput" class="auth-input" placeholder="Ramesh Kumar" autocomplete="off">
           <label class="auth-label mt-3" for="regUsernameInput">🆔 Username</label>
-          <input type="text" id="regUsernameInput" class="auth-input" placeholder="ramesh_farmer" autocomplete="username">
+          <input type="text" id="regUsernameInput" class="auth-input" placeholder="ramesh_farmer" autocomplete="off">
           <label class="auth-label mt-3" for="regPasswordInput">🔒 Password (min 8 chars)</label>
           <div class="auth-password-group">
             <input type="password" id="regPasswordInput" class="auth-input auth-password-input"
@@ -1402,11 +1422,11 @@ window.toggleVoiceInput = function() {
           <div class="auth-phone-input-group">
             <span class="auth-phone-prefix">+91</span>
             <input type="tel" id="regPhoneInput" class="auth-input auth-phone-input"
-              placeholder="9876543210" maxlength="10" inputmode="numeric"
+              placeholder="9876543210" maxlength="10" inputmode="numeric" autocomplete="off"
               oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)">
           </div>
           <label class="auth-label mt-3" for="regStateInput">🗺️ राज्य (वैकल्पिक)</label>
-          <input type="text" id="regStateInput" class="auth-input" placeholder="Uttar Pradesh" list="stateList">
+          <input type="text" id="regStateInput" class="auth-input" placeholder="Uttar Pradesh" list="stateList" autocomplete="off">
           <datalist id="stateList">
             <option value="Andhra Pradesh"><option value="Assam"><option value="Bihar">
             <option value="Chhattisgarh"><option value="Gujarat"><option value="Haryana">
@@ -1418,7 +1438,7 @@ window.toggleVoiceInput = function() {
           </datalist>
           <div class="auth-error-msg" id="registerError"></div>
           <div class="auth-success-msg" id="registerSuccess"></div>
-          <button class="auth-btn-primary mt-3" id="btnRegister" onclick="KM_Auth.register()">
+          <button type="button" class="auth-btn-primary mt-3" id="btnRegister" onclick="KM_Auth.register()">
             <span data-i18n="auth_register">खाता बनाएं</span>
             <span class="auth-btn-spinner d-none" id="spinnerRegister"><i class="fas fa-circle-notch fa-spin"></i></span>
           </button>

@@ -154,7 +154,7 @@ class CropCatalog:
     def get(self, crop_id: str) -> Optional[Dict[str, Any]]:
         return self._by_id.get((crop_id or "").lower().strip())
 
-    def normalize(self, query: str) -> Optional[Dict[str, Any]]:
+    def normalize(self, query: str, *, allow_fuzzy: bool = True) -> Optional[Dict[str, Any]]:
         """Resolve free text to a catalog crop — strict matching only, no fuzzy partial."""
         if not query or not str(query).strip():
             return None
@@ -168,6 +168,8 @@ class CropCatalog:
                 return crop
             if any(q == a.lower() for a in crop["aliases"]):
                 return crop
+        if not allow_fuzzy:
+            return None
         # Minimum length guard + common Hindi/English stopwords → no partial match
         _STOPWORDS = {
             "में", "और", "लिए", "क्या", "बारे", "सब", "को", "से", "की", "के", "का",

@@ -36,10 +36,11 @@ for (const handler of directHandlers) {
 
 const requiredIds = [
   'locationSearchInput', 'cropAnalyzeBtn', 'mandiSelector', 'diagnosisRunBtn',
-  'fieldAnalyzeBtn', 'messageInput', 'chatSendBtn', 'chatClearBtn', 'authModal',
+  'fieldAnalyzeBtn', 'messageInput', 'chatSendBtn', 'chatNewBtn', 'chatHistoryBtn',
+  'chatHistoryDialog', 'chatHistoryList', 'authModal',
 ];
 for (const id of requiredIds) check(ids.includes(id), `Required control #${id} is missing`);
-for (const id of ['voiceBtn', 'chatClearBtn', 'chatSendBtn']) {
+for (const id of ['voiceBtn', 'chatNewBtn', 'chatHistoryBtn', 'chatSendBtn']) {
   check(
     new RegExp(`<button[^>]*id="${id}"[^>]*aria-label="[^"]+"`).test(html),
     `Icon control #${id} must have an accessible name`,
@@ -51,6 +52,28 @@ check(!app.includes('&_t=${Date.now()}'), 'Strict API queries must not include t
 check(html.includes('data-count="202"'), 'Home crop count must match the 202-profile database');
 check(!html.includes('MSP 2024-25'), 'Home must not display stale MSP-year copy');
 check(!/python manage\.py|DATA_GOV_IN_API_KEY|Server restart/.test(app), 'Farmer-facing JavaScript contains operator-only setup instructions');
+check(!app.includes("let currentLocation = 'Delhi'"), 'Frontend must not assume Delhi before the farmer confirms a location');
+check(!html.includes('class="location-name">Delhi</span>'), 'Location bar must not display a fabricated default city');
+check(
+  !app.includes('updateLocation(\n                    query,\n                    currentLatitude'),
+  'Failed text geocoding must not relabel stale coordinates as the typed location',
+);
+check(
+  app.includes('location_confirmed: hasConfirmedLocation()'),
+  'Chat requests must explicitly distinguish confirmed and unknown locations',
+);
+check(
+  app.includes("source === 'text_query_ungeocoded'") && app.includes("source === 'default_fallback'"),
+  'Manual location search must reject unverified backend fallbacks',
+);
+check(
+  !app.includes('currentMandi = nearestName'),
+  'Nearest mandi may be highlighted but must not hide state live rows through automatic selection',
+);
+check(
+  app.includes('startLocationIfAlreadyAllowed') && app.includes('window.isSecureContext'),
+  'GPS startup must respect browser permission and secure-context requirements',
+);
 check(
   app.includes('if (Number.isFinite(currentLocationAccuracy)) requestBody.accuracy'),
   'Chat requests must omit an unknown GPS accuracy instead of sending null',
@@ -59,6 +82,31 @@ check(
   app.includes('history: priorHistory'),
   'Chat requests must send prior turns without duplicating the current query',
 );
+check(
+  auth.indexOf('this._resetAuthUi();') < auth.indexOf('this.switchTab(tab);'),
+  'Opening auth must clear stale registration/login fields before selecting a tab',
+);
+check(
+  auth.includes("addEventListener('hidden.bs.modal'") && auth.includes("addEventListener('shown.bs.modal'"),
+  'Auth fields must reset after modal close and after browser autofill restoration',
+);
+check(
+  auth.includes("window.showService('ai-assistant')"),
+  'Profile action must navigate to the existing AI assistant/profile panel',
+);
+check(
+  !html.includes("openModal('profile')"),
+  'Profile action must not pass an unsupported auth modal tab',
+);
+for (const id of [
+  'tabBtnPhone', 'tabBtnPassword', 'tabBtnRegister', 'btnSendOtp',
+  'btnVerifyOtp', 'btnResendOtp', 'btnLoginPassword', 'btnRegister',
+]) {
+  check(
+    new RegExp(`<button[^>]*type="button"[^>]*id="${id}"`).test(html),
+    `Auth control #${id} must be a non-submit button`,
+  );
+}
 
 if (failures.length) {
   console.error('UI contract check failed:');

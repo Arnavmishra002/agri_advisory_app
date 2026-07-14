@@ -146,6 +146,31 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 include_estimates=include_estimates,
             )
 
+            # Keep the selected mandi result authoritative. When it has no
+            # current arrival row, offer fresh official rows from other nearby
+            # mandis in a separate field instead of substituting their prices.
+            data["nearby_live_alternatives"] = []
+            if not data.get("top_crops"):
+                try:
+                    nearby_rows = market_service.get_nearby_live_prices(
+                        ctx.query_label,
+                        selected_mandi=mandi,
+                        crop=commodity,
+                        lat=ctx.latitude,
+                        lon=ctx.longitude,
+                        state=ctx.state or None,
+                        radius_km=params.get("radius_km", 150),
+                        limit=8,
+                    )
+                    data["nearby_live_alternatives"] = nearby_rows
+                    data["nearby_live_count"] = len(nearby_rows)
+                except Exception as nearby_exc:
+                    logger.warning(
+                        "Nearby live mandi alternatives failed for %s: %s",
+                        mandi,
+                        nearby_exc,
+                    )
+
             # Tag each row with the selected mandi name for frontend clarity
             for row in data.get("top_crops", []):
                 row.setdefault("selected_mandi", mandi)

@@ -167,10 +167,10 @@
     }
 
     // Global variables
-    let currentLocation = 'Delhi';
-    let currentLatitude = 28.7041;
-    let currentLongitude = 77.1025;
-    let currentState = 'Delhi';
+    let currentLocation = '';
+    let currentLatitude = null;
+    let currentLongitude = null;
+    let currentState = '';
     let currentLocationAccuracy = null;
     let allMandisCache = [];
     let mandiDropdownVisibleCount = 80;
@@ -183,11 +183,32 @@
 
     // Real-time GPS tracking globals
     let _gpsWatchId = null;          // navigator.geolocation.watchPosition handle
+    let _gpsRequestTimer = null;     // independent timeout for browsers with stalled watches
     let _lastReloadLat = null;       // lat at last service reload
     let _lastReloadLon = null;       // lon at last service reload
     let _gpsReloadDebounce = null;   // debounce timer for movement-triggered reload
     const GPS_RELOAD_THRESHOLD_M = 50;  // reload services only if moved ≥50 m
     const LS_LOC_KEY = 'km_location'; // localStorage key for persisted location
+
+    function _isIndiaCoordinate(latitude, longitude) {
+        const lat = Number(latitude);
+        const lon = Number(longitude);
+        return Number.isFinite(lat) && Number.isFinite(lon)
+            && lat >= 6 && lat <= 38 && lon >= 68 && lon <= 98;
+    }
+
+    function hasConfirmedLocation() {
+        return Boolean(currentLocation && _isIndiaCoordinate(currentLatitude, currentLongitude));
+    }
+
+    function renderLocationRequired(container, serviceLabel) {
+        if (!container) return;
+        container.innerHTML = `<div class="location-required-state" style="padding:24px;text-align:center;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;">
+            <strong style="display:block;color:#6d4c00;margin-bottom:8px;">सही ${escapeHtml(serviceLabel)} के लिए स्थान चुनें</strong>
+            <span style="display:block;color:#6b6254;font-size:0.88rem;margin-bottom:14px;">GPS चालू करें या ऊपर अपना शहर, जिला या गाँव खोजें। बिना पुष्टि के कोई दूसरी लोकेशन इस्तेमाल नहीं की जाएगी।</span>
+            <button type="button" class="btn btn-sm btn-success" onclick="detectLocation()"><i class="fas fa-crosshairs"></i> GPS से स्थान लें</button>
+        </div>`;
+    }
 
     // Haversine distance (metres) between two lat/lon points
     function _haversineM(lat1, lon1, lat2, lon2) {
@@ -268,20 +289,24 @@
     ];
 
     function buildLocationQuery(extraParams = '') {
-        let q = `location=${encodeURIComponent(currentLocation)}`;
-        if (currentLatitude != null && currentLongitude != null) {
-            q += `&latitude=${currentLatitude}&longitude=${currentLongitude}`;
+        const params = new URLSearchParams();
+        if (currentLocation) params.set('location', currentLocation);
+        if (_isIndiaCoordinate(currentLatitude, currentLongitude)) {
+            params.set('latitude', String(currentLatitude));
+            params.set('longitude', String(currentLongitude));
         }
-        if (currentState) {
-            q += `&state=${encodeURIComponent(currentState)}`;
-        }
-        if (currentLocationAccuracy != null) {
-            q += `&accuracy=${currentLocationAccuracy}&accuracy_meters=${currentLocationAccuracy}`;
+        if (currentState) params.set('state', currentState);
+        if (Number.isFinite(currentLocationAccuracy)) {
+            params.set('accuracy', String(currentLocationAccuracy));
+            params.set('accuracy_meters', String(currentLocationAccuracy));
         }
         // Always pass the active language so all API responses are in the right language
         const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
-        q += `&language=${encodeURIComponent(lang)}`;
-        return extraParams ? `${q}&${extraParams}` : q;
+        params.set('language', lang);
+        if (extraParams) {
+            new URLSearchParams(extraParams).forEach((value, key) => params.set(key, value));
+        }
+        return params.toString();
     }
 
     function updateAccuracyBadge(accuracyMeters) {
@@ -325,18 +350,26 @@
     // ========================================
 
     function updateLocation(locationName, latitude, longitude, accuracyMeters, stateName) {
-        currentLocation = locationName;
-        if (latitude != null && longitude != null) {
-            currentLatitude = latitude;
-            currentLongitude = longitude;
+        const cleanName = String(locationName || '').trim();
+        if (!cleanName || !_isIndiaCoordinate(latitude, longitude)) {
+            notifyFarmer('स्थान की सही GPS जानकारी नहीं मिली। कृपया सूची से स्थान चुनें या GPS फिर चलाएं।', 'warning');
+            return false;
         }
-        if (stateName) {
-            currentState = stateName;
-        }
-        if (accuracyMeters !== undefined && accuracyMeters !== null) {
-            currentLocationAccuracy = accuracyMeters;
-        }
+        currentLocation = cleanName;
+        currentLatitude = Number(latitude);
+        currentLongitude = Number(longitude);
+        currentState = String(stateName || '').trim();
+        currentLocationAccuracy = Number.isFinite(Number(accuracyMeters))
+            ? Number(accuracyMeters)
+            : null;
         updateAccuracyBadge(currentLocationAccuracy);
+        _saveLocationToStorage(
+            currentLocation,
+            currentLatitude,
+            currentLongitude,
+            currentLocationAccuracy,
+            currentState,
+        );
 
         currentMandi = '';
         allMandisCache = [];
@@ -365,6 +398,7 @@
         // Bug #5 fix: debounce service reloads to prevent parallel API floods
         clearTimeout(updateLocation._debounceTimer);
         updateLocation._debounceTimer = setTimeout(() => { reloadAllServices(); }, 150);
+        return true;
     }
 
     // ── Farmer profile helpers ────────────────────────────────────────────────
@@ -547,6 +581,14 @@
             apiGetJson(`/api/locations/resolve/?location=${encodeURIComponent(query)}`)
                 .then(data => {
                     const loc = data.location || {};
+                    const source = String(loc.source || '');
+                    const confidence = Number(loc.confidence || 0);
+                    if (source === 'text_query_ungeocoded'
+                        || source === 'default_fallback'
+                        || confidence < 0.55
+                        || !_isIndiaCoordinate(loc.latitude, loc.longitude)) {
+                        throw new Error('Location could not be verified');
+                    }
                     updateLocation(
                         loc.display_name || query,
                         loc.latitude,
@@ -555,13 +597,10 @@
                         loc.state || ''
                     );
                 })
-                .catch(() => updateLocation(
-                    query,
-                    currentLatitude,
-                    currentLongitude,
-                    null,
-                    currentState || ''
-                ));
+                .catch(() => {
+                    if (input) input.value = '';
+                    notifyFarmer('यह स्थान सत्यापित नहीं हो पाया। सही वर्तनी से खोजें और सूची में से विकल्प चुनें।', 'warning');
+                });
         }
     }
 
@@ -641,11 +680,29 @@
 
     // ── One-time detect (button press) — keeps watching permanently ──────
     function detectLocation() {
+        if (!window.isSecureContext) {
+            notifyFarmer('इस लिंक पर GPS अनुमति उपलब्ध नहीं है। ऊपर अपना शहर, जिला या गाँव खोजें।', 'warning');
+            return;
+        }
         if (!navigator.geolocation) {
             notifyFarmer('इस ब्राउज़र में GPS उपलब्ध नहीं है। ऊपर शहर या गाँव खोजें।', 'warning');
             return;
         }
         startContinuousLocationWatch();
+    }
+
+    async function startLocationIfAlreadyAllowed() {
+        if (!window.isSecureContext || !navigator.geolocation) return;
+        if (!navigator.permissions || typeof navigator.permissions.query !== 'function') return;
+        try {
+            const status = await navigator.permissions.query({ name: 'geolocation' });
+            if (status.state === 'granted') {
+                startContinuousLocationWatch();
+            }
+        } catch (_) {
+            // Safari and some embedded browsers do not expose geolocation via
+            // Permissions API. The farmer can still use the explicit GPS button.
+        }
     }
 
     // ── CONTINUOUS GPS TRACKING (runs for the whole session) ─────────────
@@ -655,6 +712,7 @@
             navigator.geolocation.clearWatch(_gpsWatchId);
             _gpsWatchId = null;
         }
+        clearTimeout(_gpsRequestTimer);
 
         const locationDisplay = document.getElementById('currentLocationDisplay');
         if (locationDisplay) locationDisplay.textContent = 'GPS खोज रहा है… (±10m)';
@@ -670,6 +728,7 @@
         let _bestAccuracy = Infinity;  // track the best fix seen in this session
 
         const onPosition = async (position) => {
+            clearTimeout(_gpsRequestTimer);
             const { latitude: lat, longitude: lon, accuracy } = position.coords;
             _showGpsPulse(true);
             updateAccuracyBadge(accuracy);
@@ -728,17 +787,30 @@
         };
 
         const onError = (err) => {
+            clearTimeout(_gpsRequestTimer);
             console.warn('GPS error:', err.message);
             _showGpsPulse(false);
+            if (_gpsWatchId !== null) {
+                navigator.geolocation.clearWatch(_gpsWatchId);
+                _gpsWatchId = null;
+            }
             const display = document.getElementById('currentLocationDisplay');
-            if (display) display.textContent = currentLocation;
+            if (display) display.textContent = currentLocation || 'स्थान चुनें या GPS चलाएं';
             if (_lastReloadLat === null) {
-                // Never got a fix — show helpful message
-                console.log('No GPS — using stored/default location');
+                const messages = {
+                    1: 'GPS अनुमति बंद है। ब्राउज़र में Location अनुमति दें या ऊपर अपना स्थान खोजें।',
+                    2: 'अभी GPS स्थान उपलब्ध नहीं है। खुले स्थान में फिर कोशिश करें या अपना गाँव खोजें।',
+                    3: 'GPS ने समय पर जवाब नहीं दिया। फिर कोशिश करें या ऊपर अपना स्थान खोजें।',
+                };
+                notifyFarmer(messages[err.code] || 'GPS स्थान नहीं मिला। ऊपर शहर, जिला या गाँव खोजें।', 'warning');
             }
         };
 
         _gpsWatchId = navigator.geolocation.watchPosition(onPosition, onError, geoOptions);
+        _gpsRequestTimer = setTimeout(() => onError({
+            code: 3,
+            message: 'Location request timed out',
+        }), 32000);
         console.log('🛰️ Continuous GPS watch started (ID:', _gpsWatchId, ')');
     }
 
@@ -956,6 +1028,15 @@
         const loadMoreBtn = document.getElementById('mandiLoadMoreBtn');
         if (!sel) return;
 
+        if (!hasConfirmedLocation()) {
+            sel.innerHTML = '<option value="">-- पहले अपना स्थान चुनें --</option>';
+            sel.disabled = true;
+            if (badge) badge.textContent = 'स्थान की पुष्टि के बाद नज़दीकी मंडियां दिखेंगी';
+            if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+            return;
+        }
+        sel.disabled = false;
+
         sel.innerHTML = '<option value="">-- नज़दीकी मंडियां लोड हो रही हैं... --</option>';
         if (badge) badge.textContent = '⏳ आपकी नज़दीकी मंडियां...';
         if (loadMoreBtn) loadMoreBtn.style.display = 'none';
@@ -1003,14 +1084,14 @@
                 }
             }
 
-            // Auto-select nearest mandi if none is currently selected
+            // Highlight the nearest mandi, but do not auto-select it. The
+            // default screen should show current official state rows; choosing
+            // a mandi deliberately switches to exact-market arrivals only.
             if (!currentMandi && data.nearest_mandi) {
                 const nearestName = data.nearest_mandi.name;
                 if (nearestName) {
-                    currentMandi = nearestName;
-                    sel.value = nearestName;
                     if (badge) badge.textContent =
-                        `📍 ${nearestName} (${data.nearest_mandi.distance_km || '?'} km) — आपकी नज़दीकी मंडी`;
+                        `📍 नज़दीकी: ${nearestName} (${data.nearest_mandi.distance_km || '?'} km) · उसके भाव देखने के लिए चुनें`;
                 }
             }
         } catch (err) {
@@ -1280,6 +1361,9 @@
         } else if (isFallback) {
             banner.className = 'market-live-banner market-live-banner--estimate';
             banner.innerHTML = '📊 यह MSP संदर्भ है, आज का मंडी व्यापार भाव नहीं। बेचने से पहले मंडी से पुष्टि करें।';
+        } else if (isUnavailable && data.api_key_registered === false) {
+            banner.className = 'market-live-banner market-live-banner--warn';
+            banner.innerHTML = '🔴 आधिकारिक लाइव मंडी फीड अभी इस सर्वर पर जुड़ी नहीं है। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
         } else if (isUnavailable) {
             banner.className = 'market-live-banner market-live-banner--warn';
             banner.innerHTML = '🔴 अभी सत्यापित लाइव मंडी भाव उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
@@ -1299,6 +1383,15 @@
 
         // Clear any existing auto-refresh
         if (_mandiRefreshTimer) { clearTimeout(_mandiRefreshTimer); _mandiRefreshTimer = null; }
+
+        if (!hasConfirmedLocation()) {
+            renderLocationRequired(container, 'नज़दीकी मंडी और लाइव भाव');
+            updateMarketLiveBanner({
+                status: 'unavailable',
+                message: 'स्थान चुनने के बाद मंडी भाव लोड होंगे।',
+            });
+            return;
+        }
 
         container.innerHTML = `<div class="loading" style="text-align:center;padding:30px;">
             <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
@@ -1348,10 +1441,15 @@
             return true;
         });
 
-        const selectedMandi = data.selected_mandi || data.mandi_filter || currentMandi || data.location || currentLocation;
+        const selectedMandi = data.coverage === 'state'
+            ? `${data.state || currentState || 'State'} Agmarknet average`
+            : data.selected_mandi || data.mandi_filter || currentMandi || data.location || currentLocation;
         const isLive = data.is_live === true && data.status !== 'fallback';
         const isPartial = data.status === 'partial';
         const isEstimatesOnly = data.status === 'fallback' || data._auto_estimates;
+        const nearbyAlternatives = (data.nearby_live_alternatives || []).filter(
+            row => row && row.is_live === true && row.mandi_name
+        );
 
         // Live status bar
         const ageText = _mandiLastFetchedAt
@@ -1365,11 +1463,39 @@
             : `${liveDot} ${escapeHtml(data.message || 'Live data unavailable')}`;
 
         if (!crops.length) {
+            const unavailableReason = data.api_key_registered === false
+                ? 'आधिकारिक लाइव मंडी फीड इस सर्वर पर अभी जुड़ी नहीं है। ऐप संचालक द्वारा फीड सक्रिय होने के बाद सत्यापित भाव यहां दिखेंगे।'
+                : 'अभी इस मंडी के सत्यापित ताजा भाव उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई गई है।';
+            let alternativesHtml = '';
+            if (nearbyAlternatives.length) {
+                alternativesHtml = `<div class="nearby-live-prices" style="margin-top:18px;text-align:left;">
+                    <strong style="display:block;color:#1b5e20;margin-bottom:8px;">पास की मंडियों में सत्यापित ताजा भाव</strong>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;">`;
+                nearbyAlternatives.slice(0, 8).forEach(row => {
+                    const price = Number(row.modal_price || row.current_price || 0);
+                    const distance = Number.isFinite(Number(row.distance_km))
+                        ? `${Number(row.distance_km).toFixed(1)} km`
+                        : '';
+                    const date = row.reported_date || row.date || '';
+                    alternativesHtml += `<button type="button" class="nearby-live-price-option"
+                        data-mandi-name="${escapeHtml(row.mandi_name)}"
+                        style="text-align:left;border:1px solid #a5d6a7;background:#f4fbf5;border-radius:6px;padding:10px;cursor:pointer;">
+                        <span style="display:block;font-weight:700;color:#1b5e20;">${escapeHtml(row.mandi_name)}</span>
+                        <span style="display:block;font-size:0.8rem;color:#4b5563;margin-top:3px;">${escapeHtml(row.crop_name || 'फसल')} · ₹${price > 0 ? price.toLocaleString('hi-IN') : '—'}/क्विंटल</span>
+                        <span style="display:block;font-size:0.72rem;color:#6b7280;margin-top:3px;">${escapeHtml([distance, date].filter(Boolean).join(' · '))}</span>
+                    </button>`;
+                });
+                alternativesHtml += `</div><small style="display:block;color:#5f6b63;margin-top:8px;">ये भाव ऊपर चुनी गई मंडी के नहीं हैं। मंडी बदलने के लिए विकल्प चुनें।</small></div>`;
+            }
             container.innerHTML = `<div style="padding:20px;text-align:center;">
                 <div style="font-size:0.88rem;color:#888;margin-bottom:10px;">${liveLabel}</div>
-                <p style="color:#856404;">अभी इस मंडी के सत्यापित ताजा भाव उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई गई है।</p>
+                <p style="color:#856404;">${unavailableReason}</p>
                 <small style="color:#666;">बेचने से पहले मंडी कार्यालय या eNAM से भाव की पुष्टि करें।</small>
+                ${alternativesHtml}
             </div>`;
+            container.querySelectorAll('.nearby-live-price-option').forEach(button => {
+                button.addEventListener('click', () => selectMandi(button.dataset.mandiName || ''));
+            });
             return;
         }
 
@@ -1467,6 +1593,13 @@
         try {
             const container = document.getElementById('weatherData');
             if (!container) return;
+
+            if (!hasConfirmedLocation()) {
+                renderLocationRequired(container, 'स्थानीय मौसम');
+                const heroWidget = document.getElementById('heroWeatherWidget');
+                if (heroWidget) heroWidget.style.display = 'none';
+                return;
+            }
 
             container.innerHTML = `<div class="loading">${(typeof window.t === 'function' ? window.t('loading') : 'Loading...')}</div>`;
 
@@ -1652,6 +1785,10 @@
     async function loadFieldAdvisory(withoutSensor = false) {
         const container = document.getElementById('fieldAdvisoryResults');
         if (!container) return;
+        if (!hasConfirmedLocation()) {
+            renderLocationRequired(container, 'खेत की सलाह');
+            return;
+        }
         const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
         container.innerHTML = `<div class="loading text-center py-5">
             <i class="fas fa-spinner fa-spin fa-2x text-success"></i>
@@ -1906,6 +2043,10 @@
         try {
             const container = document.getElementById('cropsData');
             if (!container) return;
+            if (!hasConfirmedLocation()) {
+                renderLocationRequired(container, 'स्थान-आधारित फसल सुझाव');
+                return;
+            }
             const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
 
             container.innerHTML = `<div class="loading">${(typeof window.t === 'function' ? window.t('loading') : 'Loading...')}</div>`;
@@ -2257,16 +2398,57 @@
     // Stores last 10 turns as [{role, content}] — sent to backend on every request
     // so the AI has full multi-turn context.
     const CHAT_HISTORY_KEY = 'km_chat_history_' + sessionId;
+    const CHAT_ARCHIVE_KEY = 'km_chat_archives_' + sessionId;
     const MAX_HISTORY_CLIENT = 10;
+    const MAX_CHAT_ARCHIVES = 10;
     let conversationHistory = (() => {
         try {
             const stored = localStorage.getItem(CHAT_HISTORY_KEY);
             return stored ? JSON.parse(stored) : [];
         } catch (e) { return []; }
     })();
+    let archivedConversations = (() => {
+        try {
+            const stored = localStorage.getItem(CHAT_ARCHIVE_KEY);
+            const parsed = stored ? JSON.parse(stored) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) { return []; }
+    })();
+
+    function _persistArchivedChats() {
+        try {
+            localStorage.setItem(
+                CHAT_ARCHIVE_KEY,
+                JSON.stringify(archivedConversations.slice(0, MAX_CHAT_ARCHIVES)),
+            );
+        } catch (e) {}
+    }
+
+    function _archiveCurrentConversation() {
+        const userTurns = conversationHistory.filter(message => message.role === 'user');
+        if (!userTurns.length) return;
+        const firstQuestion = (userTurns[0].content || 'कृषि बातचीत').trim();
+        const fingerprint = conversationHistory
+            .map(message => `${message.role}:${message.content}`)
+            .join('|');
+        archivedConversations = archivedConversations.filter(
+            conversation => conversation.fingerprint !== fingerprint
+        );
+        archivedConversations.unshift({
+            id: (window.crypto && typeof window.crypto.randomUUID === 'function')
+                ? window.crypto.randomUUID()
+                : `chat-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            title: firstQuestion.slice(0, 72),
+            created_at: new Date().toISOString(),
+            fingerprint,
+            messages: conversationHistory.map(message => ({ ...message })),
+        });
+        archivedConversations = archivedConversations.slice(0, MAX_CHAT_ARCHIVES);
+        _persistArchivedChats();
+    }
 
     function _pushHistory(role, content, intent) {
-        const entry = { role, content };
+        const entry = { role, content, created_at: new Date().toISOString() };
         if (role === 'assistant' && intent) entry.intent = intent;
         conversationHistory.push(entry);
         // Keep only last MAX_HISTORY_CLIENT turns
@@ -2274,6 +2456,73 @@
             conversationHistory = conversationHistory.slice(-MAX_HISTORY_CLIENT * 2);
         }
         try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(conversationHistory)); } catch (e) {}
+    }
+
+    function _renderArchivedChats() {
+        const list = document.getElementById('chatHistoryList');
+        const clearButton = document.getElementById('chatHistoryClearAllBtn');
+        if (!list) return;
+        list.innerHTML = '';
+        if (!archivedConversations.length) {
+            const empty = document.createElement('div');
+            empty.className = 'chat-history-empty';
+            empty.textContent = 'अभी कोई पुरानी बातचीत सेव नहीं है।';
+            list.appendChild(empty);
+            if (clearButton) clearButton.style.display = 'none';
+            return;
+        }
+        if (clearButton) clearButton.style.display = 'block';
+        archivedConversations.forEach(conversation => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-history-item';
+            const title = document.createElement('strong');
+            title.textContent = conversation.title || 'कृषि बातचीत';
+            const meta = document.createElement('span');
+            const savedAt = conversation.created_at ? new Date(conversation.created_at) : null;
+            const turns = Array.isArray(conversation.messages)
+                ? conversation.messages.filter(message => message.role === 'user').length
+                : 0;
+            meta.textContent = `${savedAt && !Number.isNaN(savedAt.getTime()) ? savedAt.toLocaleString('hi-IN') : ''} · ${turns} सवाल`;
+            button.appendChild(title);
+            button.appendChild(meta);
+            button.addEventListener('click', () => restoreArchivedChat(conversation.id));
+            list.appendChild(button);
+        });
+    }
+
+    function openChatHistory() {
+        _renderArchivedChats();
+        const dialog = document.getElementById('chatHistoryDialog');
+        if (!dialog) return;
+        if (typeof dialog.showModal === 'function') dialog.showModal();
+        else dialog.setAttribute('open', '');
+    }
+
+    function closeChatHistory() {
+        const dialog = document.getElementById('chatHistoryDialog');
+        if (!dialog) return;
+        if (typeof dialog.close === 'function') dialog.close();
+        else dialog.removeAttribute('open');
+    }
+
+    function restoreArchivedChat(conversationId) {
+        const selected = archivedConversations.find(item => item.id === conversationId);
+        if (!selected || !Array.isArray(selected.messages)) return;
+        _archiveCurrentConversation();
+        conversationHistory = selected.messages.map(message => ({ ...message }));
+        try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(conversationHistory)); } catch (e) {}
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) chatMessages.innerHTML = '';
+        _restoreChatHistory();
+        closeChatHistory();
+    }
+
+    function clearArchivedChats() {
+        if (!window.confirm('इस डिवाइस से पुरानी बातचीत हटाएं?')) return;
+        archivedConversations = [];
+        try { localStorage.removeItem(CHAT_ARCHIVE_KEY); } catch (e) {}
+        _renderArchivedChats();
     }
 
     function _restoreChatHistory() {
@@ -2405,7 +2654,11 @@
             const requestBody = {
                 query: message,
                 location: currentLocation,
-                language: (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : (document.documentElement.lang === 'en' ? 'en' : 'hi')),
+                location_confirmed: hasConfirmedLocation(),
+                // The chatbot detects the query language/script independently
+                // from the UI language so farmers can naturally switch between
+                // Hindi, Hinglish, English, and regional languages per message.
+                language: 'auto',
                 session_id: sessionId,
                 history: priorHistory,
             };
@@ -2477,6 +2730,44 @@
             const botDiv = document.createElement('div');
             botDiv.className = 'chat-bubble-bot';
             botDiv.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + renderChatText(botReply) + '</div>' + extra;
+
+            const responseActions = document.createElement('div');
+            responseActions.className = 'chat-response-actions';
+            const copyButton = document.createElement('button');
+            copyButton.type = 'button';
+            copyButton.title = 'उत्तर कॉपी करें';
+            copyButton.setAttribute('aria-label', 'उत्तर कॉपी करें');
+            copyButton.innerHTML = '<i class="far fa-copy"></i>';
+            copyButton.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(botReply);
+                    copyButton.innerHTML = '<i class="fas fa-check"></i>';
+                } catch (copyError) {
+                    notifyFarmer('उत्तर कॉपी नहीं हो पाया।', 'error');
+                }
+            });
+            responseActions.appendChild(copyButton);
+            if (data.feedback_token) {
+                const helpfulButton = document.createElement('button');
+                helpfulButton.type = 'button';
+                helpfulButton.title = 'यह उत्तर मददगार था';
+                helpfulButton.setAttribute('aria-label', 'यह उत्तर मददगार था');
+                helpfulButton.innerHTML = '<i class="far fa-thumbs-up"></i>';
+                helpfulButton.addEventListener('click', () => submitChatFeedback(
+                    data.feedback_token, true, responseActions
+                ));
+                const unhelpfulButton = document.createElement('button');
+                unhelpfulButton.type = 'button';
+                unhelpfulButton.title = 'इस उत्तर में सुधार चाहिए';
+                unhelpfulButton.setAttribute('aria-label', 'इस उत्तर में सुधार चाहिए');
+                unhelpfulButton.innerHTML = '<i class="far fa-thumbs-down"></i>';
+                unhelpfulButton.addEventListener('click', () => submitChatFeedback(
+                    data.feedback_token, false, responseActions
+                ));
+                responseActions.appendChild(helpfulButton);
+                responseActions.appendChild(unhelpfulButton);
+            }
+            botDiv.appendChild(responseActions);
             
             // Bot timestamp
             const botTime = document.createElement('span');
@@ -2511,6 +2802,27 @@
         }
     }
 
+    async function submitChatFeedback(feedbackToken, isHelpful, actionsElement) {
+        if (!feedbackToken || !actionsElement) return;
+        const buttons = Array.from(actionsElement.querySelectorAll('button'));
+        buttons.forEach(button => { button.disabled = true; });
+        try {
+            await apiPostJson('/api/chatbot/feedback/', {
+                feedback_token: feedbackToken,
+                is_helpful: isHelpful,
+            });
+            const status = document.createElement('span');
+            status.className = 'chat-feedback-status';
+            status.textContent = isHelpful
+                ? 'धन्यवाद, यह गुणवत्ता जांच में जोड़ा गया।'
+                : 'धन्यवाद, हमारी टीम इस उत्तर की समीक्षा करेगी।';
+            actionsElement.appendChild(status);
+        } catch (error) {
+            buttons.forEach(button => { button.disabled = false; });
+            notifyFarmer('Feedback अभी सेव नहीं हो पाया।', 'error');
+        }
+    }
+
     function _chatQualityInfo(data) {
         const quality = data.ai_data_quality || {};
         if (quality.label) return quality;
@@ -2520,6 +2832,7 @@
             knowledge_base: { label: 'Verified knowledge base', status: 'verified_local' },
             phase1_rag_ollama: { label: 'Local AI + knowledge base', status: 'local_ai' },
             phase1_rag_ollama_stream: { label: 'Local AI + knowledge base', status: 'local_ai' },
+            phase1_partial_stream: { label: 'Local AI response interrupted', status: 'degraded' },
             direct_ollama: { label: 'Local AI fallback', status: 'local_ai' },
             gemini: { label: 'Cloud AI fallback', status: 'cloud_fallback' },
             local_ai_busy_fallback: { label: 'AI busy: safe fallback', status: 'degraded' },
@@ -2581,6 +2894,7 @@
     function clearChat() {
         const chatMessages = document.getElementById('chatMessages');
         if (!chatMessages) return;
+        _archiveCurrentConversation();
         chatMessages.innerHTML = '';
         // Clear in-memory + persisted conversation history
         conversationHistory = [];
@@ -2681,6 +2995,11 @@
     window.prefill = prefill;
     window.retryLastQuery = retryLastQuery;
     window.clearChat = clearChat;
+    window.openChatHistory = openChatHistory;
+    window.closeChatHistory = closeChatHistory;
+    window.restoreArchivedChat = restoreArchivedChat;
+    window.clearArchivedChats = clearArchivedChats;
+    window.submitChatFeedback = submitChatFeedback;
     window._restoreChatHistory = _restoreChatHistory;
     window._getConversationHistory = () => conversationHistory;
     window.loadFieldAdvisory = loadFieldAdvisory;
@@ -2698,6 +3017,12 @@
     });
 
     function reloadAllServices() {
+        if (!hasConfirmedLocation()) {
+            renderLocationRequired(document.getElementById('weatherData'), 'स्थानीय मौसम');
+            const heroWidget = document.getElementById('heroWeatherWidget');
+            if (heroWidget) heroWidget.style.display = 'none';
+            return;
+        }
         // Weather powers the compact home widget, so keep it current. Other
         // services load only when opened to save bandwidth on rural networks.
         loadWeatherData();
@@ -2745,7 +3070,7 @@
 
         // ── Restore last known location instantly from localStorage ──────
         const saved = _restoreLocationFromStorage();
-        if (saved && saved.lat && saved.lon) {
+        if (saved && saved.name && _isIndiaCoordinate(saved.lat, saved.lon)) {
             console.log(`📦 Restored location from storage: ${saved.name} (±${Math.round(saved.acc || 0)}m)`);
             currentLocation = saved.name;
             currentLatitude  = saved.lat;
@@ -2758,14 +3083,13 @@
             updateAccuracyBadge(saved.acc);
         }
 
-        // Load services with the best available location right away
+        // Never load location-dependent data against an assumed/default city.
         reloadAllServices();
 
         // ── Auto-start continuous GPS (if browser supports it) ────────────
-        if (navigator.geolocation) {
-            // Small delay so initial data loads first, GPS refines afterwards
-            setTimeout(startContinuousLocationWatch, 1500);
-        }
+        // Reuse GPS silently only when the farmer already granted permission.
+        // A new permission prompt is initiated only by the visible GPS button.
+        setTimeout(startLocationIfAlreadyAllowed, 100);
     }
 
     if (document.readyState === 'loading') {

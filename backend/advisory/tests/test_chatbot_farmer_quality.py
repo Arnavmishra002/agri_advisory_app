@@ -1,5 +1,6 @@
 import re
 import time
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
@@ -44,6 +45,12 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
                 intent, _ = self.service.classify_query(query)
                 self.assertEqual(intent, expected)
 
+    def test_hinglish_tomorrow_word_is_not_misclassified_as_a_crop(self):
+        intent, crops = self.service.classify_query("kal ka mausam kaisa hoga")
+
+        self.assertEqual(intent, INTENT_WEATHER)
+        self.assertEqual(crops, [])
+
     def test_greetings_match_requested_language_and_latency_budget(self):
         started = time.monotonic()
         hindi = self.service.answer("नमस्ते", self.ctx, language="hi")
@@ -57,6 +64,49 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertIn("नमस्कार शेतकरी", marathi["response"])
         self.assertNotIn("Hello Farmer", marathi["response"])
         self.assertEqual(hindi["ai_data_quality"]["tier"], "instant_rule")
+
+    @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_location_specific_question_never_uses_default_when_unconfirmed(
+        self, weather, market
+    ):
+        unknown = LocationContext(
+            latitude=22.9734,
+            longitude=78.6569,
+            display_name="",
+            source="unconfirmed",
+            confidence=0.0,
+        )
+
+        result = self.service.answer(
+            "kal ka mausam kaisa hoga",
+            unknown,
+            language="auto",
+        )
+
+        self.assertEqual(result["chatbot_diagnostics"]["selected_tier"], "location_required")
+        self.assertIn("location confirm", result["response"].lower())
+        weather.assert_not_called()
+        market.assert_not_called()
+
+    def test_stream_location_specific_question_stops_before_local_ai_when_unconfirmed(self):
+        unknown = LocationContext(
+            latitude=22.9734,
+            longitude=78.6569,
+            display_name="",
+            source="unconfirmed",
+            confidence=0.0,
+        )
+
+        chunks = list(self.service.answer_stream(
+            "आज गेहूं का मंडी भाव क्या है",
+            unknown,
+            language="auto",
+        ))
+
+        text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+        self.assertIn("स्थान चुनें", text)
+        self.assertEqual(chunks[-1]["chatbot_diagnostics"]["selected_tier"], "location_required")
 
     @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
@@ -117,6 +167,103 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(result["ai_data_quality"]["tier"], "verified_realtime")
         kb_answer.assert_not_called()
         qwen.assert_not_called()
+
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_hinglish_tomorrow_weather_is_detected_and_answered_directly(self, weather):
+        tomorrow = (datetime.now(tz=timezone.utc) + timedelta(days=1)).date().isoformat()
+        weather.return_value = {
+            "status": "success",
+            "is_live": True,
+            "data_source": "Open-Meteo",
+            "current": {
+                "temperature": 31,
+                "humidity": 62,
+                "wind_speed": 8,
+                "rainfall_mm": 0,
+                "condition": "Clear",
+            },
+            "forecast_7day": [{
+                "date": tomorrow,
+                "max_temp": 29,
+                "rainfall_mm": 4,
+                "rain_probability": 65,
+            }],
+            "farming_alerts": ["Heavy rain risk — postpone spraying"],
+        }
+
+        result = self.service.answer(
+            "kal ka mausam Kaisa hoga",
+            self.ctx,
+            language="auto",
+        )
+
+        self.assertEqual(result["language"], "hinglish")
+        self.assertIn("Kal Delhi", result["response"])
+        self.assertIn("65%", result["response"])
+        self.assertEqual(result["response"].count("Heavy rain risk"), 1)
+        self.assertEqual(result["ai_data_quality"]["tier"], "verified_realtime")
+
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_kb_facts_are_grounding_for_fresh_question_specific_answer(
+        self,
+        kb_answer,
+        qwen,
+        weather,
+    ):
+        stored = "Stored wheat sowing note: November 1-30."
+        kb_answer.return_value = {"answer": stored, "source": "knowledge_base"}
+        qwen.return_value = (
+            "For your Delhi field, sow wheat in November using 100-125 kg seed per hectare."
+        )
+        weather.return_value = {
+            "status": "fallback",
+            "is_live": False,
+            "current": {},
+            "forecast_7day": [],
+            "data_source": "unavailable",
+        }
+
+        result = self.service.answer(
+            "When and how should I sow wheat in my field?",
+            self.ctx,
+            language="en",
+        )
+
+        self.assertNotEqual(result["response"], stored)
+        self.assertIn("sow wheat", result["response"].lower())
+        self.assertIn("100-125", result["response"])
+        self.assertEqual(qwen.call_args.kwargs["local_kb_context"], stored)
+
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_offline_sowing_fallback_answers_time_and_method_not_raw_kb(
+        self,
+        kb_answer,
+        weather,
+    ):
+        stored = "गेहूँ की बुवाई नवंबर में करें।"
+        kb_answer.return_value = {"answer": stored, "source": "knowledge_base"}
+        weather.return_value = {
+            "status": "fallback",
+            "is_live": False,
+            "current": {},
+            "forecast_7day": [],
+            "data_source": "unavailable",
+        }
+
+        result = self.service.answer(
+            "गेहूँ की बुवाई का सही समय और तरीका बताएं",
+            self.ctx,
+            language="hi",
+            fast_mode=True,
+        )
+
+        self.assertNotEqual(result["response"], stored)
+        self.assertIn("बीज दर", result["response"])
+        self.assertIn("बुवाई गहराई", result["response"])
+        self.assertIn("बुवाई का समय", result["response"])
 
     @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
