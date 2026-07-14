@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 import re
 
+from django.utils import timezone
 from rest_framework import serializers
 from ..models import CropAdvisory, Crop, User, ForumPost # Update import for models
 from ..services.language_service import SUPPORTED_LANGUAGES
@@ -467,6 +468,77 @@ class ChatHistoryEntrySerializer(StrictSerializer):
     intent = serializers.CharField(required=False, allow_blank=True, max_length=80)
 
 
+class ChatSensorContextSerializer(StrictSerializer):
+    """Strict, fresh readings from a real field sensor or IoT gateway."""
+
+    source = serializers.ChoiceField(
+        choices=("esp32", "mqtt", "field_sensor", "verified_hardware")
+    )
+    device_id = serializers.RegexField(
+        regex=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$"
+    )
+    observed_at = serializers.DateTimeField()
+    soil_moisture_pct = serializers.FloatField(required=False, min_value=0, max_value=100)
+    soil_moisture_percentage = serializers.FloatField(required=False, min_value=0, max_value=100)
+    soil_temp_c = serializers.FloatField(required=False, min_value=-20, max_value=80)
+    air_temp_c = serializers.FloatField(required=False, min_value=-60, max_value=80)
+    humidity_pct = serializers.FloatField(required=False, min_value=0, max_value=100)
+    humidity_percentage = serializers.FloatField(required=False, min_value=0, max_value=100)
+    nitrogen_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    nitrogen_lvl = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    phosphorus_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    phosphorus_lvl = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    potassium_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    potassium_lvl = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    soil_ph = serializers.FloatField(required=False, min_value=0, max_value=14)
+    hours_since_last_water = serializers.FloatField(required=False, min_value=0, max_value=8760)
+
+    _ALIASES = {
+        "soil_moisture_percentage": "soil_moisture_pct",
+        "humidity_percentage": "humidity_pct",
+        "nitrogen_lvl": "nitrogen_kg_ha",
+        "phosphorus_lvl": "phosphorus_kg_ha",
+        "potassium_lvl": "potassium_kg_ha",
+    }
+    _MEASUREMENTS = {
+        "soil_moisture_pct",
+        "soil_temp_c",
+        "air_temp_c",
+        "humidity_pct",
+        "nitrogen_kg_ha",
+        "phosphorus_kg_ha",
+        "potassium_kg_ha",
+        "soil_ph",
+    }
+
+    def validate(self, attrs):
+        values = dict(attrs)
+        for alias, canonical in self._ALIASES.items():
+            if canonical not in values and alias in values:
+                values[canonical] = values[alias]
+            values.pop(alias, None)
+
+        if not any(name in values for name in self._MEASUREMENTS):
+            raise serializers.ValidationError(
+                "At least one numeric sensor reading is required."
+            )
+
+        observed_at = values["observed_at"]
+        now = timezone.now()
+        age_seconds = (now - observed_at).total_seconds()
+        if age_seconds > 30 * 60:
+            raise serializers.ValidationError({
+                "observed_at": "Sensor reading is stale; maximum age is 30 minutes."
+            })
+        if age_seconds < -5 * 60:
+            raise serializers.ValidationError({
+                "observed_at": "Sensor timestamp cannot be more than 5 minutes in the future."
+            })
+        values["observed_at"] = observed_at.isoformat()
+        values["sensor_age_seconds"] = max(0, int(age_seconds))
+        return values
+
+
 class ChatbotRequestSerializer(StrictSerializer):
     query = serializers.CharField(max_length=2000, trim_whitespace=True)
     language = serializers.ChoiceField(
@@ -499,6 +571,18 @@ class ChatbotRequestSerializer(StrictSerializer):
     place = serializers.CharField(required=False, allow_blank=True, max_length=200)
     address = serializers.CharField(required=False, allow_blank=True, max_length=300)
     state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    sensor_context = ChatSensorContextSerializer(required=False)
+    sensors = ChatSensorContextSerializer(required=False, write_only=True)
+
+    def validate(self, attrs):
+        values = dict(attrs)
+        if "sensor_context" in values and "sensors" in values:
+            raise serializers.ValidationError({
+                "sensor_context": "Send sensor_context or sensors, not both."
+            })
+        if "sensor_context" not in values and "sensors" in values:
+            values["sensor_context"] = values.pop("sensors")
+        return values
 
 
 class ChatbotFeedbackSerializer(StrictSerializer):

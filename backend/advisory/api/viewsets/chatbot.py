@@ -190,6 +190,7 @@ def _parse_request(request) -> Dict[str, Any]:
         "language": parsed.get("language", "hi"),
         "session_id": parsed.get("session_id") or None,
         "fast_mode": parsed.get("fast_mode", False),
+        "sensor_context": parsed.get("sensor_context"),
     }
 
 
@@ -420,6 +421,7 @@ class ChatbotViewSet(viewsets.ViewSet):
         language   = parsed["language"]
         session_id = parsed["session_id"]
         fast_mode  = parsed["fast_mode"]
+        sensor_context = parsed["sensor_context"]
         ctx        = resolve_request_location(request)
 
         if not query:
@@ -444,6 +446,7 @@ class ChatbotViewSet(viewsets.ViewSet):
                     query, ctx, language=language, history=history,
                     farmer_profile=farmer_ctx if farmer_ctx else None,
                     fast_mode=fast_mode,
+                    sensor_context=sensor_context,
                 )
             if result.get("location_context"):
                 from ...services.location_context import LocationContext
@@ -502,6 +505,11 @@ class ChatbotViewSet(viewsets.ViewSet):
             "data_source":      result.get("data_source"),
             "chatbot_diagnostics": result.get("chatbot_diagnostics", {}),
             "ai_data_quality":  result.get("ai_data_quality", {}),
+            "iot_sensors_used": result.get("iot_sensors_used", False),
+            "sensor_source": result.get("sensor_source"),
+            "sensor_observed_at": result.get("sensor_observed_at"),
+            "sensor_age_seconds": result.get("sensor_age_seconds"),
+            "weather_constraints": result.get("weather_constraints", {}),
             "response_time_ms": response_time_ms,
             "timestamp":        _now_utc.isoformat(),
             "session_id":       session_id,
@@ -527,7 +535,7 @@ def _sse_frame(data: dict) -> str:
 
 def _stream_generator(
     query, ctx, language, history, farmer_ctx, fast_mode,
-    session_id, request, user_id,
+    session_id, request, user_id, sensor_context=None,
 ) -> Generator[str, None, None]:
     """
     Generator that yields SSE frames.
@@ -548,6 +556,7 @@ def _stream_generator(
                 history=history,
                 farmer_profile=farmer_ctx if farmer_ctx else None,
                 fast_mode=fast_mode,
+                sensor_context=sensor_context,
             ):
                 # Sentinel dict marks end of stream
                 if isinstance(chunk, dict) and chunk.get("__done__"):
@@ -578,6 +587,11 @@ def _stream_generator(
         "crops_detected":  result_meta.get("crops_detected", []),
         "chatbot_diagnostics": result_meta.get("chatbot_diagnostics", {}),
         "ai_data_quality": result_meta.get("ai_data_quality", {}),
+        "iot_sensors_used": result_meta.get("iot_sensors_used", False),
+        "sensor_source": result_meta.get("sensor_source"),
+        "sensor_observed_at": result_meta.get("sensor_observed_at"),
+        "sensor_age_seconds": result_meta.get("sensor_age_seconds"),
+        "weather_constraints": result_meta.get("weather_constraints", {}),
         "sources":         sources,
         "crop_suggestions": result_meta.get("crop_suggestions", []),
         "response_time_ms": response_time_ms,
@@ -664,6 +678,7 @@ def stream_chat(request):
     language   = body.get("language", "hi")
     session_id = (body.get("session_id") or "").strip() or None
     fast_mode  = body.get("fast_mode", False)
+    sensor_context = body.get("sensor_context")
 
     if not query:
         from django.http import JsonResponse
@@ -686,7 +701,7 @@ def stream_chat(request):
     response = StreamingHttpResponse(
         _stream_generator(
             query, ctx, language, history, farmer_ctx, fast_mode,
-            session_id, request, user_id,
+            session_id, request, user_id, sensor_context,
         ),
         content_type="text/event-stream",
     )

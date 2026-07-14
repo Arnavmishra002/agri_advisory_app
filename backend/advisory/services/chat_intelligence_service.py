@@ -502,6 +502,10 @@ class SensorContext:
     soil_health_grade: str             = "—"
     moisture_status:   str             = "Unknown"
     source:            str             = "none"
+    device_id:         Optional[str]   = None
+    observed_at:       Optional[str]   = None
+    sensor_age_seconds: Optional[int]  = None
+    hours_since_last_water: Optional[float] = None
 
     def moisture_label(self) -> str:
         if self.soil_moisture_pct is None:
@@ -909,6 +913,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         history: Optional[List[Dict[str, Any]]] = None,
         farmer_profile: Optional[Dict[str, Any]] = None,
         fast_mode: bool = False,
+        sensor_context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Main entry point. Supports multi-turn conversation via `history`.
@@ -1068,7 +1073,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # ── Concurrent data fetch ─────────────────────────────────
         weather_data: Dict[str, Any] = {}
         prices_data:  Dict[str, Any] = {}
-        sc = SensorContext()
+        sc = self._sensor_context_from_payload(sensor_context)
         needs_weather = intent in {
             INTENT_WEATHER,
             INTENT_IRRIGATION,
@@ -1112,7 +1117,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             )
 
         def _fetch_iot():
-            return self._resolve_sensor_context(ctx)
+            return self._resolve_sensor_context(ctx, sensor_context)
 
         if ctx.latitude is None or ctx.longitude is None:
             logger.warning(
@@ -1225,6 +1230,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
                 "chatbot_diagnostics": diagnostics,
                 "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
+                **self._sensor_response_metadata(sc, wc),
             }
 
         # ── History block (for Gemini prompt) ────────────────────
@@ -1365,6 +1371,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
             "chatbot_diagnostics": diagnostics,
             "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
+            **self._sensor_response_metadata(sc, wc),
         }
 
     # ── Tier 2: Qwen 2.5 7B + RAG (local Phase 1 server) ────────
@@ -1869,12 +1876,60 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
     # ── Sensor context: verified field hardware only ────
 
-    def _resolve_sensor_context(self, ctx: LocationContext) -> SensorContext:
+    def _sensor_context_from_payload(
+        self, payload: Optional[Dict[str, Any]]
+    ) -> SensorContext:
+        if not payload:
+            return SensorContext(source="none")
+        source = str(payload.get("source") or "verified_hardware")
+        device_id = str(payload.get("device_id") or "") or None
+        observed_at = payload.get("observed_at")
+        if hasattr(observed_at, "isoformat"):
+            observed_at = observed_at.isoformat()
+        return SensorContext(
+            soil_moisture_pct=payload.get("soil_moisture_pct"),
+            soil_temp_c=payload.get("soil_temp_c"),
+            air_temp_c=payload.get("air_temp_c"),
+            humidity_pct=payload.get("humidity_pct"),
+            nitrogen_kg_ha=payload.get("nitrogen_kg_ha"),
+            phosphorus_kg_ha=payload.get("phosphorus_kg_ha"),
+            potassium_kg_ha=payload.get("potassium_kg_ha"),
+            soil_ph=payload.get("soil_ph"),
+            moisture_status=_classify_moisture(payload.get("soil_moisture_pct")),
+            source=f"{source}:{device_id}" if device_id else source,
+            device_id=device_id,
+            observed_at=str(observed_at) if observed_at else None,
+            sensor_age_seconds=payload.get("sensor_age_seconds"),
+            hours_since_last_water=payload.get("hours_since_last_water"),
+        )
+
+    @staticmethod
+    def _sensor_response_metadata(
+        sc: SensorContext, wc: WeatherConstraints
+    ) -> Dict[str, Any]:
+        used = sc.source != "none" and sc.observed_at is not None
+        return {
+            "iot_sensors_used": used,
+            "sensor_source": sc.source if used else None,
+            "sensor_observed_at": sc.observed_at if used else None,
+            "sensor_age_seconds": sc.sensor_age_seconds if used else None,
+            "weather_constraints": _wc_to_dict(wc),
+        }
+
+    def _resolve_sensor_context(
+        self,
+        ctx: LocationContext,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> SensorContext:
         """
         Use only fresh IoTSensorReading DB rows from real ESP32/MQTT hardware.
         If none exists, return an empty SensorContext. Demo simulation must not
         influence farmer advice.
         """
+        supplied = self._sensor_context_from_payload(payload)
+        if supplied.source != "none":
+            return supplied
+
         if ctx.latitude is not None and ctx.longitude is not None:
             try:
                 import django
@@ -1896,6 +1951,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     )
                     if reading:
                         pct = reading.moisture_pct
+                        age_seconds = max(
+                            0, int((timezone.now() - reading.created_at).total_seconds())
+                        )
                         sc = SensorContext(
                             soil_moisture_pct=pct,
                             soil_temp_c=reading.soil_temp_c,
@@ -1904,19 +1962,61 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             potassium_kg_ha=reading.potassium_kg_ha,
                             soil_ph=reading.ph,
                             source=f"iot_db:{reading.sensor_device_id or reading.field_id}",
+                            device_id=reading.sensor_device_id or reading.field_id,
+                            observed_at=reading.created_at.isoformat(),
+                            sensor_age_seconds=age_seconds,
                         )
                         sc.moisture_status = _classify_moisture(pct)
                         logger.info(
                             "Real sensor used for %s (device=%s, age=%ds)",
                             ctx.display_name,
                             reading.sensor_device_id,
-                            (timezone.now() - reading.created_at).seconds,
+                            age_seconds,
                         )
                         return sc
             except Exception as exc:
                 logger.debug("DB sensor lookup skipped: %s", exc)
 
         return SensorContext(source="none")
+
+    def build_grounded_prompt(
+        self,
+        sensor_data: Dict[str, Any],
+        government_data: Dict[str, Any],
+        farmer_query: str,
+        language: str = "en",
+    ) -> str:
+        """Build a deterministic prompt from already-validated facts."""
+        sc = self._sensor_context_from_payload(sensor_data)
+        wc = WeatherConstraints(
+            alerts_text=str(government_data.get("active_weather_warnings") or "None"),
+            forecast_3day=str(government_data.get("forecast_3day") or "N/A"),
+            irrigation_blocked=bool(government_data.get("irrigation_blocked")),
+            spray_blocked=bool(government_data.get("spray_blocked")),
+            frost_warning=bool(government_data.get("frost_warning")),
+        )
+        location = str(government_data.get("location") or "Location not supplied")
+        ctx = LocationContext(
+            latitude=government_data.get("latitude"),
+            longitude=government_data.get("longitude"),
+            display_name=location,
+            city=location,
+            state=str(government_data.get("state") or ""),
+            country="India",
+            source="validated_prompt_input",
+            confidence=1.0,
+        )
+        return self._render_grounded_prompt(
+            query=farmer_query,
+            ctx=ctx,
+            sc=sc,
+            wc=wc,
+            rag=str(government_data.get("government_rag_snippets") or ""),
+            market_price_str=str(government_data.get("current_market_price") or ""),
+            history_block=str(government_data.get("history_block") or "(new conversation)"),
+            lang=normalise_language_code(language),
+            season=str(government_data.get("season") or _current_season()),
+        )
 
     # ── Weather constraints ───────────────────────────────────────
 
@@ -4198,6 +4298,7 @@ def _answer_stream(
     history=None,
     farmer_profile=None,
     fast_mode: bool = False,
+    sensor_context=None,
 ):
     """
     Generator version of answer().
@@ -4304,7 +4405,7 @@ def _answer_stream(
         and re.search(r"\b(msp|minimum\s+support|न्यूनतम\s+समर्थन)\b", query, re.I)
         and not re.search(r"\b(mandi|मंडी|bhav|भाव|rate|daam|दाम|price|कीमत)\b", query, re.I)
     )
-    if intent == INTENT_WEATHER or (
+    if sensor_context or intent == INTENT_WEATHER or (
         intent == INTENT_MARKET_PRICE and not is_msp_policy_query
     ):
         result = self.answer(
@@ -4314,6 +4415,7 @@ def _answer_stream(
             history=history,
             farmer_profile=farmer_profile,
             fast_mode=True,
+            sensor_context=sensor_context,
         )
         response_text = str(result.get("response") or self._empty_response(lang))
         for token in _yield_answer_chunks(response_text):
@@ -4333,6 +4435,11 @@ def _answer_stream(
             "chatbot_diagnostics": result.get("chatbot_diagnostics", {}),
             "ai_data_quality": result.get("ai_data_quality", {}),
             "sources": result.get("sources", []),
+            "iot_sensors_used": result.get("iot_sensors_used", False),
+            "sensor_source": result.get("sensor_source"),
+            "sensor_observed_at": result.get("sensor_observed_at"),
+            "sensor_age_seconds": result.get("sensor_age_seconds"),
+            "weather_constraints": result.get("weather_constraints", {}),
         }
         return
 
@@ -4477,6 +4584,7 @@ def _answer_stream(
         result = self.answer(
             query, ctx, language=language, history=history,
             farmer_profile=farmer_profile, fast_mode=fallback_fast_mode,
+            sensor_context=sensor_context,
         )
     finally:
         _SKIP_PHASE1_ONCE.reset(skip_token)
@@ -4508,6 +4616,11 @@ def _answer_stream(
         "ai_data_quality": result.get("ai_data_quality", {}),
         "sources": result.get("sources", []),
         "crop_suggestions": result.get("crop_suggestions", []),
+        "iot_sensors_used": result.get("iot_sensors_used", False),
+        "sensor_source": result.get("sensor_source"),
+        "sensor_observed_at": result.get("sensor_observed_at"),
+        "sensor_age_seconds": result.get("sensor_age_seconds"),
+        "weather_constraints": result.get("weather_constraints", {}),
     }
 
 
