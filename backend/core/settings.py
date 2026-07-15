@@ -22,6 +22,7 @@ _RUNNING_PYTEST = bool(
     or os.environ.get("PYTEST_VERSION")
     or "pytest" in sys.modules
 )
+_RUNNING_TESTS = _RUNNING_PYTEST or "test" in sys.argv
 
 # Import sentry_sdk for error monitoring
 try:
@@ -351,8 +352,10 @@ if _REDIS_URL:
 # Cache busting for frontend files
 CACHE_BUST_TIMESTAMP = int(time.time())
 
-# Disable caching for development
-if DEBUG:
+# Disable caching for interactive development. Django's test runner needs a
+# real in-process cache so OTP, throttling, freshness, and backoff contracts
+# are exercised even when CI sets DEBUG=True.
+if DEBUG and not _RUNNING_TESTS:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
