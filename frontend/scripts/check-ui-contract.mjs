@@ -71,6 +71,19 @@ check(
   'Nearest mandi may be highlighted but must not hide state live rows through automatic selection',
 );
 check(
+  app.includes('updateMandiSelectionStatus(data)') &&
+    app.includes('data.mandi_no_live_rows === true'),
+  'Selected-mandi loading state must finish with an honest official-row status',
+);
+check(
+  app.includes('show-state-market-prices') && app.includes("selectMandi('')"),
+  'An unavailable exact mandi must offer a clearly separate official state benchmark',
+);
+check(
+  !app.includes('आधिकारिक लाइव मंडी फीड अभी इस सर्वर पर जुड़ी नहीं है'),
+  'Missing exact-mandi rows must not be mislabeled as a disconnected official feed',
+);
+check(
   app.includes('startLocationIfAlreadyAllowed') && app.includes('window.isSecureContext'),
   'GPS startup must respect browser permission and secure-context requirements',
 );

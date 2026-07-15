@@ -1171,12 +1171,36 @@
         const badge = document.getElementById('mandiStatusBadge');
         if (badge) {
             badge.textContent = mandiName
-                ? `📍 ${mandiName} — live data fetching…`
+                ? `📍 ${mandiName} — आधिकारिक आवक जांची जा रही है…`
                 : `🏪 सभी मंडियों का राज्य-स्तरीय भाव`;
         }
         // Clear refresh timer so mandi change triggers a fresh fetch immediately
         if (_mandiRefreshTimer) { clearTimeout(_mandiRefreshTimer); _mandiRefreshTimer = null; }
         loadMarketPrices();
+    }
+
+    function updateMandiSelectionStatus(data) {
+        const badge = document.getElementById('mandiStatusBadge');
+        if (!badge || !data) return;
+        const rowCount = (data.top_crops || data.crops || []).length;
+
+        if (currentMandi) {
+            if (data.is_live === true && rowCount > 0) {
+                badge.textContent = `🟢 ${currentMandi} · ${rowCount} सत्यापित आधिकारिक भाव`;
+            } else if (data.mandi_no_live_rows === true) {
+                badge.textContent = `🔴 ${currentMandi} · अभी ताजा आधिकारिक आवक नहीं मिली`;
+            } else {
+                badge.textContent = `⚠️ ${currentMandi} · आधिकारिक भाव अभी उपलब्ध नहीं`;
+            }
+            return;
+        }
+
+        if (data.is_live === true && rowCount > 0) {
+            const stateName = data.state || currentState || 'राज्य';
+            badge.textContent = `🟢 ${stateName} · ${rowCount} नवीनतम आधिकारिक औसत भाव`;
+        } else {
+            badge.textContent = '🔴 राज्य का आधिकारिक मंडी डेटा अभी उपलब्ध नहीं';
+        }
     }
 
     function hideCropPriceSuggestions() {
@@ -1417,9 +1441,12 @@
         } else if (isFallback) {
             banner.className = 'market-live-banner market-live-banner--estimate';
             banner.innerHTML = '📊 यह MSP संदर्भ है, आज का मंडी व्यापार भाव नहीं। बेचने से पहले मंडी से पुष्टि करें।';
+        } else if (isUnavailable && data.mandi_no_live_rows === true) {
+            banner.className = 'market-live-banner market-live-banner--warn';
+            banner.innerHTML = `🔴 ${escapeHtml(data.selected_mandi || currentMandi || 'चुनी मंडी')} में अभी ताजा आधिकारिक आवक नहीं मिली। कोई दूसरी मंडी का भाव इसके नाम पर नहीं दिखाया गया है।`;
         } else if (isUnavailable && data.api_key_registered === false) {
             banner.className = 'market-live-banner market-live-banner--warn';
-            banner.innerHTML = '🔴 आधिकारिक लाइव मंडी फीड अभी इस सर्वर पर जुड़ी नहीं है। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
+            banner.innerHTML = '🔴 इस स्थान के लिए आधिकारिक मंडी पंक्तियां अभी उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
         } else if (isUnavailable) {
             banner.className = 'market-live-banner market-live-banner--warn';
             banner.innerHTML = '🔴 अभी सत्यापित लाइव मंडी भाव उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
@@ -1477,6 +1504,7 @@
 
             _mandiLastFetchedAt = new Date();
             updateMarketLiveBanner(data);
+            updateMandiSelectionStatus(data);
             _renderMarketPrices(data, container);
 
             // Refresh live data every 5 minutes; retry an unavailable feed in 1 minute.
@@ -1531,9 +1559,9 @@
             : `${liveDot} ${escapeHtml(data.message || 'Live data unavailable')}`;
 
         if (!crops.length) {
-            const unavailableReason = data.api_key_registered === false
-                ? 'आधिकारिक लाइव मंडी फीड इस सर्वर पर अभी जुड़ी नहीं है। ऐप संचालक द्वारा फीड सक्रिय होने के बाद सत्यापित भाव यहां दिखेंगे।'
-                : 'अभी इस मंडी के सत्यापित ताजा भाव उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई गई है।';
+            const unavailableReason = data.mandi_no_live_rows === true
+                ? `${escapeHtml(data.selected_mandi || currentMandi || 'चुनी मंडी')} में अभी ताजा आधिकारिक आवक दर्ज नहीं मिली। यह डेटा की अनुपलब्धता है, सेवा बंद नहीं है।`
+                : 'इस स्थान के सत्यापित ताजा भाव अभी उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई गई है।';
             let alternativesHtml = '';
             if (nearbyAlternatives.length) {
                 alternativesHtml = `<div class="nearby-live-prices" style="margin-top:18px;text-align:left;">
@@ -1555,15 +1583,27 @@
                 });
                 alternativesHtml += `</div><small style="display:block;color:#5f6b63;margin-top:8px;">ये भाव ऊपर चुनी गई मंडी के नहीं हैं। मंडी बदलने के लिए विकल्प चुनें।</small></div>`;
             }
+            const stateBenchmarkHtml = currentMandi
+                ? `<button type="button" class="show-state-market-prices"
+                    style="margin-top:14px;border:1px solid #2d6a3f;background:#f4fbf5;color:#1b5e20;border-radius:6px;padding:9px 12px;font-weight:700;cursor:pointer;">
+                    राज्य के नवीनतम आधिकारिक औसत भाव देखें
+                </button>
+                <small style="display:block;color:#6b7280;margin-top:6px;">ये चुनी मंडी के भाव नहीं होंगे; राज्य का अलग आधिकारिक सारांश होगा।</small>`
+                : '';
             container.innerHTML = `<div style="padding:20px;text-align:center;">
                 <div style="font-size:0.88rem;color:#888;margin-bottom:10px;">${liveLabel}</div>
                 <p style="color:#856404;">${unavailableReason}</p>
                 <small style="color:#666;">बेचने से पहले मंडी कार्यालय या eNAM से भाव की पुष्टि करें।</small>
                 ${alternativesHtml}
+                ${stateBenchmarkHtml}
             </div>`;
             container.querySelectorAll('.nearby-live-price-option').forEach(button => {
                 button.addEventListener('click', () => selectMandi(button.dataset.mandiName || ''));
             });
+            const stateBenchmarkButton = container.querySelector('.show-state-market-prices');
+            if (stateBenchmarkButton) {
+                stateBenchmarkButton.addEventListener('click', () => selectMandi(''));
+            }
             return;
         }
 
