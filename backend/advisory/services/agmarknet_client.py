@@ -305,7 +305,10 @@ class AgmarknetClient:
                 except (TypeError, ValueError):
                     retry_after = 60
                 self._rate_limited_until = time.monotonic() + retry_after
-                logger.warning("Agmarknet dashboard rate limited; retrying after %ss", retry_after)
+                logger.warning(
+                    "Agmarknet dashboard rate limited; suppressing calls for %ss",
+                    retry_after,
+                )
                 return None
             if resp.status_code != 200:
                 logger.warning("Agmarknet dashboard HTTP %s", resp.status_code)
