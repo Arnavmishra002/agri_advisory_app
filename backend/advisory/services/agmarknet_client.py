@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 AGMARKNET_BASE = "https://api.agmarknet.gov.in/v1"
 DEFAULT_TIMEOUT = (5, 30)  # connect, read seconds
 DASHBOARD_NAME = "marketwise_price_arrival"
+MARKET_PRICE_DASHBOARD = "cumm_data_sp"
 
 # Location substring -> possible Agmarknet / data.gov.in state labels
 STATE_NAME_ALIASES: Dict[str, List[str]] = {
@@ -207,33 +208,75 @@ class AgmarknetClient:
             )
             return None
 
-        base_payload: Dict[str, Any] = {
-            "dashboard": DASHBOARD_NAME,
-            "state": state_id,
-            "format": "json",
-            "page": 1,
-            "limit": 100,
-        }
+        commodity_filter: Dict[str, Any] = {}
         if crop:
             commodity_id = self._resolve_commodity_id(crop, filters)
             if commodity_id:
-                base_payload["commodity"] = [commodity_id]
+                commodity_filter["commodity"] = [commodity_id]
+
+        market = None
         if mandi:
             market = self._resolve_market(mandi, state_id, filters)
             if not market:
                 logger.info("Agmarknet: market '%s' is not registered for state %s", mandi, state_name)
                 return None
-            base_payload["market"] = [market[0]]
-            if market[1] is not None:
-                base_payload["district"] = [market[1]]
 
         records: List[Dict[str, Any]] = []
-        # Omitting date asks Agmarknet for its latest published trading day and
-        # normally needs one request. Explicit recent dates are only a fallback.
-        payloads = [base_payload] + [
-            {**base_payload, "date": (date.today() - timedelta(days=offset)).isoformat()}
-            for offset in range(4)
-        ]
+        if market:
+            # Agmarknet's own web app uses the cumulative price report for an
+            # individual APMC. The marketwise report is only a state summary;
+            # applying market IDs to it returns no rows even when the APMC has
+            # submitted prices.
+            latest_report = self._post_report({
+                "dashboard": DASHBOARD_NAME,
+                "state": state_id,
+                "format": "json",
+                "page": 1,
+                "limit": 100,
+            })
+            latest_rows = self._extract_records(latest_report) if latest_report else []
+            latest_date = self._reported_date_to_iso(
+                latest_rows[0].get("reported_date") if latest_rows else None
+            )
+            candidate_dates = [latest_date] if latest_date else []
+            candidate_dates.extend(
+                (date.today() - timedelta(days=offset)).isoformat()
+                for offset in range(4)
+            )
+            seen_dates = set()
+            payloads = []
+            for report_date in candidate_dates:
+                if not report_date or report_date in seen_dates:
+                    continue
+                seen_dates.add(report_date)
+                payload = {
+                    "dashboard": MARKET_PRICE_DASHBOARD,
+                    "state": [state_id],
+                    "market": [market[0]],
+                    "date": report_date,
+                    "format": "json",
+                    "page": 1,
+                    "limit": 100,
+                    **commodity_filter,
+                }
+                if market[1] is not None:
+                    payload["district"] = [market[1]]
+                payloads.append(payload)
+        else:
+            base_payload: Dict[str, Any] = {
+                "dashboard": DASHBOARD_NAME,
+                "state": state_id,
+                "format": "json",
+                "page": 1,
+                "limit": 100,
+                **commodity_filter,
+            }
+            # Omitting date asks Agmarknet for its latest published trading day.
+            payloads = [base_payload] + [
+                {**base_payload, "date": (date.today() - timedelta(days=offset)).isoformat()}
+                for offset in range(4)
+            ]
+
         for payload in payloads:
             report = self._post_report(payload)
             if not report:
@@ -265,6 +308,18 @@ class AgmarknetClient:
             "total_records": len(crops),
             "message": f"{len(crops)} live mandi records from Agmarknet",
         }
+
+    @staticmethod
+    def _reported_date_to_iso(value: Any) -> Optional[str]:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        for date_format in ("%d-%m-%Y", "%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, date_format).date().isoformat()
+            except ValueError:
+                continue
+        return None
 
     def _get_filters(self) -> Optional[Dict[str, Any]]:
         now = datetime.now()
@@ -491,6 +546,7 @@ class AgmarknetClient:
 
             modal = self._pick_price(
                 rec,
+                "as_on",
                 "as_on_price",
                 "modal_price",
                 "Modal Price",
@@ -532,6 +588,8 @@ class AgmarknetClient:
                 "profit_indicator": "📈" if profit and profit > 0 else "📉",
                 "variety": rec.get("variety_name") or rec.get("Variety") or "",
                 "grade": rec.get("grade") or rec.get("Grade") or "",
+                "district": rec.get("district_name") or rec.get("District") or "",
+                "arrival_quantity": self._pick_price(rec, "cumm_arr", "arrival", "Arrival"),
                 "date": (
                     rec.get("reported_date")
                     or rec.get("arrival_date")

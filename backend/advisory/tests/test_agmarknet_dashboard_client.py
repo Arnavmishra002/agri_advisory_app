@@ -25,15 +25,27 @@ class AgmarknetDashboardClientTests(SimpleTestCase):
         self, get_filters, post_report
     ):
         get_filters.return_value = self.filters
-        post_report.return_value = {
-            "status": "success",
-            "data": {"records": [{
-                "cmdt_name": "Wheat",
-                "as_on_price": "2490.00",
-                "msp_price": "2585.00",
-                "reported_date": "11-07-2026",
-            }]},
-        }
+        post_report.side_effect = [
+            {
+                "status": "success",
+                "data": {"records": [{
+                    "cmdt_name": "Wheat",
+                    "as_on_price": "2475.00",
+                    "reported_date": "11-07-2026",
+                }]},
+            },
+            {
+                "status": "success",
+                "data": {"records": [{
+                    "cmdt_name": "Wheat",
+                    "as_on": "2490.00",
+                    "msp_price": "2585.00",
+                    "market_name": "Unnao APMC",
+                    "district_name": "Unnao",
+                    "reported_date": "11-07-2026",
+                }]},
+            },
+        ]
 
         result = self.client.get_market_prices(
             "Unnao",
@@ -42,16 +54,23 @@ class AgmarknetDashboardClientTests(SimpleTestCase):
             state="Uttar Pradesh",
         )
 
-        payload = post_report.call_args.args[0]
-        self.assertEqual(payload["dashboard"], "marketwise_price_arrival")
-        self.assertEqual(payload["state"], 34)
+        latest_state_payload = post_report.call_args_list[0].args[0]
+        self.assertEqual(latest_state_payload["dashboard"], "marketwise_price_arrival")
+        self.assertEqual(latest_state_payload["state"], 34)
+        self.assertNotIn("market", latest_state_payload)
+
+        payload = post_report.call_args_list[1].args[0]
+        self.assertEqual(payload["dashboard"], "cumm_data_sp")
+        self.assertEqual(payload["state"], [34])
         self.assertEqual(payload["district"], [658])
         self.assertEqual(payload["market"], [1143])
         self.assertEqual(payload["commodity"], [1])
+        self.assertEqual(payload["date"], "2026-07-11")
         self.assertNotIn("from_date", payload)
         self.assertNotIn("to_date", payload)
         self.assertEqual(result["coverage"], "market")
-        self.assertEqual(result["top_crops"][0]["mandi_name"], "Unnao Mandi")
+        self.assertEqual(result["top_crops"][0]["mandi_name"], "Unnao APMC")
+        self.assertEqual(result["top_crops"][0]["modal_price"], 2490.0)
 
     def test_dashboard_average_does_not_invent_minimum_or_maximum_prices(self):
         rows = self.client._normalize_records(

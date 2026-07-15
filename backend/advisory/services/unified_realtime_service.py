@@ -1489,7 +1489,7 @@ class MarketPricesService:
 
         if live_matches:
             for row in live_matches:
-                row["mandi_name"] = mandi
+                row.setdefault("mandi_name", mandi)
                 row["price_source"] = "live_mandi"
                 row["is_live"] = True
             data["top_crops"] = live_matches
