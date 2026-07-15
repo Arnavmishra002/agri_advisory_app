@@ -68,8 +68,11 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => typeof window.showService === 'function');
 });
 
-test('exact mandi absence finishes loading and preserves separate state benchmark', async ({ page }) => {
-  await page.locator('#nav-market').click();
+test('exact mandi absence finishes loading and preserves separate state benchmark', async ({ page }, testInfo) => {
+  const marketButton = testInfo.project.name.includes('mobile')
+    ? '#bnav-market'
+    : '#nav-market';
+  await page.locator(marketButton).click();
   await expect(page.locator('#mandiSelector')).toContainText('Lucknow Mandi');
 
   await page.locator('#mandiSelector').selectOption('Lucknow Mandi');
