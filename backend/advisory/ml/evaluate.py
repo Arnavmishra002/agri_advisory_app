@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
-import tensorflow as tf
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -26,7 +25,6 @@ from sklearn.metrics import (
     recall_score,
 )
 
-from .augmentation import decode_and_resize, preprocess_val
 from .config import (
     DEFAULT_DATA_DIR,
     DEFAULT_MODEL_DIR,
@@ -35,7 +33,6 @@ from .config import (
     MODEL_FILENAME,
     SEED,
 )
-from .dataset_loader import build_splits
 from .labels import load_labels
 
 logging.basicConfig(level=logging.INFO)
@@ -105,6 +102,10 @@ def _limit_test_samples(
 
 
 def _load_test_batch(paths, labels, batch_size=32):
+    import tensorflow as tf
+
+    from .augmentation import preprocess_val
+
     images, ys = [], []
     for path, y in zip(paths, labels):
         img_bytes = tf.io.read_file(path)
@@ -122,6 +123,11 @@ def evaluate(
     data_dir: Path,
     max_test_samples: Optional[int] = None,
 ) -> dict:
+    import tensorflow as tf
+
+    from .augmentation import preprocess_val
+    from .dataset_loader import build_splits
+
     model_path = model_dir / MODEL_FILENAME
     if not model_path.exists():
         model_path = model_dir / "checkpoints" / "best.keras"
