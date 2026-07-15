@@ -10,6 +10,26 @@ class MarketNearbyAlternativesTests(SimpleTestCase):
     def setUp(self):
         self.service = MarketPricesService()
 
+    def test_official_apmc_name_matches_farmer_facing_mandi_alias(self):
+        result = self.service._apply_mandi_pricing(
+            {
+                "status": "success",
+                "is_live": True,
+                "top_crops": [{
+                    "crop_name": "Wheat",
+                    "mandi_name": "Lucknow APMC",
+                    "modal_price": 2400,
+                    "is_live": True,
+                }],
+            },
+            "Lucknow",
+            "Lucknow Mandi",
+        )
+
+        self.assertEqual(len(result["top_crops"]), 1)
+        self.assertEqual(result["top_crops"][0]["mandi_name"], "Lucknow APMC")
+        self.assertEqual(result["top_crops"][0]["price_source"], "live_mandi")
+
     @patch.object(MarketPricesService, "_mandi_coordinate_lookup")
     @patch.object(MarketPricesService, "get_prices")
     def test_returns_only_verified_nearby_rows_with_real_mandi_names(

@@ -1467,7 +1467,25 @@ class MarketPricesService:
             return False
         mn = str(mandi_name).lower().strip()
         mq = mandi_query_lower.strip()
-        return mq in mn or mn in mq
+        if mq in mn or mn in mq:
+            return True
+
+        # The official registry uses APMC while the farmer-facing nearby list
+        # commonly uses Mandi/Market for the same place. Strip only standard
+        # market suffixes; retain qualifiers such as "grain" so distinct yards
+        # are not merged accidentally.
+        suffixes = {"apmc", "mandi", "market", "yard", "committee"}
+
+        def core(value: str) -> str:
+            tokens = (
+                value.replace("-", " ")
+                .replace("(", " ")
+                .replace(")", " ")
+                .split()
+            )
+            return " ".join(token for token in tokens if token not in suffixes)
+
+        return bool(core(mn) and core(mn) == core(mq))
 
     def _apply_mandi_pricing(
         self,
