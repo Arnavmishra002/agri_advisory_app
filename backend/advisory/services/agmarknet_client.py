@@ -7,6 +7,7 @@ Used for live mandi prices when data.gov.in is slow or unavailable.
 from __future__ import annotations
 
 import logging
+import re
 import time
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
@@ -450,6 +451,7 @@ class AgmarknetClient:
         markets = self._list_from_filters(filters, "market_data", "market", "markets", "market_list")
         mandi_l = mandi.lower().strip()
         mandi_core = self._market_core_name(mandi_l)
+        qualified_matches: List[Tuple[Any, Optional[Any]]] = []
         for item in markets:
             if not isinstance(item, dict):
                 continue
@@ -471,13 +473,21 @@ class AgmarknetClient:
                 market_id = item.get("market_id") or item.get("id")
                 district_id = item.get("district_id") or item.get("districtId")
                 return market_id, district_id
+            if mandi_core and name_core.startswith(f"{mandi_core} "):
+                qualified_matches.append((
+                    item.get("market_id") or item.get("id"),
+                    item.get("district_id") or item.get("districtId"),
+                ))
+        if len(qualified_matches) == 1:
+            return qualified_matches[0]
         return None
 
     @staticmethod
     def _market_core_name(value: str) -> str:
         suffixes = {"mandi", "market", "apmc", "committee", "yard"}
+        normalized = re.sub(r"[^a-z0-9]+", " ", str(value or "").lower())
         return " ".join(
-            token for token in str(value or "").lower().replace("-", " ").split()
+            token for token in normalized.split()
             if token not in suffixes
         ).strip()
 

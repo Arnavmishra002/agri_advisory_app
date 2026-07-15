@@ -90,3 +90,38 @@ class AgmarknetDashboardClientTests(SimpleTestCase):
         self.assertIsNone(rows[0]["max_price"])
         self.assertEqual(rows[0]["price_source"], "agmarknet_state_average")
         self.assertEqual(rows[0]["reported_date"], "11-07-2026")
+
+    def test_generic_mandi_name_resolves_unique_official_qualified_market(self):
+        filters = {
+            "market_data": [{
+                "id": 315,
+                "mkt_name": "Kanpur(Grain) APMC",
+                "state_id": 34,
+                "district_id": 637,
+            }],
+        }
+
+        self.assertEqual(
+            self.client._resolve_market("Kanpur Mandi", 34, filters),
+            (315, 637),
+        )
+
+    def test_generic_mandi_name_does_not_guess_between_official_markets(self):
+        filters = {
+            "market_data": [
+                {
+                    "id": 315,
+                    "mkt_name": "Kanpur(Grain) APMC",
+                    "state_id": 34,
+                    "district_id": 637,
+                },
+                {
+                    "id": 316,
+                    "mkt_name": "Kanpur(Vegetable) APMC",
+                    "state_id": 34,
+                    "district_id": 637,
+                },
+            ],
+        }
+
+        self.assertIsNone(self.client._resolve_market("Kanpur Mandi", 34, filters))
