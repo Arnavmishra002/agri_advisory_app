@@ -956,7 +956,7 @@
 <div id="notification" class="notification"></div>
 
 <!-- Scroll-to-top button -->
-<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="ऊपर जाएं">
+<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="ऊपर जाएं" aria-label="पेज के ऊपर जाएं">
     <i class="fas fa-chevron-up"></i>
 </button>
 
@@ -1397,6 +1397,7 @@ window.toggleVoiceInput = function() {
               placeholder="••••••••" autocomplete="current-password"
               onkeydown="if(event.key==='Enter'){KM_Auth.loginPassword();}">
             <button class="auth-password-toggle" type="button"
+              aria-label="Show password" title="Show password"
               onclick="KM_Auth.togglePasswordVisibility('authPasswordInput',this)">
               <i class="fas fa-eye"></i>
             </button>
@@ -1419,6 +1420,7 @@ window.toggleVoiceInput = function() {
             <input type="password" id="regPasswordInput" class="auth-input auth-password-input"
               placeholder="••••••••" autocomplete="new-password">
             <button class="auth-password-toggle" type="button"
+              aria-label="Show password" title="Show password"
               onclick="KM_Auth.togglePasswordVisibility('regPasswordInput',this)">
               <i class="fas fa-eye"></i>
             </button>

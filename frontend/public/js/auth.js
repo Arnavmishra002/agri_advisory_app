@@ -92,12 +92,13 @@
 
     openProfile: function () {
       if (typeof window.showService === 'function') window.showService('ai-assistant');
-      var profile = document.getElementById('farmerProfileCard');
-      if (profile) {
+      setTimeout(function () {
+        var profile = document.getElementById('farmerProfileCard');
+        if (!profile) return;
         profile.scrollIntoView({ behavior: 'smooth', block: 'center' });
         var firstInput = profile.querySelector('input,select');
-        if (firstInput) setTimeout(function () { firstInput.focus(); }, 350);
-      }
+        if (firstInput) firstInput.focus({ preventScroll: true });
+      }, 100);
     },
 
     /* ── switchTab ───────────────────────────────────────────── */
@@ -362,6 +363,8 @@
       if (icon) {
         icon.className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
       }
+      btn.setAttribute('aria-label', isText ? 'Show password' : 'Hide password');
+      btn.title = isText ? 'Show password' : 'Hide password';
     },
 
     /* ── _onLoginSuccess ─────────────────────────────────────── */
@@ -518,6 +521,10 @@
       });
       document.querySelectorAll('.auth-password-toggle i').forEach(function (icon) {
         icon.className = 'fas fa-eye';
+      });
+      document.querySelectorAll('.auth-password-toggle').forEach(function (button) {
+        button.setAttribute('aria-label', 'Show password');
+        button.title = 'Show password';
       });
       var step1 = document.getElementById('otpStep1');
       var step2 = document.getElementById('otpStep2');

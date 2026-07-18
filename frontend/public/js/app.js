@@ -1272,6 +1272,18 @@
         if (el) el.style.display = 'none';
     }
 
+    function bindAccessibleSuggestion(element, activate) {
+        element.setAttribute('role', 'button');
+        element.setAttribute('tabindex', '0');
+        element.addEventListener('click', activate);
+        element.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                activate();
+            }
+        });
+    }
+
     function showCropPriceSuggestions(results) {
         const container = document.getElementById('cropPriceSuggestions');
         if (!container) return;
@@ -1291,7 +1303,7 @@
         });
         container.innerHTML = html;
         container.querySelectorAll('.crop-suggestion').forEach(el => {
-            el.addEventListener('click', () => {
+            bindAccessibleSuggestion(el, () => {
                 selectCropForMarket(
                     el.getAttribute('data-crop-id'),
                     el.getAttribute('data-crop-name'),
@@ -1367,7 +1379,7 @@
         });
         container.innerHTML = html;
         container.querySelectorAll('.crop-suggestion').forEach((el) => {
-            el.addEventListener('click', () => {
+            bindAccessibleSuggestion(el, () => {
                 const input = document.getElementById('cropSearchInput');
                 const label = el.getAttribute('data-crop-label');
                 if (input) input.value = label;
@@ -1441,7 +1453,10 @@
             div.appendChild(detailEl);
             const cropId    = c.id    || c.name || '';
             const cropLabel = c.label || c.name || '';
-            div.addEventListener('click', () => selectCropForDiagnostics(cropId, cropLabel));
+            bindAccessibleSuggestion(
+                div,
+                () => selectCropForDiagnostics(cropId, cropLabel),
+            );
             container.appendChild(div);
         });
         container.style.display = 'block';
@@ -1916,8 +1931,8 @@
                     const schemeTitle = escapeHtml(scheme.name_hindi || scheme.name || '');
 
                     html += `
-                    <div style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #4a7c59; cursor: pointer; transition: transform 0.3s;"
-                         onclick="window.open('${officialUrl}', '_blank')"
+                    <a href="${officialUrl}" target="_blank" rel="noopener noreferrer"
+                         style="display:block;text-decoration:none;color:inherit;background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #4a7c59; cursor: pointer; transition: transform 0.3s;"
                          onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'"
                          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -1938,7 +1953,7 @@
                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; color: #4a7c59; font-size: 0.9rem; font-weight: 600;">
                             👆 क्लिक करें आधिकारिक वेबसाइट पर जाने के लिए
                         </div>
-                    </div>
+                    </a>
                 `;
                 });
 
