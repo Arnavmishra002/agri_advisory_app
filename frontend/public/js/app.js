@@ -2274,6 +2274,12 @@
             if (recommendations.length > 0) {
                 // Header banner
                 const liveMkt = data.market_is_live;
+                const marketDate = data.market_reported_date || '';
+                const marketQuality = liveMkt
+                    ? (data.market_freshness === 'fresh_official'
+                        ? `✅ ताजा आधिकारिक भाव${marketDate ? ' · ' + marketDate : ''}`
+                        : `📅 नवीनतम आधिकारिक भाव${marketDate ? ' · ' + marketDate : ''}`)
+                    : '⚠️ सत्यापित मंडी भाव उपलब्ध नहीं';
                 const agro    = data.agro_zone || data.soil_type || '';
                 let html = `<div style="background:linear-gradient(135deg,#2d5016,#4a7c59);color:white;border-radius:15px;padding:20px 25px;margin-bottom:22px;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
@@ -2284,7 +2290,7 @@
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <span style="background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:0.78rem;">${data._offline_cache ? '🕒 Cached recommendation' : (data.weather_is_live ? '🌤️ Live weather' : '⚠️ Weather unavailable')}</span>
                             <span style="background:${liveMkt ? 'rgba(40,167,69,0.3)' : 'rgba(255,193,7,0.3)'};border-radius:20px;padding:4px 12px;font-size:0.78rem;">
-                                ${liveMkt ? '✅ Live Mandi' : '⚠️ सत्यापित मंडी भाव उपलब्ध नहीं'}
+                                ${escapeHtml(marketQuality)}
                             </span>
                         </div>
                     </div>
@@ -2310,6 +2316,15 @@
                     const icon = getCategoryIcon(crop.category);
                     const loc  = crop.crop_name_local || crop.crop_name_hindi || crop.crop_name;
                     const hint = crop.reason_hindi || crop.reason || '';
+                    const hasReturn = crop.profit_per_hectare !== null && crop.profit_per_hectare !== undefined;
+                    const returnText = hasReturn
+                        ? '₹' + Number(crop.profit_per_hectare).toLocaleString()
+                        : 'भाव जरूरी';
+                    const returnLabel = crop.economics_basis === 'official_mandi_modal_price'
+                        ? 'मंडी-आधारित/हे.'
+                        : crop.economics_basis === 'current_msp_reference'
+                            ? 'MSP-आधारित/हे.'
+                            : 'लाभ गणना';
 
                     html += `<div style="background:white;border-radius:15px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid ${scoreColor(sc)};">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
@@ -2325,8 +2340,8 @@
                         ${scoreBar(sc)}
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;font-size:0.82rem;">
                             <div style="background:#f0fff0;border-radius:8px;padding:8px;text-align:center;">
-                                <div style="font-weight:700;color:#28a745;">₹${(crop.profit_per_hectare||0).toLocaleString()}</div>
-                                <div style="color:#888;font-size:0.72rem;">अनुमानित लाभ/हे.</div>
+                                <div style="font-weight:700;color:${hasReturn ? '#28a745' : '#8a6d3b'};">${escapeHtml(returnText)}</div>
+                                <div style="color:#888;font-size:0.72rem;">${escapeHtml(returnLabel)}</div>
                             </div>
                             <div style="background:#f0f8ff;border-radius:8px;padding:8px;text-align:center;">
                                 <div style="font-weight:700;color:#1565c0;">${crop.yield_per_hectare||0} q/ha</div>
@@ -2341,7 +2356,7 @@
                                 <div style="color:#888;font-size:0.72rem;">पानी</div>
                             </div>
                         </div>
-                        ${crop.market_price && crop.market_is_live ? `<div style="font-size:0.78rem;color:#2e7d32;margin-bottom:6px;">📊 Live mandi: ₹${crop.market_price}/q</div>` : ''}
+                        ${crop.market_price && crop.market_is_live ? `<div style="font-size:0.78rem;color:#2e7d32;margin-bottom:6px;">📊 आधिकारिक मंडी${crop.market_price_reported_date ? ' ('+escapeHtml(crop.market_price_reported_date)+')' : ''}: ₹${crop.market_price}/q</div>` : ''}
                         ${hint ? `<div style="background:#fff9c4;border-radius:8px;padding:8px 10px;font-size:0.82rem;color:#333;border-left:3px solid #ffc107;">💡 ${escapeHtml(hint)}</div>` : ''}
                         <div style="margin-top:8px;font-size:0.75rem;color:#777;">${escapeHtml(crop.duration_days||120)} days · ${escapeHtml(String(crop.temperature_range||''))} · profile coverage ${(Number(crop.prediction_data?.data_completeness || 0) * 100).toFixed(0)}%</div>
                         <div style="margin-top:4px;font-size:0.68rem;color:#999;">लागत/लाभ स्थानीय सत्यापन के लिए संकेतात्मक अनुमान हैं</div>

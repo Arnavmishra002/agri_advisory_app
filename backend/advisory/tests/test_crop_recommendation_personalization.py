@@ -214,6 +214,51 @@ class CropRecommendationPersonalizationTests(SimpleTestCase):
         self.assertEqual(len(result["recommendations"]), 1)
         self.assertEqual(result["recommendations"][0]["crop_name"], "Ashwagandha")
 
+    def test_temperature_warning_is_not_hidden_by_positive_season_reason(self):
+        hot_realtime = (
+            {
+                "status": "success",
+                "is_live": True,
+                "data_source": "Open-Meteo",
+                "current": {"temperature": 27.4, "humidity": 70},
+                "forecast_7day": [{"rainfall_mm": 2, "max_temp": 30}] * 7,
+            },
+            self.realtime[1],
+            {"weather": "live", "market": "unavailable"},
+        )
+        with patch.object(self.engine, "_fetch_realtime_context", return_value=hot_realtime):
+            result = self.engine.recommend(
+                "Varanasi",
+                25.3176,
+                82.9739,
+                state="Uttar Pradesh",
+                language="hi",
+                agronomic_inputs={"season": "rabi", "target_crop": "rajma"},
+            )
+
+        crop = result["recommendations"][0]
+        self.assertTrue(crop["reason"].startswith("Too hot"))
+        self.assertIn("27.4°C", crop["reason_hindi"])
+        self.assertIsNone(crop["profit_per_hectare"])
+        self.assertEqual(crop["economics_status"], "price_required")
+        self.assertEqual(crop["economics_basis"], "verified_price_required")
+
+    def test_current_msp_is_declared_as_economics_basis(self):
+        with patch.object(self.engine, "_fetch_realtime_context", return_value=self.realtime):
+            result = self.engine.recommend(
+                "Delhi",
+                28.6139,
+                77.2090,
+                state="Delhi",
+                language="en",
+                agronomic_inputs={"season": "rabi", "target_crop": "wheat"},
+            )
+
+        crop = result["recommendations"][0]
+        self.assertEqual(crop["msp_per_quintal"], 2585)
+        self.assertEqual(crop["economics_basis"], "current_msp_reference")
+        self.assertEqual(crop["profit_per_hectare"], (45 * 2585) - 25000)
+
     def test_api_passes_strict_farmer_inputs_to_engine(self):
         request = APIRequestFactory().get(
             "/api/advisories/",
