@@ -6,6 +6,7 @@ staple cotton).  Sugarcane is deliberately excluded because it has an FRP, not
 an MSP.  Mandi prices must never be derived from this table.
 """
 
+import re
 from typing import Dict, Optional
 
 
@@ -63,5 +64,45 @@ MSP_SOURCE_URLS = {
 
 
 def get_current_msp(crop_id: str) -> Optional[int]:
-    """Return the current official MSP for a canonical crop ID or alias."""
-    return MSP_CURRENT.get((crop_id or "").strip().lower())
+    """Return current MSP for a canonical ID, alias, or Agmarknet label."""
+    raw = (crop_id or "").strip().lower()
+    direct = raw.replace("-", "_").replace(" ", "_")
+    if direct in MSP_CURRENT:
+        return MSP_CURRENT[direct]
+
+    normalized = re.sub(r"[^a-z0-9]+", " ", raw).strip()
+    commodity_aliases = (
+        ("bengal gram", "gram"),
+        ("green gram", "moong"),
+        ("black gram", "urad"),
+        ("red gram", "tur"),
+        ("finger millet", "ragi"),
+        ("pearl millet", "bajra"),
+        ("sunflower", "sunflower"),
+        ("soyabean", "soybean"),
+        ("soybean", "soybean"),
+        ("paddy", "rice"),
+        ("wheat", "wheat"),
+        ("maize", "maize"),
+        ("jowar", "jowar"),
+        ("barley", "barley"),
+        ("mustard", "mustard"),
+        ("groundnut", "groundnut"),
+        ("sesamum", "sesame"),
+        ("sesame", "sesame"),
+        ("cotton", "cotton"),
+        ("safflower", "safflower"),
+        ("niger", "niger"),
+        ("lentil", "masoor"),
+        ("masur", "masoor"),
+        ("arhar", "tur"),
+        ("tur", "tur"),
+        ("moong", "moong"),
+        ("urad", "urad"),
+        ("jute", "jute"),
+        ("copra", "copra"),
+    )
+    for label, canonical in commodity_aliases:
+        if label in normalized:
+            return MSP_OFFICIAL_2026_27[canonical]
+    return None

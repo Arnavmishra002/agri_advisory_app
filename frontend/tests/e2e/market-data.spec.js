@@ -96,6 +96,8 @@ test('exact mandi absence finishes loading and preserves separate state benchmar
 
   await expect(page.locator('#mandiStatusBadge')).toContainText('नवीनतम आधिकारिक औसत भाव');
   await expect(page.locator('#pricesData')).toContainText('₹2,540');
+  await expect(page.locator('#pricesData')).toContainText('नवीनतम आधिकारिक रिपोर्ट');
+  await expect(page.locator('#pricesData')).not.toContainText('● Live');
   await expect(page.locator('#mandiSelector')).toHaveValue('');
 });
 

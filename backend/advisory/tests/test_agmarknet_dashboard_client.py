@@ -90,6 +90,8 @@ class AgmarknetDashboardClientTests(SimpleTestCase):
         self.assertIsNone(rows[0]["max_price"])
         self.assertEqual(rows[0]["price_source"], "agmarknet_state_average")
         self.assertEqual(rows[0]["reported_date"], "11-07-2026")
+        self.assertEqual(rows[0]["msp"], 2410)
+        self.assertEqual(rows[0]["profit_vs_msp"], -24.5)
 
     def test_generic_mandi_name_resolves_unique_official_qualified_market(self):
         filters = {

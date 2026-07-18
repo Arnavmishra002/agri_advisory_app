@@ -542,7 +542,8 @@ class AgmarknetClient:
         state: str,
         mandi: Optional[str],
     ) -> List[Dict[str, Any]]:
-        from .unified_realtime_service import CROP_HINDI, MSP_2024_25
+        from .unified_realtime_service import CROP_HINDI
+        from .msp_data import get_current_msp
 
         crops: List[Dict[str, Any]] = []
         for rec in records:
@@ -577,7 +578,9 @@ class AgmarknetClient:
                 rec, "max_price", "Max Price", "Max_x0020_Price", "max"
             )
             crop_key = str(crop_name).lower().strip()
-            msp = self._pick_price(rec, "msp_price") or MSP_2024_25.get(crop_key)
+            # The dashboard can retain an older MSP column. Compare market
+            # prices only with the current official table.
+            msp = get_current_msp(crop_key) or get_current_msp(str(crop_name))
             profit = round(((modal - msp) / msp * 100), 1) if msp else None
 
             crops.append({

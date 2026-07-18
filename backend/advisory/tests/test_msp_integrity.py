@@ -4,6 +4,7 @@ from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
 
 from advisory.models import Crop
+from advisory.services.agmarknet_direct_client import AgmarknetDirectClient
 from advisory.services.comprehensive_crop_database import ALL_CROP_DATA
 from advisory.services.msp_data import (
     MSP_CURRENT,
@@ -39,6 +40,30 @@ class MspProfileIntegrityTests(SimpleTestCase):
         self.assertEqual(MSP_CURRENT["arhar"], MSP_CURRENT["tur"])
         self.assertEqual(MSP_CURRENT["lentil"], MSP_CURRENT["masoor"])
         self.assertEqual(MSP_CURRENT["paddy"], MSP_CURRENT["rice"])
+
+    def test_agmarknet_embedded_old_msp_never_overrides_current_table(self):
+        response = AgmarknetDirectClient()._format_response(
+            [
+                {
+                    "cmdt_name": "Maize",
+                    "as_on_price": "1820",
+                    "msp_price": "2400",
+                    "reported_date": "16-07-2026",
+                },
+                {
+                    "cmdt_name": "Onion",
+                    "as_on_price": "1700",
+                    "msp_price": "9999",
+                    "reported_date": "16-07-2026",
+                },
+            ],
+            "16-07-2026",
+            is_live=False,
+        )
+
+        maize, onion = response["top_crops"]
+        self.assertEqual(maize["msp"], 2410)
+        self.assertIsNone(onion["msp"])
 
 
 class SeedMspCommandTests(TestCase):

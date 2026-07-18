@@ -231,13 +231,14 @@ class AgmarknetDirectClient:
         is_live: bool = True,
     ) -> Dict[str, Any]:
         """Convert Agmarknet records to the shape used by MarketPricesService."""
+        from .msp_data import get_current_msp
+
         top_crops = []
         for r in records:
             raw_name    = (r.get("cmdt_name") or "").lower().strip()
             crop_id     = _AGMARKNET_TO_CROP_ID.get(raw_name, raw_name.replace(" ", "_"))
             modal_price = self._safe_float(r.get("as_on_price"))
-            msp_raw     = r.get("msp_price")
-            msp_price   = self._safe_float(msp_raw) if msp_raw else None
+            msp_price   = get_current_msp(crop_id) or get_current_msp(raw_name)
             trend       = (r.get("trend") or "").lower()
 
             if modal_price is None:

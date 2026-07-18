@@ -1502,10 +1502,24 @@
         const isPartial     = data.status === 'partial';
         const isFallback    = data.status === 'fallback' || data._auto_estimates;
         const isUnavailable = data.status === 'unavailable';
+        const officialRows = data.top_crops || data.crops || [];
+        const rowAges = officialRows
+            .map(row => Number(row.data_age_minutes))
+            .filter(age => Number.isFinite(age));
+        const newestAge = rowAges.length ? Math.min(...rowAges) : null;
+        const reportDate = officialRows.find(row => row.reported_date || row.date)?.reported_date
+            || officialRows.find(row => row.reported_date || row.date)?.date
+            || '';
 
         if (isLive) {
-            banner.style.display = 'none';
-            banner.textContent = '';
+            if (newestAge !== null && newestAge > 24 * 60) {
+                banner.style.display = 'block';
+                banner.className = 'market-live-banner market-live-banner--partial';
+                banner.innerHTML = `📅 नवीनतम आधिकारिक रिपोर्ट ${escapeHtml(reportDate || '')} की है; यह इस समय का लाइव टिक नहीं है।`;
+            } else {
+                banner.style.display = 'none';
+                banner.textContent = '';
+            }
             return;
         }
 
@@ -1625,14 +1639,21 @@
         const nearbyAlternatives = (data.nearby_live_alternatives || []).filter(
             row => row && row.is_live === true && row.mandi_name
         );
+        const officialDates = crops.map(crop => crop.reported_date || crop.date).filter(Boolean);
+        const latestOfficialDate = officialDates[0] || '';
+        const officialAges = crops
+            .map(crop => Number(crop.data_age_minutes))
+            .filter(age => Number.isFinite(age));
+        const newestOfficialAge = officialAges.length ? Math.min(...officialAges) : null;
+        const isFreshOfficial = newestOfficialAge !== null && newestOfficialAge <= 24 * 60;
 
         // Live status bar
         const ageText = _mandiLastFetchedAt
             ? `अपडेट: ${_mandiLastFetchedAt.toLocaleTimeString('hi-IN')}`
             : '';
-        const liveDot = isLive ? '🟢' : isPartial ? '🟡' : '🔴';
+        const liveDot = isLive ? (isFreshOfficial ? '🟢' : '📅') : isPartial ? '🟡' : '🔴';
         const liveLabel = isLive
-            ? `${liveDot} Live — ${escapeHtml(data.data_source || 'Agmarknet / data.gov.in')}`
+            ? `${liveDot} ${isFreshOfficial ? 'ताजा आधिकारिक भाव' : 'नवीनतम आधिकारिक रिपोर्ट'}${latestOfficialDate ? ' · ' + escapeHtml(latestOfficialDate) : ''} — ${escapeHtml(data.data_source || 'Agmarknet / data.gov.in')}`
             : isEstimatesOnly
             ? `${liveDot} MSP संदर्भ — आज का मंडी व्यापार भाव नहीं`
             : `${liveDot} ${escapeHtml(data.message || 'Live data unavailable')}`;
@@ -1644,7 +1665,7 @@
             let alternativesHtml = '';
             if (nearbyAlternatives.length) {
                 alternativesHtml = `<div class="nearby-live-prices" style="margin-top:18px;text-align:left;">
-                    <strong style="display:block;color:#1b5e20;margin-bottom:8px;">पास की मंडियों में सत्यापित ताजा भाव</strong>
+                    <strong style="display:block;color:#1b5e20;margin-bottom:8px;">पास की मंडियों में नवीनतम सत्यापित आधिकारिक भाव</strong>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;">`;
                 nearbyAlternatives.slice(0, 8).forEach(row => {
                     const price = Number(row.modal_price || row.current_price || 0);
@@ -1721,10 +1742,10 @@
 
             html += `<div style="background:white;border-radius:13px;padding:16px;box-shadow:0 3px 12px rgba(0,0,0,0.07);
                         border-top:3px solid ${isEst ? '#ffc107' : '#28a745'};position:relative;overflow:hidden;">
-                <!-- Live/Estimate badge -->
+                <!-- Official/estimate badge -->
                 <div style="position:absolute;top:8px;right:8px;font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:8px;
                     background:${isEst ? '#fff3cd' : '#d4edda'};color:${isEst ? '#856404' : '#155724'};">
-                    ${isEst ? 'MSP est.' : '● Live'}
+                    ${isEst ? 'MSP est.' : (isFreshOfficial ? '● Fresh official' : 'Official report')}
                 </div>
 
                 <div style="font-weight:700;color:#2d5016;font-size:0.95rem;margin-bottom:10px;padding-right:55px;">
@@ -1762,7 +1783,7 @@
         if ((isEstimatesOnly || data._auto_estimates) && !hasAnyLive) {
             html += `<div style="margin-top:14px;background:#fff8e1;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#856404;">
                 ℹ️ ये MSP-आधारित अनुमान हैं, असली मंडी भाव नहीं।
-                Live prices के लिए: <a href="https://agmarknet.gov.in" target="_blank">agmarknet.gov.in</a> देखें।
+                नवीनतम आधिकारिक भाव के लिए: <a href="https://agmarknet.gov.in" target="_blank">agmarknet.gov.in</a> देखें।
             </div>`;
         }
 
