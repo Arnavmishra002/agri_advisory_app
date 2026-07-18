@@ -10,6 +10,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from .unified_realtime_service import CROP_HINDI, MSP_2024_25
+from .msp_data import MSP_MARKETING_SEASON
 
 # id, English name, Hindi, aliases, category
 _CROP_ROWS: List[Dict[str, Any]] = [
@@ -112,6 +113,11 @@ class CropCatalog:
                 "category": row.get("category", "general"),
                 "msp": row.get("msp", MSP_2024_25.get(row["id"])),
                 "has_msp": bool(row.get("msp")) or row["id"] in MSP_2024_25,
+                "msp_season": (
+                    MSP_MARKETING_SEASON
+                    if bool(row.get("msp")) or row["id"] in MSP_2024_25
+                    else ""
+                ),
             }
             self._crops.append(entry)
             self._by_id[row["id"]] = entry
@@ -249,6 +255,7 @@ class CropCatalog:
                 "hindi": crop["hindi"],
                 "category": crop["category"],
                 "msp": crop["msp"],
+                "msp_season": crop["msp_season"],
                 "label": f"{crop['name']} ({crop['hindi']})" if crop["hindi"] else crop["name"],
                 "search_term": crop["name"],
                 "commodity_filter": crop["name"],
@@ -268,6 +275,7 @@ class CropCatalog:
                 "hindi": c["hindi"],
                 "category": c["category"],
                 "msp": c["msp"],
+                "msp_season": c["msp_season"],
                 "label": f"{c['name']} ({c['hindi']})" if c["hindi"] else c["name"],
                 "search_term": c["name"],
                 "commodity_filter": c["name"],

@@ -26,7 +26,7 @@ Fields per crop:
 
 from typing import Dict, Any, List, Optional
 
-from .msp_data import MSP_2024_25
+from .msp_data import MSP_MARKETING_SEASON, MSP_OFFICIAL_2026_27, MSP_SOURCE_URLS
 
 # Agro-climatic zone definitions
 ZONES = {
@@ -2032,9 +2032,29 @@ ALL_CROP_DATA.update({
     ),
 })
 
-for _crop_key, _msp in MSP_2024_25.items():
+# Historical profiles contained indicative sale prices in the MSP field. Clear
+# every profile first so fruit, vegetables, spices and non-covered pulses can
+# never be presented as government-supported MSP crops.
+for _crop_key, _profile in ALL_CROP_DATA.items():
+    _profile["msp_per_quintal"] = 0
+    _profile["msp_season"] = ""
+    _profile["msp_source"] = ""
+    if "MSP" in str(_profile.get("government_support", "")).upper():
+        _profile["government_support"] = "No central MSP"
+
+for _crop_key, _msp in MSP_OFFICIAL_2026_27.items():
     if _crop_key in ALL_CROP_DATA:
         ALL_CROP_DATA[_crop_key]["msp_per_quintal"] = _msp
+        ALL_CROP_DATA[_crop_key]["msp_season"] = MSP_MARKETING_SEASON
+        _source_group = (
+            "rabi"
+            if _crop_key in {"wheat", "barley", "gram", "masoor", "mustard", "safflower"}
+            else "commercial"
+            if _crop_key in {"jute", "copra"}
+            else "kharif"
+        )
+        ALL_CROP_DATA[_crop_key]["msp_source"] = MSP_SOURCE_URLS[_source_group]
+        ALL_CROP_DATA[_crop_key]["government_support"] = "Central MSP"
 
 
 _OFFICIAL_COMMODITY_NAMES = {

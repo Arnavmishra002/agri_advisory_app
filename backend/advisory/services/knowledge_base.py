@@ -14,7 +14,7 @@ Coverage:
   - Sowing and suitability planning for 200+ crop profiles
   - Fertilizer doses (NPK + micronutrients) for 40+ crops
   - Irrigation schedules for 30+ crops
-  - MSP 2024-25 for all MSP-covered crops
+  - Current official MSP for all covered crops
   - Common pest/disease for 25+ crops
   - Government schemes (7 major schemes)
   - Weather-based advisories
@@ -47,7 +47,7 @@ _OLLAMA_TIMEOUT = (
     float(os.getenv("OLLAMA_READ_TIMEOUT_S", "12")),
 )  # (connect, read) seconds
 
-from .msp_data import MSP_2024_25
+from .msp_data import MSP_CURRENT, MSP_MARKETING_SEASON, MSP_OFFICIAL_2026_27
 
 # ── Sowing calendar (month ranges for each crop) ──────────────────────────────
 SOWING_CALENDAR = {
@@ -318,7 +318,7 @@ class KnowledgeBase:
         }
 
     def get_msp(self, crop_id: str) -> Optional[int]:
-        return MSP_2024_25.get(crop_id)
+        return MSP_CURRENT.get(crop_id)
 
     def get_sowing(self, crop_id: str) -> Optional[Dict]:
         return SOWING_CALENDAR.get(crop_id)
@@ -348,18 +348,18 @@ class KnowledgeBase:
 
         # MSP query
         if any(kw in q for kw in _MSP_KW):
-            if crop and crop in MSP_2024_25:
-                msp = MSP_2024_25[crop]
+            if crop and crop in MSP_CURRENT:
+                msp = MSP_CURRENT[crop]
                 crop_hi = _CROP_ALIASES_REVERSE.get(crop, crop)
                 return (
-                    f"💰 **{crop_hi} MSP 2024-25:** ₹{msp:,}/क्विंटल\n\n"
+                    f"💰 **{crop_hi} MSP {MSP_MARKETING_SEASON}:** ₹{msp:,}/क्विंटल\n\n"
                     f"📌 यह केंद्र सरकार द्वारा घोषित न्यूनतम समर्थन मूल्य है।\n"
                     f"📞 नजदीकी मंडी/APMC से बाजार भाव जानें।\n"
                     f"💡 e-NAM (enam.gov.in) पर ऑनलाइन भाव देखें।"
                 )
             # List all MSPs
-            lines = [f"💰 **MSP 2024-25 (₹/क्विंटल):**\n"]
-            for c, m in MSP_2024_25.items():
+            lines = [f"💰 **MSP {MSP_MARKETING_SEASON} (₹/क्विंटल):**\n"]
+            for c, m in MSP_OFFICIAL_2026_27.items():
                 hi = _CROP_ALIASES_REVERSE.get(c, c)
                 lines.append(f"• {hi}: ₹{m:,}")
             lines.append("\n📞 KVK हेल्पलाइन: 1800-180-1551")
@@ -504,8 +504,10 @@ class KnowledgeBase:
         if crop:
             crop_hi = _CROP_ALIASES_REVERSE.get(crop, crop)
             context_parts.append(f"Crop: {crop_hi} ({crop})")
-            if crop in MSP_2024_25:
-                context_parts.append(f"MSP 2024-25: ₹{MSP_2024_25[crop]}/quintal")
+            if crop in MSP_CURRENT:
+                context_parts.append(
+                    f"MSP {MSP_MARKETING_SEASON}: ₹{MSP_CURRENT[crop]}/quintal"
+                )
             if crop in SOWING_CALENDAR:
                 s = SOWING_CALENDAR[crop]
                 context_parts.append(f"Sowing: {s['sow']}")

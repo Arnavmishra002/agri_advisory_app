@@ -55,6 +55,7 @@ from .unified_realtime_service import (
     schemes_service,
     weather_service,
 )
+from .msp_data import MSP_MARKETING_SEASON
 
 # ── Additional service imports for full interconnection ──────────────────────
 # These are imported lazily in methods to avoid circular imports at startup,
@@ -2990,7 +2991,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         for crop in crops[:3]:
             msp = crop.get("msp") or MSP_2024_25.get(crop["id"])
             if msp:
-                lines.append(f"[MSP 2024-25] {crop['name']}: Rs{msp}/quintal (Cabinet approved)")
+                lines.append(
+                    f"[MSP {MSP_MARKETING_SEASON}] {crop['name']}: "
+                    f"Rs{msp}/quintal (Cabinet approved)"
+                )
 
         # 6. Pest/disease guidance
         if intent == INTENT_PEST_DISEASE:
@@ -3274,20 +3278,20 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         msp        = m.group(5)
                         bar = "🟢" if int(score) >= 80 else "🟡" if int(score) >= 60 else "🔴"
                         body += (
-                            f"{i}. {bar} **{crop_name}{local_desc}** — {score}% सटीकता\n"
+                            f"{i}. {bar} **{crop_name}{local_desc}** — {score}% उपयुक्तता\n"
                             f"   ₹{profit}/हे. लाभ | MSP ₹{msp}/q\n"
                         )
                     else:
                         body += f"• {line.strip().lstrip('- ')}\n"
             else:
                 body = (
-                    "• 🟢 **गेहूँ** — रबी सीजन, MSP ₹2,425/q\n"
-                    "• 🟢 **सरसों** — कम पानी, MSP ₹5,950/q\n"
-                    "• 🟡 **चना** — हल्की मिट्टी, MSP ₹5,650/q\n"
+                    f"• 🟢 **गेहूँ** — रबी सीजन, MSP ₹{MSP_2024_25['wheat']:,}/q\n"
+                    f"• 🟢 **सरसों** — कम पानी, MSP ₹{MSP_2024_25['mustard']:,}/q\n"
+                    f"• 🟡 **चना** — हल्की मिट्टी, MSP ₹{MSP_2024_25['gram']:,}/q\n"
                     if lang == "hi" else
-                    "• 🟢 **Wheat** — Rabi season, MSP ₹2,425/q\n"
-                    "• 🟢 **Mustard** — low water, MSP ₹5,950/q\n"
-                    "• 🟡 **Gram** — light soil, MSP ₹5,650/q\n"
+                    f"• 🟢 **Wheat** — Rabi season, MSP ₹{MSP_2024_25['wheat']:,}/q\n"
+                    f"• 🟢 **Mustard** — low water, MSP ₹{MSP_2024_25['mustard']:,}/q\n"
+                    f"• 🟡 **Gram** — light soil, MSP ₹{MSP_2024_25['gram']:,}/q\n"
                 )
 
             footer = {
@@ -3299,7 +3303,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # ── MARKET PRICE ─────────────────────────────────────────
         if intent == INTENT_MARKET_PRICE:
             price_lines = [l for l in context_block.splitlines() if "modal Rs" in l]
-            msp_lines   = [l for l in context_block.splitlines() if "[MSP 2024-25]" in l or "MSP 2024-25" in l]
+            msp_lines = [
+                line for line in context_block.splitlines()
+                if f"MSP {MSP_MARKETING_SEASON}" in line
+            ]
 
             if price_lines:
                 report_date = _extract(
@@ -4332,30 +4339,37 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             crop_name_display = crops[0]["name"] if crops else ""
             # Use comprehensive DB data if available
             _PROFIT_TABLE = {
-                "wheat":     (25000, 45, 2425, "Rs.84,125/ha"),
-                "rice":      (30000, 40, 2369, "Rs.64,760/ha"),
-                "maize":     (22000, 35, 2400, "Rs.62,000/ha"),
-                "mustard":   (18000, 15, 5950, "Rs.71,250/ha"),
-                "gram":      (20000, 12, 5650, "Rs.47,800/ha"),
-                "soybean":   (22000, 20, 4892, "Rs.75,840/ha"),
-                "cotton":    (35000, 20, 7121, "Rs.107,420/ha (lint+seed)"),
-                "tomato":    (80000, 400,0,    "Rs.3,20,000/ha (peak price)"),
-                "potato":    (55000, 250,0,    "Rs.1,20,000/ha"),
-                "sugarcane": (90000, 700,340,  "Rs.1,48,000/ha"),
+                "wheat": (25000, 45),
+                "rice": (30000, 40),
+                "maize": (22000, 35),
+                "mustard": (18000, 15),
+                "gram": (20000, 12),
+                "soybean": (22000, 20),
+                "cotton": (35000, 20),
+                "tomato": (80000, 400),
+                "potato": (55000, 250),
+                "sugarcane": (90000, 700),
             }
             if crop_id and crop_id in _PROFIT_TABLE:
-                cost, yld, msp_val, net = _PROFIT_TABLE[crop_id]
+                cost, yld = _PROFIT_TABLE[crop_id]
+                msp_val = MSP_2024_25.get(crop_id, 0)
                 gross = yld * msp_val if msp_val else 0
+                net = gross - cost if gross else None
+                net_text = f"₹{net:,}/हे." if net is not None else "सत्यापित बिक्री भाव के बिना उपलब्ध नहीं"
+                net_text_en = f"₹{net:,}/ha" if net is not None else "Unavailable without a verified sale price"
+                bc_text = f"{gross / cost:.1f}:1" if gross else "सत्यापित भाव के बिना उपलब्ध नहीं"
+                bc_text_en = f"{gross / cost:.1f}:1" if gross else "Unavailable without a verified price"
                 body = {
                     "hi": (
                         f"💰 **{crop_name_display} लाभ-लागत विश्लेषण — {loc}**\n\n"
                         f"**इनपुट लागत:** ₹{cost:,}/हे.\n"
                         f"  • बीज + खाद + कीटनाशक + मजदूरी + सिंचाई\n\n"
                         f"**उपज:** {yld} क्विंटल/हे.\n"
-                        f"**MSP 2024-25:** {'₹'+str(msp_val)+'/q' if msp_val else 'MSP नहीं'}\n"
+                        f"**MSP {MSP_MARKETING_SEASON}:** {'₹'+str(msp_val)+'/q' if msp_val else 'केंद्रीय MSP नहीं'}\n"
                         f"**Gross Revenue (MSP पर):** {'₹'+str(gross)+'/हे.' if gross else 'N/A'}\n"
-                        f"**शुद्ध लाभ:** {net}\n\n"
-                        f"💡 **B:C Ratio:** {(gross/cost):.1f}:1 — {'>2.5: उत्कृष्ट' if gross and gross/cost > 2.5 else '>1.5: अच्छा' if gross and gross/cost > 1.5 else 'मध्यम'}\n\n"
+                        f"**अनुमानित शुद्ध लाभ:** {net_text}\n\n"
+                        f"💡 **B:C Ratio:** {bc_text}\n\n"
+                        f"⚠️ लागत और उपज योजना अनुमान हैं; बुवाई से पहले स्थानीय भाव सत्यापित करें।\n"
                         f"📊 लाइव मंडी भाव: agmarknet.gov.in"
                     ),
                     "en": (
@@ -4363,24 +4377,30 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"**Input cost:** ₹{cost:,}/ha\n"
                         f"  • Seed + fertiliser + pesticide + labour + irrigation\n\n"
                         f"**Yield:** {yld} q/ha\n"
-                        f"**MSP 2024-25:** {'₹'+str(msp_val)+'/q' if msp_val else 'No MSP'}\n"
+                        f"**MSP {MSP_MARKETING_SEASON}:** {'₹'+str(msp_val)+'/q' if msp_val else 'No central MSP'}\n"
                         f"**Gross revenue (at MSP):** {'₹'+str(gross)+'/ha' if gross else 'N/A'}\n"
-                        f"**Net profit:** {net}\n\n"
-                        f"💡 **B:C Ratio:** {(gross/cost):.1f}:1\n\n"
+                        f"**Indicative net return:** {net_text_en}\n\n"
+                        f"💡 **B:C Ratio:** {bc_text_en}\n\n"
+                        f"⚠️ Cost and yield are planning estimates; verify the local sale price before sowing.\n"
                         f"📊 Live mandi prices: agmarknet.gov.in"
                     ),
-                }.get(lang, f"{crop_name_display}: cost ₹{cost}/ha, yield {yld}q/ha, net profit {net}.")
+                }.get(
+                    lang,
+                    f"{crop_name_display}: estimated cost ₹{cost}/ha and yield {yld}q/ha; "
+                    f"verify a local sale price before calculating profit.",
+                )
             else:
                 body = {
                     "hi": (
                         f"💰 **प्रमुख फसलों का लाभ (प्रति हेक्टेयर)**\n\n"
                         f"| फसल     | लागत    | उपज   | MSP    | शुद्ध लाभ |\n"
                         f"|----------|---------|-------|--------|----------|\n"
-                        f"| गेहूँ    | ₹25,000 | 45 q  | ₹2,425 | ₹84,125  |\n"
-                        f"| सरसों   | ₹18,000 | 15 q  | ₹5,950 | ₹71,250  |\n"
-                        f"| चना     | ₹20,000 | 12 q  | ₹5,650 | ₹47,800  |\n"
-                        f"| सोयाबीन | ₹22,000 | 20 q  | ₹4,892 | ₹76,000  |\n"
-                        f"| मक्का   | ₹22,000 | 35 q  | ₹2,400 | ₹62,000  |\n\n"
+                        f"| गेहूँ    | ₹25,000 | 45 q  | ₹{MSP_2024_25['wheat']:,} | ₹{45*MSP_2024_25['wheat']-25000:,} |\n"
+                        f"| सरसों   | ₹18,000 | 15 q  | ₹{MSP_2024_25['mustard']:,} | ₹{15*MSP_2024_25['mustard']-18000:,} |\n"
+                        f"| चना     | ₹20,000 | 12 q  | ₹{MSP_2024_25['gram']:,} | ₹{12*MSP_2024_25['gram']-20000:,} |\n"
+                        f"| सोयाबीन | ₹22,000 | 20 q  | ₹{MSP_2024_25['soybean']:,} | ₹{20*MSP_2024_25['soybean']-22000:,} |\n"
+                        f"| मक्का   | ₹22,000 | 35 q  | ₹{MSP_2024_25['maize']:,} | ₹{35*MSP_2024_25['maize']-22000:,} |\n\n"
+                        f"*MSP {MSP_MARKETING_SEASON}; लागत/उपज योजना अनुमान हैं।*\n"
                         f"*1 हेक्टेयर = 2.47 एकड़ = 6.17 बीघा (UP)*\n"
                         f"📞 ICAR: 1800-180-1551"
                     ),
@@ -4388,11 +4408,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"💰 **Crop Profit Summary (per hectare)**\n\n"
                         f"| Crop    | Cost    | Yield | MSP    | Net Profit |\n"
                         f"|---------|---------|-------|--------|------------|\n"
-                        f"| Wheat   | ₹25,000 | 45 q  | ₹2,425 | ₹84,125    |\n"
-                        f"| Mustard | ₹18,000 | 15 q  | ₹5,950 | ₹71,250    |\n"
-                        f"| Gram    | ₹20,000 | 12 q  | ₹5,650 | ₹47,800    |\n"
-                        f"| Soybean | ₹22,000 | 20 q  | ₹4,892 | ₹76,000    |\n"
-                        f"| Maize   | ₹22,000 | 35 q  | ₹2,400 | ₹62,000    |\n\n"
+                        f"| Wheat   | ₹25,000 | 45 q  | ₹{MSP_2024_25['wheat']:,} | ₹{45*MSP_2024_25['wheat']-25000:,} |\n"
+                        f"| Mustard | ₹18,000 | 15 q  | ₹{MSP_2024_25['mustard']:,} | ₹{15*MSP_2024_25['mustard']-18000:,} |\n"
+                        f"| Gram    | ₹20,000 | 12 q  | ₹{MSP_2024_25['gram']:,} | ₹{12*MSP_2024_25['gram']-20000:,} |\n"
+                        f"| Soybean | ₹22,000 | 20 q  | ₹{MSP_2024_25['soybean']:,} | ₹{20*MSP_2024_25['soybean']-22000:,} |\n"
+                        f"| Maize   | ₹22,000 | 35 q  | ₹{MSP_2024_25['maize']:,} | ₹{35*MSP_2024_25['maize']-22000:,} |\n\n"
+                        f"*MSP {MSP_MARKETING_SEASON}; cost/yield figures are planning estimates.*\n"
                         f"*1 ha = 2.47 acres = 6.17 bigha (UP standard)*\n"
                         f"📞 ICAR: 1800-180-1551"
                     ),
