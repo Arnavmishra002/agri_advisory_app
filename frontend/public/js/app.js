@@ -1983,6 +1983,7 @@
                 location_confirmed: hasConfirmedLocation(),
                 location_source: currentLocationSource,
                 language: lang,
+                use_saved_sensor: !withoutSensor,
                 irrigation_type: document.getElementById('fa_irrigation')?.value || 'unknown',
                 previous_crop: (document.getElementById('fa_prev_crop')?.value || '').trim(),
             };

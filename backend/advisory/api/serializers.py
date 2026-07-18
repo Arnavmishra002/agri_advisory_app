@@ -717,6 +717,7 @@ class FieldSensorInputSerializer(StrictSerializer):
     )
     language = serializers.ChoiceField(required=False, choices=("hi", "en", "hinglish"), default="hi")
     field_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    use_saved_sensor = serializers.BooleanField(required=False, default=True)
     sensors = SensorValuesInputSerializer(required=False)
     nitrogen_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)
     phosphorus_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)

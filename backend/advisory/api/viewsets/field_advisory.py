@@ -122,11 +122,12 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                         "previous_crop":  data.get("previous_crop"),
                         "irrigation_type": data.get("irrigation_type", "unknown"),
                         "field_area_ha":  _safe_float(data.get("field_area_ha")),
-                        "_sensor_meta":   _live_request_sensor_meta(),
                     }
-                    sensor_freshness = sensor_data["_sensor_meta"]
+                    if raw_sensors:
+                        sensor_data["_sensor_meta"] = _live_request_sensor_meta()
+                        sensor_freshness = sensor_data["_sensor_meta"]
 
-            if not sensor_data:
+            if not sensor_data and data.get("use_saved_sensor", True):
                 try:
                     from ...models import IoTSensorReading
                     iot_reading = None
