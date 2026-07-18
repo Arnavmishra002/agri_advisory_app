@@ -11,6 +11,7 @@ from advisory.services.comprehensive_crop_database import (
     validate_crop_profiles,
 )
 from advisory.services.crop_catalog import crop_catalog
+from advisory.services.crop_registry import crop_registry
 from advisory.services.crop_recommendation_engine import crop_recommendation_engine
 
 
@@ -84,6 +85,11 @@ class CropDatabaseCoverageTests(SimpleTestCase):
                 self.assertEqual(profile["market_mapping"]["price_policy"], "fresh_official_row_only")
                 self.assertFalse(profile["district_suitability"]["static_district_claims"])
 
+    def test_canonical_registry_exposes_every_recommendation_profile(self):
+        self.assertEqual(set(crop_registry.all_ids()), set(ALL_CROP_DATA))
+        self.assertEqual(crop_registry.normalize("rambutan")["id"], "rambutan")
+        self.assertEqual(crop_registry.normalize("रामबूटान")["id"], "rambutan")
+
     def test_profile_facade_returns_canonical_crop(self):
         profile = comprehensive_crop_database.get_crop_info("wheat")
         self.assertEqual(profile["name_hindi"], "गेहूँ")
@@ -141,7 +147,7 @@ class CropRecommendationPersonalizationTests(SimpleTestCase):
         self.assertEqual(result["season_key"], "rabi")
         self.assertEqual(result["soil_type"], "Loamy")
         self.assertEqual(result["database_size"], len(ALL_CROP_DATA))
-        self.assertEqual(result["analysis_method"], "multi_factor_scoring_v4")
+        self.assertEqual(result["analysis_method"], "multi_factor_scoring_v5")
         self.assertEqual(result["input_parameters"]["ph"], 6.7)
         self.assertIn("Soil pH: 6.7", result["factors_analyzed"])
 

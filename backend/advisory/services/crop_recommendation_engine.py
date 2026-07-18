@@ -141,11 +141,13 @@ class CropRecommendationEngine:
             forecast,
             market_price_map,
             inputs,
+            weather_is_live=bool(weather.get("is_live")),
         )
 
         # 5. Localise and format
         recommendations = self._format_recommendations(
-            scored[:12], language, market_price_map, profile, inputs
+            scored[:12], language, market_price_map, profile, inputs,
+            weather_is_live=bool(weather.get("is_live")),
         )
 
         weather_is_live = bool(weather.get("is_live"))
@@ -188,7 +190,7 @@ class CropRecommendationEngine:
             "data_quality_status": data_quality["status"],
             "data_quality": data_quality,
             "data_source": self._data_source_label(weather, live_market),
-            "analysis_method": "multi_factor_scoring_v4",
+            "analysis_method": "multi_factor_scoring_v5",
             "database_size": len(ALL_CROP_DATA),
             "crop_profile_version": "2026.07-beta1",
             "confidence_inputs_missing": missing_confidence_inputs,
@@ -788,6 +790,7 @@ class CropRecommendationEngine:
         forecast: List[Dict],
         market_price_map: Dict[str, Dict],
         agronomic_inputs: Optional[Dict[str, Any]] = None,
+        weather_is_live: bool = False,
     ) -> List[Tuple[float, str, Dict[str, Any], List[str], Dict[str, Any]]]:
         """Score every crop in the database and return sorted list."""
 
@@ -805,7 +808,13 @@ class CropRecommendationEngine:
 
         # Derive weather risk from forecast
         weather_risk = self._assess_weather_risk(forecast, current_weather)
-        curr_temp    = current_weather.get("temperature") or 28
+        raw_temp = current_weather.get("temperature") if weather_is_live else None
+        try:
+            curr_temp = float(raw_temp) if raw_temp is not None else None
+        except (TypeError, ValueError):
+            curr_temp = None
+        if not weather_is_live:
+            weather_risk = {"risk": "Unavailable", "description": "Live forecast unavailable"}
         inputs = agronomic_inputs or {}
         excluded = set(inputs.get("exclude_crops") or [])
 
@@ -921,7 +930,9 @@ class CropRecommendationEngine:
         # 5. Current temperature.
         t_min = crop.get("temperature_min", 10)
         t_max = crop.get("temperature_max", 38)
-        if t_min <= curr_temp <= t_max:
+        if curr_temp is None:
+            factor("temperature", 0, 10, "unavailable", "Live temperature unavailable; no points awarded")
+        elif t_min <= curr_temp <= t_max:
             factor("temperature", 10, 10, "ideal", f"{curr_temp} C within crop range")
             reasons.append(f"Temp optimal ({curr_temp}°C)")
         elif curr_temp < t_min:
@@ -987,7 +998,9 @@ class CropRecommendationEngine:
         risk = weather_risk.get("risk", "None")
         crop_water = crop.get("water_requirement", "Moderate")
 
-        if risk == "None":
+        if risk == "Unavailable":
+            factor("weather", 0, 10, "unavailable", "Live 7-day forecast unavailable; no points awarded")
+        elif risk == "None":
             factor("weather", 10, 10, "good", "No severe 7-day risk")
             reasons.append("✅ Favorable weather outlook")
         elif risk == "High Rainfall":
@@ -1139,7 +1152,7 @@ class CropRecommendationEngine:
     def _assess_weather_risk(self, forecast: List[Dict], current: Dict) -> Dict[str, Any]:
         """Assess 7-day weather risk for crop scoring."""
         if not forecast:
-            return {"risk": "None", "description": "No forecast data"}
+            return {"risk": "Unavailable", "description": "No live forecast data"}
 
         total_rain = sum(d.get("rainfall_mm", 0) or 0 for d in forecast[:7])
         max_temps  = [d.get("max_temp") for d in forecast[:7] if d.get("max_temp")]
@@ -1217,6 +1230,7 @@ class CropRecommendationEngine:
         market_price_map: Dict,
         profile: Dict,
         agronomic_inputs: Optional[Dict[str, Any]] = None,
+        weather_is_live: bool = False,
     ) -> List[Dict[str, Any]]:
         try:
             from .language_service import normalise_language_code, get_crop_name
@@ -1260,13 +1274,15 @@ class CropRecommendationEngine:
             factor_rows = [value for key, value in breakdown.items() if key != "summary"]
             supported_rows = [
                 value for value in factor_rows
-                if value.get("status") not in {"uncertain", "neutral"}
+                if value.get("status") not in {"uncertain", "neutral", "unavailable"}
             ]
             data_completeness = round(
                 len(supported_rows) / max(len(factor_rows), 1), 2
             )
 
             input_quality = max(0.55, 1.0 - (0.1 * len(missing_farmer_inputs)))
+            if not weather_is_live:
+                input_quality = max(0.45, input_quality - 0.12)
             if not mkt.get("is_live", False):
                 input_quality = max(0.5, input_quality - 0.08)
             confidence = min(
@@ -1284,9 +1300,9 @@ class CropRecommendationEngine:
                 "season_key": crop.get("season", season_key),
                 "suitability_score": int(min(score, 99)),
                 "confidence": round(confidence, 2),
-                "confidence_inputs_missing": missing_farmer_inputs + (
-                    [] if mkt.get("is_live", False) else ["verified_market_price"]
-                ),
+                "confidence_inputs_missing": missing_farmer_inputs
+                + ([] if weather_is_live else ["live_weather"])
+                + ([] if mkt.get("is_live", False) else ["verified_market_price"]),
                 "reason": " | ".join(reasons[:3]),
                 "reason_hindi": reason_local,
                 "factors": reasons,
@@ -1322,7 +1338,7 @@ class CropRecommendationEngine:
                     "input_cost": f"₹{input_c:,}/ha",
                 },
                 "prediction_data": {
-                    "method": "multi_factor_scoring_v4",
+                    "method": "multi_factor_scoring_v5",
                     "score_breakdown": breakdown,
                     "data_completeness": data_completeness,
                     "farmer_inputs_used": sorted(inputs),

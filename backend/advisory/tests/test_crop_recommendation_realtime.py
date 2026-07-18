@@ -72,6 +72,12 @@ class CropRecommendationRealtimeTests(SimpleTestCase):
             self.assertEqual(rec["market_price_source"], "not_available")
             self.assertEqual(rec["financials"]["market_price"], "Unavailable")
 
+        top_breakdown = result["recommendations"][0]["prediction_data"]["score_breakdown"]
+        self.assertEqual(top_breakdown["temperature"]["status"], "unavailable")
+        self.assertEqual(top_breakdown["temperature"]["points"], 0)
+        self.assertEqual(top_breakdown["weather"]["status"], "unavailable")
+        self.assertEqual(top_breakdown["weather"]["points"], 0)
+
     def test_data_freshness_endpoint_exposes_crop_recommendation_health(self):
         cache.set(
             CROP_REC_HEALTH_CACHE_KEY,

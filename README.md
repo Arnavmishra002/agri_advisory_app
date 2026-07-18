@@ -158,6 +158,20 @@ and stores the generated index in the `krishimitra_rag_data` volume. Set
 `RAG_INDEX_REQUIRED=true` in production to stop startup when fresh knowledge
 cannot be indexed; the default local setting starts in a clearly degraded mode.
 
+The canonical 202-crop recommendation catalog is also exported into Phase 1 as
+grounded planning profiles. Regenerate and verify that snapshot whenever crop
+metadata changes:
+
+```bash
+python3 scripts/generate_crop_knowledge.py
+python3 scripts/generate_crop_knowledge.py --check
+python3 phase1/rag/eval_retrieval.py --static
+```
+
+The snapshot deliberately excludes estimated economics, synthetic live data,
+disease classification, and chemical doses. Crop-specific field practices must
+still be confirmed against the local KVK or current state package of practices.
+
 Check it:
 
 ```bash
@@ -314,7 +328,8 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `PHASE1_STREAM_TOTAL_TIMEOUT_S` | Optional | Total Phase 1 stream budget |
 | `CHAT_LOCAL_AI_MAX_CONCURRENCY` | Optional | Max concurrent local Phase 1/Ollama chatbot calls; use `1` on small CPU-only hosts |
 | `OLLAMA_BASE_URL` | Optional | Local Ollama URL |
-| `OLLAMA_MODEL` | Optional | Local LLM model name |
+| `OLLAMA_MAX_TOKENS` | Optional | JSON answer generation cap; default `320` for bounded CPU latency |
+| `OLLAMA_STREAM_MAX_TOKENS` | Optional | Streamed answer generation cap; default `320` |
 | `OLLAMA_DIRECT_TIMEOUT_S` | Optional | Direct Ollama fallback read timeout |
 | `CROP_DISEASE_MODEL_DIR` | Optional | Directory containing disease model artifacts |
 | `ML_CONFIDENCE_THRESHOLD` | Optional | Minimum confidence for image classification |

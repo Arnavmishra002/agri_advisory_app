@@ -15,6 +15,20 @@ class OllamaServiceTimeoutTests(unittest.TestCase):
 
         self.assertEqual(response, "")
 
+    @patch.object(ollama_service, "_ollama_available", return_value=True)
+    @patch.object(ollama_service.urllib.request, "urlopen")
+    def test_chat_caps_answer_length_for_responsive_completion(self, urlopen, _available):
+        response = unittest.mock.MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.read.return_value = b'{"message":{"content":"ok"}}'
+        urlopen.return_value = response
+
+        ollama_service.chat("prompt")
+
+        payload = urlopen.call_args.args[0].data.decode("utf-8")
+        self.assertIn('"num_predict": 320', payload)
+
     @patch.object(ollama_service, "_ollama_available", return_value=False)
     def test_offline_stream_emits_no_fake_answer_token(self, _available):
         self.assertEqual(list(ollama_service.stream_chat("prompt")), [])
@@ -63,7 +77,7 @@ class FarmingPromptSensorGuardTests(unittest.TestCase):
         list(ollama_service.stream_chat("prompt"))
 
         payload = urlopen.call_args.args[0].data.decode("utf-8")
-        self.assertIn('"num_predict": 420', payload)
+        self.assertIn('"num_predict": 320', payload)
 
 
 if __name__ == "__main__":

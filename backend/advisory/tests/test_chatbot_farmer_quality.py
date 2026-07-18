@@ -51,6 +51,45 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(intent, INTENT_WEATHER)
         self.assertEqual(crops, [])
 
+    @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_crop_profile_question_is_grounded_fast_and_skips_realtime_calls(
+        self, weather, market
+    ):
+        started = time.monotonic()
+        result = self.service.answer(
+            "Rambutan ke liye climate aur mitti kaisi honi chahiye?",
+            self.ctx,
+            language="hinglish",
+        )
+        elapsed_ms = (time.monotonic() - started) * 1000
+
+        self.assertLess(elapsed_ms, 500)
+        self.assertIn("22-32°C", result["response"])
+        self.assertIn("5.0-6.5", result["response"])
+        self.assertIn("Mitti:", result["response"])
+        self.assertNotRegex(result["response"], r"[\u0900-\u097F]")
+        self.assertEqual(result["ai_data_quality"]["tier"], "crop_profile")
+        weather.assert_not_called()
+        market.assert_not_called()
+
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    def test_crop_profile_stream_skips_local_model_and_finishes_fast(self, phase1_post):
+        started = time.monotonic()
+        chunks = list(self.service.answer_stream(
+            "Ashwagandha ki mitti aur season batao",
+            self.ctx,
+            language="hinglish",
+        ))
+        elapsed_ms = (time.monotonic() - started) * 1000
+        text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+
+        self.assertLess(elapsed_ms, 500)
+        self.assertIn("Mitti:", text)
+        self.assertIn("Season:", text)
+        self.assertEqual(chunks[-1]["ai_data_quality"]["tier"], "crop_profile")
+        phase1_post.assert_not_called()
+
     def test_greetings_match_requested_language_and_latency_budget(self):
         started = time.monotonic()
         hindi = self.service.answer("नमस्ते", self.ctx, language="hi")

@@ -32,6 +32,8 @@ OLLAMA_BASE   = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
 _OLLAMA_CHAT_TIMEOUT_S = int(os.getenv("OLLAMA_CHAT_TIMEOUT_S", "20"))
 _OLLAMA_STREAM_TIMEOUT_S = int(os.getenv("OLLAMA_STREAM_TIMEOUT_S", "60"))
+_OLLAMA_MAX_TOKENS = max(96, int(os.getenv("OLLAMA_MAX_TOKENS", "320")))
+_OLLAMA_STREAM_MAX_TOKENS = max(96, int(os.getenv("OLLAMA_STREAM_MAX_TOKENS", "320")))
 
 # ── Context compression constants (RAG-2) ────────────────────────────────────
 # Approximate tokens in a chunk = chars / 4  (rough but fast).
@@ -248,7 +250,7 @@ def chat(
     system: str = AGRI_SYSTEM_PROMPT,
     model: str = DEFAULT_MODEL,
     temperature: float = 0.25,
-    max_tokens: int = 1200,
+    max_tokens: int = _OLLAMA_MAX_TOKENS,
     timeout: int = _OLLAMA_CHAT_TIMEOUT_S,
 ) -> str:
     """Blocking chat — returns the full response as a string."""
@@ -310,7 +312,7 @@ def stream_chat(
         ],
         "options": {
             "temperature": temperature,
-            "num_predict": 420,
+            "num_predict": _OLLAMA_STREAM_MAX_TOKENS,
             "top_p": 0.9,
             "repeat_penalty": 1.1,
         },

@@ -339,6 +339,7 @@ def chatbot_quality_metadata(
     tier = diagnostics.get("selected_tier") or "unknown"
     labels = {
         "instant_rule": ("Instant advisory", "verified_local", 500),
+        "crop_profile": ("Verified crop profile", "verified_local", 500),
         "verified_realtime": ("Verified live data", "verified_realtime", 5000),
         "knowledge_base": ("Verified knowledge base", "verified_local", 500),
         "knowledge_base_local_llm": ("Local knowledge AI", "local_ai", 15000),
@@ -1080,6 +1081,30 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     _named_ctx.latitude, _named_ctx.longitude,
                 )
                 ctx = _named_ctx
+
+        crop_profile_answer = self._crop_profile_answer(query, crops_mentioned, lang)
+        if crop_profile_answer:
+            now = datetime.now(tz=timezone.utc)
+            data_source = "KrishiMitra canonical 202-crop knowledge base"
+            _set_chat_meta(
+                selected_tier="crop_profile",
+                fallback_reason="",
+                total_llm_ms=int((_time.monotonic() - answer_started) * 1000),
+            )
+            diagnostics = dict(_chat_meta())
+            return {
+                "response": crop_profile_answer,
+                "intent": intent,
+                "sources": ["KrishiMitra crop profile 2026.07-beta1"],
+                "crops_detected": [crop["name"] for crop in crops_mentioned],
+                "crop_suggestions": [],
+                "language": lang,
+                "data_source": data_source,
+                "timestamp": now.isoformat(),
+                "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
+                "chatbot_diagnostics": diagnostics,
+                "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
+            }
 
         location_required_intents = {
             INTENT_WEATHER,
@@ -2543,6 +2568,114 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     seen.add(norm["id"])
                     found.append(norm)
         return found[:5]
+
+    @staticmethod
+    def _crop_profile_answer(
+        query: str,
+        crops_mentioned: List[Dict[str, Any]],
+        lang: str,
+    ) -> Optional[str]:
+        """Compose narrow crop-profile facts without a slow or speculative model call."""
+        if len(crops_mentioned) != 1 or lang not in {"en", "hi", "hinglish"}:
+            return None
+        q = query.lower()
+        if re.search(r"\b(today|current|now|aaj|abhi|kal)\b|आज|अभी|कल", q):
+            return None
+
+        aspect_terms = {
+            "soil": ("soil", "mitti", "ph", "मिट्टी", "पीएच"),
+            "climate": ("climate", "temperature", "temp", "rainfall", "tapman", "तापमान", "वर्षा"),
+            "water": ("water requirement", "pani kitna", "पानी कितना", "जल आवश्यकता"),
+            "season": ("season", "which month", "kaun sa mausam", "कौन सा मौसम", "ऋतु"),
+            "duration": ("duration", "kitne din", "कितने दिन", "crop cycle"),
+            "region": ("which state", "suitable state", "where grow", "kahan", "कहाँ", "क्षेत्र"),
+        }
+        aspects = [
+            aspect
+            for aspect, terms in aspect_terms.items()
+            if any(term in q for term in terms)
+        ]
+        if not aspects:
+            return None
+
+        crop_id = crops_mentioned[0].get("id")
+        profile = _ALL_CROP_DATA.get(crop_id, {})
+        if not profile:
+            return None
+        name = crops_mentioned[0].get("name") or str(crop_id).replace("_", " ").title()
+        soil_names = list(dict.fromkeys(
+            str(value).strip().title()
+            for value in (profile.get("soil_preference") or [])
+            if str(value).strip()
+        ))
+        soils = ", ".join(soil_names)
+        states = ", ".join((profile.get("states_primary") or [])[:6])
+        bullets: List[str] = []
+
+        if lang == "hi":
+            if "climate" in aspects:
+                bullets.append(
+                    f"जलवायु: **{profile['temperature_min']}-{profile['temperature_max']}°C**; "
+                    f"लगभग **{profile['rainfall_mm']} मिमी** वर्षा।"
+                )
+            if "soil" in aspects:
+                bullets.append(f"मिट्टी: {soils}; उपयुक्त pH **{profile['ph_min']}-{profile['ph_max']}**।")
+            if "water" in aspects:
+                bullets.append(f"पानी की जरूरत: **{profile['water_requirement']}**।")
+            if "season" in aspects:
+                bullets.append(f"मौसम: **{profile['season']}**।")
+            if "duration" in aspects:
+                bullets.append(f"फसल अवधि: लगभग **{profile['duration_days']} दिन**।")
+            if "region" in aspects:
+                bullets.append(f"प्रमुख उपयुक्त राज्य: {states}।")
+            return (
+                f"**{name}** के लिए उपलब्ध सत्यापित योजना-प्रोफाइल के अनुसार:\n\n"
+                + "\n".join(f"- {item}" for item in bullets)
+                + "\n\nआज का अगला कदम: खेत की मिट्टी का pH और जल निकास जाँचें; किस्म और रोपण समय KVK से पक्का करें।"
+            )
+
+        if lang == "hinglish":
+            if "climate" in aspects:
+                bullets.append(
+                    f"Climate: **{profile['temperature_min']}-{profile['temperature_max']}°C**; "
+                    f"lagbhag **{profile['rainfall_mm']} mm** rainfall."
+                )
+            if "soil" in aspects:
+                bullets.append(f"Mitti: {soils}; suitable pH **{profile['ph_min']}-{profile['ph_max']}**.")
+            if "water" in aspects:
+                bullets.append(f"Pani ki zarurat: **{profile['water_requirement']}**.")
+            if "season" in aspects:
+                bullets.append(f"Season: **{profile['season']}**.")
+            if "duration" in aspects:
+                bullets.append(f"Crop duration: lagbhag **{profile['duration_days']} din**.")
+            if "region" in aspects:
+                bullets.append(f"Main suitable states: {states}.")
+            return (
+                f"**{name}** ke verified planning profile ke hisaab se:\n\n"
+                + "\n".join(f"- {item}" for item in bullets)
+                + "\n\nAaj ka next step: field ka soil pH aur drainage check karein; variety aur planting time KVK se confirm karein."
+            )
+
+        if "climate" in aspects:
+            bullets.append(
+                f"Climate: **{profile['temperature_min']}-{profile['temperature_max']}°C** with about "
+                f"**{profile['rainfall_mm']} mm** rainfall."
+            )
+        if "soil" in aspects:
+            bullets.append(f"Soil: {soils}; suitable pH **{profile['ph_min']}-{profile['ph_max']}**.")
+        if "water" in aspects:
+            bullets.append(f"Water requirement: **{profile['water_requirement']}**.")
+        if "season" in aspects:
+            bullets.append(f"Season: **{profile['season']}**.")
+        if "duration" in aspects:
+            bullets.append(f"Crop duration: about **{profile['duration_days']} days**.")
+        if "region" in aspects:
+            bullets.append(f"Main suitable states: {states}.")
+        return (
+            f"According to the verified planning profile for **{name}**:\n\n"
+            + "\n".join(f"- {item}" for item in bullets)
+            + "\n\nNext step today: test field pH and drainage, then confirm the variety and planting window with the local KVK."
+        )
 
     def _extract_query_entities(self, query: str) -> Dict[str, Any]:
         """
@@ -4591,6 +4724,34 @@ def _answer_stream(
         for token in _yield_answer_chunks(text):
             yield token
         yield _done_payload("KrishiMitra Advisory Engine")
+        return
+
+    if self._crop_profile_answer(query, crops_mentioned, lang):
+        result = self.answer(
+            query=query,
+            ctx=ctx,
+            language=language,
+            history=history,
+            farmer_profile=farmer_profile,
+            fast_mode=True,
+            sensor_context=sensor_context,
+        )
+        for token in _yield_answer_chunks(str(result.get("response") or "")):
+            yield token
+        yield {
+            "__done__": True,
+            "intent": result.get("intent", intent),
+            "language": result.get("language", lang),
+            "data_source": result.get("data_source"),
+            "crops_detected": result.get("crops_detected", []),
+            "crop_suggestions": result.get("crop_suggestions", []),
+            "timestamp": result.get("timestamp"),
+            "location_context": result.get("location_context"),
+            "chatbot_diagnostics": result.get("chatbot_diagnostics", {}),
+            "ai_data_quality": result.get("ai_data_quality", {}),
+            "sources": result.get("sources", []),
+            "iot_sensors_used": False,
+        }
         return
 
     location_required_intents = {

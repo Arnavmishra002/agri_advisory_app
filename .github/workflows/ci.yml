@@ -144,6 +144,10 @@ jobs:
           print('✅ All services + new modules imported successfully')
           "
 
+      - name: Canonical crop knowledge snapshot
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/generate_crop_knowledge.py --check
+
       - name: Phase 1 RAG static regression
         working-directory: ${{ github.workspace }}
         run: python3 phase1/rag/eval_retrieval.py --static

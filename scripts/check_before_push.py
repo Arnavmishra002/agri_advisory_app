@@ -71,6 +71,17 @@ results.append(check("All schemes have helpline numbers",
     lambda: [(_ for _ in ()).throw(AssertionError(f"No helpline in {s['id']}"))
              for s in GOVERNMENT_SCHEMES if not s.get('helpline')]))
 
+results.append(check(
+    "202-crop Phase 1 knowledge snapshot is current",
+    lambda: subprocess.run(
+        [sys.executable, os.path.join(REPO_ROOT, "scripts/generate_crop_knowledge.py"), "--check"],
+        check=True,
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    ),
+))
+
 # ─── 2. Chatbot rule-based responses ─────────────────────────────
 header("2/4 Chatbot Rule-Based Responses")
 
