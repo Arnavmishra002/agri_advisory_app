@@ -7,7 +7,6 @@ from types import SimpleNamespace
 from django.test import SimpleTestCase
 
 from advisory.ml.dataset_loader import build_splits, discover_images
-from advisory.ml.augmentation import _load_image_with_pillow
 from advisory.ml.dataset_manifest import (
     ensure_training_approved,
     manifest_summary,
@@ -19,8 +18,8 @@ from advisory.ml.evaluate import (
     _per_class_metrics,
     _top_k_accuracy,
 )
+from advisory.ml.image_io import load_image_with_pillow
 from advisory.ml.model_metadata import load_model_metadata, quality_label
-from advisory.ml.model_builder import configure_fine_tuning
 
 
 class DiseaseEvaluationTests(SimpleTestCase):
@@ -115,17 +114,17 @@ class DiseaseEvaluationTests(SimpleTestCase):
         self.assertTrue(set(capped.test.paths).issubset(full.test.paths))
         self.assertTrue(set(capped.train.paths).isdisjoint(full.test.paths))
 
-    def test_training_image_decoder_handles_tensor_scalars_and_rejects_corruption(self):
-        import tensorflow as tf
+    def test_training_image_decoder_handles_array_scalars_and_rejects_corruption(self):
+        import numpy as np
         from PIL import Image
 
         with TemporaryDirectory() as directory:
             image_path = Path(directory) / "leaf.png"
             Image.new("RGB", (12, 10), color=(20, 80, 140)).save(image_path)
 
-            pixels, label = _load_image_with_pillow(
-                tf.constant(str(image_path)),
-                tf.constant(7),
+            pixels, label = load_image_with_pillow(
+                np.asarray(os.fsencode(image_path)),
+                np.asarray(7, dtype=np.int32),
                 (8, 6),
             )
 
@@ -136,7 +135,7 @@ class DiseaseEvaluationTests(SimpleTestCase):
             corrupt_path = Path(directory) / "corrupt.jpg"
             corrupt_path.write_bytes(b"not-an-image")
             with self.assertRaisesRegex(ValueError, "Unable to decode training image"):
-                _load_image_with_pillow(corrupt_path, 1, (8, 6))
+                load_image_with_pillow(corrupt_path, 1, (8, 6))
 
     def test_high_validation_score_alone_cannot_promote_model(self):
         self.assertEqual(quality_label(0.90, 0.98), "needs_validation")
@@ -213,7 +212,12 @@ class DiseaseEvaluationTests(SimpleTestCase):
         self.assertEqual(score, 0.5)
 
     def test_fine_tuning_unfreezes_only_requested_non_batchnorm_layers(self):
-        import tensorflow as tf
+        try:
+            import tensorflow as tf
+        except ImportError:
+            self.skipTest("TensorFlow optional ML dependencies are not installed")
+
+        from advisory.ml.model_builder import configure_fine_tuning
 
         backbone = tf.keras.Sequential(
             [

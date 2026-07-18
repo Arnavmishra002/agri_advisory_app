@@ -4,40 +4,13 @@ from __future__ import annotations
 
 import tensorflow as tf
 
+from .image_io import load_image_with_pillow
 from .model_builder import get_preprocess_fn
-
-
-def _load_image_with_pillow(path_value, label_value, image_size):
-    """Decode the scalar values supplied by ``tf.py_function``."""
-    import os
-
-    import numpy as np
-    from PIL import Image
-
-    if hasattr(path_value, "numpy"):
-        path_value = path_value.numpy()
-    if isinstance(path_value, np.ndarray):
-        path_value = path_value.item()
-    if hasattr(label_value, "numpy"):
-        label_value = label_value.numpy()
-    if isinstance(label_value, np.ndarray):
-        label_value = label_value.item()
-
-    path = os.fsdecode(path_value)
-    height, width = (int(value) for value in image_size)
-    try:
-        with Image.open(path) as image:
-            image = image.convert("RGB")
-            image = image.resize((width, height), Image.Resampling.BILINEAR)
-            pixels = np.asarray(image, dtype=np.float32)
-    except Exception as exc:
-        raise ValueError(f"Unable to decode training image {path}: {exc}") from exc
-    return pixels, np.int32(label_value)
 
 
 def decode_and_resize(path: tf.Tensor, label: tf.Tensor, image_size=(224, 224)) -> tuple:
     img, lbl = tf.py_function(
-        lambda path_value, label_value: _load_image_with_pillow(
+        lambda path_value, label_value: load_image_with_pillow(
             path_value,
             label_value,
             image_size,
