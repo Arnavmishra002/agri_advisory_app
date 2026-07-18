@@ -1104,10 +1104,9 @@ class MarketPricesService:
 
         # ── GPS-based nearby filtering ─────────────────────────────────────
         # When the user has GPS, trim to the nearest mandis within radius_km.
-        # Key insight: reference DB mandis with no coordinate data are EXCLUDED
-        # when GPS is available — we only show mandis we can confirm are nearby.
-        # The fallback to unknown_dist only kicks in when we have < 3 confirmed
-        # nearby mandis (e.g. very rural area with sparse coordinate coverage).
+        # Entries without coordinates must never be presented as "nearby". A
+        # sparse verified list is safer than padding it with unrelated state
+        # markets whose distance from the farmer is unknown.
         has_gps = lat is not None and lon is not None
         if has_gps and not include_all:
             # Mandis with known distance within radius
@@ -1115,19 +1114,7 @@ class MarketPricesService:
                 m for m in mandis
                 if m.get("distance_km") is not None and m["distance_km"] <= radius_km
             ]
-            # Mandis with no coordinate data — only use as fallback if list is tiny
-            unknown_dist = [m for m in mandis if m.get("distance_km") is None]
-
-            if len(nearby) >= 3:
-                # Good coverage — drop all unknown-distance mandis entirely
-                mandis = nearby[:max_results]
-            elif len(nearby) > 0:
-                # Sparse coverage — add a few unknown-distance to pad to 10
-                mandis = (nearby + unknown_dist[:max(0, 10 - len(nearby))])[:max_results]
-            else:
-                # No known-distance mandis at all — show limited unknown-dist ones
-                # This happens in very rural areas with no coordinate data
-                mandis = unknown_dist[:min(20, max_results)]
+            mandis = nearby[:max_results]
 
             # Tag each mandi with a human-readable proximity label
             for m in mandis:
@@ -1142,9 +1129,6 @@ class MarketPricesService:
                     else:
                         m["proximity"] = "regional"
                         m["proximity_label"] = f"~{d:.0f} km (क्षेत्रीय)"
-                else:
-                    m["proximity"] = "unknown"
-                    m["proximity_label"] = "दूरी अज्ञात"
         else:
             mandis = mandis[:max_results]
 

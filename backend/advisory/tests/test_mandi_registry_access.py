@@ -86,3 +86,39 @@ class MandiRegistryAccessTests(SimpleTestCase):
         self.assertEqual(len(result), 1)
         self.assertTrue(result[0]["registered"])
         self.assertFalse(result[0]["live"])
+
+    def test_nearby_scope_never_pads_with_unknown_distance_mandis(self):
+        service = MarketPricesService()
+        registry = [
+            {"name": "Varanasi APMC", "state": "Uttar Pradesh", "registered": True},
+            {"name": "Mirzapur APMC", "state": "Uttar Pradesh", "registered": True},
+            {"name": "Agra APMC", "state": "Uttar Pradesh", "registered": True},
+        ]
+        enriched = [
+            {**registry[0], "distance_km": 3.9},
+            {**registry[1], "distance_km": 49.0},
+            {**registry[2], "distance_km": None},
+        ]
+
+        with patch(
+            "advisory.services.agmarknet_client.agmarknet_client.list_markets_for_location",
+            return_value=registry,
+        ), patch.object(service, "_merge_reference_mandis"), patch.object(
+            service, "_enrich_and_sort_mandis", return_value=enriched
+        ), patch.object(
+            service, "_has_registered_data_gov_key", return_value=False
+        ), patch.object(service, "_effective_data_gov_key", return_value=None):
+            result = service.list_mandis(
+                "Varanasi",
+                lat=25.3176,
+                lon=82.9739,
+                state="Uttar Pradesh",
+                radius_km=50,
+                include_all=False,
+            )
+
+        self.assertEqual(
+            [mandi["name"] for mandi in result["mandis"]],
+            ["Varanasi APMC", "Mirzapur APMC"],
+        )
+        self.assertTrue(all(mandi["distance_km"] <= 50 for mandi in result["mandis"]))
