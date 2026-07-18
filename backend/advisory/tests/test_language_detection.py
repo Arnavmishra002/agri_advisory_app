@@ -7,6 +7,9 @@ from advisory.services.language_service import detect_query_language
 
 
 class QueryLanguageDetectionTests(SimpleTestCase):
+    def test_romanised_hindi_greeting_does_not_switch_to_english(self):
+        self.assertEqual(detect_query_language("namaste", fallback="hi"), "hinglish")
+
     def test_detects_hinglish_weather_question(self):
         self.assertEqual(
             detect_query_language("kal ka mausam Kaisa hoga", fallback="hi"),

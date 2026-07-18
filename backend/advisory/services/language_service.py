@@ -178,6 +178,8 @@ def detect_query_language(query: str, fallback: str = "hi") -> str:
         return fallback if fallback in devanagari_languages else "hi"
 
     latin_text = text.lower()
+    if re.search(r"\b(namaste|namaskar|pranam|jai\s+kisan)\b", latin_text):
+        return "hinglish"
     # A single borrowed agriculture word such as "mandi" is common in
     # otherwise-English questions. Treat grammar words as strong Hinglish
     # evidence, or require two agriculture terms before changing language.

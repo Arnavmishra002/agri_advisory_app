@@ -2516,6 +2516,24 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         if has_sowing_term and asks_sowing_detail:
             return INTENT_SOWING, crops_mentioned
 
+        # Word boundaries are unreliable around Devanagari combining marks.
+        # Route explicit plant-part + symptom descriptions before the generic
+        # crop-info fallback so a safety-critical photo/advisory question never
+        # waits for an open-ended LLM response.
+        plant_parts = (
+            "पत्ती", "पत्तियों", "पत्ते", "तना", "जड़", "फल",
+            "leaf", "leaves", "stem", "root", "fruit",
+        )
+        symptom_terms = (
+            "पीला", "पीली", "पीले", "धब्बा", "धब्बे", "दाग", "सूख",
+            "मुरझ", "सड़", "झुलस", "छेद", "yellow", "spot", "spots",
+            "lesion", "wilt", "rot", "curl", "blight", "rust",
+        )
+        if any(term in q for term in plant_parts) and any(
+            term in q for term in symptom_terms
+        ):
+            return INTENT_PEST_DISEASE, crops_mentioned
+
         # "barish ke baad [X me] sinchai" → IRRIGATION (not WEATHER)
         # Allow up to ~5 words between "barish ke baad" and "sinchai/pani"
         if re.search(

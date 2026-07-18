@@ -53,6 +53,36 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(intent, INTENT_WEATHER)
         self.assertEqual(crops, [])
 
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_hindi_yellow_spot_question_uses_fast_safe_symptom_advisory(
+        self, weather, qwen, phase1_post
+    ):
+        weather.return_value = {
+            "status": "success",
+            "is_live": True,
+            "current": {"temperature": 27},
+            "forecast_7day": [],
+        }
+
+        started = time.monotonic()
+        chunks = list(self.service.answer_stream(
+            "मेरे गेहूँ की पत्तियों पर पीले धब्बे हैं, मैं अभी क्या जांच करूँ?",
+            self.ctx,
+            language="auto",
+        ))
+        elapsed_ms = (time.monotonic() - started) * 1000
+        text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+
+        self.assertEqual(chunks[-1]["intent"], INTENT_PEST_DISEASE)
+        self.assertLess(elapsed_ms, 3000)
+        self.assertIn("पक्की पहचान नहीं", text)
+        self.assertIn("पत्ती के ऊपर-नीचे", text)
+        self.assertNotRegex(text, r"\d+(?:\.\d+)?\s*(?:ml|g)/L")
+        phase1_post.assert_not_called()
+        qwen.assert_not_called()
+
     @patch("advisory.services.chat_intelligence_service._is_valid_gemini_key")
     @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
