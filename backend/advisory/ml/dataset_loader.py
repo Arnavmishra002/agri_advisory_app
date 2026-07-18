@@ -70,8 +70,10 @@ def discover_images(data_root: Path) -> List[Tuple[str, str]]:
         for name in DATASET_SOURCES:
             p = raw / name
             if p.is_dir():
-                roots.append(p)
-                seen_roots.add(p.resolve())
+                resolved = p.resolve()
+                if resolved not in seen_roots:
+                    roots.append(p)
+                    seen_roots.add(resolved)
         for child in raw.iterdir():
             if child.is_dir() and child.resolve() not in seen_roots:
                 roots.append(child)
@@ -84,12 +86,15 @@ def discover_images(data_root: Path) -> List[Tuple[str, str]]:
             continue
         samples.extend(_scan_directory(root))
 
-    # Deduplicate by path
+    # Deduplicate by physical path. On case-insensitive filesystems aliases such
+    # as plantvillage/PlantVillage can otherwise leak the same image into
+    # different train/validation/test splits.
     seen = set()
     unique = []
     for path, label in samples:
-        if path not in seen:
-            seen.add(path)
+        canonical_path = os.path.normcase(str(Path(path).resolve()))
+        if canonical_path not in seen:
+            seen.add(canonical_path)
             unique.append((path, label))
 
     return unique
@@ -300,22 +305,28 @@ def build_splits(
 ) -> LoadedDataset:
     data_dir = Path(data_dir or DEFAULT_DATA_DIR)
     samples = discover_images(data_dir)
-    if max_samples_per_class:
-        samples = _cap_samples(samples, max_samples_per_class)
     if not samples:
         raise FileNotFoundError(
             f"No images found under {data_dir}. "
             "Place datasets under data/datasets/raw/plantvillage etc."
         )
 
-    # Ensure unknown class exists in label space
     labels_set = sorted({lbl for _, lbl in samples})
-    if UNKNOWN_LABEL not in labels_set:
-        labels_set.append(UNKNOWN_LABEL)
 
     label_to_idx = {lbl: i for i, lbl in enumerate(labels_set)}
 
+    # Assign every physical image to a stable split before applying a local
+    # training cap. Otherwise a capped training image can be reassigned to the
+    # full test split during evaluation and inflate held-out accuracy.
     train_s, val_s, test_s = stratified_split(samples)
+    if max_samples_per_class and max_samples_per_class > 0:
+        per_class = int(max_samples_per_class)
+        capped_test = max(1, int(per_class * TEST_SPLIT)) if per_class >= 3 else 0
+        capped_val = max(1, int(per_class * VALIDATION_SPLIT)) if per_class >= 3 else 0
+        capped_train = max(0, per_class - capped_val - capped_test)
+        train_s = _cap_samples(train_s, capped_train) if capped_train else []
+        val_s = _cap_samples(val_s, capped_val) if capped_val else []
+        test_s = _cap_samples(test_s, capped_test) if capped_test else []
 
     def _to_split(pairs: List[Tuple[str, str]]) -> DatasetSplit:
         paths = [p for p, _ in pairs]

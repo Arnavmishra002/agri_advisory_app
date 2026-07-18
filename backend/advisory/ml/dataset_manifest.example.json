@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "dataset_name": "KrishiMitra disease candidate - PlantVillage color",
+  "created_at": "2026-07-18",
+  "sources": [
+    {
+      "name": "PlantVillage Dataset Kaggle mirror",
+      "source_url": "https://www.kaggle.com/datasets/abdallahalidev/plantvillage-dataset",
+      "license_name": "CC BY-NC-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "retrieved_at": "2026-07-03",
+      "crop_labels": [
+        "apple",
+        "blueberry",
+        "cherry",
+        "corn_maize",
+        "grape",
+        "orange",
+        "peach",
+        "pepper_bell",
+        "potato",
+        "raspberry",
+        "soybean",
+        "squash",
+        "strawberry",
+        "tomato"
+      ],
+      "disease_labels": [
+        "apple_scab",
+        "bacterial_spot",
+        "black_rot",
+        "cedar_apple_rust",
+        "cercospora_leaf_spot_gray_leaf_spot",
+        "common_rust",
+        "early_blight",
+        "esca_black_measles",
+        "haunglongbing_citrus_greening",
+        "healthy",
+        "late_blight",
+        "leaf_blight_isariopsis_leaf_spot",
+        "leaf_mold",
+        "leaf_scorch",
+        "northern_leaf_blight",
+        "powdery_mildew",
+        "septoria_leaf_spot",
+        "spider_mites_two_spotted_spider_mite",
+        "target_spot",
+        "tomato_mosaic_virus",
+        "tomato_yellow_leaf_curl_virus"
+      ],
+      "sample_count": 54305,
+      "splits": {
+        "train": 40759,
+        "validation": 8129,
+        "test": 5417
+      },
+      "usage_approved": false
+    }
+  ]
+}

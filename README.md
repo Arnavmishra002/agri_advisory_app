@@ -236,35 +236,44 @@ Prepare datasets under `data/datasets/` and inspect them:
 python scripts/setup_training_data.py --analyze-only
 ```
 
-Train EfficientNet-B3:
+Train a bounded candidate without replacing the installed model:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.train \
-  --data-dir data/datasets \
-  --output-dir models/crop_disease \
-  --architecture efficientnetb3
+python3 scripts/train_crop_disease.py --skip-setup \
+  --max-per-class 100 --epochs 4 --warmup-epochs 3 \
+  --fine-tune-layers 20 --max-test-samples 760
+```
+
+The default output is `models/crop_disease_candidate/`. Production mode also
+requires an approved provenance manifest and non-plant negatives:
+
+```bash
+python3 scripts/train_crop_disease.py --skip-setup --production \
+  --max-per-class 0 --epochs 20 --max-test-samples 0 \
+  --dataset-manifest data/datasets/dataset_manifest.json
 ```
 
 Evaluate before production:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.evaluate \
-  --model-dir models/crop_disease \
+PYTHONPATH=backend python3 -m advisory.ml.evaluate \
+  --model-dir models/crop_disease_candidate \
   --data-dir data/datasets
 ```
 
 For quick local/CI smoke checks on constrained hardware:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.evaluate \
-  --model-dir models/crop_disease \
+PYTHONPATH=backend python3 -m advisory.ml.evaluate \
+  --model-dir models/crop_disease_candidate \
   --data-dir data/datasets \
   --max-test-samples 390
 ```
 
 `/api/health/readiness/` reports whether the model is missing, needs retraining,
-or is a production candidate. Models marked `needs_retraining` or `unknown` are
-blocked from farmer-facing predictions by default; use
+needs validation, or is a production candidate. Models marked
+`needs_retraining`, `needs_validation`, or `unknown` are blocked from
+farmer-facing predictions by default; use
 `ML_ALLOW_UNVERIFIED_MODEL=true` only for offline evaluation, never for a farmer
 production deployment.
 
@@ -429,7 +438,8 @@ Recommended production setup:
 4. Frontend hosted by CDN/static hosting, nginx, or Django with
    `SERVE_FRONTEND=true`.
 5. Optional Phase 1 service plus Ollama for local RAG/LLM.
-6. Trained crop disease model mounted at `models/crop_disease/`.
+6. Optional production-candidate disease model mounted at
+   `models/crop_disease/`; otherwise keep advisory-only diagnostics enabled.
 7. `DATA_GOV_IN_API_KEY` set for stronger mandi coverage.
 8. `SENTRY_DSN`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, and
    `CSRF_TRUSTED_ORIGINS` set to production values.
@@ -439,18 +449,20 @@ Recommended production setup:
     production Phase 1 service instead of silently weakening answers.
 
 Before launch, the strict readiness endpoint must return `ready`. Missing Redis,
-mandi key, Phase 1/RAG, configured Ollama model, production-candidate disease
-model, or Sentry are reported as explicit blockers. Development remains usable
-with honest fallback labels when `LAUNCH_CHECK=false`.
+mandi key, Phase 1/RAG, configured Ollama model, or Sentry are explicit blockers.
+An unverified disease model is a blocker only when image classification is
+enabled; advisory-only disease guidance remains launch-safe. Development remains
+usable with honest fallback labels when `LAUNCH_CHECK=false`.
 
 Disease model training must use a licensed dataset manifest in the format at
 `backend/advisory/ml/dataset_manifest.schema.json`:
 
 ```bash
-python -m advisory.ml.dataset_manifest data/datasets/dataset_manifest.json
-python -m advisory.ml.train --data-dir data/datasets \
-  --output-dir models/crop_disease --require-manifest
-python -m advisory.ml.evaluate --model-dir models/crop_disease \
+python3 -m advisory.ml.dataset_manifest data/datasets/dataset_manifest.json
+python3 -m advisory.ml.train --data-dir data/datasets \
+  --output-dir models/crop_disease_candidate \
+  --require-manifest --require-non-plant
+python3 -m advisory.ml.evaluate --model-dir models/crop_disease_candidate \
   --data-dir data/datasets
 ```
 

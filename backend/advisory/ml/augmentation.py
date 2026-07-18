@@ -7,25 +7,45 @@ import tensorflow as tf
 from .model_builder import get_preprocess_fn
 
 
+def _load_image_with_pillow(path_value, label_value, image_size):
+    """Decode the scalar values supplied by ``tf.py_function``."""
+    import os
+
+    import numpy as np
+    from PIL import Image
+
+    if hasattr(path_value, "numpy"):
+        path_value = path_value.numpy()
+    if isinstance(path_value, np.ndarray):
+        path_value = path_value.item()
+    if hasattr(label_value, "numpy"):
+        label_value = label_value.numpy()
+    if isinstance(label_value, np.ndarray):
+        label_value = label_value.item()
+
+    path = os.fsdecode(path_value)
+    height, width = (int(value) for value in image_size)
+    try:
+        with Image.open(path) as image:
+            image = image.convert("RGB")
+            image = image.resize((width, height), Image.Resampling.BILINEAR)
+            pixels = np.asarray(image, dtype=np.float32)
+    except Exception as exc:
+        raise ValueError(f"Unable to decode training image {path}: {exc}") from exc
+    return pixels, np.int32(label_value)
+
+
 def decode_and_resize(path: tf.Tensor, label: tf.Tensor, image_size=(224, 224)) -> tuple:
-    def _load(path_str: bytes, label_val: int):
-        import numpy as np
-        from PIL import Image
-        import io
-
-        try:
-            raw = open(path_str.decode("utf-8"), "rb").read()
-            im = Image.open(io.BytesIO(raw)).convert("RGB")
-            im = im.resize(image_size, Image.Resampling.BILINEAR)
-            arr = np.array(im, dtype=np.float32)
-            return arr, np.int32(label_val)
-        except Exception:
-            return np.zeros((image_size[1], image_size[0], 3), np.float32), np.int32(label_val)
-
     img, lbl = tf.py_function(
-        _load, [path, label], [tf.float32, tf.int32]
+        lambda path_value, label_value: _load_image_with_pillow(
+            path_value,
+            label_value,
+            image_size,
+        ),
+        [path, label],
+        [tf.float32, tf.int32],
     )
-    img.set_shape((image_size[1], image_size[0], 3))
+    img.set_shape((image_size[0], image_size[1], 3))
     lbl.set_shape(())
     return img, lbl
 
@@ -47,7 +67,9 @@ def augment_train(
 ) -> tuple:
     image = tf.image.random_flip_left_right(image)
     image = tf.image.random_flip_up_down(image)
-    image = tf.image.random_brightness(image, max_delta=0.25)
+    # Images are still in the 0-255 range here, so the brightness delta must be
+    # expressed on that scale. A 0.25 delta was effectively a no-op.
+    image = tf.image.random_brightness(image, max_delta=20.0)
     image = tf.image.random_contrast(image, 0.75, 1.35)
     image = tf.image.random_saturation(image, 0.8, 1.25)
     image = tf.clip_by_value(image, 0, 255)

@@ -22,16 +22,28 @@ from .config import (
     DEFAULT_DATA_DIR,
     DEFAULT_MODEL_DIR,
     EPOCHS,
+    FINE_TUNE_LAYERS,
+    FINE_TUNE_LR_FACTOR,
     HISTORY_FILENAME,
     LABELS_FILENAME,
     LEARNING_RATE,
     METRICS_FILENAME,
     MODEL_FILENAME,
     USE_CLASS_WEIGHTS,
+    WARMUP_EPOCHS,
 )
 from .dataset_loader import build_splits, save_dataset_artifacts
-from .dataset_manifest import load_and_validate_manifest, manifest_summary
-from .model_builder import build_model, get_architecture_settings
+from .dataset_manifest import (
+    ensure_training_approved,
+    load_and_validate_manifest,
+    manifest_summary,
+)
+from .model_builder import (
+    build_model,
+    compile_model,
+    configure_fine_tuning,
+    get_architecture_settings,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,12 +61,17 @@ def train(
     use_class_weights: bool = USE_CLASS_WEIGHTS,
     dataset_manifest: Optional[Path] = None,
     require_manifest: bool = False,
+    require_non_plant: bool = False,
+    warmup_epochs: int = WARMUP_EPOCHS,
+    fine_tune_layers: int = FINE_TUNE_LAYERS,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = dataset_manifest or (data_dir / "dataset_manifest.json")
     manifest_data = None
     if manifest_path.exists():
         manifest_data = load_and_validate_manifest(manifest_path)
+        if require_manifest:
+            ensure_training_approved(manifest_data)
         (output_dir / "dataset_manifest.json").write_text(
             json.dumps(manifest_data, indent=2),
             encoding="utf-8",
@@ -71,6 +88,16 @@ def train(
     preprocess_mode = model_settings["preprocess"]
 
     dataset = build_splits(data_dir, max_samples_per_class=max_samples_per_class)
+    unknown_samples = sum(
+        1
+        for split in (dataset.train, dataset.val, dataset.test)
+        for label in split.labels
+        if dataset.class_names[label] == "unknown__unknown"
+    )
+    if require_non_plant and unknown_samples <= 0:
+        raise ValueError(
+            "Production disease training requires unknown/not_plant negative images."
+        )
     save_dataset_artifacts(output_dir, dataset.class_names)
 
     train_paths = [str(p) for p in dataset.train.paths]
@@ -129,25 +156,55 @@ def train(
         len(val_paths),
     )
 
-    history = model.fit(
+    warmup_epochs = min(max(1, int(warmup_epochs)), max(1, int(epochs)))
+    if model_settings["architecture"] != "efficientnetb3":
+        warmup_epochs = max(1, int(epochs))
+    history_parts = []
+    warmup_history = model.fit(
         train_ds,
         validation_data=val_ds,
-        epochs=epochs,
+        epochs=warmup_epochs,
         class_weight=class_weight,
         callbacks=callbacks,
     )
+    history_parts.append(warmup_history.history)
+
+    fine_tuned_layers = 0
+    if model_settings["architecture"] == "efficientnetb3" and epochs > warmup_epochs:
+        fine_tuned_layers = configure_fine_tuning(model, fine_tune_layers)
+        compile_model(model, learning_rate * FINE_TUNE_LR_FACTOR)
+        logger.info(
+            "Fine-tuning top %s backbone layers at learning rate %.2e",
+            fine_tuned_layers,
+            learning_rate * FINE_TUNE_LR_FACTOR,
+        )
+        fine_history = model.fit(
+            train_ds,
+            validation_data=val_ds,
+            initial_epoch=warmup_epochs,
+            epochs=epochs,
+            class_weight=class_weight,
+            callbacks=callbacks,
+        )
+        history_parts.append(fine_history.history)
+
+    history_data = {}
+    for part in history_parts:
+        for key, values in part.items():
+            history_data.setdefault(key, []).extend(float(value) for value in values)
 
     final_path = output_dir / MODEL_FILENAME
-    model.save(final_path)
+    best_model = tf.keras.models.load_model(checkpoint_path)
+    best_model.save(final_path)
     logger.info("Saved model to %s", final_path)
 
     hist_path = output_dir / HISTORY_FILENAME
     hist_path.write_text(
-        json.dumps({k: [float(x) for x in v] for k, v in history.history.items()}, indent=2),
+        json.dumps(history_data, indent=2),
         encoding="utf-8",
     )
 
-    hist = history.history
+    hist = history_data
     metrics = {
         "model": model_settings["display_name"],
         "architecture": model_settings["architecture"],
@@ -164,6 +221,11 @@ def train(
         "max_samples_per_class": max_samples_per_class,
         "augmentation": augment,
         "class_weights": use_class_weights,
+        "training_strategy": "frozen_backbone_then_top_layer_fine_tune",
+        "warmup_epochs": warmup_epochs,
+        "fine_tuned_layers": fine_tuned_layers,
+        "fine_tune_learning_rate": learning_rate * FINE_TUNE_LR_FACTOR,
+        "non_plant_samples": unknown_samples,
         "dataset_manifest": (
             manifest_summary(manifest_data) if manifest_data else {"status": "missing"}
         ),
@@ -226,6 +288,13 @@ def main():
         action="store_true",
         help="Refuse to train when the licensed dataset manifest is missing or invalid.",
     )
+    parser.add_argument(
+        "--require-non-plant",
+        action="store_true",
+        help="Refuse production training unless unknown/not_plant negatives are present.",
+    )
+    parser.add_argument("--warmup-epochs", type=int, default=WARMUP_EPOCHS)
+    parser.add_argument("--fine-tune-layers", type=int, default=FINE_TUNE_LAYERS)
     args = parser.parse_args()
 
     train(
@@ -240,6 +309,9 @@ def main():
         use_class_weights=not args.no_class_weights,
         dataset_manifest=args.dataset_manifest,
         require_manifest=args.require_manifest,
+        require_non_plant=args.require_non_plant,
+        warmup_epochs=args.warmup_epochs,
+        fine_tune_layers=args.fine_tune_layers,
     )
 
 

@@ -38,7 +38,7 @@
               "test": {"type": "integer", "minimum": 0}
             }
           },
-          "usage_approved": {"const": true}
+          "usage_approved": {"type": "boolean"}
         }
       }
     }
