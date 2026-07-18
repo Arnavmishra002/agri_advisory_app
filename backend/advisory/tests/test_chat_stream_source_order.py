@@ -60,15 +60,6 @@ class _FakeInterruptedStreamingResponse(_FakeStreamingResponse):
         raise requests.Timeout("stream interrupted")
 
 
-class _FakeGeminiChunk:
-    text = "cloud answer"
-
-
-class _FakeGeminiModel:
-    def generate_content(self, *args, **kwargs):
-        return [_FakeGeminiChunk()]
-
-
 class ChatStreamSourceOrderTests(SimpleTestCase):
     def setUp(self):
         self.service = ChatIntelligenceService()
@@ -243,7 +234,6 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         kb_answer.assert_not_called()
         requests_post.assert_not_called()
 
-    @patch("google.generativeai.GenerativeModel", return_value=_FakeGeminiModel())
     @patch("advisory.services.chat_intelligence_service._is_valid_gemini_key", return_value=True)
     @patch("advisory.services.chat_intelligence_service.requests.post", side_effect=requests.Timeout("phase1 stalled"))
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
@@ -252,7 +242,6 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         kb_answer,
         requests_post,
         gemini_key_check,
-        gemini_model,
     ):
         kb_answer.return_value = {
             "answer": None,
@@ -275,7 +264,6 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         self.assertEqual(text, canonical["response"])
         answer.assert_called_once()
         self.assertTrue(answer.call_args.kwargs["fast_mode"])
-        gemini_model.assert_not_called()
 
     @patch(
         "advisory.services.chat_intelligence_service.requests.post",
