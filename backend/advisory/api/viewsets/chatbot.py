@@ -227,7 +227,10 @@ def _build_history_and_context(request, session_id, language):
         history = clean_client
 
     session_ctx = session_memory.load_session_context(session_id) if session_id else {}
-    if language in ("auto", "") and session_ctx.get("language"):
+    # `auto` is an explicit per-message instruction. Reusing the previous
+    # session language here prevented farmers from switching naturally between
+    # English, Hindi, Hinglish, and regional scripts in one conversation.
+    if not language and session_ctx.get("language"):
         language = session_ctx["language"]
 
     return history, session_ctx, language
@@ -706,7 +709,7 @@ def stream_chat(request):
             query, ctx, language, history, farmer_ctx, fast_mode,
             session_id, request, user_id, sensor_context,
         ),
-        content_type="text/event-stream",
+        content_type="text/event-stream; charset=utf-8",
     )
     response["Cache-Control"]     = "no-cache"
     response["X-Accel-Buffering"] = "no"   # disable nginx buffering

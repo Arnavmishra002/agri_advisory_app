@@ -577,13 +577,17 @@
 
         <!-- Mandi selector -->
         <div class="mandi-bar">
-            <label class="fw-bold m-0 mandi-bar-label">🏪 नज़दीकी मंडी:</label>
-            <select id="mandiRadiusSelect" onchange="onMandiRadiusChanged()" class="form-select form-select-sm mandi-radius-select" title="मंडी खोज दायरा">
+            <label class="fw-bold m-0 mandi-bar-label">🏪 मंडी सूची:</label>
+            <select id="mandiRadiusSelect" onchange="onMandiRadiusChanged()" class="form-select form-select-sm mandi-radius-select" title="मंडी सूची का दायरा">
                 <option value="50">50 km</option>
                 <option value="100">100 km</option>
-                <option value="150" selected>150 km</option>
+                <option value="150">150 km</option>
                 <option value="250">250 km</option>
+                <option value="state" selected>पूरा राज्य</option>
             </select>
+            <input id="mandiSearchInput" type="search" class="form-control form-control-sm mandi-selector"
+                placeholder="मंडी या जिला खोजें..." autocomplete="off"
+                oninput="filterMandiOptions(this.value)" aria-label="मंडी या जिला खोजें">
             <select id="mandiSelector" onchange="onMandiSelected(this.value)" class="form-select form-select-sm mandi-selector">
                 <option value="">-- सभी मंडियां (All Mandis) --</option>
             </select>

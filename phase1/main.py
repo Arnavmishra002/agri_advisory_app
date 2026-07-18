@@ -305,6 +305,14 @@ async def chat_endpoint(req: ChatRequest):
     rag_results = retrieve_with_sources(req.query, k=5)
     rag_texts   = [r["text"]        for r in rag_results]
     rag_sources = list({r["source_file"] for r in rag_results})
+    if not rag_texts and not (req.verified_knowledge or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": "NO_GROUNDING",
+                "message": "No verified knowledge matched this question.",
+            },
+        )
 
     # 2. Optional weather (non-blocking)
     weather_summary = ""
@@ -354,6 +362,14 @@ async def chat_stream_endpoint(req: ChatRequest):
     """
     # 1. RAG — Top-20 → rerank → Top-5 (RAG-1/2/3 pipeline)
     rag_texts = retrieve(req.query, k=5)
+    if not rag_texts and not (req.verified_knowledge or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": "NO_GROUNDING",
+                "message": "No verified knowledge matched this question.",
+            },
+        )
 
     # 2. Weather
     weather_summary = ""

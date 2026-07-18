@@ -12,7 +12,7 @@ from ..location_utils import attach_location_metadata, resolve_request_location
 from ..errors import safe_error_message
 from ...services.crop_catalog import crop_catalog
 from ...services.unified_realtime_service import market_service
-from ..serializers import LocationQuerySerializer
+from ..serializers import LocationQuerySerializer, MandiListQuerySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +75,14 @@ class MarketPricesViewSet(viewsets.ViewSet):
         Returns the closest mandis first. Use ?radius_km=200 to expand range.
         """
         try:
-            serializer = LocationQuerySerializer(data=request.query_params)
+            serializer = MandiListQuerySerializer(data=request.query_params)
             if not serializer.is_valid():
                 return Response({"status": "error", "error": "Invalid mandi parameters", "errors": serializer.errors}, status=400)
             params = serializer.validated_data
             ctx = resolve_request_location(request)
             radius_km = max(10, min(params.get("radius_km", 150), 500))
+            scope = params.get("scope", "nearby")
+            max_results = params.get("limit", 50)
 
             data = market_service.list_mandis(
                 ctx.query_label,
@@ -88,6 +90,8 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 lon=ctx.longitude,
                 state=ctx.state or None,
                 radius_km=radius_km,
+                max_results=max_results,
+                include_all=scope == "state",
             )
             return Response(attach_location_metadata(data, ctx))
         except Exception as exc:

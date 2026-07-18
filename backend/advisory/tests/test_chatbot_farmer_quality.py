@@ -65,6 +65,19 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertNotIn("Hello Farmer", marathi["response"])
         self.assertEqual(hindi["ai_data_quality"]["tier"], "instant_rule")
 
+    def test_reverse_geocoded_neighborhood_keeps_district_in_farmer_label(self):
+        ctx = LocationContext(
+            latitude=26.8467,
+            longitude=80.9462,
+            display_name="Hazratganj",
+            district="Lucknow",
+            state="Uttar Pradesh",
+        )
+
+        response = self.service.answer("hello", ctx, language="en")
+
+        self.assertIn("Hazratganj, Lucknow district, Uttar Pradesh", response["response"])
+
     @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
     def test_location_specific_question_never_uses_default_when_unconfirmed(
@@ -135,9 +148,47 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         )
 
         self.assertIn("2510", result["response"])
+        self.assertIn("10-07-2026", result["response"])
+        self.assertNotIn("Agmarknet today", result["response"])
         self.assertEqual(result["ai_data_quality"]["tier"], "verified_realtime")
         kb_answer.assert_not_called()
         qwen.assert_not_called()
+
+    @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
+    def test_named_mandi_question_requests_exact_apmc_and_answers_in_hinglish(self, market):
+        market.return_value = {
+            "status": "success",
+            "is_live": True,
+            "coverage": "market",
+            "data_source": "Agmarknet 2.0 API",
+            "reported_date": "13-07-2026",
+            "top_crops": [{
+                "crop_name": "Wheat",
+                "crop_name_hindi": "गेहूँ",
+                "crop_id": "wheat",
+                "modal_price": 2400,
+                "msp": 2585,
+                "mandi_name": "Lucknow APMC",
+                "reported_date": "13-07-2026",
+                "is_live": True,
+            }],
+        }
+
+        result = self.service.answer(
+            "Lucknow mandi mein gehu ka latest bhav kya hai?",
+            self.ctx,
+            language="auto",
+        )
+
+        requested_mandis = [call.kwargs.get("mandi") for call in market.call_args_list]
+        self.assertIn("Lucknow Mandi", requested_mandis)
+        self.assertEqual(result["language"], "hinglish")
+        self.assertIn("Lucknow APMC", result["response"])
+        self.assertIn("13-07-2026", result["response"])
+        self.assertNotIn("state-average", result["response"])
+        self.assertEqual(market.call_count, 1)
+        self.assertEqual(result["crop_suggestions"][0]["modal_price"], 2400)
+        self.assertEqual(result["crop_suggestions"][0]["mandi"], "Lucknow APMC")
 
     @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
@@ -328,6 +379,29 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertIn("बीज दर", result["response"])
         self.assertIn("बुवाई गहराई", result["response"])
         self.assertIn("बुवाई का समय", result["response"])
+
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_sowing_stream_uses_instant_grounded_path(self, weather, requests_post):
+        weather.return_value = {
+            "status": "success",
+            "is_live": True,
+            "current": {"temperature": 24, "humidity": 55, "condition": "Clear"},
+            "forecast_7day": [],
+            "data_source": "Open-Meteo",
+        }
+
+        chunks = list(self.service.answer_stream(
+            "gehu ki buwai ka sahi samay aur tarika batao",
+            self.ctx,
+            language="auto",
+        ))
+
+        text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+        self.assertIn("Sowing", text)
+        self.assertIn("100-125", text)
+        self.assertEqual(chunks[-1]["chatbot_diagnostics"]["selected_tier"], "instant_rule")
+        requests_post.assert_not_called()
 
     @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")

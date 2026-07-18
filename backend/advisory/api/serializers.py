@@ -283,6 +283,17 @@ class LocationQuerySerializer(StrictQuerySerializer):
     organic_carbon = serializers.FloatField(required=False, min_value=0, max_value=100)
 
 
+class MandiListQuerySerializer(LocationQuerySerializer):
+    """Location query plus bounded state-registry controls for mandi discovery."""
+
+    scope = serializers.ChoiceField(
+        required=False,
+        choices=("nearby", "state"),
+        default="nearby",
+    )
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=500, default=50)
+
+
 class CropRecommendationQuerySerializer(LocationQuerySerializer):
     """Strict farmer inputs used by the multi-factor crop engine."""
 

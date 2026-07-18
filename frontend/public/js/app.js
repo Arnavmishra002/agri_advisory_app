@@ -174,6 +174,7 @@
     let currentLocationAccuracy = null;
     let allMandisCache = [];
     let mandiDropdownVisibleCount = 80;
+    let mandiFilterText = '';
     let currentMandi = '';
     let currentCropSearch = '';
     let krSelectedCrop = '';
@@ -379,8 +380,11 @@
         currentMandi = '';
         allMandisCache = [];
         mandiDropdownVisibleCount = 80;
+        mandiFilterText = '';
         const mandiSel = document.getElementById('mandiSelector');
         if (mandiSel) mandiSel.value = '';
+        const mandiSearch = document.getElementById('mandiSearchInput');
+        if (mandiSearch) mandiSearch.value = '';
 
         const accLabel = currentLocationAccuracy != null
             ? ` ±${Math.round(currentLocationAccuracy)}m` : '';
@@ -1017,6 +1021,41 @@
         return Number.isFinite(radius) ? radius : 150;
     }
 
+    function getMandiScope() {
+        return document.getElementById('mandiRadiusSelect')?.value === 'state'
+            ? 'state'
+            : 'nearby';
+    }
+
+    function filteredMandis() {
+        const query = mandiFilterText.trim().toLocaleLowerCase('en-IN');
+        if (!query) return allMandisCache;
+        return allMandisCache.filter(mandi => [mandi.name, mandi.district, mandi.state]
+            .some(value => String(value || '').toLocaleLowerCase('en-IN').includes(query)));
+    }
+
+    function updateMandiLoadMoreButton(mandis) {
+        const button = document.getElementById('mandiLoadMoreBtn');
+        if (!button) return;
+        const remaining = Math.max(0, mandis.length - mandiDropdownVisibleCount);
+        button.style.display = remaining > 0 ? 'inline-block' : 'none';
+        if (remaining > 0) button.textContent = `और मंडियां (+${remaining})`;
+    }
+
+    function filterMandiOptions(value) {
+        mandiFilterText = String(value || '');
+        mandiDropdownVisibleCount = mandiFilterText.trim() ? 500 : 80;
+        const mandis = filteredMandis();
+        renderMandiOptions(mandis, mandiDropdownVisibleCount);
+        updateMandiLoadMoreButton(mandis);
+        const badge = document.getElementById('mandiStatusBadge');
+        if (badge && mandiFilterText.trim()) {
+            badge.textContent = mandis.length
+                ? `🔎 ${mandis.length} मंडियां मिलीं`
+                : '⚠️ इस नाम या जिले की मंडी नहीं मिली';
+        }
+    }
+
     function renderMandiOptions(mandis, visibleCount) {
         const sel = document.getElementById('mandiSelector');
         if (!sel) return;
@@ -1036,7 +1075,7 @@
             items.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.name;
-                const live  = m.live ? '🟢 ' : '';
+                const live  = m.live ? '🟢 ' : m.registered ? '🏛️ ' : '';
                 const dist  = m.distance_km != null ? ` · ${m.distance_km} km` : '';
                 const dist2 = m.district ? ` · ${m.district}` : '';
                 opt.textContent = `${live}${m.name}${dist2}${dist}`;
@@ -1056,7 +1095,7 @@
             slice.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.name;
-                const live = m.live ? '🟢 ' : '';
+                const live = m.live ? '🟢 ' : m.registered ? '🏛️ ' : '';
                 const dist = m.distance_km != null ? ` · ${m.distance_km} km` : '';
                 const dist2 = m.district ? ` · ${m.district}` : '';
                 opt.textContent = `${live}${m.name}${dist2}${dist}`;
@@ -1068,11 +1107,9 @@
 
     function loadMoreMandis() {
         mandiDropdownVisibleCount += 80;
-        renderMandiOptions(allMandisCache, mandiDropdownVisibleCount);
-        const btn = document.getElementById('mandiLoadMoreBtn');
-        if (btn && mandiDropdownVisibleCount >= allMandisCache.length) {
-            btn.style.display = 'none';
-        }
+        const mandis = filteredMandis();
+        renderMandiOptions(mandis, mandiDropdownVisibleCount);
+        updateMandiLoadMoreButton(mandis);
     }
 
     async function populateMandiDropdown() {
@@ -1098,11 +1135,16 @@
             // Pass GPS + radius so backend returns location-specific mandis only
             const locQ = buildLocationQuery();
             const radiusKm = getMandiRadiusKm();
+            const scope = getMandiScope();
+            const limit = scope === 'state' ? 500 : 50;
             const data = await apiGetJson(
-                `/api/market-prices/mandis/?${locQ}&radius_km=${radiusKm}`
+                `/api/market-prices/mandis/?${locQ}&radius_km=${radiusKm}&scope=${scope}&limit=${limit}`
             );
             allMandisCache = data.mandis || [];
             mandiDropdownVisibleCount = 80;
+            mandiFilterText = '';
+            const searchInput = document.getElementById('mandiSearchInput');
+            if (searchInput) searchInput.value = '';
 
             const stillAvailable = currentMandi
                 ? allMandisCache.some(m => m.name === currentMandi)
@@ -1114,11 +1156,7 @@
             renderMandiOptions(allMandisCache, mandiDropdownVisibleCount);
 
             // Show "load more" only if list exceeds visible count
-            if (loadMoreBtn && allMandisCache.length > mandiDropdownVisibleCount) {
-                loadMoreBtn.style.display = 'inline-block';
-                loadMoreBtn.textContent =
-                    `और मंडियां (+${allMandisCache.length - mandiDropdownVisibleCount})`;
-            }
+            updateMandiLoadMoreButton(allMandisCache);
 
             // Status badge — show nearest mandi prominently
             if (badge) {
@@ -1132,15 +1170,21 @@
                     const liveHint = data.live_count
                         ? ` · ${data.live_count} live`
                         : '';
+                    const scopeHint = data.scope === 'state'
+                        ? `पूरे ${data.state || currentState || 'राज्य'} में`
+                        : `${radiusKm} km में`;
+                    const registeredHint = data.registered_count
+                        ? ` · ${data.registered_count} Agmarknet-पंजीकृत`
+                        : '';
                     badge.textContent =
-                        `🏪 ${allMandisCache.length} मंडियां (${radiusKm} km)${distHint}${liveHint}`;
+                        `🏪 ${allMandisCache.length} मंडियां ${scopeHint}${distHint}${registeredHint}${liveHint}`;
                 }
             }
 
             // Highlight the nearest mandi, but do not auto-select it. The
             // default screen should show current official state rows; choosing
             // a mandi deliberately switches to exact-market arrivals only.
-            if (!currentMandi && data.nearest_mandi) {
+            if (!currentMandi && data.nearest_mandi && data.scope !== 'state') {
                 const nearestName = data.nearest_mandi.name;
                 if (nearestName) {
                     if (badge) badge.textContent =
@@ -1157,6 +1201,7 @@
     function refreshNearbyMandis() {
         currentMandi = '';
         allMandisCache = [];
+        mandiFilterText = '';
         const sel = document.getElementById('mandiSelector');
         if (sel) sel.value = '';
         populateMandiDropdown().then(() => loadMarketPrices());
@@ -2848,7 +2893,10 @@
 
         try {
             // Preserve the prior turns for context; `query` already carries this message.
-            const priorHistory = conversationHistory.slice(-8);
+            const priorHistory = conversationHistory.slice(-8).map(message => ({
+                role: message.role,
+                content: message.content,
+            }));
             _pushHistory('user', message);
 
             let partialText = '';
@@ -3199,6 +3247,7 @@
     window.onMandiSelected = onMandiSelected;
     window.populateMandiDropdown = populateMandiDropdown;
     window.loadMoreMandis = loadMoreMandis;
+    window.filterMandiOptions = filterMandiOptions;
     window.refreshNearbyMandis = refreshNearbyMandis;
     window.onMandiRadiusChanged = onMandiRadiusChanged;
     window.applyManualLocation = applyManualLocation;

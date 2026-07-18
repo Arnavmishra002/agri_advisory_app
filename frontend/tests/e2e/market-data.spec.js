@@ -17,6 +17,14 @@ test.beforeEach(async ({ page }) => {
     let body = {};
 
     if (url.pathname.endsWith('/market-prices/mandis/')) {
+      const registeredMandis = Array.from({ length: 120 }, (_, index) => ({
+        name: `Official Mandi ${index + 1}`,
+        district: index === 119 ? 'Kanpur Nagar' : 'Lucknow',
+        state: 'Uttar Pradesh',
+        distance_km: index + 1,
+        registered: true,
+        live: false,
+      }));
       body = {
         mandis: [{
           name: 'Lucknow Mandi',
@@ -24,10 +32,13 @@ test.beforeEach(async ({ page }) => {
           state: 'Uttar Pradesh',
           distance_km: 0,
           proximity: 'very_near',
+          registered: true,
           live: false,
-        }],
+        }, ...registeredMandis],
         nearest_mandi: { name: 'Lucknow Mandi', distance_km: 0 },
         live_count: 0,
+        registered_count: 121,
+        scope: 'state',
       };
     } else if (url.pathname.endsWith('/market-prices/mandi-prices/')) {
       body = {
@@ -86,4 +97,28 @@ test('exact mandi absence finishes loading and preserves separate state benchmar
   await expect(page.locator('#mandiStatusBadge')).toContainText('नवीनतम आधिकारिक औसत भाव');
   await expect(page.locator('#pricesData')).toContainText('₹2,540');
   await expect(page.locator('#mandiSelector')).toHaveValue('');
+});
+
+test('full state registry is searchable beyond the initial dropdown batch', async ({ page }, testInfo) => {
+  const marketButton = testInfo.project.name.includes('mobile')
+    ? '#bnav-market'
+    : '#nav-market';
+  const mandiRequest = page.waitForRequest(request => {
+    const url = new URL(request.url());
+    return url.pathname.endsWith('/market-prices/mandis/');
+  });
+
+  await page.locator(marketButton).click();
+  const request = await mandiRequest;
+  const url = new URL(request.url());
+  expect(url.searchParams.get('scope')).toBe('state');
+  expect(url.searchParams.get('limit')).toBe('500');
+
+  await expect(page.locator('#mandiStatusBadge')).toContainText('121 मंडियां');
+  await expect(page.locator('#mandiSelector option')).toHaveCount(81);
+
+  await page.locator('#mandiSearchInput').fill('Kanpur Nagar');
+  await expect(page.locator('#mandiSelector')).toContainText('Official Mandi 120');
+  await page.locator('#mandiSelector').selectOption('Official Mandi 120');
+  await expect(page.locator('#mandiSelector')).toHaveValue('Official Mandi 120');
 });

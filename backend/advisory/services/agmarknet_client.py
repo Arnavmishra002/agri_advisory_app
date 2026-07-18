@@ -178,7 +178,10 @@ class AgmarknetClient:
                 "district": item.get("district_name") or item.get("district") or "",
                 "state": item_state or state_name or state or "",
                 "source": "Agmarknet 2.0 API",
-                "live": True,
+                "registered": True,
+                # Registry membership does not prove a current price submission.
+                # Exact prices are verified only when the mandi is selected.
+                "live": False,
                 "commodity_count": 0,
             })
         out.sort(key=lambda m: m["name"].lower())

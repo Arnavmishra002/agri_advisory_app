@@ -987,6 +987,7 @@ class MarketPricesService:
         state: str = None,
         radius_km: float = 150,     # NEW: only return mandis within this radius when GPS available
         max_results: int = 50,       # NEW: cap the list for frontend usability
+        include_all: bool = False,
     ) -> Dict[str, Any]:
         """
         Nearby mandi list, sorted by distance from user's GPS.
@@ -997,7 +998,10 @@ class MarketPricesService:
 
         Falls back to state-wide list when no GPS is available.
         """
-        cache_key = f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:{location}:{state}:{radius_km}"
+        cache_key = (
+            f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:"
+            f"{location}:{state}:{radius_km}:{include_all}:{max_results}"
+        )
         if cache_key in self._cache:
             age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
             # Mandi list is stable — 60-min TTL is sufficient and avoids hammering
@@ -1016,7 +1020,7 @@ class MarketPricesService:
             from .agmarknet_client import agmarknet_client
 
             for m in agmarknet_client.list_markets_for_location(location, state=resolved_state):
-                self._upsert_mandi(mandis_map, m, live=True)
+                self._upsert_mandi(mandis_map, m, live=bool(m.get("live")))
         except Exception as exc:
             logger.warning("Agmarknet mandi list error: %s", exc)
 
@@ -1063,13 +1067,16 @@ class MarketPricesService:
                         )
 
         live_count = sum(1 for m in mandis_map.values() if m.get("live"))
+        registered_count = sum(1 for m in mandis_map.values() if m.get("registered"))
 
-        # 3) Reference mandis — fill gaps (demo key / few live rows / GPS nearby)
+        # 3) Reference mandis — fill nearby-mode gaps only. State discovery must
+        # remain an official registry, otherwise static reference entries inflate
+        # the count and look indistinguishable from Agmarknet-registered markets.
         ref_before = len(mandis_map)
-        # Always merge reference DB so users see full state/nearby coverage, not a sparse live-only list
-        self._merge_reference_mandis(
-            mandis_map, location, resolved_state, lat, lon, fill_gaps=True
-        )
+        if not include_all or not registered_count:
+            self._merge_reference_mandis(
+                mandis_map, location, resolved_state, lat, lon, fill_gaps=True
+            )
         ref_count = len(mandis_map) - ref_before
 
         mandis = self._enrich_and_sort_mandis(list(mandis_map.values()), lat, lon)
@@ -1081,7 +1088,7 @@ class MarketPricesService:
         # The fallback to unknown_dist only kicks in when we have < 3 confirmed
         # nearby mandis (e.g. very rural area with sparse coordinate coverage).
         has_gps = lat is not None and lon is not None
-        if has_gps:
+        if has_gps and not include_all:
             # Mandis with known distance within radius
             nearby = [
                 m for m in mandis
@@ -1120,7 +1127,14 @@ class MarketPricesService:
         else:
             mandis = mandis[:max_results]
 
-        if registered_key and not using_demo:
+        if include_all and registered_count:
+            coverage = "official_registry"
+            data_source = "Agmarknet official market registry"
+            message = (
+                f"{len(mandis)} Agmarknet-registered mandis for "
+                f"{resolved_state or location}. Current price rows are verified after selection."
+            )
+        elif registered_key and not using_demo:
             coverage = "full"
             data_source = "Agmarknet + data.gov.in (live)"
             if has_gps:
@@ -1176,6 +1190,7 @@ class MarketPricesService:
             "mandis": mandis,
             "total": len(mandis),
             "live_count": live_count,
+            "registered_count": registered_count,
             "reference_count": ref_count,
             "coverage": coverage,
             "api_key_registered": registered_key,
@@ -1186,6 +1201,7 @@ class MarketPricesService:
             "nearest_mandi": nearest_mandi,
             "radius_km": radius_km if has_gps else None,
             "has_gps": has_gps,
+            "scope": "state" if include_all else "nearby",
         }
         self._cache[cache_key] = result
         self._cache_ts[cache_key] = datetime.now(tz=timezone.utc)
@@ -1218,6 +1234,8 @@ class MarketPricesService:
             if entry.get("distance_km") is not None:
                 existing["distance_km"] = entry["distance_km"]
                 existing["distance"] = entry.get("distance", existing.get("distance", ""))
+            if entry.get("registered"):
+                existing["registered"] = True
             return
         mandis_map[key] = {
             "name": name,
@@ -1225,6 +1243,7 @@ class MarketPricesService:
             "state": entry.get("state", ""),
             "source": entry.get("source", ""),
             "live": bool(live or entry.get("live")),
+            "registered": bool(entry.get("registered")),
             "commodity_count": int(entry.get("commodity_count", 0)),
             "distance_km": entry.get("distance_km"),
             "distance": entry.get("distance", ""),

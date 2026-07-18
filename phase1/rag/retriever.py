@@ -160,12 +160,38 @@ _HI_EN: dict = {
     "मंडी": "mandi market", "एमएसपी": "msp minimum support price",
 }
 
+_ROMAN_HI_EN: dict = {
+    "gehu": "wheat",
+    "gehun": "wheat",
+    "dhan": "rice paddy",
+    "buwai": "sowing planting seed",
+    "bonai": "sowing planting seed",
+    "samay": "time timing",
+    "tarika": "method practice",
+    "mausam": "weather",
+    "barish": "rain rainfall",
+    "baarish": "rain rainfall",
+    "fasal": "crop",
+    "sinchai": "irrigation water",
+    "khad": "fertilizer nutrient",
+    "mandi": "market price",
+    "bhav": "price rate",
+    "daam": "price rate",
+    "rog": "disease",
+    "keet": "pest",
+    "dawai": "crop protection treatment",
+}
+
 
 def _augment(query: str) -> str:
-    """Append English equivalents for Hindi terms found in query."""
-    if not re.search(r"[\u0900-\u097F]", query):
-        return query
+    """Append English equivalents for Devanagari and Romanised Hindi terms."""
     extras = [eng for hi, eng in _HI_EN.items() if hi in query]
+    lower = query.lower()
+    extras.extend(
+        english
+        for roman, english in _ROMAN_HI_EN.items()
+        if re.search(rf"\b{re.escape(roman)}\b", lower)
+    )
     return (query + " " + " ".join(extras)) if extras else query
 
 

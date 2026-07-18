@@ -52,7 +52,7 @@ class ChatStreamEndpointTests(SimpleTestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "text/event-stream")
+        self.assertEqual(response["Content-Type"], "text/event-stream; charset=utf-8")
         self.assertEqual(response["X-Accel-Buffering"], "no")
         frames = "".join(part.decode("utf-8") for part in response.streaming_content)
         payloads = [

@@ -7,6 +7,13 @@ from . import retriever
 
 
 class RetrieverRankingTests(unittest.TestCase):
+    def test_romanised_hindi_query_is_augmented_for_english_knowledge_base(self):
+        augmented = retriever._augment("gehu ki buwai ka sahi samay")
+
+        self.assertIn("wheat", augmented)
+        self.assertIn("sowing", augmented)
+        self.assertIn("time", augmented)
+
     def test_metadata_alignment_beats_noisy_vector_match(self):
         candidates = [
             {

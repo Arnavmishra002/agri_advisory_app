@@ -1142,6 +1142,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             INTENT_CROP_RECOMMENDATION,
             INTENT_PEST_DISEASE,
         }
+        requested_mandi = (
+            self._extract_query_mandi(query, ctx)
+            if intent == INTENT_MARKET_PRICE
+            else None
+        )
 
         def _fetch_weather():
             return weather_service.get_weather(
@@ -1156,6 +1161,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 lon=ctx.longitude,
                 state=ctx.state or None,
                 crop=crop_filter,
+                mandi=requested_mandi,
             )
 
         def _fetch_iot():
@@ -1264,7 +1270,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "sources": list(dict.fromkeys(sources)),
                 "crops_detected": [c["name"] for c in crops_mentioned],
                 "crop_suggestions": self._crop_suggestions_for_intent(
-                    ctx, intent, crops_mentioned, lang=lang
+                    ctx, intent, crops_mentioned, lang=lang, prices=prices_data
                 ),
                 "language": lang,
                 "data_source": data_source,
@@ -1384,10 +1390,16 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # Tier 3: Rule-based (instant, ICAR-grounded, always available)
         # Used when: fast_mode=True OR LLM offline OR Gemini unavailable
         if not response_text:
-            _set_chat_meta(
-                selected_tier="rule_based_fallback",
-                fallback_reason=_chat_meta().get("fallback_reason") or "local_and_cloud_unavailable",
-            )
+            if fast_mode:
+                _set_chat_meta(
+                    selected_tier="instant_rule",
+                    fallback_reason="structured_fast_path",
+                )
+            else:
+                _set_chat_meta(
+                    selected_tier="rule_based_fallback",
+                    fallback_reason=_chat_meta().get("fallback_reason") or "local_and_cloud_unavailable",
+                )
             response_text = self._smart_rule_response(
                 query, intent, crops_mentioned, ctx, context_block, lang, history,
                 sc=sc, wc=wc,
@@ -1548,6 +1560,19 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     timeout=_PHASE1_TIMEOUT,
                 )
                 phase1_latency = int((_time.monotonic() - phase1_started) * 1000)
+                if getattr(resp, "status_code", None) == 422:
+                    try:
+                        detail = resp.json().get("detail") or {}
+                    except (TypeError, ValueError):
+                        detail = {}
+                    if isinstance(detail, dict) and detail.get("error_code") == "NO_GROUNDING":
+                        _set_chat_meta(
+                            phase1_latency_ms=phase1_latency,
+                            fallback_reason="phase1_no_grounding",
+                        )
+                        _release_local_ai_slot()
+                        slot_held = False
+                        return None
                 resp.raise_for_status()
                 data = resp.json()
                 text = (data.get("response") or "").strip()
@@ -1859,6 +1884,38 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 _release_local_ai_slot()
                 slot_held = False
             return None
+
+    @staticmethod
+    def _extract_query_mandi(query: str, ctx: LocationContext) -> Optional[str]:
+        """Return an explicitly named mandi without guessing for generic queries."""
+        text = str(query or "").strip()
+        if not re.search(r"\b(?:mandi|apmc)\b|मंडी", text, re.I):
+            return None
+
+        if getattr(ctx, "source", "") == "query_city_extraction" and ctx.display_name:
+            return f"{ctx.display_name} Mandi"
+
+        latin_matches = re.findall(
+            r"([A-Za-z][A-Za-z0-9()' .-]{1,60})\s+(?:mandi|apmc)\b",
+            text,
+            re.I,
+        )
+        if latin_matches:
+            candidate = re.split(
+                r"\b(?:in|at|near|mein|me|ka|ki|ke|for)\b",
+                latin_matches[-1],
+                flags=re.I,
+            )[-1].strip(" -")
+            words = candidate.split()
+            if 1 <= len(words) <= 4:
+                return f"{candidate} Mandi"
+
+        hindi_matches = re.findall(r"([\u0900-\u097F][\u0900-\u097F\s.-]{1,40})\s+मंडी", text)
+        if hindi_matches:
+            candidate = re.split(r"(?:में|के|की|का|पास)", hindi_matches[-1])[-1].strip(" -")
+            if candidate and len(candidate.split()) <= 4:
+                return f"{candidate} मंडी"
+        return None
 
     # ── Named-location extraction ──────────────────────────────────────────────
 
@@ -2689,14 +2746,20 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             if norm and norm.get("id") in crop_ids:
                                 matched.append(c)
                         top = matched + [c for c in top if c not in matched]
-                    lines.append(f"[LIVE MANDI PRICES near {ctx.display_name}] (Rs/quintal):")
+                    reported_date = prices.get("reported_date") or "date unavailable"
+                    lines.append(
+                        f"[LIVE MANDI PRICES near {ctx.display_name}] "
+                        f"(official report {reported_date}, Rs/quintal):"
+                    )
                     for c in top[:8]:
                         profit = c.get("profit_vs_msp")
                         profit_str = f", +{profit}% vs MSP" if profit and profit > 0 else ""
                         lines.append(
                             f"  {c.get('crop_name')} ({c.get('crop_name_hindi', '')}): "
                             f"modal Rs{c.get('modal_price')}, MSP Rs{c.get('msp')}, "
-                            f"mandi: {c.get('mandi_name', 'N/A')}{profit_str}"
+                            f"mandi: {c.get('mandi_name', 'N/A')}, "
+                            f"reported: {c.get('reported_date') or c.get('date') or reported_date}"
+                            f"{profit_str}"
                         )
                 else:
                     lines.append("[MANDI PRICES] Live feed unavailable. Set DATA_GOV_IN_API_KEY for live data.")
@@ -2785,8 +2848,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         sc  = sc  or SensorContext()
         wc  = wc  or WeatherConstraints()
         loc = ctx.display_name
+        if ctx.district and ctx.district.lower() not in loc.lower():
+            loc = f"{loc}, {ctx.district} district"
         if ctx.state and ctx.state not in loc:
-            loc = f"{ctx.display_name}, {ctx.state}"
+            loc = f"{loc}, {ctx.state}"
 
         # ── Extract structured entities from the query ───────────
         qe = self._extract_query_entities(query)
@@ -3062,31 +3127,45 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             msp_lines   = [l for l in context_block.splitlines() if "[MSP 2024-25]" in l or "MSP 2024-25" in l]
 
             if price_lines:
+                report_date = _extract(
+                    r"official report ([^,)]+)",
+                    "date unavailable",
+                )
                 header = {
-                    "hi": f"💰 **{loc}** के पास मंडी भाव (आज, Agmarknet):\n\n",
-                    "en": f"💰 Live Mandi Prices near **{loc}** (Agmarknet today):\n\n",
-                }.get(lang, f"Mandi prices near {loc}:\n\n")
+                    "hi": f"💰 **{loc}** के नवीनतम आधिकारिक मंडी भाव — रिपोर्ट **{report_date}**:\n\n",
+                    "hinglish": f"💰 **{loc}** ke latest official mandi bhav — report **{report_date}**:\n\n",
+                    "en": f"💰 Latest official mandi prices for **{loc}** — report **{report_date}**:\n\n",
+                }.get(lang, f"Latest official mandi prices for {loc} — report {report_date}:\n\n")
                 body = ""
                 for line in price_lines[:8]:
                     m = re.search(
-                        r"\s*([^(:]+)\s*(?:\(([^)]*)\))?:\s*modal\s*Rs\s*([\d]+)"
-                        r"(?:/q)?,\s*MSP\s*Rs\s*([\d]+)(?:/q)?,\s*mandi:\s*([^,\n]+)",
+                        r"\s*([^(:]+)\s*(?:\(([^)]*)\))?:\s*modal\s*Rs\s*([\d.]+)"
+                        r"(?:/q)?,\s*MSP\s*Rs\s*([^,]+),\s*mandi:\s*([^,\n]+)",
                         line,
                     )
                     if m:
                         crop       = m.group(1).strip()
                         local_desc = f" ({m.group(2).strip()})" if m.group(2) else ""
                         modal      = m.group(3)
-                        msp        = m.group(4)
+                        msp        = m.group(4).strip()
                         mandi      = m.group(5).strip()
-                        profit     = int(modal) - int(msp)
-                        ind = "📈" if profit >= 0 else "📉"
-                        body += f"• {ind} **{crop}{local_desc}** : ₹{modal}/q | MSP ₹{msp}/q | 🏪 {mandi}\n"
+                        try:
+                            profit = float(modal) - float(msp)
+                            indicator = "📈" if profit >= 0 else "📉"
+                            msp_text = f" | MSP ₹{msp}/q"
+                        except (TypeError, ValueError):
+                            indicator = "📊"
+                            msp_text = ""
+                        body += (
+                            f"• {indicator} **{crop}{local_desc}**: ₹{modal}/q"
+                            f"{msp_text} | 🏪 {mandi}\n"
+                        )
                     else:
                         body += f"• {line.strip().lstrip('- ')}\n"
                 footer = {
-                    "hi": "\n📊 स्रोत: Agmarknet/data.gov.in | agmarknet.gov.in",
-                    "en": "\n📊 Source: Agmarknet/data.gov.in | agmarknet.gov.in",
+                    "hi": "\n📊 स्रोत: आधिकारिक Agmarknet/data.gov.in पंक्ति | agmarknet.gov.in",
+                    "hinglish": "\n📊 Source: official Agmarknet/data.gov.in row | agmarknet.gov.in",
+                    "en": "\n📊 Source: official Agmarknet/data.gov.in row | agmarknet.gov.in",
                 }.get(lang, "")
                 return alert_prefix + header + body + footer
             else:
@@ -3100,6 +3179,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"⚠️ Live mandi prices unavailable right now.\n\n"
                         f"No estimated or historical price is being shown.\n"
                         f"🌐 Check agmarknet.gov.in for the latest official price\n📞 eNAM: 1800-270-0224"
+                    ),
+                    "hinglish": (
+                        "⚠️ Is mandi ka current official price row abhi available nahi hai.\n\n"
+                        "Koi estimated ya state-average price substitute nahi kiya gaya.\n"
+                        "🌐 agmarknet.gov.in par verify karein\n📞 eNAM: 1800-270-0224"
                     ),
                 }.get(lang, "Live mandi prices are unavailable. No estimated price is being shown.")
                 return alert_prefix + no_live
@@ -3731,7 +3815,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"• पंक्ति दूरी: **{sc_data['spacing']}**\n"
                         f"• बुवाई गहराई: **{sc_data['depth']}**\n\n"
                         f"**किस्में:** {sc_data['varieties_hi']}\n\n"
-                        f"**बीज उपचार:** {sc_data['treatment']}\n\n"
+                        "**बीज उपचार:** प्रमाणित बीज लें और वर्तमान ICAR/राज्य पैकेज या "
+                        "लेबल के अनुसार उपचार KVK से पुष्टि करके ही करें।\n\n"
                         f"💡 **अभी का मौसम ({loc}):** {temp}°C — "
                         + ("बुवाई के लिए उपयुक्त" if temp and _safe_temp(temp) < 30 else "तापमान अधिक है — बुवाई के लिए प्रतीक्षा करें")
                         + f"\n\n📞 KVK/ICAR: 1800-180-1551"
@@ -3744,10 +3829,25 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"• Spacing: **{sc_data['spacing']}**\n"
                         f"• Sowing depth: **{sc_data['depth']}**\n\n"
                         f"**Varieties:** {sc_data['varieties_en']}\n\n"
-                        f"**Seed treatment:** {sc_data['treatment']}\n\n"
+                        "**Seed treatment:** Use certified seed and confirm the current "
+                        "ICAR/state package or registered label with your KVK before treatment.\n\n"
                         f"💡 **Current weather ({loc}):** {temp}°C — "
                         + ("suitable for sowing" if temp and _safe_temp(temp) < 30 else "too hot — wait for temperature to drop")
                         + f"\n\n📞 KVK/ICAR: 1800-180-1551"
+                    ),
+                    "hinglish": (
+                        f"🌱 **{crop_name_display} Sowing Guide — {loc}**\n\n"
+                        f"🗓️ **Buwai ka sahi samay:** {sc_data['window_en']}\n\n"
+                        "**ICAR ke mutabik:**\n"
+                        f"• Seed rate: **{sc_data['seed_rate']}**\n"
+                        f"• Row spacing: **{sc_data['spacing']}**\n"
+                        f"• Sowing depth: **{sc_data['depth']}**\n\n"
+                        f"**Suitable varieties:** {sc_data['varieties_en']}\n\n"
+                        "**Seed treatment:** Certified seed use karein. Current ICAR/state "
+                        "package ya registered label ko KVK se confirm karke hi treatment karein.\n\n"
+                        f"💡 **Abhi ka weather ({loc}):** {temp}°C — "
+                        + ("buwai ke liye suitable hai" if temp and _safe_temp(temp) < 30 else "temperature zyada hai — abhi wait karein")
+                        + "\n\n📞 KVK/ICAR: 1800-180-1551"
                     ),
                 }.get(lang, f"{crop_name_display}: sow {sc_data['window_en']}. Seed rate {sc_data['seed_rate']}.")
             else:
@@ -4318,6 +4418,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         intent: str,
         crops: List[Dict[str, Any]],
         lang: str = "hi",
+        prices: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         if intent == INTENT_CROP_RECOMMENDATION:
             try:
@@ -4339,6 +4440,31 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 pass
 
         if intent == INTENT_MARKET_PRICE and crops:
+            if prices is not None:
+                live_rows = [
+                    row for row in (prices.get("top_crops") or [])
+                    if row.get("is_live")
+                ]
+                out = []
+                for crop in crops[:3]:
+                    matching = []
+                    for row in live_rows:
+                        normalized = crop_catalog.normalize(str(row.get("crop_name", "")))
+                        if normalized and normalized.get("id") == crop.get("id"):
+                            matching.append(row)
+                    if matching:
+                        row = matching[0]
+                        out.append({
+                            "type": "market_price",
+                            "crop": crop["name"],
+                            "modal_price": row.get("modal_price"),
+                            "msp": row.get("msp"),
+                            "mandi": row.get("mandi_name"),
+                            "reported_date": row.get("reported_date") or row.get("date"),
+                            "live": True,
+                        })
+                return out
+
             out = []
             for c in crops[:3]:
                 try:
@@ -4496,7 +4622,13 @@ def _answer_stream(
         and re.search(r"\b(msp|minimum\s+support|न्यूनतम\s+समर्थन)\b", query, re.I)
         and not re.search(r"\b(mandi|मंडी|bhav|भाव|rate|daam|दाम|price|कीमत)\b", query, re.I)
     )
-    if sensor_context or intent == INTENT_PEST_DISEASE or intent == INTENT_WEATHER or (
+    if sensor_context or intent in {
+        INTENT_PEST_DISEASE,
+        INTENT_WEATHER,
+        INTENT_SOWING,
+        INTENT_HARVEST,
+        INTENT_GOVERNMENT_SCHEME,
+    } or (
         intent == INTENT_MARKET_PRICE and not is_msp_policy_query
     ):
         result = self.answer(
