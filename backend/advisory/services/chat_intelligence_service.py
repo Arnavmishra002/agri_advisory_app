@@ -342,6 +342,7 @@ def chatbot_quality_metadata(
         "instant_rule": ("Instant advisory", "verified_local", 500),
         "crop_profile": ("Verified crop profile", "verified_local", 500),
         "verified_realtime": ("Verified live data", "verified_realtime", 5000),
+        "verified_official_data": ("Verified official report", "verified_official", 5000),
         "knowledge_base": ("Verified knowledge base", "verified_local", 500),
         "knowledge_base_local_llm": ("Local knowledge AI", "local_ai", 15000),
         "phase1_rag_ollama": ("Local AI + knowledge base", "local_ai", 15000),
@@ -1203,7 +1204,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         def _fetch_prices():
             crop_filter = crops_mentioned[0]["name"] if crops_mentioned else None
-            return market_service.get_prices(
+            result = market_service.get_prices(
                 ctx.query_label,
                 lat=ctx.latitude,
                 lon=ctx.longitude,
@@ -1211,6 +1212,24 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 crop=crop_filter,
                 mandi=requested_mandi,
             )
+            if requested_mandi and not result.get("top_crops"):
+                result = dict(result)
+                result["selected_mandi"] = requested_mandi
+                try:
+                    result["nearby_live_alternatives"] = market_service.get_nearby_live_prices(
+                        ctx.query_label,
+                        selected_mandi=requested_mandi,
+                        crop=crop_filter,
+                        lat=ctx.latitude,
+                        lon=ctx.longitude,
+                        state=ctx.state or None,
+                        radius_km=150,
+                        limit=5,
+                    )
+                except Exception as exc:
+                    logger.warning("Nearby mandi alternatives failed in chat: %s", exc)
+                    result["nearby_live_alternatives"] = []
+            return result
 
         def _fetch_iot():
             return self._resolve_sensor_context(ctx, sensor_context)
@@ -1286,7 +1305,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 if intent == INTENT_WEATHER
                 else prices_data.get("is_live")
             ) is True
-            selected_tier = "verified_realtime" if is_live else "rule_based_fallback"
+            selected_tier = (
+                "verified_realtime"
+                if intent == INTENT_WEATHER and is_live
+                else "verified_official_data"
+                if intent == INTENT_MARKET_PRICE and is_live
+                else "rule_based_fallback"
+            )
             fallback_reason = "" if is_live else (
                 "live_weather_unavailable"
                 if intent == INTENT_WEATHER
@@ -1304,11 +1329,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             data_source = (
                 "Verified realtime weather data"
                 if intent == INTENT_WEATHER and is_live
-                else "Verified realtime mandi data"
+                else "Verified official mandi report"
                 if intent == INTENT_MARKET_PRICE and is_live
                 else "Live weather feed unavailable"
                 if intent == INTENT_WEATHER
-                else "Live mandi feed unavailable"
+                else "Official mandi feed checked; current exact-mandi row unavailable"
             )
             diagnostics = dict(_chat_meta())
             now = datetime.now(tz=timezone.utc)
@@ -1964,13 +1989,27 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 flags=re.I,
             )[-1].strip(" -")
             words = candidate.split()
-            if 1 <= len(words) <= 4:
+            generic_words = {
+                "what", "which", "where", "when", "how", "is", "are", "the",
+                "today", "current", "latest", "price", "rate", "bhav", "bhaav",
+                "aaj", "crop", "fasal",
+            }
+            contains_question_word = any(word.lower() in generic_words for word in words)
+            contains_crop = any(
+                crop_catalog.normalize(word, allow_fuzzy=False) is not None
+                for word in words
+            )
+            if 1 <= len(words) <= 4 and not contains_question_word and not contains_crop:
                 return f"{candidate} Mandi"
 
         hindi_matches = re.findall(r"([\u0900-\u097F][\u0900-\u097F\s.-]{1,40})\s+मंडी", text)
         if hindi_matches:
             candidate = re.split(r"(?:में|के|की|का|पास)", hindi_matches[-1])[-1].strip(" -")
-            if candidate and len(candidate.split()) <= 4:
+            contains_crop = any(
+                crop_catalog.normalize(word, allow_fuzzy=False) is not None
+                for word in candidate.split()
+            )
+            if candidate and len(candidate.split()) <= 4 and not contains_crop:
                 return f"{candidate} मंडी"
         return None
 
@@ -2913,9 +2952,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     lon=ctx.longitude,
                     state=ctx.state or None,
                 )
-                sources.append(prices.get("data_source", "Agmarknet/data.gov.in"))
-
                 if prices.get("is_live"):
+                    sources.append(
+                        prices.get("data_source")
+                        or "Agmarknet/data.gov.in official report"
+                    )
                     top = [c for c in (prices.get("top_crops") or []) if c.get("is_live")]
                     if crops:
                         crop_ids = {c["id"] for c in crops}
@@ -2926,9 +2967,19 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             if norm and norm.get("id") in crop_ids:
                                 matched.append(c)
                         top = matched + [c for c in top if c not in matched]
-                    reported_date = prices.get("reported_date") or "date unavailable"
+                    reported_date = (
+                        prices.get("reported_date")
+                        or next(
+                            (
+                                c.get("reported_date") or c.get("date")
+                                for c in top
+                                if c.get("reported_date") or c.get("date")
+                            ),
+                            "date unavailable",
+                        )
+                    )
                     lines.append(
-                        f"[LIVE MANDI PRICES near {ctx.display_name}] "
+                        f"[OFFICIAL MANDI PRICES near {ctx.display_name}] "
                         f"(official report {reported_date}, Rs/quintal):"
                     )
                     for c in top[:8]:
@@ -2942,8 +2993,27 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             f"{profit_str}"
                         )
                 else:
-                    lines.append("[MANDI PRICES] Live feed unavailable. Set DATA_GOV_IN_API_KEY for live data.")
-                    lines.append("  Register free at data.gov.in/user/register")
+                    selected_mandi_name = prices.get("selected_mandi")
+                    selected = selected_mandi_name or "this location"
+                    lines.append(
+                        f"[MANDI PRICES] No current official arrival row for {selected}. "
+                        "Do not substitute a state average or estimate."
+                    )
+                    alternatives = prices.get("nearby_live_alternatives") or []
+                    if alternatives:
+                        lines.append("[NEARBY OFFICIAL MANDI ALTERNATIVES]")
+                        for row in alternatives[:5]:
+                            lines.append(
+                                f"  {row.get('crop_name')}: modal Rs{row.get('modal_price')}, "
+                                f"mandi: {row.get('mandi_name')}, "
+                                f"reported: {row.get('reported_date') or row.get('date') or 'date unavailable'}, "
+                                f"distance: {row.get('distance_km')} km"
+                            )
+                    sources.append(
+                        "Agmarknet official feed checked - no current exact-mandi row"
+                        if selected_mandi_name
+                        else "Agmarknet official feed checked - no current official row"
+                    )
             except Exception as e:
                 logger.warning("Market fetch failed in chat context: %s", e)
 
@@ -2958,10 +3028,16 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 lines.append(f"[CROP RECOMMENDATIONS for {ctx.display_name}] season: {season_lbl}, zone: {zone}")
                 for r in (rec.get("recommendations") or [])[:5]:
                     local = r.get("crop_name_local") or r.get("crop_name_hindi") or r.get("crop_name", "")
+                    profit_value = r.get("profit_per_hectare")
+                    profit_label = (
+                        f"Rs{profit_value:,}/ha"
+                        if isinstance(profit_value, (int, float))
+                        else "verified sale price required"
+                    )
                     lines.append(
                         f"  {r.get('crop_name')} ({local}): "
                         f"suitability {r.get('suitability_score')}%, "
-                        f"profit Rs{r.get('profit_per_hectare', 0):,}/ha, "
+                        f"profit {profit_label}, "
                         f"MSP Rs{r.get('msp_per_quintal', 0)}/q, "
                         f"reason: {r.get('reason_hindi') or r.get('reason', '')}"
                     )
@@ -3302,7 +3378,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # ── MARKET PRICE ─────────────────────────────────────────
         if intent == INTENT_MARKET_PRICE:
-            price_lines = [l for l in context_block.splitlines() if "modal Rs" in l]
+            price_lines = [
+                line for line in context_block.splitlines()
+                if "modal Rs" in line and "distance:" not in line
+            ]
+            nearby_lines = [
+                line for line in context_block.splitlines()
+                if "distance:" in line and "mandi:" in line and "modal Rs" in line
+            ]
             msp_lines = [
                 line for line in context_block.splitlines()
                 if f"MSP {MSP_MARKETING_SEASON}" in line
@@ -3353,12 +3436,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             else:
                 no_live = {
                     "hi": (
-                        f"⚠️ आज का लाइव मंडी भाव उपलब्ध नहीं है।\n\n"
+                        f"⚠️ चुनी मंडी की वर्तमान आधिकारिक आवक पंक्ति उपलब्ध नहीं है।\n\n"
                         f"अंदाज़े या पुराने भाव नहीं दिखाए जा रहे हैं।\n"
                         f"🌐 agmarknet.gov.in पर ताज़ा भाव देखें\n📞 eNAM: 1800-270-0224"
                     ),
                     "en": (
-                        f"⚠️ Live mandi prices unavailable right now.\n\n"
+                        f"⚠️ No current official arrival row is available for the selected mandi.\n\n"
                         f"No estimated or historical price is being shown.\n"
                         f"🌐 Check agmarknet.gov.in for the latest official price\n📞 eNAM: 1800-270-0224"
                     ),
@@ -3368,6 +3451,31 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         "🌐 agmarknet.gov.in par verify karein\n📞 eNAM: 1800-270-0224"
                     ),
                 }.get(lang, "Live mandi prices are unavailable. No estimated price is being shown.")
+                if nearby_lines:
+                    heading = {
+                        "hi": "\n\n🏪 **150 km के भीतर अलग मंडियों के आधिकारिक विकल्प:**\n",
+                        "hinglish": "\n\n🏪 **150 km ke andar doosri mandiyon ke official options:**\n",
+                        "en": "\n\n🏪 **Official alternatives at other mandis within 150 km:**\n",
+                    }.get(lang, "\n\nOfficial nearby alternatives:\n")
+                    alternatives = []
+                    for line in nearby_lines[:5]:
+                        match = re.search(
+                            r"\s*([^:]+):\s*modal Rs([\d.]+),\s*mandi:\s*([^,]+),\s*"
+                            r"reported:\s*([^,]+),\s*distance:\s*([\d.]+) km",
+                            line,
+                        )
+                        if match:
+                            alternatives.append(
+                                f"• **{match.group(3).strip()}** ({match.group(5)} km): "
+                                f"{match.group(1).strip()} ₹{match.group(2)}/q · {match.group(4).strip()}"
+                            )
+                    if alternatives:
+                        no_live += heading + "\n".join(alternatives)
+                        no_live += {
+                            "hi": "\nये चुनी मंडी के भाव नहीं हैं; बेचने से पहले उसी मंडी से पुष्टि करें।",
+                            "hinglish": "\nYe selected mandi ke bhav nahi hain; bechne se pehle us mandi se verify karein.",
+                            "en": "\nThese are not prices from the selected mandi; verify with that market before selling.",
+                        }.get(lang, "")
                 return alert_prefix + no_live
 
         # ── GOVERNMENT SCHEMES ────────────────────────────────────

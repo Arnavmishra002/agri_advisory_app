@@ -432,4 +432,8 @@ class ChatLocalLLMTimeoutTests(SimpleTestCase):
 
         result = self.service.answer("wheat mandi price", self.ctx, language="en", fast_mode=True)
 
-        self.assertIn("Agmarknet fallback estimate (not live)", result["sources"])
+        self.assertIn(
+            "Agmarknet official feed checked - no current official row",
+            result["sources"],
+        )
+        self.assertNotIn("Agmarknet fallback estimate (not live)", result["sources"])

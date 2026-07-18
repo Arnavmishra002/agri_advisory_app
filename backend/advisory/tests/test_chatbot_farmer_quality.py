@@ -53,6 +53,21 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(intent, INTENT_WEATHER)
         self.assertEqual(crops, [])
 
+    def test_generic_mandi_question_does_not_invent_an_apmc_name(self):
+        self.assertIsNone(
+            self.service._extract_query_mandi(
+                "What is wheat mandi price today?",
+                self.ctx,
+            )
+        )
+        self.assertEqual(
+            self.service._extract_query_mandi(
+                "Lucknow mandi mein gehu ka bhav kya hai?",
+                self.ctx,
+            ),
+            "Lucknow Mandi",
+        )
+
     @patch("advisory.services.chat_intelligence_service.requests.post")
     @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
@@ -254,7 +269,7 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
                 "crop_name_hindi": "गेहूँ",
                 "crop_id": "wheat",
                 "modal_price": 2510,
-                "msp": 2425,
+                "msp": 2585,
                 "mandi_name": "Azadpur",
                 "is_live": True,
             }],
@@ -267,7 +282,8 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertIn("2510", result["response"])
         self.assertIn("10-07-2026", result["response"])
         self.assertNotIn("Agmarknet today", result["response"])
-        self.assertEqual(result["ai_data_quality"]["tier"], "verified_realtime")
+        self.assertEqual(result["ai_data_quality"]["tier"], "verified_official_data")
+        self.assertEqual(result["ai_data_quality"]["label"], "Verified official report")
         kb_answer.assert_not_called()
         qwen.assert_not_called()
 
@@ -306,6 +322,40 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(market.call_count, 1)
         self.assertEqual(result["crop_suggestions"][0]["modal_price"], 2400)
         self.assertEqual(result["crop_suggestions"][0]["mandi"], "Lucknow APMC")
+
+    @patch("advisory.services.chat_intelligence_service.market_service.get_nearby_live_prices")
+    @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
+    def test_missing_exact_mandi_row_keeps_nearby_official_prices_separate(
+        self, market, nearby
+    ):
+        market.return_value = {
+            "status": "unavailable",
+            "is_live": False,
+            "data_source": "Agmarknet 2.0 API",
+            "top_crops": [],
+        }
+        nearby.return_value = [{
+            "crop_name": "Wheat",
+            "modal_price": 2520,
+            "mandi_name": "Kanpur Grain APMC",
+            "reported_date": "16-07-2026",
+            "distance_km": 74.2,
+            "is_live": True,
+        }]
+
+        result = self.service.answer(
+            "Lucknow mandi mein gehu ka latest bhav kya hai?",
+            self.ctx,
+            language="auto",
+        )
+
+        self.assertIn("current official price row", result["response"])
+        self.assertIn("Kanpur Grain APMC", result["response"])
+        self.assertIn("74.2 km", result["response"])
+        self.assertIn("selected mandi ke bhav nahi", result["response"])
+        self.assertNotIn("Live", " ".join(result["sources"]))
+        self.assertEqual(result["ai_data_quality"]["tier"], "rule_based_fallback")
+        nearby.assert_called_once()
 
     @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
@@ -550,10 +600,13 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
             fast_mode=True,
         )
 
-        self.assertIn("Live mandi prices unavailable", result["response"])
+        self.assertIn("No current official arrival row", result["response"])
         self.assertNotIn("2,425", result["response"])
         self.assertNotIn("2425", result["response"])
-        self.assertIn("unavailable", [source.lower() for source in result["sources"]])
+        self.assertIn(
+            "Agmarknet official feed checked - no current official row",
+            result["sources"],
+        )
         self.assertEqual(result["ai_data_quality"]["status"], "degraded")
 
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")

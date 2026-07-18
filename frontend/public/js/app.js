@@ -3188,6 +3188,8 @@
         const tier = (data.chatbot_diagnostics || {}).selected_tier || '';
         const fallback = {
             instant_rule: { label: 'Instant advisory', status: 'verified_local' },
+            verified_realtime: { label: 'Verified live data', status: 'verified_realtime' },
+            verified_official_data: { label: 'Verified official report', status: 'verified_official' },
             knowledge_base: { label: 'Verified knowledge base', status: 'verified_local' },
             phase1_rag_ollama: { label: 'Local AI + knowledge base', status: 'local_ai' },
             phase1_rag_ollama_stream: { label: 'Local AI + knowledge base', status: 'local_ai' },
