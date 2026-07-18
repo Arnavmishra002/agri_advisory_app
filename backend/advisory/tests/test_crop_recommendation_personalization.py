@@ -177,6 +177,43 @@ class CropRecommendationPersonalizationTests(SimpleTestCase):
             all(crop["input_cost_per_hectare"] <= 30000 for crop in result["top_4_recommendations"])
         )
 
+    def test_preferred_category_is_a_farmer_selected_filter(self):
+        with patch.object(self.engine, "_fetch_realtime_context", return_value=self.realtime):
+            result = self.engine.recommend(
+                "Varanasi",
+                25.3176,
+                82.9739,
+                state="Uttar Pradesh",
+                language="en",
+                agronomic_inputs={
+                    "season": "rabi",
+                    "preferred_categories": ["Pulse"],
+                },
+            )
+
+        self.assertTrue(result["recommendations"])
+        self.assertEqual(
+            {crop["category"] for crop in result["recommendations"]},
+            {"Pulse"},
+        )
+
+    def test_target_crop_search_scores_only_requested_crop(self):
+        with patch.object(self.engine, "_fetch_realtime_context", return_value=self.realtime):
+            result = self.engine.recommend(
+                "Varanasi",
+                25.3176,
+                82.9739,
+                state="Uttar Pradesh",
+                language="en",
+                agronomic_inputs={
+                    "season": "kharif",
+                    "target_crop": "ashwagandha",
+                },
+            )
+
+        self.assertEqual(len(result["recommendations"]), 1)
+        self.assertEqual(result["recommendations"][0]["crop_name"], "Ashwagandha")
+
     def test_api_passes_strict_farmer_inputs_to_engine(self):
         request = APIRequestFactory().get(
             "/api/advisories/",
@@ -204,6 +241,24 @@ class CropRecommendationPersonalizationTests(SimpleTestCase):
         self.assertEqual(inputs["soil_type"], "loamy")
         self.assertEqual(inputs["ph"], 6.8)
         self.assertEqual(inputs["preferred_categories"], ["Vegetable", "Pulse"])
+
+    def test_api_maps_crop_search_to_internal_target_crop(self):
+        request = APIRequestFactory().get(
+            "/api/advisories/",
+            {"location": "Varanasi", "crop": "अश्वगंधा"},
+        )
+        with patch.object(
+            crop_recommendation_engine,
+            "recommend_from_context",
+            return_value={"recommendations": [], "top_4_recommendations": []},
+        ) as recommend:
+            response = CropAdvisoryViewSet.as_view({"get": "list"})(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            recommend.call_args.kwargs["agronomic_inputs"]["target_crop"],
+            "ashwagandha",
+        )
 
     def test_api_rejects_invalid_agronomic_values(self):
         request = APIRequestFactory().get(

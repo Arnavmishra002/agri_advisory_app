@@ -222,7 +222,7 @@ class CropRecommendationEngine:
             "budget_per_hectare", "risk_tolerance", "preferred_categories",
             "exclude_crops", "previous_crop", "nitrogen_kg_ha",
             "phosphorus_kg_ha", "potassium_kg_ha", "ph", "ec_ds_m",
-            "moisture_pct", "organic_carbon",
+            "moisture_pct", "organic_carbon", "target_crop",
         }
         inputs = {key: values[key] for key in allowed if values.get(key) not in (None, "")}
 
@@ -256,6 +256,8 @@ class CropRecommendationEngine:
 
         if inputs.get("previous_crop"):
             inputs["previous_crop"] = canonical_crop(inputs["previous_crop"])
+        if inputs.get("target_crop"):
+            inputs["target_crop"] = canonical_crop(inputs["target_crop"])
         if inputs.get("exclude_crops"):
             inputs["exclude_crops"] = [canonical_crop(item) for item in inputs["exclude_crops"][:30]]
         return inputs
@@ -808,10 +810,16 @@ class CropRecommendationEngine:
             weather_risk = {"risk": "Unavailable", "description": "Live forecast unavailable"}
         inputs = agronomic_inputs or {}
         excluded = set(inputs.get("exclude_crops") or [])
+        target_crop = inputs.get("target_crop")
+        preferred_categories = set(inputs.get("preferred_categories") or [])
 
         results = []
         for crop_key, crop in ALL_CROP_DATA.items():
             if crop_key in excluded:
+                continue
+            if target_crop and crop_key != target_crop:
+                continue
+            if preferred_categories and crop.get("category") not in preferred_categories:
                 continue
             score, reasons, breakdown = self._score_single_crop(
                 crop_key, crop, season_key, soil, rainfall_band, irrigation,

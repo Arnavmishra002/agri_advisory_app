@@ -388,11 +388,22 @@ class CropRecommendationQuerySerializer(LocationQuerySerializer):
     def recommendation_inputs(self):
         if not hasattr(self, "validated_data"):
             raise AssertionError("Call is_valid() before reading recommendation_inputs.")
-        return {
+        inputs = {
             key: self.validated_data[key]
             for key in self._INPUT_FIELDS
             if key in self.validated_data
         }
+        requested_crop = self.validated_data.get("crop")
+        if requested_crop:
+            from ..services.crop_catalog import crop_catalog
+
+            match = crop_catalog.normalize(requested_crop)
+            inputs["target_crop"] = (
+                match["id"]
+                if match
+                else requested_crop.lower().replace("-", "_").replace(" ", "_")
+            )
+        return inputs
 
 
 class GovernmentPestInputSerializer(StrictSerializer):

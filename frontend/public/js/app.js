@@ -2203,6 +2203,8 @@
 
     function buildCropRecommendationQuery() {
         const params = new URLSearchParams(buildLocationQuery());
+        const requestedCrop = document.getElementById('cropSearchInput')?.value?.trim();
+        if (requestedCrop) params.set('crop', requestedCrop);
         const fields = {
             cropRecSeason: 'season', cropRecSoil: 'soil_type',
             cropRecIrrigation: 'irrigation', cropRecPh: 'ph',
@@ -2336,7 +2338,11 @@
                 </div>`;
                 container.innerHTML = html;
             } else {
-                container.innerHTML = `<div style="padding:20px;text-align:center;color:#888;">फसल सुझाव उपलब्ध नहीं — GPS allow करें</div>`;
+                const requestedCrop = document.getElementById('cropSearchInput')?.value?.trim();
+                const detail = requestedCrop
+                    ? `“${escapeHtml(requestedCrop)}” मौजूदा मौसम और चुने हुए खेत मानकों से मेल नहीं खाती। मौसम/श्रेणी बदलें या खोज साफ करें।`
+                    : 'चुने हुए मौसम और खेत मानकों के लिए कोई सुरक्षित फसल मेल नहीं मिली।';
+                container.innerHTML = `<div style="padding:20px;text-align:center;color:#666;">${detail}</div>`;
             }
         } catch (error) {
             const container = document.getElementById('cropsData');
