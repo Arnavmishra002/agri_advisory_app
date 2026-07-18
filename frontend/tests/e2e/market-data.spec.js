@@ -114,7 +114,7 @@ test('full state registry is searchable beyond the initial dropdown batch', asyn
   expect(url.searchParams.get('scope')).toBe('state');
   expect(url.searchParams.get('limit')).toBe('500');
 
-  await expect(page.locator('#mandiStatusBadge')).toContainText('121 मंडियां');
+  await expect(page.locator('#mandiRegistryStatus')).toContainText('121 मंडियां');
   await expect(page.locator('#mandiSelector option')).toHaveCount(81);
 
   await page.locator('#mandiSearchInput').fill('Kanpur Nagar');

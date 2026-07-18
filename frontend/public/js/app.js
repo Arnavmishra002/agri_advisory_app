@@ -1048,7 +1048,7 @@
         const mandis = filteredMandis();
         renderMandiOptions(mandis, mandiDropdownVisibleCount);
         updateMandiLoadMoreButton(mandis);
-        const badge = document.getElementById('mandiStatusBadge');
+        const badge = document.getElementById('mandiRegistryStatus');
         if (badge && mandiFilterText.trim()) {
             badge.textContent = mandis.length
                 ? `🔎 ${mandis.length} मंडियां मिलीं`
@@ -1114,7 +1114,7 @@
 
     async function populateMandiDropdown() {
         const sel = document.getElementById('mandiSelector');
-        const badge = document.getElementById('mandiStatusBadge');
+        const badge = document.getElementById('mandiRegistryStatus');
         const loadMoreBtn = document.getElementById('mandiLoadMoreBtn');
         if (!sel) return;
 
