@@ -39,10 +39,13 @@ from __future__ import annotations
 import logging
 import math
 import os
+import threading
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -110,14 +113,29 @@ class FieldSensorService:
     NASA_POWER_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
 
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "KrishiMitra-AI/3.0 (field-precision)",
-            "Accept": "application/json",
-        })
+        self._local = threading.local()
         # In-memory cache keyed by (lat_rounded, lon_rounded)
         self._soil_history_cache: Dict[str, Dict] = {}
         self._weather_cache: Dict[str, Dict] = {}
+
+    @property
+    def session(self) -> requests.Session:
+        if not hasattr(self._local, "session"):
+            session = requests.Session()
+            session.headers.update({
+                "User-Agent": "KrishiMitra-AI/3.0 (field-precision)",
+                "Accept": "application/json",
+            })
+            retry = Retry(
+                total=1,
+                backoff_factor=0.2,
+                status_forcelist=(429, 500, 502, 503, 504),
+                allowed_methods=frozenset({"GET"}),
+                raise_on_status=False,
+            )
+            session.mount("https://", HTTPAdapter(max_retries=retry))
+            self._local.session = session
+        return self._local.session
 
     # ── Main Entry Point ───────────────────────────────────────────────
 
@@ -168,7 +186,10 @@ class FieldSensorService:
         lang = normalise_language_code(language)
 
         return {
-            "status": "success",
+            "status": "success" if om_data.get("is_live") else "degraded",
+            "data_quality_status": "live" if om_data.get("is_live") else "partial_inputs",
+            "weather_is_live": bool(om_data.get("is_live")),
+            "government_soil_is_live": bool(govt_soil.get("is_live")),
             "field_id": field_id,
             "location": location_name,
             "coordinates": {"latitude": latitude, "longitude": longitude},
@@ -216,7 +237,7 @@ class FieldSensorService:
         """
         cache_key = f"{round(lat,3)}:{round(lon,3)}"
         cached = self._weather_cache.get(cache_key)
-        if cached and (datetime.now() - cached.get("_fetched_at", datetime.min)).seconds < 1800:
+        if cached and (datetime.now() - cached.get("_fetched_at", datetime.min)).total_seconds() < 1800:
             return cached
 
         try:
@@ -318,6 +339,9 @@ class FieldSensorService:
                 })
 
             result = {
+                "status": "success",
+                "is_live": True,
+                "is_stale": False,
                 "current": {
                     "temperature":   curr.get("temperature_2m"),
                     "humidity":      curr.get("relative_humidity_2m"),
@@ -399,8 +423,12 @@ class FieldSensorService:
                 return {
                     "source": "NASA POWER (agro-climate estimate)",
                     "annual_rainfall_mm": round(annual_rain),
-                    "is_live": True,
-                    "note": "Nutrient data from NASA POWER agro-climate estimate",
+                    "is_live": False,
+                    "data_quality": "historical_climate_reference",
+                    "note": (
+                        "Historical climate reference only; NASA POWER does not "
+                        "provide soil nutrient measurements."
+                    ),
                 }
         except Exception as e:
             logger.debug("NASA POWER unavailable: %s", e)
@@ -1018,9 +1046,15 @@ class FieldSensorService:
         return hints
 
     def _list_data_sources(self, sensor_data, govt_soil, om_data) -> List[str]:
-        sources = ["Open-Meteo (real-time soil moisture + weather, 1km grid)"]
+        sources = []
+        if om_data.get("is_live"):
+            sources.append("Open-Meteo (real-time soil moisture + weather, 1km grid)")
+        else:
+            sources.append("Open-Meteo unavailable (no weather values substituted)")
         if govt_soil.get("is_live"):
             sources.append("Soil Health Card — soilhealth.dac.gov.in")
+        elif govt_soil.get("source"):
+            sources.append(govt_soil["source"])
         if sensor_data:
             sources.append(self._sensor_source_label(sensor_data.get("_sensor_meta", {})))
         return sources
@@ -1119,10 +1153,13 @@ class FieldSensorService:
     def _open_meteo_fallback(self, lat: float, lon: float) -> Dict[str, Any]:
         """Fallback when Open-Meteo is unavailable."""
         return {
+            "status": "unavailable",
+            "is_live": False,
+            "is_stale": True,
             "current": {"temperature": None, "humidity": None, "rainfall_mm": 0},
             "soil_layers": {},
             "forecast": [],
-            "data_source": "Fallback (Open-Meteo unavailable)",
+            "data_source": "Open-Meteo unavailable (no values substituted)",
         }
 
 

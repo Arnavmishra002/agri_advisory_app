@@ -93,8 +93,23 @@ CITY_COORDS.update({
     "ahmedabad": (23.0225, 72.5714),
     "noida": (28.5355, 77.3910),
     "amritsar": (31.6340, 74.8723),
+    "thiruvananthapuram": (8.5241, 76.9366),
     "punjab": (30.7333, 76.7794),
 })
+
+
+def confirmed_city_params(location: str, **extra) -> Dict[str, Any]:
+    """Build deterministic parameters for a city fixture selected by a user."""
+    params: Dict[str, Any] = {
+        "location": location,
+        "location_confirmed": "true",
+        "location_source": "manual_search",
+        **extra,
+    }
+    coords = CITY_COORDS.get(location.lower())
+    if coords:
+        params.update({"latitude": coords[0], "longitude": coords[1]})
+    return params
 
 SEARCH_QUERIES = CITIES + [
     "Greater Noida", "Gurugram", "Village Rampur", "Sector 62 Noida",
@@ -323,11 +338,7 @@ def build_market_cases() -> List[Case]:
     cases: List[Case] = []
 
     def market_params(location: str, **extra):
-        params = {"location": location, **extra}
-        coords = CITY_COORDS.get(location.lower())
-        if coords:
-            params.update({"latitude": coords[0], "longitude": coords[1]})
-        return params
+        return confirmed_city_params(location, **extra)
 
     def market_list(city: str):
         def fn(r: Runner):
@@ -408,7 +419,7 @@ def build_weather_cases() -> List[Case]:
 
     def weather_city(city: str):
         def fn(r: Runner):
-            resp = r.client.get("/api/weather/", {"location": city})
+            resp = r.client.get("/api/weather/", confirmed_city_params(city))
             assert_status(resp, 200)
             body = json_body(resp)
             skip_if_offline_weather(body)
@@ -430,7 +441,16 @@ def build_weather_cases() -> List[Case]:
 
     def weather_coords(name: str, lat: float, lon: float):
         def fn(r: Runner):
-            resp = r.client.get("/api/weather/", {"latitude": lat, "longitude": lon})
+            resp = r.client.get(
+                "/api/weather/",
+                {
+                    "latitude": lat,
+                    "longitude": lon,
+                    "location": name,
+                    "location_confirmed": "true",
+                    "location_source": "manual_search",
+                },
+            )
             assert_status(resp, 200)
             body = json_body(resp)
             skip_if_offline_weather(body)
@@ -454,7 +474,7 @@ def build_crop_cases() -> List[Case]:
 
     def advisories(city: str):
         def fn(r: Runner):
-            resp = r.client.get("/api/advisories/", {"location": city})
+            resp = r.client.get("/api/advisories/", confirmed_city_params(city))
             assert_status(resp, 200)
             body = json_body(resp)
             recs = body.get("recommendations") or body.get("crops") or []
@@ -468,7 +488,16 @@ def build_crop_cases() -> List[Case]:
 
     def advisories_gps(name: str, lat: float, lon: float):
         def fn(r: Runner):
-            resp = r.client.get("/api/advisories/", {"latitude": lat, "longitude": lon})
+            resp = r.client.get(
+                "/api/advisories/",
+                {
+                    "latitude": lat,
+                    "longitude": lon,
+                    "location": name,
+                    "location_confirmed": "true",
+                    "location_source": "manual_search",
+                },
+            )
             assert_status(resp, 200)
             body = json_body(resp)
             assert len(body.get("recommendations") or []) >= 1
@@ -589,7 +618,15 @@ def build_chatbot_cases() -> List[Case]:
         def fn(r: Runner):
             resp = r.client.post(
                 "/api/chatbot/query/",
-                {"query": query, "location": "Delhi", "language": "hi"},
+                {
+                    "query": query,
+                    "location": "Delhi",
+                    "language": "hi",
+                    # This suite verifies HTTP contracts and intent routing.
+                    # Dedicated chatbot tests cover the RAG/LLM source chain;
+                    # invoking it for every matrix row makes CI provider-bound.
+                    "fast_mode": True,
+                },
                 format="json",
             )
             assert_status(resp, 200)
@@ -797,7 +834,7 @@ def build_security_cases() -> List[Case]:
         cases.append(Case(
             "security", f"sec_api_ok_{i+1:02d}", f"benign GET weather sample {i+1}",
             lambda r, c=CITIES[i % len(CITIES)]: assert_status(
-                r.client.get("/api/weather/", {"location": c}), 200
+                r.client.get("/api/weather/", confirmed_city_params(c)), 200
             ),
         ))
 

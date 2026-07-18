@@ -3,6 +3,8 @@
 from typing import Any, Dict, Optional
 
 from rest_framework.request import Request
+from rest_framework import status
+from rest_framework.response import Response
 
 from ..services.location_context import LocationContext, location_resolver
 
@@ -42,8 +44,8 @@ def resolve_request_location(request: Request) -> LocationContext:
         "0", "false", "no", "off"
     }:
         return LocationContext(
-            latitude=22.9734,
-            longitude=78.6569,
+            latitude=None,
+            longitude=None,
             display_name="",
             country="India",
             location_type="country",
@@ -73,12 +75,38 @@ def resolve_request_location(request: Request) -> LocationContext:
         "address",
     )
     state_hint = _get_param(request, "state")
+    requested_source = str(_get_param(request, "location_source") or "unknown").strip().lower()
 
     # Valid GPS in India always wins over text search (delivery-app style)
     if lat is not None and lon is not None:
-        from ..services.location_context import _in_india
+        from ..services.location_context import _in_india, _region_from_state
 
         if _in_india(lat, lon):
+            if requested_source == "manual_search" and location_query:
+                selected_name = str(location_query).strip()
+                selected_state = str(state_hint or "").strip()
+                return LocationContext(
+                    latitude=lat,
+                    longitude=lon,
+                    display_name=selected_name,
+                    city=selected_name,
+                    state=selected_state,
+                    region=_region_from_state(selected_state),
+                    location_type="manual_selection",
+                    accuracy_meters=accuracy,
+                    accuracy_label=(
+                        "high" if accuracy is not None and accuracy <= 100
+                        else "medium"
+                    ),
+                    source="manual_search",
+                    confidence=0.9,
+                    is_gps=False,
+                    full_address=(
+                        f"{selected_name}, {selected_state}"
+                        if selected_state and selected_state != selected_name
+                        else selected_name
+                    ),
+                )
             ctx = location_resolver.resolve(
                 latitude=lat,
                 longitude=lon,
@@ -86,9 +114,17 @@ def resolve_request_location(request: Request) -> LocationContext:
                 accuracy_meters=accuracy,
                 use_ip_fallback=False,
             )
+            from dataclasses import replace
+
+            updates = {}
             if state_hint and not ctx.state:
-                from dataclasses import replace
-                ctx = replace(ctx, state=str(state_hint).strip())
+                updates["state"] = str(state_hint).strip()
+            if requested_source == "gps":
+                updates.update({"source": "gps", "is_gps": True})
+            elif requested_source == "profile":
+                updates.update({"source": "farmer_profile", "is_gps": False})
+            if updates:
+                ctx = replace(ctx, **updates)
             return ctx
 
     ctx = location_resolver.resolve(
@@ -105,9 +141,42 @@ def resolve_request_location(request: Request) -> LocationContext:
     return ctx
 
 
+def require_confirmed_location(
+    ctx: LocationContext,
+    *,
+    service: str,
+) -> Optional[Response]:
+    """Return a consistent 400 response when location-sensitive work is unsafe."""
+    if ctx.confirmed:
+        return None
+
+    return Response(
+        attach_location_metadata(
+            {
+                "status": "location_required",
+                "error_code": "LOCATION_REQUIRED",
+                "service": service,
+                "is_live": False,
+                "message": (
+                    "Confirm GPS or choose your village/district before using "
+                    "this location-based service."
+                ),
+                "message_hi": (
+                    "इस स्थान-आधारित सेवा के लिए GPS की पुष्टि करें या अपना "
+                    "गांव/जिला चुनें।"
+                ),
+            },
+            ctx,
+        ),
+        status=status.HTTP_400_BAD_REQUEST,
+    )
+
+
 def attach_location_metadata(payload: Dict[str, Any], ctx: LocationContext) -> Dict[str, Any]:
     """Add resolved location block so clients know what was used."""
     payload = dict(payload)
     payload["location"] = ctx.display_name
-    payload["location_context"] = ctx.to_dict()
+    location_context = ctx.to_dict()
+    location_context["confirmed"] = ctx.confirmed
+    payload["location_context"] = location_context
     return payload

@@ -135,6 +135,16 @@ class LocationContext:
         return asdict(self)
 
     @property
+    def confirmed(self) -> bool:
+        """Whether this context is suitable for location-dependent advice."""
+        return bool(
+            self.latitude is not None
+            and self.longitude is not None
+            and self.confidence > 0
+            and self.source not in {"default", "unconfirmed"}
+        )
+
+    @property
     def query_label(self) -> str:
         """Best string for data.gov.in / government APIs (state-aware)."""
         return self.display_name

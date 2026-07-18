@@ -22,7 +22,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..errors import safe_error_message
-from ..location_utils import attach_location_metadata, resolve_request_location
+from ..location_utils import (
+    attach_location_metadata,
+    require_confirmed_location,
+    resolve_request_location,
+)
 from ..validation import query_too_long, MAX_LOCATION_QUERY_LENGTH
 from ..serializers import FieldSensorInputSerializer, InputGapsInputSerializer, LocationQuerySerializer
 from ...services.field_sensor_service import field_sensor_service, CROP_SOIL_REQUIREMENTS
@@ -92,6 +96,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                     )
                 data = serializer.validated_data
             ctx = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="field_recommendation")
+            if location_error:
+                return location_error
 
             lang        = normalise_language_code(data.get("language", "hi"))
             field_id    = data.get("field_id")
@@ -208,6 +215,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 )
             data = serializer.validated_data
             ctx = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="sensor_submission")
+            if location_error:
+                return location_error
             lang = normalise_language_code(data.get("language", "hi"))
 
             raw_sensors = data.get("sensors") or {}
@@ -270,6 +280,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
             if not serializer.is_valid():
                 return Response({"status": "error", "message": "Invalid soil profile parameters", "errors": serializer.errors}, status=400)
             ctx = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="soil_profile")
+            if location_error:
+                return location_error
             lang = normalise_language_code(serializer.validated_data.get("language", "hi"))
 
             om  = field_sensor_service._fetch_open_meteo_soil_weather(ctx.latitude, ctx.longitude)
@@ -281,7 +294,8 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
             )
 
             return Response(attach_location_metadata({
-                "status":         "success",
+                "status":         "success" if om.get("is_live") else "degraded",
+                "is_live":        bool(om.get("is_live")),
                 "soil_profile":   soil,
                 "weather_current": om.get("current", {}),
                 "weather_alerts": weather_analysis.get("alerts", []),
@@ -312,6 +326,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
             if not serializer.is_valid():
                 return Response({"status": "error", "message": "Invalid weather analysis parameters", "errors": serializer.errors}, status=400)
             ctx  = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="field_weather_analysis")
+            if location_error:
+                return location_error
             lang = normalise_language_code(serializer.validated_data.get("language", "hi"))
 
             om = field_sensor_service._fetch_open_meteo_soil_weather(ctx.latitude, ctx.longitude)
@@ -320,7 +337,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
             )
 
             return Response(attach_location_metadata({
-                "status":              "success",
+                "status":              om.get("status", "unavailable"),
+                "is_live":             bool(om.get("is_live")),
+                "is_stale":            bool(om.get("is_stale", not om.get("is_live"))),
                 "current_weather":     om.get("current", {}),
                 "forecast_16_days":    om.get("forecast", []),
                 "farming_alerts":      analysis.get("alerts", []),
@@ -330,7 +349,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 "rain_7d_mm":          analysis.get("rain_7d_mm", 0),
                 "rain_14d_mm":         analysis.get("rain_14d_mm", 0),
                 "avg_max_temp_7d":     analysis.get("avg_max_temp_7d"),
-                "data_source":         "Open-Meteo (real-time, free, 1km grid)",
+                "data_source":         om.get(
+                    "data_source", "Open-Meteo unavailable (no values substituted)"
+                ),
                 "timestamp":           datetime.now(tz=timezone.utc).isoformat(),
             }, ctx))
 
@@ -359,6 +380,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 return Response({"status": "error", "message": "Invalid input-gap parameters", "errors": serializer.errors}, status=400)
             data = serializer.validated_data
             ctx  = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="crop_input_gaps")
+            if location_error:
+                return location_error
             lang = normalise_language_code(data.get("language", "hi"))
             crop = data.get("crop", "wheat").lower().strip()
 

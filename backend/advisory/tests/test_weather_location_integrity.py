@@ -1,4 +1,5 @@
 from unittest.mock import patch
+import threading
 
 from django.test import SimpleTestCase
 
@@ -6,6 +7,18 @@ from advisory.services.unified_realtime_service import WeatherService
 
 
 class WeatherLocationIntegrityTests(SimpleTestCase):
+    def test_weather_sessions_are_isolated_between_worker_threads(self):
+        service = WeatherService()
+        main_session = service.session
+        worker_sessions = []
+        worker = threading.Thread(target=lambda: worker_sessions.append(service.session))
+
+        worker.start()
+        worker.join(timeout=2)
+
+        self.assertEqual(len(worker_sessions), 1)
+        self.assertIsNot(worker_sessions[0], main_session)
+
     def test_failed_geocoding_never_substitutes_delhi(self):
         service = WeatherService()
 

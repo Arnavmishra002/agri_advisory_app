@@ -18,6 +18,8 @@ class LocationResolutionTests(TestCase):
             ctx = resolve_request_location(request)
 
         resolver.assert_not_called()
+        self.assertIsNone(ctx.latitude)
+        self.assertIsNone(ctx.longitude)
         self.assertEqual(ctx.display_name, "")
         self.assertEqual(ctx.source, "unconfirmed")
         self.assertEqual(ctx.confidence, 0.0)
@@ -48,3 +50,25 @@ class LocationResolutionTests(TestCase):
         )
         self.assertEqual(ctx.display_name, "Lucknow")
         self.assertEqual(ctx.state, "Uttar Pradesh")
+
+    def test_manual_coordinates_preserve_farmer_selected_place_name(self):
+        request = SimpleNamespace(
+            query_params={},
+            data={
+                "location": "Lucknow",
+                "latitude": 26.8467,
+                "longitude": 80.9462,
+                "location_confirmed": True,
+                "location_source": "manual_search",
+                "state": "Uttar Pradesh",
+            },
+        )
+        with patch("advisory.api.location_utils.location_resolver.resolve") as resolver:
+            ctx = resolve_request_location(request)
+
+        resolver.assert_not_called()
+        self.assertEqual(ctx.display_name, "Lucknow")
+        self.assertEqual(ctx.city, "Lucknow")
+        self.assertEqual(ctx.source, "manual_search")
+        self.assertFalse(ctx.is_gps)
+        self.assertTrue(ctx.confirmed)

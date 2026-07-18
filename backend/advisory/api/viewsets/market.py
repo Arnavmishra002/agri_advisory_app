@@ -8,7 +8,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from ..location_utils import attach_location_metadata, resolve_request_location
+from ..location_utils import (
+    attach_location_metadata,
+    require_confirmed_location,
+    resolve_request_location,
+)
 from ..errors import safe_error_message
 from ...services.crop_catalog import crop_catalog
 from ...services.unified_realtime_service import market_service
@@ -33,6 +37,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 return Response({"status": "error", "error": "Invalid market query", "errors": serializer.errors}, status=400)
             params = serializer.validated_data
             ctx = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="market_prices")
+            if location_error:
+                return location_error
             mandi = params.get("mandi")
             crop  = params.get("crop") or params.get("q")
             norm  = crop_catalog.normalize(crop) if crop else None
@@ -80,6 +87,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 return Response({"status": "error", "error": "Invalid mandi parameters", "errors": serializer.errors}, status=400)
             params = serializer.validated_data
             ctx = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="nearby_mandis")
+            if location_error:
+                return location_error
             radius_km = max(10, min(params.get("radius_km", 150), 500))
             scope = params.get("scope", "nearby")
             max_results = params.get("limit", 50)
@@ -126,6 +136,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 return Response({"status": "error", "error": "Invalid mandi price parameters", "errors": serializer.errors}, status=400)
             params = serializer.validated_data
             ctx  = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="mandi_prices")
+            if location_error:
+                return location_error
             mandi = params.get("mandi", "").strip()
             crop  = params.get("crop", "").strip() or None
             include_estimates = params.get("include_estimates", False)

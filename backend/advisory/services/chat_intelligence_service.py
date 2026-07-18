@@ -503,6 +503,29 @@ INTENT_FERTILIZER          = "fertilizer"
 INTENT_CROP_INFO           = "crop_info"
 INTENT_GREETING            = "greeting"
 INTENT_GENERAL             = "general"
+
+
+def farmer_location_label(ctx: LocationContext) -> str:
+    """Build a natural, non-duplicated location label for farmer answers."""
+    parts = []
+    display = str(ctx.display_name or "").strip()
+    if display:
+        parts.append(display)
+
+    district = str(ctx.district or "").strip()
+    joined = ", ".join(parts).casefold()
+    if district and district.casefold() not in joined:
+        district_label = (
+            district if district.casefold().endswith(" district")
+            else f"{district} district"
+        )
+        parts.append(district_label)
+
+    state = str(ctx.state or "").strip()
+    joined = ", ".join(parts).casefold()
+    if state and state.casefold() not in joined:
+        parts.append(state)
+    return ", ".join(parts) or "Location not confirmed"
 INTENT_FOLLOWUP            = "followup"
 # New high-value intents
 INTENT_HARVEST             = "harvest"          # When to harvest, signs of maturity
@@ -1148,7 +1171,6 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             INTENT_CROP_RECOMMENDATION,
             INTENT_FERTILIZER,
             INTENT_SOIL,
-            INTENT_SOWING,
             INTENT_HARVEST,
             INTENT_ORGANIC,
             INTENT_GENERAL,
@@ -1370,7 +1392,10 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # always use the transparent symptom-advisory path.
         response_text: Optional[str] = None
         data_source   = "KrishiMitra Advisory Engine"
-        model_composition_allowed = not fast_mode and intent != INTENT_PEST_DISEASE
+        structured_rule_path = fast_mode or intent == INTENT_SOWING
+        model_composition_allowed = (
+            not structured_rule_path and intent != INTENT_PEST_DISEASE
+        )
 
         # ── Tier 0: Local Knowledge Base (instant, zero AI credits) ──────────
         kb_grounding = "" if not model_composition_allowed else self._local_kb_grounding(
@@ -1392,7 +1417,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 data_source = _chat_meta().get("source_label") or "KrishiMitra local RAG"
 
         # Tier 2: Gemini API — optional cloud, only when LLM unavailable
-        has_gemini = _is_valid_gemini_key(gemini_service.api_key)
+        has_gemini = model_composition_allowed and _is_valid_gemini_key(
+            gemini_service.api_key
+        )
         if not response_text and has_gemini and model_composition_allowed:
             try:
                 rendered = self._render_grounded_prompt(
@@ -1415,10 +1442,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # Tier 3: Rule-based (instant, ICAR-grounded, always available)
         # Used when: fast_mode=True OR LLM offline OR Gemini unavailable
         if not response_text:
-            if fast_mode:
+            if structured_rule_path:
                 _set_chat_meta(
                     selected_tier="instant_rule",
-                    fallback_reason="structured_fast_path",
+                    fallback_reason=(
+                        "grounded_sowing_fast_path"
+                        if intent == INTENT_SOWING
+                        else "structured_fast_path"
+                    ),
                 )
             else:
                 _set_chat_meta(
@@ -1798,7 +1829,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # 8. Query context (season, location, month, crop stage)
         ctx_lines = [
-            f"Location: {ctx.display_name}{', ' + ctx.state if ctx.state else ''}",
+            f"Location: {farmer_location_label(ctx)}",
             f"Season: {season_label}",
             f"Month: {now.strftime('%B %Y')}",
             f"Language of response required: {lang}",
@@ -2327,9 +2358,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 return "🟡 Alkaline"
             return "⚠️ Very Alkaline"
 
-        loc = ctx.display_name
-        if ctx.state and ctx.state not in loc:
-            loc = f"{ctx.display_name}, {ctx.state}"
+        loc = farmer_location_label(ctx)
 
         try:
             return self.SYSTEM_PROMPT_TEMPLATE.format(
@@ -2781,7 +2810,6 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             INTENT_CROP_RECOMMENDATION,
             INTENT_FERTILIZER,
             INTENT_SOIL,
-            INTENT_SOWING,
             INTENT_HARVEST,
             INTENT_ORGANIC,
             INTENT_GENERAL,
@@ -2980,11 +3008,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         """
         sc  = sc  or SensorContext()
         wc  = wc  or WeatherConstraints()
-        loc = ctx.display_name
-        if ctx.district and ctx.district.lower() not in loc.lower():
-            loc = f"{loc}, {ctx.district} district"
-        if ctx.state and ctx.state not in loc:
-            loc = f"{loc}, {ctx.state}"
+        loc = farmer_location_label(ctx)
 
         # ── Extract structured entities from the query ───────────
         qe = self._extract_query_entities(query)
@@ -3935,7 +3959,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 elif any(w in q_l for w in ("cotton","kapas","कपास")): crop_id = "cotton"
                 elif any(w in q_l for w in ("potato","aloo","आलू")): crop_id = "potato"
 
-            crop_name_display = crops[0]["name"] if crops else (crop_id.title() if crop_id else "")
+            if crops:
+                crop_name_display = (
+                    crops[0].get("hindi") or crops[0]["name"]
+                    if lang == "hi"
+                    else crops[0]["name"]
+                )
+            else:
+                crop_name_display = crop_id.title() if crop_id else ""
 
             if crop_id and crop_id in _SOWING_CALENDAR:
                 sc_data = _SOWING_CALENDAR[crop_id]
@@ -3950,9 +3981,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"**किस्में:** {sc_data['varieties_hi']}\n\n"
                         "**बीज उपचार:** प्रमाणित बीज लें और वर्तमान ICAR/राज्य पैकेज या "
                         "लेबल के अनुसार उपचार KVK से पुष्टि करके ही करें।\n\n"
-                        f"💡 **अभी का मौसम ({loc}):** {temp}°C — "
-                        + ("बुवाई के लिए उपयुक्त" if temp and _safe_temp(temp) < 30 else "तापमान अधिक है — बुवाई के लिए प्रतीक्षा करें")
-                        + f"\n\n📞 KVK/ICAR: 1800-180-1551"
+                        "💡 बुवाई से 3 दिन पहले स्थानीय मौसम और खेत की नमी जांचें; "
+                        "भारी बारिश के ठीक पहले बीज न डालें।"
+                        "\n\n📞 KVK/ICAR: 1800-180-1551"
                     ),
                     "en": (
                         f"🌱 **{crop_name_display} Sowing Guide — {loc}**\n\n"
@@ -3964,9 +3995,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"**Varieties:** {sc_data['varieties_en']}\n\n"
                         "**Seed treatment:** Use certified seed and confirm the current "
                         "ICAR/state package or registered label with your KVK before treatment.\n\n"
-                        f"💡 **Current weather ({loc}):** {temp}°C — "
-                        + ("suitable for sowing" if temp and _safe_temp(temp) < 30 else "too hot — wait for temperature to drop")
-                        + f"\n\n📞 KVK/ICAR: 1800-180-1551"
+                        "💡 Check the local 3-day forecast and field moisture before sowing; "
+                        "do not sow immediately before heavy rain."
+                        "\n\n📞 KVK/ICAR: 1800-180-1551"
                     ),
                     "hinglish": (
                         f"🌱 **{crop_name_display} Sowing Guide — {loc}**\n\n"
@@ -3978,9 +4009,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"**Suitable varieties:** {sc_data['varieties_en']}\n\n"
                         "**Seed treatment:** Certified seed use karein. Current ICAR/state "
                         "package ya registered label ko KVK se confirm karke hi treatment karein.\n\n"
-                        f"💡 **Abhi ka weather ({loc}):** {temp}°C — "
-                        + ("buwai ke liye suitable hai" if temp and _safe_temp(temp) < 30 else "temperature zyada hai — abhi wait karein")
-                        + "\n\n📞 KVK/ICAR: 1800-180-1551"
+                        "💡 Buwai se pehle local 3-day forecast aur field moisture check karein; "
+                        "heavy rain se turant pehle beej na daalein."
+                        "\n\n📞 KVK/ICAR: 1800-180-1551"
                     ),
                 }.get(lang, f"{crop_name_display}: sow {sc_data['window_en']}. Seed rate {sc_data['seed_rate']}.")
             else:

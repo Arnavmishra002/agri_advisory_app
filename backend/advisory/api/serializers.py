@@ -262,6 +262,12 @@ class LocationQuerySerializer(StrictQuerySerializer):
     place = serializers.CharField(required=False, allow_blank=True, max_length=200)
     address = serializers.CharField(required=False, allow_blank=True, max_length=300)
     state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=("gps", "manual_search", "profile", "unknown"),
+        default="unknown",
+    )
     language = serializers.CharField(required=False, allow_blank=True, max_length=20)
     q = serializers.CharField(required=False, allow_blank=True, max_length=200)
     crop = serializers.CharField(required=False, allow_blank=True, max_length=120)
@@ -391,7 +397,17 @@ class CropRecommendationQuerySerializer(LocationQuerySerializer):
 
 class GovernmentPestInputSerializer(StrictSerializer):
     crop = serializers.CharField(required=False, allow_blank=True, max_length=120, default="Wheat")
-    location = serializers.CharField(required=False, allow_blank=True, max_length=200, default="Delhi")
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=("gps", "manual_search", "profile", "unknown"),
+        default="unknown",
+    )
     language = serializers.CharField(required=False, allow_blank=True, max_length=20, default="hi")
 
 
@@ -440,9 +456,12 @@ class PestDetectionInputSerializer(StrictSerializer):
     image = serializers.CharField(required=False, allow_blank=False)
     image_base64 = serializers.CharField(required=False, allow_blank=False)
     crop = serializers.CharField(required=False, allow_blank=True, max_length=120)
-    location = serializers.CharField(required=False, allow_blank=True, max_length=200, default="Delhi")
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
     latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
     longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
     language = serializers.CharField(required=False, allow_blank=True, max_length=20, default="hi")
 
 
@@ -560,6 +579,11 @@ class ChatbotRequestSerializer(StrictSerializer):
     session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
     fast_mode = serializers.BooleanField(required=False, default=False)
     location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=("gps", "manual_search", "profile", "unknown"),
+        default="unknown",
+    )
     history = serializers.ListField(
         required=False,
         child=ChatHistoryEntrySerializer(),
@@ -674,6 +698,12 @@ class FieldSensorInputSerializer(StrictSerializer):
     location = serializers.CharField(required=False, allow_blank=True, max_length=200)
     location_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
     state = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=("gps", "manual_search", "profile", "unknown"),
+        default="unknown",
+    )
     language = serializers.ChoiceField(required=False, choices=("hi", "en", "hinglish"), default="hi")
     field_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
     sensors = SensorValuesInputSerializer(required=False)
@@ -722,6 +752,12 @@ class DiagnosticDetectInputSerializer(StrictSerializer):
     latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
     longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
     accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=("gps", "manual_search", "profile", "unknown"),
+        default="unknown",
+    )
     images = serializers.DictField(
         required=False,
         child=serializers.CharField(allow_blank=False),
@@ -778,6 +814,12 @@ class InputGapsInputSerializer(StrictSerializer):
     location = serializers.CharField(required=False, allow_blank=True, max_length=200)
     location_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
     state = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=("gps", "manual_search", "profile", "unknown"),
+        default="unknown",
+    )
     language = serializers.CharField(required=False, allow_blank=True, max_length=20, default="hi")
     sensors = SensorValuesInputSerializer(required=False)
     nitrogen_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)

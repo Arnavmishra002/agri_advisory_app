@@ -625,6 +625,11 @@ def sentry_test(request):
     post-deploy.  Returns {"sentry": "event_sent"} when DSN is active,
     {"sentry": "not_configured"} when absent — never raises.
     """
+    if not _staff_or_debug(request):
+        return JsonResponse(
+            {"status": "forbidden", "error_code": "STAFF_REQUIRED"},
+            status=403,
+        )
     try:
         import sentry_sdk
         from django.conf import settings as _s

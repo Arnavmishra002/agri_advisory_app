@@ -172,6 +172,7 @@
     let currentLongitude = null;
     let currentState = '';
     let currentLocationAccuracy = null;
+    let currentLocationSource = 'unconfirmed';
     let allMandisCache = [];
     let mandiDropdownVisibleCount = 80;
     let mandiFilterText = '';
@@ -302,6 +303,10 @@
             params.set('longitude', String(currentLongitude));
         }
         if (currentState) params.set('state', currentState);
+        params.set('location_confirmed', String(hasConfirmedLocation()));
+        if (currentLocationSource !== 'unconfirmed') {
+            params.set('location_source', currentLocationSource);
+        }
         if (Number.isFinite(currentLocationAccuracy)) {
             params.set('accuracy', String(currentLocationAccuracy));
             params.set('accuracy_meters', String(currentLocationAccuracy));
@@ -355,7 +360,14 @@
     // LOCATION FUNCTIONS
     // ========================================
 
-    function updateLocation(locationName, latitude, longitude, accuracyMeters, stateName) {
+    function updateLocation(
+        locationName,
+        latitude,
+        longitude,
+        accuracyMeters,
+        stateName,
+        locationSource = 'manual_search',
+    ) {
         const cleanName = String(locationName || '').trim();
         if (!cleanName || !_isIndiaCoordinate(latitude, longitude)) {
             notifyFarmer('स्थान की सही GPS जानकारी नहीं मिली। कृपया सूची से स्थान चुनें या GPS फिर चलाएं।', 'warning');
@@ -365,6 +377,7 @@
         currentLatitude = Number(latitude);
         currentLongitude = Number(longitude);
         currentState = String(stateName || '').trim();
+        currentLocationSource = locationSource === 'gps' ? 'gps' : 'manual_search';
         currentLocationAccuracy = Number.isFinite(Number(accuracyMeters))
             ? Number(accuracyMeters)
             : null;
@@ -375,6 +388,7 @@
             currentLongitude,
             currentLocationAccuracy,
             currentState,
+            currentLocationSource,
         );
 
         currentMandi = '';
@@ -614,10 +628,16 @@
     }
 
     // ── Persist location to localStorage ──────────────────────────────────
-    function _saveLocationToStorage(name, lat, lon, acc, state) {
+    function _saveLocationToStorage(name, lat, lon, acc, state, source) {
         try {
             localStorage.setItem(LS_LOC_KEY, JSON.stringify({
-                name, lat, lon, acc: acc || null, state: state || '', ts: Date.now()
+                name,
+                lat,
+                lon,
+                acc: acc || null,
+                state: state || '',
+                source: source === 'gps' ? 'gps' : 'manual_search',
+                ts: Date.now(),
             }));
         } catch (_) {}
     }
@@ -831,14 +851,13 @@
                     const { name, state } = await _reverseGeocode(lat, lon, accuracy);
                     _lastReloadLat = lat;
                     _lastReloadLon = lon;
-                    _saveLocationToStorage(name, lat, lon, accuracy, state);
-                    updateLocation(name, lat, lon, accuracy, state);
+                    updateLocation(name, lat, lon, accuracy, state, 'gps');
                 } catch (err) {
                     console.warn('Reverse geocode failed, using coords:', err.message);
                     _lastReloadLat = lat;
                     _lastReloadLon = lon;
                     const coordName = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                    updateLocation(coordName, lat, lon, accuracy, currentState);
+                    updateLocation(coordName, lat, lon, accuracy, currentState, 'gps');
                 }
             }, isFirstFix ? 500 : 2000); // faster on first fix
         };
@@ -1961,6 +1980,8 @@
                 longitude: currentLongitude,
                 location: currentLocation,
                 state: currentState || '',
+                location_confirmed: hasConfirmedLocation(),
+                location_source: currentLocationSource,
                 language: lang,
                 irrigation_type: document.getElementById('fa_irrigation')?.value || 'unknown',
                 previous_crop: (document.getElementById('fa_prev_crop')?.value || '').trim(),
@@ -2401,6 +2422,8 @@
                     latitude: currentLatitude,
                     longitude: currentLongitude,
                     accuracy: currentLocationAccuracy,
+                    location_confirmed: hasConfirmedLocation(),
+                    location_source: currentLocationSource,
                     images: images,
                     session_id: diagnosticSessionId,
                 }),
@@ -2929,6 +2952,7 @@
                 query: message,
                 location: currentLocation,
                 location_confirmed: hasConfirmedLocation(),
+                location_source: currentLocationSource,
                 // The chatbot detects the query language/script independently
                 // from the UI language so farmers can naturally switch between
                 // Hindi, Hinglish, English, and regional languages per message.
@@ -3355,6 +3379,7 @@
             currentLongitude = saved.lon;
             currentState     = saved.state || '';
             currentLocationAccuracy = saved.acc || null;
+            currentLocationSource = saved.source === 'gps' ? 'gps' : 'manual_search';
             const display = document.getElementById('currentLocationDisplay');
             if (display) display.textContent = saved.state && saved.state !== saved.name
                 ? `${saved.name}, ${saved.state}` : saved.name;

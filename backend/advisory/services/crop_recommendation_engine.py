@@ -95,15 +95,6 @@ class CropRecommendationEngine:
       4. Generic India defaults
     """
 
-    def __init__(self):
-        # Defer import to avoid circular imports; reuse shared singleton if available
-        try:
-            from .ultra_dynamic_government_api import _gov_api_singleton
-            self.gov_api = _gov_api_singleton
-        except (ImportError, AttributeError):
-            from .ultra_dynamic_government_api import UltraDynamicGovernmentAPI
-            self.gov_api = UltraDynamicGovernmentAPI()
-
     # ── Public API ─────────────────────────────────────────────────────
 
     def recommend(

@@ -12,8 +12,10 @@ from advisory.services.chat_intelligence_service import (
     INTENT_IRRIGATION,
     INTENT_MARKET_PRICE,
     INTENT_PEST_DISEASE,
+    INTENT_SOWING,
     INTENT_WEATHER,
     ChatIntelligenceService,
+    farmer_location_label,
 )
 from advisory.services.location_context import LocationContext
 
@@ -50,6 +52,37 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
 
         self.assertEqual(intent, INTENT_WEATHER)
         self.assertEqual(crops, [])
+
+    @patch("advisory.services.chat_intelligence_service._is_valid_gemini_key")
+    @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_sowing_question_uses_grounded_calendar_without_llm(
+        self, weather, qwen, gemini_key_check
+    ):
+        weather.return_value = {
+            "status": "success",
+            "is_live": True,
+            "data_source": "Open-Meteo",
+            "current": {"temperature": 24},
+        }
+
+        started = time.monotonic()
+        result = self.service.answer(
+            "गेहूँ की बुवाई का सही समय और बीज दर बताएं",
+            self.ctx,
+            language="hi",
+        )
+        elapsed_ms = (time.monotonic() - started) * 1000
+
+        self.assertEqual(result["intent"], INTENT_SOWING)
+        self.assertLess(elapsed_ms, 1000)
+        self.assertIn("गेहूँ की बुवाई", result["response"])
+        self.assertIn("बीज दर", result["response"])
+        self.assertIn("100-125 kg/ha", result["response"])
+        self.assertEqual(result["ai_data_quality"]["tier"], "instant_rule")
+        weather.assert_not_called()
+        qwen.assert_not_called()
+        gemini_key_check.assert_not_called()
 
     @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
@@ -117,14 +150,29 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
 
         self.assertIn("Hazratganj, Lucknow district, Uttar Pradesh", response["response"])
 
+    def test_location_label_does_not_repeat_district_suffix(self):
+        ctx = LocationContext(
+            latitude=19.0760,
+            longitude=72.8777,
+            display_name="Hallow Pul",
+            district="Mumbai Suburban District",
+            state="Maharashtra",
+            source="gps_coordinates_only",
+        )
+
+        self.assertEqual(
+            farmer_location_label(ctx),
+            "Hallow Pul, Mumbai Suburban District, Maharashtra",
+        )
+
     @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
     def test_location_specific_question_never_uses_default_when_unconfirmed(
         self, weather, market
     ):
         unknown = LocationContext(
-            latitude=22.9734,
-            longitude=78.6569,
+            latitude=None,
+            longitude=None,
             display_name="",
             source="unconfirmed",
             confidence=0.0,
@@ -143,8 +191,8 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
 
     def test_stream_location_specific_question_stops_before_local_ai_when_unconfirmed(self):
         unknown = LocationContext(
-            latitude=22.9734,
-            longitude=78.6569,
+            latitude=None,
+            longitude=None,
             display_name="",
             source="unconfirmed",
             confidence=0.0,
@@ -366,10 +414,10 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         qwen,
         weather,
     ):
-        stored = "Stored wheat sowing note: November 1-30."
+        stored = "Stored wheat management note: use certified seed and monitor soil moisture."
         kb_answer.return_value = {"answer": stored, "source": "knowledge_base"}
         qwen.return_value = (
-            "For your Delhi field, sow wheat in November using 100-125 kg seed per hectare."
+            "For your Delhi field, prioritize certified wheat seed and monitor soil moisture."
         )
         weather.return_value = {
             "status": "fallback",
@@ -380,14 +428,14 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         }
 
         result = self.service.answer(
-            "When and how should I sow wheat in my field?",
+            "What should I prioritize for healthy wheat crop management?",
             self.ctx,
             language="en",
         )
 
         self.assertNotEqual(result["response"], stored)
-        self.assertIn("sow wheat", result["response"].lower())
-        self.assertIn("100-125", result["response"])
+        self.assertIn("certified wheat seed", result["response"].lower())
+        self.assertIn("soil moisture", result["response"].lower())
         self.assertEqual(qwen.call_args.kwargs["local_kb_context"], stored)
 
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")

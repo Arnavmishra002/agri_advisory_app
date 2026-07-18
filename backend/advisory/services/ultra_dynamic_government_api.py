@@ -279,6 +279,8 @@ class UltraDynamicGovernmentAPI:
                 
                 return {
                     'status': 'success',
+                    'is_live': True,
+                    'data_source': 'ICAR pest database',
                     'government_data': government_data,
                     'data_reliability': {
                         'reliability_score': avg_reliability,
@@ -1230,14 +1232,16 @@ class UltraDynamicGovernmentAPI:
         return self._get_fallback_soil_data(location)
 
     def _get_fallback_pest_data(self, location: str) -> Dict[str, Any]:
-        """Fallback pest data when APIs are unavailable"""
+        """Honest unavailable result when an official pest source cannot respond."""
         return {
-            'status': 'success',
+            'status': 'unavailable',
+            'is_live': False,
+            'data_source': 'unavailable',
             'data': {
                 'location': location,
                 'pests': [],
                 'message': 'Pest database service temporarily unavailable',
-                'data_source': 'Fallback Service'
+                'data_source': 'unavailable'
             },
             'timestamp': datetime.now().isoformat()
         }

@@ -16,6 +16,8 @@ import json
 import logging
 import threading
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 
@@ -218,12 +220,31 @@ class WeatherService:
     GEOCODING_URL = "https://nominatim.openstreetmap.org/search"
 
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "KrishiMitra-AI/3.0 (contact@krishimitra.in)",
-            "Accept": "application/json"
-        })
+        self._local = threading.local()
         self._coord_cache: Dict[str, Tuple[float, float]] = {}
+
+    @property
+    def session(self) -> requests.Session:
+        """Per-thread weather client with bounded transient retries."""
+        if not hasattr(self._local, "session"):
+            session = requests.Session()
+            session.headers.update({
+                "User-Agent": "KrishiMitra-AI/3.0 (contact@krishimitra.in)",
+                "Accept": "application/json",
+            })
+            retry = Retry(
+                total=1,
+                connect=1,
+                read=1,
+                status=1,
+                backoff_factor=0.2,
+                status_forcelist=(429, 500, 502, 503, 504),
+                allowed_methods=frozenset({"GET"}),
+                raise_on_status=False,
+            )
+            session.mount("https://", HTTPAdapter(max_retries=retry))
+            self._local.session = session
+        return self._local.session
 
     def get_weather(self, location: str, lat: float = None, lon: float = None,
                     lang: str = "hi") -> Dict[str, Any]:
@@ -2642,13 +2663,28 @@ class GovernmentSchemesService:
         }
 
     def check_eligibility(self, farmer_profile: Dict) -> Dict:
-        """Simple eligibility checker"""
-        eligible = []
+        """Return potentially relevant schemes without claiming enrollment eligibility."""
+        candidates = []
         for scheme in GOVERNMENT_SCHEMES:
             scheme_copy = scheme.copy()
-            scheme_copy["eligible"] = True  # Simplified — all farmers eligible for most
-            eligible.append(scheme_copy)
-        return {"status": "success", "eligible_schemes": eligible, "farmer_profile": farmer_profile}
+            scheme_copy["eligible"] = None
+            scheme_copy["eligibility_status"] = "needs_official_verification"
+            scheme_copy["eligibility_message"] = (
+                "Profile details are not sufficient to confirm eligibility. "
+                "Verify current rules on the scheme's official portal or at the local agriculture office."
+            )
+            candidates.append(scheme_copy)
+        return {
+            "status": "success",
+            "eligibility_confirmed": False,
+            "eligible_schemes": candidates,
+            "candidate_schemes": candidates,
+            "farmer_profile": farmer_profile,
+            "message": (
+                "These are possible schemes, not confirmed eligibility results. "
+                "Current state, land, crop, category, and enrollment rules must be checked officially."
+            ),
+        }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
