@@ -36,6 +36,22 @@ def _uptime_seconds() -> float:
     return round(time.time() - _SERVICE_START, 1)
 
 
+def _readiness_status(checks: Dict[str, str], *, hard_ready: bool) -> str:
+    """Return a truthful runtime label without taking degraded fallbacks down."""
+    if not hard_ready:
+        return "not_ready"
+
+    healthy = (
+        str(checks.get("cache", "")).startswith("ok")
+        and str(checks.get("redis", "")).startswith("ok")
+        and str(checks.get("phase1_ai", "")).startswith("ok")
+        and "present=yes" in str(checks.get("ollama", ""))
+        and str(checks.get("chatbot_runtime", "")).startswith("ok")
+        and str(checks.get("crop_disease_model", "")).startswith("ok")
+    )
+    return "ready" if healthy else "degraded"
+
+
 def _staff_or_debug(request) -> bool:
     if settings.DEBUG:
         return True
@@ -306,9 +322,10 @@ def readiness_check(request):
         logger.exception("readiness crop disease model check failed: %s", exc)
         checks["crop_disease_model"] = "unavailable"
 
-    status_code = 200 if overall_ok else 503
+    readiness_status = _readiness_status(checks, hard_ready=overall_ok)
+    status_code = 503 if readiness_status == "not_ready" else 200
     return JsonResponse({
-        "status":    "ready" if overall_ok else "not_ready",
+        "status":    readiness_status,
         "checks":    checks,
         "timestamp": _now(),
     }, status=status_code)

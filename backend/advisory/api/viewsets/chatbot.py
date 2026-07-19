@@ -32,7 +32,11 @@ from ...models import FarmerInteractionLog, FarmerProfile, IoTSensorReading
 from ..errors import safe_error_message
 from ..location_utils import attach_location_metadata, resolve_request_location
 from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
-from ...services.chat_intelligence_service import chat_intelligence_service, _current_season
+from ...services.chat_intelligence_service import (
+    INTENT_GREETING,
+    _current_season,
+    chat_intelligence_service,
+)
 from ...services.session_memory_service import session_memory
 from ...services.guest_session_service import make_guest_session_token
 from ..auth_utils import _cors_for_request, _resolve_user_id
@@ -333,6 +337,16 @@ def _load_farmer_context(request, session_id, session_ctx) -> dict:
     return farmer_ctx
 
 
+def _resolve_chat_location(request, query: str):
+    """Avoid remote reverse geocoding for plain greetings only."""
+    intent, crops = chat_intelligence_service.classify_query(query)
+    is_plain_greeting = intent == INTENT_GREETING and not crops
+    return resolve_request_location(
+        request,
+        enrich_coordinates=not is_plain_greeting,
+    )
+
+
 # ─────────────────────────────────────────────────────────────
 # ChatbotViewSet — JSON endpoint (unchanged shape)
 # ─────────────────────────────────────────────────────────────
@@ -426,7 +440,6 @@ class ChatbotViewSet(viewsets.ViewSet):
         session_id = parsed["session_id"]
         fast_mode  = parsed["fast_mode"]
         sensor_context = parsed["sensor_context"]
-        ctx        = resolve_request_location(request)
 
         if not query:
             return Response(
@@ -436,6 +449,8 @@ class ChatbotViewSet(viewsets.ViewSet):
         too_long = query_too_long(query, MAX_CHAT_QUERY_LENGTH, field="query")
         if too_long:
             return too_long
+
+        ctx = _resolve_chat_location(request, query)
 
         history, session_ctx, language = _build_history_and_context(
             request, session_id, language
@@ -697,7 +712,7 @@ def stream_chat(request):
             status=400,
         )
 
-    ctx = resolve_request_location(request)
+    ctx = _resolve_chat_location(request, query)
     history, session_ctx, language = _build_history_and_context(
         request, session_id, language
     )

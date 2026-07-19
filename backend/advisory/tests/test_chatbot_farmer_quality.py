@@ -15,6 +15,8 @@ from advisory.services.chat_intelligence_service import (
     INTENT_SOWING,
     INTENT_WEATHER,
     ChatIntelligenceService,
+    SensorContext,
+    WeatherConstraints,
     farmer_location_label,
 )
 from advisory.services.location_context import LocationContext
@@ -185,6 +187,31 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         weather.assert_not_called()
         market.assert_not_called()
 
+    def test_crop_mention_does_not_hijack_a_soil_management_question(self):
+        query = (
+            "How can I improve soil organic carbon after rice without burning "
+            "crop residue?"
+        )
+        _intent, crops = self.service.classify_query(query)
+
+        self.assertEqual([crop["id"] for crop in crops], ["rice"])
+        self.assertIsNone(self.service._crop_profile_answer(query, crops, "en"))
+
+        response = self.service._smart_rule_response(
+            query=query,
+            intent="soil",
+            crops=crops,
+            ctx=self.ctx,
+            context_block="",
+            lang="en",
+            history=[],
+            sc=SensorContext(),
+            wc=WeatherConstraints(),
+        )
+        self.assertIn("Do not burn the residue", response)
+        self.assertIn("Soil Organic Carbon", response)
+        self.assertNotIn("Dominant soil type", response)
+
     @patch("advisory.services.chat_intelligence_service.requests.post")
     def test_crop_profile_stream_skips_local_model_and_finishes_fast(self, phase1_post):
         started = time.monotonic()
@@ -287,6 +314,69 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertIn("स्थान चुनें", text)
         self.assertEqual(chunks[-1]["chatbot_diagnostics"]["selected_tier"], "location_required")
 
+    def test_general_soil_guidance_does_not_require_confirmed_location(self):
+        unknown = LocationContext(
+            latitude=None,
+            longitude=None,
+            display_name="",
+            source="unconfirmed",
+            confidence=0.0,
+        )
+        query = (
+            "How can I improve soil organic carbon after rice without burning "
+            "crop residue?"
+        )
+
+        result = self.service.answer(query, unknown, language="en", fast_mode=True)
+
+        self.assertNotEqual(
+            result["chatbot_diagnostics"]["selected_tier"],
+            "location_required",
+        )
+        self.assertIn("Do not burn the residue", result["response"])
+        self.assertEqual(
+            result["chatbot_diagnostics"]["selected_tier"],
+            "instant_rule",
+        )
+        self.assertNotIn("20 cm", result["response"])
+        self.assertNotIn("30%", result["response"])
+        self.assertFalse(any(
+            "Agro-Climatic" in source or "Agmarknet" in source
+            for source in result["sources"]
+        ))
+
+    def test_general_soil_stream_does_not_require_confirmed_location(self):
+        unknown = LocationContext(
+            latitude=None,
+            longitude=None,
+            display_name="",
+            source="unconfirmed",
+            confidence=0.0,
+        )
+        query = (
+            "How can I improve soil organic carbon after rice without burning "
+            "crop residue?"
+        )
+
+        chunks = list(self.service.answer_stream(
+            query,
+            unknown,
+            language="en",
+        ))
+        response_text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+
+        self.assertIn("Do not burn the residue", response_text)
+        self.assertNotIn("20 cm", response_text)
+        self.assertNotIn("30%", response_text)
+        self.assertNotEqual(
+            chunks[-1]["chatbot_diagnostics"]["selected_tier"],
+            "location_required",
+        )
+        self.assertEqual(
+            chunks[-1]["chatbot_diagnostics"]["selected_tier"],
+            "instant_rule",
+        )
+
     @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
     @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
@@ -356,6 +446,63 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(market.call_count, 1)
         self.assertEqual(result["crop_suggestions"][0]["modal_price"], 2400)
         self.assertEqual(result["crop_suggestions"][0]["mandi"], "Lucknow APMC")
+
+    @patch("advisory.services.chat_intelligence_service.market_service.get_prices")
+    def test_empty_prefetched_market_result_is_not_refetched(self, market):
+        context, sources = self.service._build_official_context(
+            self.ctx,
+            "What is the wheat mandi price?",
+            INTENT_MARKET_PRICE,
+            [{"id": "wheat", "name": "Wheat"}],
+            lang="en",
+            _weather={},
+            _prices={},
+        )
+
+        market.assert_not_called()
+        self.assertNotIn("modal Rs", context)
+        self.assertFalse(any("official report" in source.lower() for source in sources))
+
+    def test_market_context_drops_unrequested_commodities(self):
+        prices = {
+            "is_live": True,
+            "data_source": "Agmarknet official feed",
+            "reported_date": "17-07-2026",
+            "top_crops": [
+                {
+                    "crop_name": "Wheat",
+                    "crop_name_hindi": "गेहूँ",
+                    "modal_price": 2400,
+                    "msp": 2585,
+                    "mandi_name": "Lucknow APMC",
+                    "reported_date": "17-07-2026",
+                    "is_live": True,
+                },
+                {
+                    "crop_name": "Maize",
+                    "crop_name_hindi": "मक्का",
+                    "modal_price": 1825,
+                    "msp": 2410,
+                    "mandi_name": "Uttar Pradesh average",
+                    "reported_date": "17-07-2026",
+                    "is_live": True,
+                },
+            ],
+        }
+
+        context, _sources = self.service._build_official_context(
+            self.ctx,
+            "What is the wheat mandi price?",
+            INTENT_MARKET_PRICE,
+            [{"id": "wheat", "name": "Wheat"}],
+            lang="en",
+            _weather={},
+            _prices=prices,
+        )
+
+        self.assertIn("Wheat", context)
+        self.assertNotIn("Maize", context)
+        self.assertNotIn("Uttar Pradesh average", context)
 
     @patch("advisory.services.chat_intelligence_service.market_service.get_nearby_live_prices")
     @patch("advisory.services.chat_intelligence_service.market_service.get_prices")

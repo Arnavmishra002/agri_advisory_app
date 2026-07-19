@@ -4,7 +4,11 @@ from unittest.mock import patch
 from django.http import JsonResponse
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
-from advisory.api.monitoring_views import launch_readiness_check, readiness_check
+from advisory.api.monitoring_views import (
+    _readiness_status,
+    launch_readiness_check,
+    readiness_check,
+)
 
 
 def _runtime_readiness(*, healthy: bool) -> JsonResponse:
@@ -29,6 +33,25 @@ def _runtime_readiness(*, healthy: bool) -> JsonResponse:
 class LaunchReadinessTests(SimpleTestCase):
     def setUp(self):
         self.request = RequestFactory().get("/api/health/launch-readiness/")
+
+    def test_runtime_readiness_is_degraded_when_optional_farmer_services_are_down(self):
+        checks = {
+            "database": "ok",
+            "cache": "ok",
+            "redis": "not_configured",
+            "phase1_ai": "offline",
+            "ollama": "offline",
+            "chatbot_runtime": "ok (local_ai_active=0/1, phase1_cb=closed)",
+            "crop_disease_model": "degraded (needs retraining)",
+        }
+
+        self.assertEqual(_readiness_status(checks, hard_ready=True), "degraded")
+
+    def test_runtime_readiness_is_not_ready_when_database_is_down(self):
+        self.assertEqual(
+            _readiness_status({"database": "unavailable"}, hard_ready=False),
+            "not_ready",
+        )
 
     @override_settings(DEBUG=True, RATE_LIMIT_ENABLED=False, SENTRY_DSN="")
     @patch.dict("os.environ", {"LAUNCH_CHECK": "false"}, clear=True)

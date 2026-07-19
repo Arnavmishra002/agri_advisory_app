@@ -80,7 +80,9 @@ services:
       SENTRY_ENVIRONMENT:        ${SENTRY_ENVIRONMENT:-production}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
       # ── Phase 1 local LLM (Ollama) ───────────────────────
-      PHASE1_BASE_URL:           ${PHASE1_BASE_URL:-http://phase1:8001}
+      # Keep Docker service discovery separate from the host-development URL.
+      # A host value such as 127.0.0.1:8002 points back to this container.
+      PHASE1_BASE_URL:           ${PHASE1_DOCKER_URL:-http://phase1:8001}
       PHASE1_CORS_ALLOWED_ORIGINS: ${PHASE1_CORS_ALLOWED_ORIGINS:-}
       PHASE1_ALLOW_ALL_CORS:      ${PHASE1_ALLOW_ALL_CORS:-false}
       PHASE1_SERVICE_TOKEN:       ${PHASE1_SERVICE_TOKEN:-}

@@ -138,10 +138,38 @@ _ATTRIBUTABLE_PESTICIDE_SOURCE = re.compile(
 )
 
 
-def _safe_model_text(value: Any, intent: str) -> Optional[str]:
+def _language_signal_count(text: str) -> int:
+    return len(re.findall(r"[A-Za-z\u0900-\u097F]", str(text or "")))
+
+
+def _model_language_matches(text: str, expected_language: str) -> bool:
+    """Validate launch-language script without rejecting normal crop names."""
+    lang = normalise_language_code(expected_language)
+    if lang not in {"en", "hi", "hinglish"}:
+        return True
+
+    latin = len(re.findall(r"[A-Za-z]", text or ""))
+    devanagari = len(re.findall(r"[\u0900-\u097F]", text or ""))
+    total = latin + devanagari
+    if total < 8:
+        return True
+    if lang == "hi":
+        return devanagari >= max(4, int(total * 0.15))
+    return devanagari <= max(3, int(total * 0.15))
+
+
+def _safe_model_text(
+    value: Any,
+    intent: str,
+    expected_language: str = "",
+) -> Optional[str]:
     """Reject generated claims that need evidence the response does not provide."""
     text = _usable_text(value)
     if not text:
+        return None
+    if expected_language and not _model_language_matches(text, expected_language):
+        logger.warning("Rejected generated answer that did not match the requested language")
+        _set_chat_meta(fallback_reason="response_language_mismatch")
         return None
     if _PESTICIDE_DOSE_PATTERN.search(text) and not _ATTRIBUTABLE_PESTICIDE_SOURCE.search(text):
         logger.warning("Rejected generated answer with unattributed pesticide dose")
@@ -388,7 +416,13 @@ def _phase1_base_url() -> str:
     return base.rstrip("/")
 
 def _phase1_endpoint(path: str) -> str:
-    explicit = _os.environ.get("PHASE1_URL") if path == "/chat" else None
+    # PHASE1_BASE_URL is the canonical setting. A stale legacy PHASE1_URL must
+    # not silently redirect only JSON chat requests to a different service.
+    explicit = (
+        _os.environ.get("PHASE1_URL")
+        if path == "/chat" and not _os.environ.get("PHASE1_BASE_URL")
+        else None
+    )
     if explicit and explicit.rstrip("/").endswith(path):
         return explicit.rstrip("/")
     return _phase1_base_url() + path
@@ -505,6 +539,18 @@ INTENT_FERTILIZER          = "fertilizer"
 INTENT_CROP_INFO           = "crop_info"
 INTENT_GREETING            = "greeting"
 INTENT_GENERAL             = "general"
+
+
+def _is_residue_management_query(query: str, intent: str) -> bool:
+    if intent != INTENT_SOIL:
+        return False
+    return bool(re.search(
+        r"\b(?:organic\s+carbon|organic\s+matter|crop\s+residue|rice\s+residue|"
+        r"stubble|parali|residue\s+burn|burning\s+residue)\b|"
+        r"जैविक\s+कार्बन|कार्बनिक\s+पदार्थ|फसल\s+अवशेष|पराली|अवशेष\s+जलान",
+        query or "",
+        re.IGNORECASE,
+    ))
 
 
 def farmer_location_label(ctx: LocationContext) -> str:
@@ -1136,7 +1182,6 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             INTENT_CROP_RECOMMENDATION,
             INTENT_MARKET_PRICE,
             INTENT_IRRIGATION,
-            INTENT_SOIL,
         }
         if getattr(ctx, "source", "") == "unconfirmed" and intent in location_required_intents:
             now = datetime.now(tz=timezone.utc)
@@ -1418,7 +1463,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # always use the transparent symptom-advisory path.
         response_text: Optional[str] = None
         data_source   = "KrishiMitra Advisory Engine"
-        structured_rule_path = fast_mode or intent == INTENT_SOWING
+        structured_rule_path = (
+            fast_mode
+            or intent == INTENT_SOWING
+            or _is_residue_management_query(query, intent)
+        )
         model_composition_allowed = (
             not structured_rule_path and intent != INTENT_PEST_DISEASE
         )
@@ -1438,7 +1487,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 query=query, ctx=ctx, lang=lang, history=history,
                 sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
                 local_kb_context=kb_grounding,
-            ), intent)
+            ), intent, lang)
             if response_text:
                 data_source = _chat_meta().get("source_label") or "KrishiMitra local RAG"
 
@@ -1456,7 +1505,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 response_text = _safe_model_text(gemini_service.generate(
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
-                ), intent)
+                ), intent, lang)
                 if response_text:
                     _set_chat_meta(selected_tier="gemini", fallback_reason="")
                     data_source = "Gemini AI + Official gov APIs"
@@ -1659,25 +1708,32 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 data = resp.json()
                 text = (data.get("response") or "").strip()
                 if text:
-                    _cb_reset()
+                    if _model_language_matches(text, lang):
+                        _cb_reset()
+                        _set_chat_meta(
+                            selected_tier="phase1_rag_ollama",
+                            fallback_reason="",
+                            phase1_latency_ms=phase1_latency,
+                            source_label="KrishiMitra local RAG",
+                        )
+                        logger.info(
+                            "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
+                            query[:40], data.get("rag_chunks", 0),
+                        )
+                        _release_local_ai_slot()
+                        slot_held = False
+                        return text
+                    logger.warning("Phase 1 answer language mismatch — trying direct Ollama")
                     _set_chat_meta(
-                        selected_tier="phase1_rag_ollama",
-                        fallback_reason="",
                         phase1_latency_ms=phase1_latency,
-                        source_label="KrishiMitra local RAG",
+                        fallback_reason="phase1_language_mismatch",
                     )
-                    logger.info(
-                        "krishimitra-llm via Phase1: '%s...' — %d RAG chunks",
-                        query[:40], data.get("rag_chunks", 0),
+                else:
+                    logger.warning("Phase 1 returned empty for: %s", query[:40])
+                    _set_chat_meta(
+                        phase1_latency_ms=phase1_latency,
+                        fallback_reason="phase1_empty_response",
                     )
-                    _release_local_ai_slot()
-                    slot_held = False
-                    return text
-                logger.warning("Phase 1 returned empty for: %s", query[:40])
-                _set_chat_meta(
-                    phase1_latency_ms=phase1_latency,
-                    fallback_reason="phase1_empty_response",
-                )
                 # Fall through to Path B
             except requests.Timeout:
                 _cb_increment()
@@ -2342,7 +2398,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 norm = crop_catalog.normalize(str(c.get("crop_name", "")))
                 if norm and norm.get("id") in crop_ids:
                     matched.append(c)
-            top = matched + [c for c in top if c not in matched]
+            top = matched
 
         lines = []
         for c in top[:4]:
@@ -2671,6 +2727,21 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         if re.search(r"\b(today|current|now|aaj|abhi|kal)\b|आज|अभी|कल", q):
             return None
 
+        # A crop mention inside a management problem must not collapse into a
+        # static crop-profile answer. These questions need the exact action,
+        # field condition, and retrieved agronomy facts to be composed into the
+        # response (for example residue management after rice).
+        management_terms = re.compile(
+            r"\b(?:improv(?:e|ing)|increase|decrease|reduce|correct|fix|manage|"
+            r"control|treat|apply|incorporat(?:e|ing)|mix|mulch|compost|burn(?:ing)?|"
+            r"residue|stubble|organic\s+carbon|organic\s+matter|deficien(?:cy|t)|"
+            r"problem|issue|after|before|baad|pehle|sudhar|badha|kam\s+kare)\b"
+            r"|सुधार|बढ़ा|कम\s+कर|अवशेष|पराली|जलान|मिलान|खाद|कमी|उपचार|समस्या",
+            re.IGNORECASE,
+        )
+        if management_terms.search(q):
+            return None
+
         aspect_terms = {
             "soil": ("soil", "mitti", "ph", "मिट्टी", "पीएच"),
             "climate": ("climate", "temperature", "temp", "rainfall", "tapman", "तापमान", "वर्षा"),
@@ -2895,7 +2966,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             lines.append("[WEATHER] Location coordinates unavailable — check mausam.imd.gov.in")
         else:
             try:
-                weather = _weather if _weather else weather_service.get_weather(
+                weather = _weather if _weather is not None else weather_service.get_weather(
                     ctx.query_label, ctx.latitude, ctx.longitude, lang=lang
                 )
                 cur = weather.get("current") or {}
@@ -2948,7 +3019,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # 2. Market prices for mandi/crop economics intents only
         if market_relevant:
             try:
-                prices = _prices if _prices else market_service.get_prices(
+                prices = _prices if _prices is not None else market_service.get_prices(
                     ctx.query_label,
                     lat=ctx.latitude,
                     lon=ctx.longitude,
@@ -2968,7 +3039,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             norm = crop_catalog.normalize(str(c.get("crop_name", "")))
                             if norm and norm.get("id") in crop_ids:
                                 matched.append(c)
-                        top = matched + [c for c in top if c not in matched]
+                        top = matched
                     reported_date = (
                         prices.get("reported_date")
                         or next(
@@ -3020,8 +3091,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 logger.warning("Market fetch failed in chat context: %s", e)
 
         # 3. Crop recommendations (for crop/general queries)
-        if intent in (INTENT_CROP_RECOMMENDATION, INTENT_GENERAL, INTENT_CROP_INFO) or \
-           any(w in query.lower() for w in ("crop", "fasal", "फसल", "खेती", "ugaun", "lagaun", "boun")):
+        if intent in (INTENT_CROP_RECOMMENDATION, INTENT_GENERAL, INTENT_CROP_INFO):
             try:
                 rec = crop_recommendation_engine.recommend_from_context(ctx, language=lang)
                 sources.append(rec.get("data_source", "Crop engine"))
@@ -4546,6 +4616,42 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # ── SOIL ─────────────────────────────────────────────────
         if intent == INTENT_SOIL:
+            if _is_residue_management_query(query, intent):
+                body = {
+                    "hi": (
+                        f"🌱 **धान के बाद मिट्टी का जैविक कार्बन बढ़ाएं — {loc}**\n\n"
+                        f"• **पराली न जलाएं।** अवशेष को काटकर समान रूप से फैलाएं या कम्पोस्ट गड्ढे में डालें।\n"
+                        f"• अगली फसल संभव हो तो **जीरो/कम जुताई** से बोएं; सतह पर बचा अवशेष मल्च का काम करेगा।\n"
+                        f"• खेत खाली हो तो ढैंचा, सनई या दूसरी स्थानीय हरी-खाद/दलहनी फसल लगाएं।\n"
+                        f"• अच्छी तरह सड़ी गोबर खाद या कम्पोस्ट मिट्टी-जांच और उपलब्धता के अनुसार दें; कच्चा अवशेष बुवाई से ठीक पहले गहराई में न दबाएं।\n"
+                        f"• हर मौसम एक ही जगह से नमूना लेकर **Soil Organic Carbon** की जांच कराएं और परिणाम लिखें।\n\n"
+                        f"⚠️ अवशेष जल्दी गलाने के लिए कोई रसायन या मात्रा बिना स्थानीय KVK/राज्य अनुशंसा के न चुनें।\n"
+                        f"आज का कदम: अवशेष जलाना रोकें और नजदीकी KVK से हैप्पी सीडर/सुपर सीडर या कम्पोस्टिंग सुविधा पूछें।"
+                    ),
+                    "hinglish": (
+                        f"🌱 **Rice ke baad soil organic carbon badhayein — {loc}**\n\n"
+                        f"• **Parali na jalayein.** Residue ko chop karke evenly spread karein ya compost pit mein daalein.\n"
+                        f"• Agli crop ko possible ho to **zero/minimum tillage** se sow karein; surface residue mulch ka kaam karega.\n"
+                        f"• Khali period mein dhaincha, sunhemp ya local green-manure/legume crop lagayein.\n"
+                        f"• Well-decomposed FYM/compost soil test ke hisaab se use karein; raw straw ko sowing se turant pehle deep incorporate na karein.\n"
+                        f"• Har season same sampling points par **Soil Organic Carbon** test karke result record karein.\n\n"
+                        f"⚠️ Residue decomposer chemical ya dose local KVK/state recommendation ke bina choose na karein.\n"
+                        f"Aaj ka step: residue burning rok kar KVK se Happy Seeder/Super Seeder ya composting support poochhein."
+                    ),
+                    "en": (
+                        f"🌱 **Build soil organic carbon after rice — {loc}**\n\n"
+                        f"• **Do not burn the residue.** Chop and spread it evenly, or move it into a managed compost pile.\n"
+                        f"• Sow the next crop with **zero or minimum tillage** where practical; retained surface residue acts as mulch.\n"
+                        f"• Use a locally suitable green-manure or legume cover crop during an available gap.\n"
+                        f"• Apply well-decomposed FYM or compost according to a soil test; avoid burying a large amount of raw straw immediately before sowing.\n"
+                        f"• Test **Soil Organic Carbon** at the same sampling points each season and record the trend.\n\n"
+                        f"⚠️ Do not choose a residue-decomposer chemical or dose without a current KVK/state recommendation.\n"
+                        f"Next step today: keep the residue unburned and ask the local KVK about Happy Seeder, Super Seeder, or composting access."
+                    ),
+                }.get(lang)
+                if body:
+                    return alert_prefix + body
+
             # State → dominant soil type mapping
             _STATE_SOIL = {
                 "Uttar Pradesh":    ("Alluvial (दोमट)", "उचित — अधिकांश फसलें", "NPK+Zinc की कमी आम"),
@@ -4953,7 +5059,6 @@ def _answer_stream(
         INTENT_CROP_RECOMMENDATION,
         INTENT_MARKET_PRICE,
         INTENT_IRRIGATION,
-        INTENT_SOIL,
     }
     named_location = self._extract_query_location(query) if intent in location_required_intents else None
     if getattr(ctx, "source", "") == "unconfirmed" and intent in location_required_intents and named_location is None:
@@ -4983,7 +5088,7 @@ def _answer_stream(
         INTENT_SOWING,
         INTENT_HARVEST,
         INTENT_GOVERNMENT_SCHEME,
-    } or (
+    } or _is_residue_management_query(query, intent) or (
         intent == INTENT_MARKET_PRICE and not is_msp_policy_query
     ):
         result = self.answer(
@@ -5039,6 +5144,7 @@ def _answer_stream(
     if not fast_mode:
         stream_slot_held = False
         partial_stream_text: List[str] = []
+        buffered_stream_tokens: List[str] = []
         try:
             PHASE1_STREAM_URL = _phase1_endpoint("/chat/stream")
             crop_hint = crops_mentioned[0].get("name") if crops_mentioned else None
@@ -5075,7 +5181,7 @@ def _answer_stream(
                 phase1_started = _time.monotonic()
                 last_token_at = phase1_started
                 first_token_seen = False
-                full_text = partial_stream_text
+                full_text: List[str] = []
                 # Phase 1 emits very small NDJSON token frames. The requests
                 # default (512-byte chunks) buffers many tokens and can make a
                 # healthy stream look stalled until the read timeout fires.
@@ -5113,8 +5219,29 @@ def _answer_stream(
                             first_token_seen = True
                         last_token_at = now_mono
                         full_text.append(token)
-                        yield token
+                        if not partial_stream_text:
+                            buffered_stream_tokens.append(token)
+                            prefix = "".join(buffered_stream_tokens)
+                            if _language_signal_count(prefix) < 8:
+                                continue
+                            if not _model_language_matches(prefix, lang):
+                                raise ValueError("Phase1 response language mismatch")
+                            for buffered_token in buffered_stream_tokens:
+                                partial_stream_text.append(buffered_token)
+                                yield buffered_token
+                            buffered_stream_tokens.clear()
+                        else:
+                            partial_stream_text.append(token)
+                            yield token
                 if full_text:
+                    if not partial_stream_text:
+                        completed_text = "".join(buffered_stream_tokens)
+                        if not _model_language_matches(completed_text, lang):
+                            raise ValueError("Phase1 response language mismatch")
+                        for buffered_token in buffered_stream_tokens:
+                            partial_stream_text.append(buffered_token)
+                            yield buffered_token
+                        buffered_stream_tokens.clear()
                     _set_chat_meta(
                         selected_tier="phase1_rag_ollama_stream",
                         fallback_reason="",

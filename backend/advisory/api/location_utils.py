@@ -32,12 +32,22 @@ def _get_param(request: Request, *keys: str) -> Any:
     return None
 
 
-def resolve_request_location(request: Request) -> LocationContext:
+def resolve_request_location(
+    request: Request,
+    *,
+    enrich_coordinates: bool = True,
+) -> LocationContext:
     """
-  Resolve location from API request.
+    Resolve location from API request.
 
-  Accepts: latitude/longitude (or lat/lon), accuracy/accuracy_meters, location text.
-  GPS coordinates always win when valid (India bounds).
+    Accepts latitude/longitude (or lat/lon), accuracy/accuracy_meters, and
+    location text.
+    GPS coordinates always win when valid (India bounds).
+
+    ``enrich_coordinates=False`` keeps latency-sensitive, non-advisory paths
+    local when the client already supplied a confirmed label and coordinates.
+    It must not be used for weather, mandi, crop, or field advice, where the
+    full district/state context affects the result.
     """
     location_confirmed = _get_param(request, "location_confirmed")
     if location_confirmed is False or str(location_confirmed).strip().lower() in {
@@ -82,6 +92,36 @@ def resolve_request_location(request: Request) -> LocationContext:
         from ..services.location_context import _in_india, _region_from_state
 
         if _in_india(lat, lon):
+            if not enrich_coordinates:
+                selected_name = str(location_query or state_hint or "").strip()
+                selected_state = str(state_hint or "").strip()
+                source = (
+                    requested_source
+                    if requested_source != "unknown"
+                    else "request_coordinates"
+                )
+                return LocationContext(
+                    latitude=lat,
+                    longitude=lon,
+                    display_name=selected_name,
+                    city=selected_name if selected_name else "",
+                    state=selected_state,
+                    region=_region_from_state(selected_state),
+                    location_type="request_coordinates",
+                    accuracy_meters=accuracy,
+                    accuracy_label=(
+                        "high" if accuracy is not None and accuracy <= 100
+                        else "medium"
+                    ),
+                    source=source,
+                    confidence=0.9 if selected_name else 0.7,
+                    is_gps=requested_source == "gps",
+                    full_address=(
+                        f"{selected_name}, {selected_state}"
+                        if selected_name and selected_state and selected_state != selected_name
+                        else selected_name or selected_state
+                    ),
+                )
             if requested_source == "manual_search" and location_query:
                 selected_name = str(location_query).strip()
                 selected_state = str(state_hint or "").strip()

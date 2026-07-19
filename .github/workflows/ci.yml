@@ -688,7 +688,7 @@ jobs:
           launch = json.loads(Path('/tmp/launch-readiness.json').read_text())
           phase1 = json.loads(Path('/tmp/phase1-health.json').read_text())
           chat = json.loads(Path('/tmp/chat.json').read_text())
-          assert readiness['status'] in {'ready', 'not_ready'}, readiness
+          assert readiness['status'] in {'ready', 'degraded', 'not_ready'}, readiness
           assert launch['status'] in {'ready', 'degraded', 'blocked_for_launch'}, launch
           assert phase1.get('status') in {'healthy', 'degraded'}, phase1
           assert chat.get('status') == 'success', chat
