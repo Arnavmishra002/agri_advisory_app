@@ -446,6 +446,7 @@
                     placeholder="फसल खोजें — Wheat, गेहूँ, Cotton..."
                     onkeyup="searchCrop(event)" onfocus="showCropSuggestions()" autocomplete="off">
                 <button class="btn btn-success btn-sm" onclick="searchSpecificCrop()" style="font-size:0.82rem;">खोजें</button>
+                <button class="btn btn-outline-success btn-sm" type="button" onclick="clearCropRecommendationSearch()" style="font-size:0.82rem;white-space:nowrap;">सभी फसलें</button>
             </div>
             <div id="cropSuggestions" class="crop-suggestions"></div>
         </div>
@@ -581,9 +582,9 @@
             <select id="mandiRadiusSelect" onchange="onMandiRadiusChanged()" class="form-select form-select-sm mandi-radius-select" title="मंडी सूची का दायरा">
                 <option value="50">50 km</option>
                 <option value="100">100 km</option>
-                <option value="150">150 km</option>
+                <option value="150" selected>150 km</option>
                 <option value="250">250 km</option>
-                <option value="state" selected>पूरा राज्य</option>
+                <option value="state">पूरा राज्य</option>
             </select>
             <input id="mandiSearchInput" type="search" class="form-control form-control-sm mandi-selector"
                 placeholder="मंडी या जिला खोजें..." autocomplete="off"
@@ -874,10 +875,10 @@
             </div>
         </div>
 
-        <!-- AI Status badge -->
+        <!-- Source status badge -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-size:0.8rem;color:#666;">AI Engine:</span>
-            <span id="aiStatusBadge" style="display:inline-block;background:#f3e5f5;color:#4a148c;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;">📚 Loading...</span>
+            <span style="font-size:0.8rem;color:#666;">स्रोत:</span>
+            <span id="aiStatusBadge" style="display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;">कृषि सलाह तैयार</span>
             <span style="flex:1;"></span>
             <button type="button" id="chatHistoryBtn" class="chat-toolbar-btn" onclick="openChatHistory()" title="पुरानी बातचीत" aria-label="पुरानी बातचीत खोलें">
                 <i class="fas fa-history"></i>

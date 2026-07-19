@@ -1431,6 +1431,14 @@
         loadCropRecommendations();
     }
 
+    function clearCropRecommendationSearch() {
+        const input = document.getElementById('cropSearchInput');
+        if (input) input.value = '';
+        hideCropSuggestions();
+        showService('crop-recommendations');
+        loadCropRecommendations();
+    }
+
     function hideKrCropSuggestions() {
         const el = document.getElementById('krCropSuggestions');
         if (el) el.style.display = 'none';
@@ -1582,18 +1590,20 @@
 
         try {
             let data;
+            const typedCrop = document.getElementById('cropPriceSearchInput')?.value?.trim();
+            const requestedCrop = currentCropSearch || typedCrop;
 
             // Use mandi-specific endpoint when a mandi is selected (more accurate)
-            const marketCacheVariant = `${currentMandi || 'nearby'}:${currentCropSearch || 'all'}`;
+            const marketCacheVariant = `${currentMandi || 'nearby'}:${requestedCrop || 'all'}`;
             if (currentMandi && currentMandi.trim()) {
                 let mandiPath = `/api/market-prices/mandi-prices/?${buildLocationQuery()}`;
                 mandiPath += `&mandi=${encodeURIComponent(currentMandi)}`;
-                if (currentCropSearch) mandiPath += `&crop=${encodeURIComponent(currentCropSearch)}`;
+                if (requestedCrop) mandiPath += `&crop=${encodeURIComponent(requestedCrop)}`;
                 data = await apiGetJson(mandiPath);
             } else {
                 // Generic state-level prices
                 let marketPath = `/api/market-prices/?${buildLocationQuery()}`;
-                if (currentCropSearch) marketPath += `&crop=${encodeURIComponent(currentCropSearch)}`;
+                if (requestedCrop) marketPath += `&crop=${encodeURIComponent(requestedCrop)}`;
                 data = await apiGetJson(marketPath);
             }
 
@@ -1615,7 +1625,9 @@
             }, refreshMs);
 
         } catch (error) {
-            const marketCacheVariant = `${currentMandi || 'nearby'}:${currentCropSearch || 'all'}`;
+            const typedCrop = document.getElementById('cropPriceSearchInput')?.value?.trim();
+            const requestedCrop = currentCropSearch || typedCrop;
+            const marketCacheVariant = `${currentMandi || 'nearby'}:${requestedCrop || 'all'}`;
             const cached = _loadOfflineResult('mandi', marketCacheVariant, 72);
             if (cached) {
                 updateMarketLiveBanner(cached);
@@ -3351,6 +3363,7 @@
     window.searchCrop = searchCrop;
     window.showCropSuggestions = showCropSuggestions;
     window.searchSpecificCrop = searchSpecificCrop;
+    window.clearCropRecommendationSearch = clearCropRecommendationSearch;
     window.searchCropsForDiagnostics = searchCropsForDiagnostics;
     window.selectCropForDiagnostics = selectCropForDiagnostics;
     window.loadWeatherData = loadWeatherData;

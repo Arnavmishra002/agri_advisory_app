@@ -198,7 +198,7 @@ class FieldSensorService:
             "timestamp": ts,
             "analysis_level": "field",
             "grid_resolution": (
-                "1km Open-Meteo grid + farmer sensor point"
+                "1km Open-Meteo grid + farmer-entered field values"
                 if iot_sensors_used
                 else "1km Open-Meteo grid"
             ),
@@ -1099,8 +1099,10 @@ class FieldSensorService:
     @staticmethod
     def _sensor_source_label(sensor_meta: Dict[str, Any]) -> str:
         status = (sensor_meta or {}).get("status")
+        if status == "farmer_entered":
+            return "Farmer-entered soil/sensor values (current request)"
         if status == "live_request":
-            return "IoT Field Sensor (live request, field-level)"
+            return "Farmer-entered soil/sensor values (current request)"
         if status == "fresh_saved":
             age = sensor_meta.get("age_minutes")
             age_text = f", {age} min old" if age is not None else ""

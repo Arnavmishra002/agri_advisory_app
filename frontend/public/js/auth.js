@@ -482,13 +482,13 @@
     /* ── _setError ───────────────────────────────────────────── */
     _setError: function (id, msg) {
       var el = document.getElementById(id);
-      if (el) { el.textContent = msg; el.style.display = msg ? '' : 'none'; }
+      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
     },
 
     /* ── _setSuccess ─────────────────────────────────────────── */
     _setSuccess: function (id, msg) {
       var el = document.getElementById(id);
-      if (el) { el.textContent = msg; el.style.display = msg ? '' : 'none'; }
+      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
     },
 
     /* ── _clearAllErrors ─────────────────────────────────────── */

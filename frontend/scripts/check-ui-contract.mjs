@@ -79,6 +79,11 @@ check(
   'Nearest mandi may be highlighted but must not hide state live rows through automatic selection',
 );
 check(
+  /<option value="150" selected>150 km<\/option>/.test(html) &&
+    /<option value="state">पूरा राज्य<\/option>/.test(html),
+  'Mandi selector must default to nearby 150 km, not the whole-state registry',
+);
+check(
   app.includes('updateMandiSelectionStatus(data)') &&
     app.includes('data.mandi_no_live_rows === true'),
   'Selected-mandi loading state must finish with an honest official-row status',
@@ -106,6 +111,10 @@ check(
 check(
   auth.indexOf('this._resetAuthUi();') < auth.indexOf('this.switchTab(tab);'),
   'Opening auth must clear stale registration/login fields before selecting a tab',
+);
+check(
+  auth.includes("el.style.display = msg ? 'block' : 'none'"),
+  'Auth inline errors/success messages must override CSS display:none when populated',
 );
 check(
   auth.includes("addEventListener('hidden.bs.modal'") &&
@@ -154,6 +163,12 @@ check(
 check(
   !html.includes("openModal('profile')"),
   'Profile action must not pass an unsupported auth modal tab',
+);
+check(
+  html.includes('clearCropRecommendationSearch()') &&
+    app.includes('function clearCropRecommendationSearch()') &&
+    app.includes('window.clearCropRecommendationSearch = clearCropRecommendationSearch'),
+  'Crop recommendations must have a visible reset path that clears a selected crop filter',
 );
 for (const id of [
   'tabBtnPhone', 'tabBtnPassword', 'tabBtnRegister', 'btnSendOtp',

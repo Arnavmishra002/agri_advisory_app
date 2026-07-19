@@ -491,12 +491,12 @@ def _iot_sensor_max_age_minutes() -> int:
 def _live_request_sensor_meta() -> dict:
     now = django_timezone.now()
     return {
-        "status": "live_request",
+        "status": "farmer_entered",
         "source": "request_payload",
         "recorded_at": now.isoformat(),
         "age_minutes": 0,
         "max_age_minutes": _iot_sensor_max_age_minutes(),
-        "message": "Sensor values came with this request.",
+        "message": "Soil or sensor values were entered with this request.",
     }
 
 def _sensor_freshness_from_reading(reading) -> dict:
