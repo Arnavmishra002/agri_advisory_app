@@ -36,6 +36,7 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
             "Delhi weather forecast for next week": INTENT_WEATHER,
             "gehu ka mandi bhav kya hai": INTENT_MARKET_PRICE,
             "wheat leaves have rust disease": INTENT_PEST_DISEASE,
+            "mere gehu ki pattiyon par peele dhabbe hain": INTENT_PEST_DISEASE,
             "धान में खाद कब डालें": INTENT_FERTILIZER,
             "cotton ko pani kab dena hai": INTENT_IRRIGATION,
             "PM Kisan scheme eligibility": INTENT_GOVERNMENT_SCHEME,
@@ -93,8 +94,41 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(chunks[-1]["intent"], INTENT_PEST_DISEASE)
         self.assertLess(elapsed_ms, 3000)
         self.assertIn("पक्की पहचान नहीं", text)
+        self.assertIn("पीले धब्बे", text)
+        self.assertIn("पीला रतुआ", text)
+        self.assertIn("भूरा रतुआ", text)
+        self.assertNotIn("करनाल बंट", text)
         self.assertIn("पत्ती के ऊपर-नीचे", text)
         self.assertNotRegex(text, r"\d+(?:\.\d+)?\s*(?:ml|g)/L")
+        phase1_post.assert_not_called()
+        qwen.assert_not_called()
+
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_hinglish_yellow_spot_question_gets_question_aware_symptom_advisory(
+        self, weather, qwen, phase1_post
+    ):
+        weather.return_value = {
+            "status": "success",
+            "is_live": True,
+            "current": {"temperature": 27},
+            "forecast_7day": [],
+        }
+
+        chunks = list(self.service.answer_stream(
+            "mere gehu ki pattiyon par peele dhabbe hain, kya check karun?",
+            self.ctx,
+            language="auto",
+        ))
+        text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+
+        self.assertEqual(chunks[-1]["intent"], INTENT_PEST_DISEASE)
+        self.assertIn("yellow spots", text)
+        self.assertIn("Possible issues", text)
+        self.assertIn("Yellow Rust", text)
+        self.assertNotIn("Karnal Bunt", text)
+        self.assertNotIn("Crop recommendations", text)
         phase1_post.assert_not_called()
         qwen.assert_not_called()
 
@@ -440,6 +474,7 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertNotRegex(result["response"], r"\b\d+(?:\.\d+)?\s*(?:ml|g)\s*/\s*l\b")
         self.assertNotIn("identifies 150+", result["response"])
         self.assertIn("advisory", result["response"].lower())
+        self.assertIn("blast", result["response"].lower())
         self.assertIn("KVK", result["response"])
 
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")

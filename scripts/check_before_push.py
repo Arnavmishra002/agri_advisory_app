@@ -134,9 +134,10 @@ results.append(check("Farming calendar present",
     lambda: (_ for _ in ()).throw(AssertionError("Missing farming calendar"))
     if "farming-calendar" not in html and "Kharif" not in html else None))
 
-results.append(check("MSP quick stats present (₹2,425)",
+current_wheat_msp = str(MSP_2024_25["wheat"])
+results.append(check(f"MSP quick stats present (₹{current_wheat_msp})",
     lambda: (_ for _ in ()).throw(AssertionError("Missing MSP stats"))
-    if "2,425" not in html else None))
+    if f"{MSP_2024_25['wheat']:,}" not in html else None))
 
 results.append(check("8+ suggested questions present",
     lambda: (_ for _ in ()).throw(AssertionError("Missing suggested questions"))

@@ -6,6 +6,8 @@ from rest_framework import serializers
 from ..models import CropAdvisory, Crop, User, ForumPost # Update import for models
 from ..services.language_service import SUPPORTED_LANGUAGES
 
+LOCATION_SOURCE_CHOICES = ("gps", "manual_search", "profile", "unknown", "unconfirmed")
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -265,7 +267,7 @@ class LocationQuerySerializer(StrictQuerySerializer):
     location_confirmed = serializers.BooleanField(required=False, default=True)
     location_source = serializers.ChoiceField(
         required=False,
-        choices=("gps", "manual_search", "profile", "unknown"),
+        choices=LOCATION_SOURCE_CHOICES,
         default="unknown",
     )
     language = serializers.CharField(required=False, allow_blank=True, max_length=20)
@@ -416,7 +418,7 @@ class GovernmentPestInputSerializer(StrictSerializer):
     location_confirmed = serializers.BooleanField(required=False, default=True)
     location_source = serializers.ChoiceField(
         required=False,
-        choices=("gps", "manual_search", "profile", "unknown"),
+        choices=LOCATION_SOURCE_CHOICES,
         default="unknown",
     )
     language = serializers.CharField(required=False, allow_blank=True, max_length=20, default="hi")
@@ -592,7 +594,7 @@ class ChatbotRequestSerializer(StrictSerializer):
     location_confirmed = serializers.BooleanField(required=False, default=True)
     location_source = serializers.ChoiceField(
         required=False,
-        choices=("gps", "manual_search", "profile", "unknown"),
+        choices=LOCATION_SOURCE_CHOICES,
         default="unknown",
     )
     history = serializers.ListField(
@@ -712,7 +714,7 @@ class FieldSensorInputSerializer(StrictSerializer):
     location_confirmed = serializers.BooleanField(required=False, default=True)
     location_source = serializers.ChoiceField(
         required=False,
-        choices=("gps", "manual_search", "profile", "unknown"),
+        choices=LOCATION_SOURCE_CHOICES,
         default="unknown",
     )
     language = serializers.ChoiceField(required=False, choices=("hi", "en", "hinglish"), default="hi")
@@ -767,7 +769,7 @@ class DiagnosticDetectInputSerializer(StrictSerializer):
     location_confirmed = serializers.BooleanField(required=False, default=True)
     location_source = serializers.ChoiceField(
         required=False,
-        choices=("gps", "manual_search", "profile", "unknown"),
+        choices=LOCATION_SOURCE_CHOICES,
         default="unknown",
     )
     images = serializers.DictField(
@@ -829,7 +831,7 @@ class InputGapsInputSerializer(StrictSerializer):
     location_confirmed = serializers.BooleanField(required=False, default=True)
     location_source = serializers.ChoiceField(
         required=False,
-        choices=("gps", "manual_search", "profile", "unknown"),
+        choices=LOCATION_SOURCE_CHOICES,
         default="unknown",
     )
     language = serializers.CharField(required=False, allow_blank=True, max_length=20, default="hi")

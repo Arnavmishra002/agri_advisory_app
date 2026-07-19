@@ -52,6 +52,9 @@ check(!app.includes('&_t=${Date.now()}'), 'Strict API queries must not include t
 check(html.includes('data-count="202"'), 'Home crop count must match the 202-profile database');
 check(!html.includes('MSP 2024-25'), 'Home must not display stale MSP-year copy');
 check(!/python manage\.py|DATA_GOV_IN_API_KEY|Server restart/.test(app), 'Farmer-facing JavaScript contains operator-only setup instructions');
+check(!/22\s*(?:भाषाएं|भारतीय भाषाएं|languages?)/i.test(html), 'Farmer UI must not advertise unverified language-count claims');
+check(!/Local KrishiMitra LLM|Local LLM|RAG|Gemini fallback/.test(html), 'Farmer UI must not expose internal AI implementation labels');
+check(!app.includes('AI/Data Quality:'), 'Chat source badge must use farmer-facing trust wording');
 check(!app.includes("let currentLocation = 'Delhi'"), 'Frontend must not assume Delhi before the farmer confirms a location');
 check(!html.includes('class="location-name">Delhi</span>'), 'Location bar must not display a fabricated default city');
 check(
@@ -61,6 +64,11 @@ check(
 check(
   app.includes('location_confirmed: hasConfirmedLocation()'),
   'Chat requests must explicitly distinguish confirmed and unknown locations',
+);
+check(
+  app.includes('function apiLocationSource()') &&
+    app.includes('location_source: apiLocationSource()'),
+  'JSON chat/diagnostics/field payloads must not send the internal unconfirmed location source',
 );
 check(
   app.includes("source === 'text_query_ungeocoded'") && app.includes("source === 'default_fallback'"),
@@ -128,6 +136,11 @@ check(
   app.includes("GUEST_CHAT_OWNER") && app.includes("km:auth-changed") &&
     app.includes("guestSessionMigrated === true"),
   'Chat history must be isolated by guest/user identity and migrate only with signed backend proof',
+);
+check(
+  app.includes("CHAT_HISTORY_SCHEMA_VERSION") &&
+    app.includes("km_chat_history_${CHAT_HISTORY_SCHEMA_VERSION}_${token}"),
+  'Chat history keys must be schema-versioned so stale local AI responses do not reappear after safety changes',
 );
 check(
   app.includes("deleteArchivedChat") && app.includes("chat-history-delete"),

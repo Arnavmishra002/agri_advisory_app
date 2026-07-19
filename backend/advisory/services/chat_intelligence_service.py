@@ -343,16 +343,16 @@ def chatbot_quality_metadata(
         "crop_profile": ("Verified crop profile", "verified_local", 500),
         "verified_realtime": ("Verified live data", "verified_realtime", 5000),
         "verified_official_data": ("Verified official report", "verified_official", 5000),
-        "knowledge_base": ("Verified knowledge base", "verified_local", 500),
-        "knowledge_base_local_llm": ("Local knowledge AI", "local_ai", 15000),
-        "phase1_rag_ollama": ("Local AI + knowledge base", "local_ai", 15000),
-        "phase1_rag_ollama_stream": ("Local AI + knowledge base", "local_ai", 15000),
-        "phase1_partial_stream": ("Local AI response interrupted", "degraded", 15000),
-        "direct_ollama": ("Local AI fallback", "local_ai", 15000),
-        "gemini": ("Cloud AI fallback", "cloud_fallback", 15000),
-        "gemini_stream": ("Cloud AI fallback", "cloud_fallback", 15000),
-        "local_ai_busy_fallback": ("AI busy: safe fallback", "degraded", 3000),
-        "rule_based_fallback": ("Safe advisory fallback", "degraded", 3000),
+        "knowledge_base": ("Verified knowledge answer", "verified_local", 500),
+        "knowledge_base_local_llm": ("Knowledge-backed answer", "local_ai", 15000),
+        "phase1_rag_ollama": ("Knowledge-backed answer", "local_ai", 15000),
+        "phase1_rag_ollama_stream": ("Knowledge-backed answer", "local_ai", 15000),
+        "phase1_partial_stream": ("Partial knowledge answer", "degraded", 15000),
+        "direct_ollama": ("Backup advisory answer", "local_ai", 15000),
+        "gemini": ("Backup advisory answer", "cloud_fallback", 15000),
+        "gemini_stream": ("Backup advisory answer", "cloud_fallback", 15000),
+        "local_ai_busy_fallback": ("Busy: safe fallback", "degraded", 3000),
+        "rule_based_fallback": ("Safe advisory", "degraded", 3000),
         "empty_query": ("Input required", "degraded", 500),
     }
     label, quality_status, target_ms = labels.get(
@@ -794,15 +794,15 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
         # Core
         r"\b(pest|keet|कीट|rog|रोग|blight|blast|disease|worm|caterpillar|sundi|सुंडी|wilting|fungus|fungal|spray|davai|दवाई|pesticide|insecticide|fungicide|neem)\b",
         # Symptom-based
-        r"\b(patti|पत्ती|leaf|leaves|fruit|फल|root|जड़|fasal|crop|stem|tana|तना)\s*(mein|में|pe|पर|ki|का|की)\s*(problem|kuch|नुकसान|damage|pili|पीली|sukh|सूख|kala|काला|safed|सफेद|laal|red|curl|mur|hole)\b",
+        r"\b(patti|pattiyon|pattiyan|पत्ती|leaf|leaves|fruit|फल|root|जड़|fasal|crop|stem|tana|तना)\s*(mein|में|pe|par|पर|ki|ka|का|की)\s*(problem|kuch|नुकसान|damage|pili|peeli|peele|पीली|sukh|सूख|kala|काला|safed|सफेद|laal|red|curl|mur|hole|dhabba|dhabbe|spots?)\b",
         r"\b(?:leaf|leaves|stem|stems|root|roots|fruit|fruits)\b.{0,30}\b(?:spot|spots|lesion|lesions|brown|black|yellow|curl|wilting|rot)\b",
         r"\b(kyon|क्यों|why)\s*(sukh|mur|pil|gir|सूख|मुरझा|पीली|झड|curl|fall|rot|sada)\b",
         # Named pests
         r"\b(sundi|afid|aphid|mite|thrips|whitefly|सफेद\s*मक्खी|माहू|टिड्डा|locust|stem\s*borer|bollworm|armyworm|jassid|planthopper)\b",
         # Yellow leaf / yellowing (very common Hinglish symptom query) — broadened
-        r"\b(pattian|patti|leaf|पत्तियां|पत्ती)\s*(pili|peli|पीली|yellow|pale|lal|red|kali|brown|safed|white)\b",
+        r"\b(pattian|pattiyan|pattiyon|patti|leaf|पत्तियां|पत्ती)\s*(pili|peli|peeli|peele|पीली|yellow|pale|lal|red|kali|brown|safed|white)\b",
         r"\b(fasal|crop|plant|paudha)\s*(pili|peli|pilI|पीली|yellow|sukh|wilt|mar|gal|rot)\s*(rahi|raha|gayi|gaya|ho\s*rahi|pad\s*rahi)?\b",
-        r"\b(pila\s*pad|pili\s*ho|yellow\s*ho|peela\s*ho|pattiyaan\s*pili)\b",
+        r"\b(pila\s*pad|pili\s*ho|peeli\s*ho|peele\s*dhabbe|yellow\s*ho|peela\s*ho|pattiyaan\s*pili|pattiyon\s*par\s*peele)\b",
         # "wheat/crop pili" without explicit verb — catch direct colour + crop combos
         r"\b(wheat|gehu|rice|dhan|maize|makka|cotton|kapas|mustard|sarson|soybean)\s*(pili|yellow|sukh|wilt|kali|red|lal)\b",
         r"\b(pili|yellow|pale|sukh|wilt)\s*(ho\s*rahi|pad\s*rahi|ja\s*rahi|ho\s*gai)\b",
@@ -2563,11 +2563,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         plant_parts = (
             "पत्ती", "पत्तियों", "पत्ते", "तना", "जड़", "फल",
             "leaf", "leaves", "stem", "root", "fruit",
+            "patti", "pattiyan", "pattiyon",
         )
         symptom_terms = (
             "पीला", "पीली", "पीले", "धब्बा", "धब्बे", "दाग", "सूख",
             "मुरझ", "सड़", "झुलस", "छेद", "yellow", "spot", "spots",
             "lesion", "wilt", "rot", "curl", "blight", "rust",
+            "peela", "peeli", "peele", "dhabba", "dhabbe",
         )
         if any(term in q for term in plant_parts) and any(
             term in q for term in symptom_terms
@@ -3583,8 +3585,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             pest_keywords = {
                 "yellow": "पीली पत्तियां — Yellow Rust/Chlorosis",
                 "pili":   "पीली पत्तियां — Yellow Rust/Chlorosis",
+                "पीले":   "पीली पत्तियां — Yellow Rust/Chlorosis",
+                "पीली":   "पीली पत्तियां — Yellow Rust/Chlorosis",
                 "blast":  "Blast disease",
                 "rust":   "Rust disease",
+                "रतुआ":   "Rust disease",
                 "aphid":  "Aphid/Mahu",
                 "mahu":   "Aphid/Mahu",
                 "maahu":  "Aphid/Mahu",
@@ -3603,85 +3608,79 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 (label for kw, label in pest_keywords.items() if kw in q_lower), None
             )
 
+            def _query_has(*terms: str) -> bool:
+                return any(term in q_lower for term in terms)
+
+            has_leaf_context = _query_has(
+                "leaf", "leaves", "patti", "pattian", "pattiyan", "pattiyon",
+                "pattiya", "पत्ती", "पत्तियों", "पत्तियां",
+            )
+            has_yellow_context = _query_has("yellow", "pili", "peeli", "peele", "peela", "पीली", "पीले", "पीला")
+            has_spot_context = _query_has("spot", "spots", "dhabba", "dhabbe", "धब्ब", "दाग", "stripe", "stripes", "धारी")
+            has_grain_context = _query_has("grain", "seed", "ear", "दाना", "दाने", "बाल", "bunt")
+            has_curl_context = _query_has("curl", "मुड़", "mudi", "sticky", "चिपचिप")
+            has_wilt_context = _query_has("wilt", "sukh", "सूख", "मुरझ")
+            has_hole_context = _query_has("hole", "holes", "छेद", "borer", "sundi", "सुंडी")
+
+            def _symptom_summary() -> Tuple[str, str]:
+                if has_yellow_context and has_leaf_context and has_spot_context:
+                    return (
+                        "गेहूं की पत्तियों पर पीले धब्बे/धारियां",
+                        "yellow spots or stripes on wheat leaves",
+                    )
+                if has_yellow_context and has_leaf_context:
+                    return ("पत्तियों का पीलापन", "yellowing leaves")
+                if has_spot_context and has_leaf_context:
+                    return ("पत्तियों पर धब्बे", "leaf spots")
+                if has_grain_context:
+                    return ("दाने/बाल में लक्षण", "grain or ear symptoms")
+                if has_curl_context:
+                    return ("पत्तियों का मुड़ना/चिपचिपाहट", "leaf curl or sticky leaves")
+                if has_wilt_context:
+                    return ("पौधे का सूखना/मुरझाना", "wilting or drying plants")
+                if has_hole_context:
+                    return ("पत्तियों/तने में छेद", "holes in leaves or stems")
+                return ("बताए गए लक्षण", "the symptoms you described")
+
+            symptom_hi, symptom_en = _symptom_summary()
+
             if crop_id and crop_id in _DISEASE_DB:
                 diseases = _DISEASE_DB[crop_id]
                 crop_name_display = crops[0]["name"] if crops else crop_id.title()
 
-                # If specific pest detected, show that one first
-                if detected_pest:
+                # If specific symptoms are present, narrow possibilities to the
+                # symptom family. This avoids suggesting grain-only diseases for
+                # a leaf-spot question.
+                if crop_id == "wheat" and has_grain_context:
+                    relevant = [d for d in diseases if "bunt" in d[0].lower() or "दाने" in d[1]]
+                elif crop_id == "wheat" and has_yellow_context and (has_leaf_context or has_spot_context):
+                    relevant = [
+                        d for d in diseases
+                        if "rust" in d[0].lower() or "रतुआ" in d[0]
+                    ][:2]
+                elif has_curl_context or detected_pest in {"Aphid/Mahu", "Whitefly"}:
+                    relevant = [
+                        d for d in diseases
+                        if any(word in (d[0] + d[1]).lower() for word in ("aphid", "mahu", "माहू", "whitefly"))
+                    ]
+                elif has_hole_context:
+                    relevant = [
+                        d for d in diseases
+                        if any(word in (d[0] + d[1]).lower() for word in ("borer", "sundi", "सुंडी", "छेद", "bollworm"))
+                    ]
+                elif detected_pest:
                     relevant = [d for d in diseases if any(
-                        kw in d[0].lower() or kw in d[1].lower()
-                        for kw in q_lower.split()
-                    )] or diseases[:2]
+                        kw and (kw in d[0].lower() or kw in d[1].lower())
+                        for kw in re.split(r"\s+", q_lower)
+                    )]
+                    if not relevant:
+                        relevant = diseases[:2]
                 else:
-                    relevant = diseases[:3]
-
-                body = {
-                    "hi": (
-                        f"🐛 **{crop_name_display} — कीट/रोग उपचार ({loc})**\n\n"
-                        + "".join(
-                            f"**{i+1}. {dis}**\n"
-                            f"   🔍 लक्षण: {sym}\n"
-                            f"   💊 उपचार: {trt}\n\n"
-                            for i, (dis, sym, trt) in enumerate(relevant)
-                        )
-                        + f"📸 **फोटो पहचान:** KrishiRaksha में तस्वीर अपलोड करें → AI से 150+ रोग पहचान\n"
-                        + f"🌿 **जैविक विकल्प:** नीम तेल 5ml/L पानी | Trichoderma viride 2.5 kg/ha\n\n"
-                        + (f"⚠️ **स्प्रे रोकें** — अगले 48 घंटे बारिश संभावित\n" if wc.spray_blocked else
-                           f"✅ **स्प्रे के लिए उचित समय:** सुबह 7-10 बजे या शाम 4-6 बजे\n")
-                        + f"\n📞 KVK/ICAR: 1800-180-1551"
-                    ),
-                    "en": (
-                        f"🐛 **{crop_name_display} — Pest/Disease Treatment ({loc})**\n\n"
-                        + "".join(
-                            f"**{i+1}. {dis}**\n"
-                            f"   🔍 Symptoms: {sym}\n"
-                            f"   💊 Treatment: {trt}\n\n"
-                            for i, (dis, sym, trt) in enumerate(relevant)
-                        )
-                        + f"📸 **Photo ID:** Upload photo in KrishiRaksha → AI identifies 150+ diseases\n"
-                        + f"🌿 **Organic:** Neem oil 5ml/L | Trichoderma viride 2.5 kg/ha\n\n"
-                        + (f"⚠️ **Hold spray** — rain in 48h\n" if wc.spray_blocked else
-                           f"✅ **Best spray time:** 7-10 AM or 4-6 PM\n")
-                        + f"\n📞 KVK/ICAR: 1800-180-1551"
-                    ),
-                }.get(lang, f"{crop_name_display} diseases: {'; '.join(d[0] for d in relevant[:2])}. Spray {relevant[0][2] if relevant else 'Mancozeb 0.25%'}.")
-            else:
-                # Generic pest/disease response
-                body = {
-                    "hi": (
-                        f"🐛 **फसल रोग/कीट उपचार{crop_hint} — {loc}**\n\n"
-                        f"📸 **Step 1:** KrishiRaksha में फोटो अपलोड करें (🐛 बटन)\n"
-                        f"   → EfficientNet-B3 AI से 150+ रोगों की पहचान\n\n"
-                        f"🌿 **तुरंत जैविक उपाय:**\n"
-                        f"• नीम तेल 5ml/L — माहू, सफेद मक्खी, थ्रिप्स\n"
-                        f"• Trichoderma viride 2.5 kg/ha — जड़ सड़न\n"
-                        f"• पीला/नीला sticky trap — कीट निगरानी\n\n"
-                        f"💊 **रासायनिक (ICAR अनुशंसित):**\n"
-                        f"• Imidacloprid 17.8SL 0.5ml/L — माहू, सफेद मक्खी\n"
-                        f"• Mancozeb 0.25% — फफूंद रोग\n"
-                        f"• Propiconazole 0.1% — रतुआ, ब्लाइट\n"
-                        f"• Chlorpyriphos 20EC 2ml/L — तना छेदक\n\n"
-                        + (f"⚠️ **स्प्रे न करें** — 48 घंटे बारिश संभावित\n" if wc.spray_blocked else "")
-                        + f"📞 KVK/ICAR: 1800-180-1551"
-                    ),
-                    "en": (
-                        f"🐛 **Pest/Disease Treatment{crop_hint} — {loc}**\n\n"
-                        f"📸 **Step 1:** Upload photo in KrishiRaksha (🐛 button)\n"
-                        f"   → EfficientNet-B3 AI identifies 150+ diseases\n\n"
-                        f"🌿 **Immediate organic remedies:**\n"
-                        f"• Neem oil 5ml/L — aphids, whitefly, thrips\n"
-                        f"• Trichoderma viride 2.5 kg/ha — root rot\n"
-                        f"• Yellow/blue sticky traps — pest monitoring\n\n"
-                        f"💊 **Chemical (ICAR recommended):**\n"
-                        f"• Imidacloprid 17.8SL 0.5ml/L — aphids, whitefly\n"
-                        f"• Mancozeb 0.25% — fungal diseases\n"
-                        f"• Propiconazole 0.1% — rust, blight\n"
-                        f"• Chlorpyriphos 20EC 2ml/L — stem borers\n\n"
-                        + (f"⚠️ **Hold spray** — rain forecast in 48h\n" if wc.spray_blocked else "")
-                        + f"📞 KVK/ICAR: 1800-180-1551"
-                    ),
-                }.get(lang, "Upload leaf photo in KrishiRaksha for disease ID. Use neem oil first. Call 1800-180-1551.")
+                    relevant = [
+                        d for d in diseases
+                        if not ("bunt" in d[0].lower() or "दाने" in d[1])
+                    ][:3]
+                relevant = relevant or diseases[:2]
             # Classification is intentionally disabled for launch. Historical
             # rule data above is used only to name possible symptom matches; it
             # must never emit a pesticide or dose without an attributable,
@@ -3693,10 +3692,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             body = {
                 "hi": (
                     f"🐛 **लक्षण-आधारित फसल सलाह{crop_hint} — {loc}**\n\n"
+                    f"आपके सवाल में **{symptom_hi}** दिख रहा है। "
                     f"संभावित समस्याएं (पक्की पहचान नहीं): {possible_text}\n\n"
                     "📸 पत्ती के ऊपर-नीचे, तने और पूरी पौध की साफ फोटो अपलोड करें। "
                     "अभी रोग वर्गीकरण बंद है; ऐप केवल फसल, लक्षण और मौसम के आधार पर सलाह देता है।\n\n"
-                    "✅ प्रभावित भाग अलग रखें, जलभराव से बचें और लक्षण कब शुरू हुए यह लिखें।\n"
+                    "✅ अभी जांचें: क्या धब्बे धारियों जैसे हैं, पत्ती के नीचे नारंगी/भूरा चूर्ण है, "
+                    "या खेत में नमी/जलभराव है। प्रभावित भाग अलग रखें और लक्षण कब शुरू हुए यह लिखें।\n"
                     "💊 पक्की पहचान के बिना दवा या मात्रा न चुनें। KVK/कृषि अधिकारी से निदान और "
                     "PPQS/CIB&RC पंजीकृत लेबल की पुष्टि करें।\n"
                     + ("⚠️ अगले 48 घंटे बारिश की संभावना है, अभी छिड़काव न करें।\n" if wc.spray_blocked else "")
@@ -3704,13 +3705,28 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 ),
                 "en": (
                     f"🐛 **Crop Symptom Advisory{crop_hint} — {loc}**\n\n"
+                    f"Your question points to **{symptom_en}**. "
                     f"Possible issues (not a diagnosis): {possible_text}\n\n"
                     "📸 Upload clear photos of both leaf surfaces, the stem, and the whole plant. "
                     "Disease classification is disabled; the app provides advisory from crop, symptoms, and weather only.\n\n"
-                    "✅ Isolate affected parts, avoid waterlogging, and note when symptoms began.\n"
+                    "✅ Check now: whether marks are stripe-like, whether orange/brown powder is visible under the leaf, "
+                    "and whether the plot has excess moisture. Isolate affected parts and note when symptoms began.\n"
                     "💊 Do not choose a chemical or dose without a confirmed diagnosis. Ask a KVK or agriculture officer "
                     "to verify the registered PPQS/CIB&RC label.\n"
                     + ("⚠️ Rain is possible within 48 hours; do not spray now.\n" if wc.spray_blocked else "")
+                    + "\n📞 KVK/ICAR: 1800-180-1551"
+                ),
+                "hinglish": (
+                    f"🐛 **Crop Symptom Advisory{crop_hint} — {loc}**\n\n"
+                    f"Aapke sawal me **{symptom_en}** dikh raha hai. "
+                    f"Possible issues (pakki diagnosis nahi): {possible_text}\n\n"
+                    "📸 Leaf ke upar-niche, stem aur poore plant ki clear photo upload karein. "
+                    "Disease classification abhi disabled hai; app crop, symptoms aur weather ke basis par advisory de raha hai.\n\n"
+                    "✅ Abhi check karein: kya marks stripes jaise hain, leaf ke niche orange/brown powder hai, "
+                    "ya field me zyada nami/waterlogging hai. Affected plants ko mark karein aur symptom start date note karein.\n"
+                    "💊 Confirm diagnosis ke bina chemical ya dose na choose karein. KVK/agriculture officer se "
+                    "PPQS/CIB&RC registered label verify karwaein.\n"
+                    + ("⚠️ Agle 48 hours rain possible hai; abhi spray na karein.\n" if wc.spray_blocked else "")
                     + "\n📞 KVK/ICAR: 1800-180-1551"
                 ),
             }.get(
@@ -3718,7 +3734,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "Upload clear crop photos for symptom advisory. Disease classification is disabled; "
                 "confirm any treatment with your KVK and the registered product label.",
             )
-            return alert_prefix + spray_warning + body
+            return alert_prefix + body
 
         # ── FERTILIZER ────────────────────────────────────────────
         if intent == INTENT_FERTILIZER:

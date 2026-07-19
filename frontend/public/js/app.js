@@ -203,6 +203,12 @@
         return Boolean(currentLocation && _isIndiaCoordinate(currentLatitude, currentLongitude));
     }
 
+    function apiLocationSource() {
+        return ['gps', 'manual_search', 'profile'].includes(currentLocationSource)
+            ? currentLocationSource
+            : 'unknown';
+    }
+
     function renderLocationRequired(container, serviceLabel) {
         if (!container) return;
         container.innerHTML = `<div class="location-required-state" style="padding:24px;text-align:center;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;">
@@ -2017,7 +2023,7 @@
                 location: currentLocation,
                 state: currentState || '',
                 location_confirmed: hasConfirmedLocation(),
-                location_source: currentLocationSource,
+                location_source: apiLocationSource(),
                 language: lang,
                 use_saved_sensor: !withoutSensor,
                 irrigation_type: document.getElementById('fa_irrigation')?.value || 'unknown',
@@ -2481,7 +2487,7 @@
                     longitude: currentLongitude,
                     accuracy: currentLocationAccuracy,
                     location_confirmed: hasConfirmedLocation(),
-                    location_source: currentLocationSource,
+                    location_source: apiLocationSource(),
                     images: images,
                     session_id: diagnosticSessionId,
                 }),
@@ -2677,6 +2683,7 @@
     // ── Conversation history (in-memory + localStorage persistence) ──────────
     // Stores last 10 turns as [{role, content}] — sent to backend on every request
     // so the AI has full multi-turn context.
+    const CHAT_HISTORY_SCHEMA_VERSION = 'v4';
     const GUEST_CHAT_OWNER = `guest:${sessionId}`;
     function _storedChatOwner() {
         try {
@@ -2688,8 +2695,8 @@
     function _chatStorageKeys(owner) {
         const token = String(owner || GUEST_CHAT_OWNER).replace(/[^a-zA-Z0-9:_-]/g, '_');
         return {
-            history: `km_chat_history_${token}`,
-            archives: `km_chat_archives_${token}`,
+            history: `km_chat_history_${CHAT_HISTORY_SCHEMA_VERSION}_${token}`,
+            archives: `km_chat_archives_${CHAT_HISTORY_SCHEMA_VERSION}_${token}`,
         };
     }
     let chatOwner = _storedChatOwner();
@@ -3010,7 +3017,7 @@
                 query: message,
                 location: currentLocation,
                 location_confirmed: hasConfirmedLocation(),
-                location_source: currentLocationSource,
+                location_source: apiLocationSource(),
                 // The chatbot detects the query language/script independently
                 // from the UI language so farmers can naturally switch between
                 // Hindi, Hinglish, English, and regional languages per message.
@@ -3071,7 +3078,7 @@
                     ? { bg: '#e8eaf6', fg: '#3949ab' }
                     : { bg: '#e8f5e9', fg: '#1b5e20' };
             extra += '<span style="display:inline-block;background:' + qualityPalette.bg + ';color:' + qualityPalette.fg + ';border-radius:999px;padding:3px 10px;font-size:0.72rem;font-weight:700;margin-top:6px;">' +
-                'AI/Data Quality: ' + escapeHtml(quality.label) + '</span>';
+                'स्रोत/विश्वसनीयता: ' + escapeHtml(quality.label) + '</span>';
 
             if (data.context && data.context.memory_active) {
                 extra += '<span style="display:inline-block;background:#fff3e0;color:#e65100;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;margin-left:4px;">💾 Memory Active</span>';
@@ -3190,14 +3197,14 @@
             instant_rule: { label: 'Instant advisory', status: 'verified_local' },
             verified_realtime: { label: 'Verified live data', status: 'verified_realtime' },
             verified_official_data: { label: 'Verified official report', status: 'verified_official' },
-            knowledge_base: { label: 'Verified knowledge base', status: 'verified_local' },
-            phase1_rag_ollama: { label: 'Local AI + knowledge base', status: 'local_ai' },
-            phase1_rag_ollama_stream: { label: 'Local AI + knowledge base', status: 'local_ai' },
-            phase1_partial_stream: { label: 'Local AI response interrupted', status: 'degraded' },
-            direct_ollama: { label: 'Local AI fallback', status: 'local_ai' },
-            gemini: { label: 'Cloud AI fallback', status: 'cloud_fallback' },
-            local_ai_busy_fallback: { label: 'AI busy: safe fallback', status: 'degraded' },
-            rule_based_fallback: { label: 'Safe advisory fallback', status: 'degraded' },
+            knowledge_base: { label: 'Verified knowledge answer', status: 'verified_local' },
+            phase1_rag_ollama: { label: 'Knowledge-backed answer', status: 'local_ai' },
+            phase1_rag_ollama_stream: { label: 'Knowledge-backed answer', status: 'local_ai' },
+            phase1_partial_stream: { label: 'Partial knowledge answer', status: 'degraded' },
+            direct_ollama: { label: 'Backup advisory answer', status: 'local_ai' },
+            gemini: { label: 'Backup advisory answer', status: 'cloud_fallback' },
+            local_ai_busy_fallback: { label: 'Busy: safe fallback', status: 'degraded' },
+            rule_based_fallback: { label: 'Safe advisory', status: 'degraded' },
         };
         return fallback[tier] || { label: data.data_source || 'Advisory source', status: 'unknown' };
     }
@@ -3207,7 +3214,7 @@
         if (!badge) return;
         quality = quality || _chatQualityInfo({ data_source: dataSource });
         if (quality.status === 'cloud_fallback') {
-            badge.textContent = 'Cloud AI fallback';
+            badge.textContent = 'Backup advisory answer';
             badge.style.cssText = 'display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
         } else if (quality.status === 'degraded' || quality.status === 'unknown') {
             badge.textContent = quality.label;

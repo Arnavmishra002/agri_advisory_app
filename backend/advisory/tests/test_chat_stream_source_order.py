@@ -316,7 +316,7 @@ class ChatLocalLLMTimeoutTests(SimpleTestCase):
 
         self.assertEqual(quality["status"], "degraded")
         self.assertTrue(quality["is_degraded"])
-        self.assertEqual(quality["label"], "Safe advisory fallback")
+        self.assertEqual(quality["label"], "Safe advisory")
         self.assertTrue(quality["meets_latency_target"])
 
     @patch("advisory.services.chat_intelligence_service._cb_reset")

@@ -33,7 +33,7 @@ class ChatStreamEndpointTests(SimpleTestCase):
                 "data_source": "KrishiMitra KB (instant)",
                 "crops_detected": ["Wheat"],
                 "chatbot_diagnostics": {"selected_tier": "knowledge_base"},
-                "ai_data_quality": {"label": "Verified knowledge base"},
+                "ai_data_quality": {"label": "Verified knowledge answer"},
                 "sources": ["ICAR soil guidance"],
             },
         ])
@@ -78,6 +78,80 @@ class ChatStreamEndpointTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error_code"], "INVALID_REQUEST")
+
+    @patch("advisory.api.viewsets.chatbot._dispatch_writes")
+    @patch("advisory.api.viewsets.chatbot._load_farmer_context", return_value={})
+    @patch(
+        "advisory.api.viewsets.chatbot._build_history_and_context",
+        return_value=([], {}, "en"),
+    )
+    @patch("advisory.api.viewsets.chatbot.chat_intelligence_service.answer")
+    def test_json_accepts_web_unconfirmed_location_source(
+        self,
+        answer,
+        _history_context,
+        _farmer_context,
+        _dispatch_writes,
+    ):
+        answer.return_value = {
+            "response": "Hello farmer.",
+            "intent": "greeting",
+            "language": "en",
+            "sources": ["KrishiMitra Advisory Engine"],
+            "data_source": "KrishiMitra Advisory Engine",
+            "chatbot_diagnostics": {"selected_tier": "instant_rule"},
+            "ai_data_quality": {"label": "Instant advisory"},
+        }
+
+        response = self.client.post(
+            "/api/chatbot/query/",
+            data=json.dumps({
+                "query": "hello",
+                "language": "auto",
+                "location_confirmed": False,
+                "location_source": "unconfirmed",
+                "history": [],
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["intent"], "greeting")
+
+    @patch("advisory.api.viewsets.chatbot._dispatch_writes")
+    @patch("advisory.api.viewsets.chatbot._load_farmer_context", return_value={})
+    @patch(
+        "advisory.api.viewsets.chatbot._build_history_and_context",
+        return_value=([], {}, "en"),
+    )
+    @patch("advisory.api.viewsets.chatbot.chat_intelligence_service.answer_stream")
+    def test_stream_accepts_web_unconfirmed_location_source(
+        self,
+        answer_stream,
+        _history_context,
+        _farmer_context,
+        _dispatch_writes,
+    ):
+        answer_stream.return_value = iter([
+            "Hello farmer.",
+            {"__done__": True, "intent": "greeting", "language": "en"},
+        ])
+
+        response = self.client.post(
+            "/api/chatbot/stream/",
+            data=json.dumps({
+                "query": "hello",
+                "language": "auto",
+                "location_confirmed": False,
+                "location_source": "unconfirmed",
+                "history": [],
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        frames = "".join(part.decode("utf-8") for part in response.streaming_content)
+        self.assertIn("Hello farmer.", frames)
 
     @patch("advisory.api.viewsets.chatbot._dispatch_writes")
     @patch("advisory.api.viewsets.chatbot._load_farmer_context", return_value={})
