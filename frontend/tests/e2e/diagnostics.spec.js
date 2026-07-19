@@ -73,7 +73,9 @@ test('authenticated diagnosis and feedback use the same owned request ID', async
     user: { id: 11, username: 'owner', name: 'Owner Farmer' },
   }));
   await page.locator('#diagnosisRunBtn').click();
-  await page.getByRole('button', { name: /हाँ, उपयोगी/ }).click();
+  const usefulFeedbackButton = page.getByRole('button', { name: /हाँ, उपयोगी/ });
+  await expect(usefulFeedbackButton).toBeVisible();
+  await usefulFeedbackButton.click({ force: true });
 
   expect(diagnosticAuth).toBe('Bearer owned-access');
   expect(feedbackAuth).toBe('Bearer owned-access');

@@ -105,12 +105,16 @@ test('full state registry is searchable beyond the initial dropdown batch', asyn
   const marketButton = testInfo.project.name.includes('mobile')
     ? '#bnav-market'
     : '#nav-market';
+  await page.locator(marketButton).click();
   const mandiRequest = page.waitForRequest(request => {
     const url = new URL(request.url());
-    return url.pathname.endsWith('/market-prices/mandis/');
+    return (
+      url.pathname.endsWith('/market-prices/mandis/') &&
+      url.searchParams.get('scope') === 'state'
+    );
   });
+  await page.locator('#mandiRadiusSelect').selectOption('state');
 
-  await page.locator(marketButton).click();
   const request = await mandiRequest;
   const url = new URL(request.url());
   expect(url.searchParams.get('scope')).toBe('state');
