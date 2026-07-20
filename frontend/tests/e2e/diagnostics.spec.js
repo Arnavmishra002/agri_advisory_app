@@ -10,6 +10,16 @@ const advisoryResponse = {
 };
 
 async function openDiagnostics(page) {
+  await page.route('**/api/health/', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: '{"status":"healthy"}',
+  }));
+  await page.route('**/api/diagnostics/crop-search/**', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: '{"results":[]}',
+  }));
   await page.goto('/');
   await page.waitForFunction(() => typeof window.runKrishiRakshaDiagnosis === 'function');
   await page.evaluate(() => window.showService('pest-control'));
@@ -75,12 +85,15 @@ test('authenticated diagnosis and feedback use the same owned request ID', async
   await page.locator('#diagnosisRunBtn').click();
   const usefulFeedbackButton = page.getByRole('button', { name: /हाँ, उपयोगी/ });
   await expect(usefulFeedbackButton).toBeVisible();
-  const feedbackRequest = page.waitForRequest(request => {
-    const url = new URL(request.url());
-    return url.pathname.endsWith('/api/diagnostics/feedback/');
-  });
-  await usefulFeedbackButton.click({ force: true });
-  await feedbackRequest;
+  await usefulFeedbackButton.scrollIntoViewIfNeeded();
+  await expect(usefulFeedbackButton).toBeInViewport();
+  await Promise.all([
+    page.waitForRequest(request => {
+      const url = new URL(request.url());
+      return url.pathname.endsWith('/api/diagnostics/feedback/');
+    }),
+    usefulFeedbackButton.click(),
+  ]);
 
   expect(diagnosticAuth).toBe('Bearer owned-access');
   expect(feedbackAuth).toBe('Bearer owned-access');
