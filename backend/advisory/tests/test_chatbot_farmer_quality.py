@@ -212,6 +212,50 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertIn("Soil Organic Carbon", response)
         self.assertNotIn("Dominant soil type", response)
 
+    def test_crop_info_timeout_fallback_answers_drainage_question(self):
+        query = (
+            "Why is drainage important for soybean during monsoon? "
+            "Give three practical steps."
+        )
+        intent, crops = self.service.classify_query(query)
+
+        response = self.service._smart_rule_response(
+            query=query,
+            intent=intent,
+            crops=crops,
+            ctx=self.ctx,
+            context_block="",
+            lang="en",
+            history=[],
+            sc=SensorContext(),
+            wc=WeatherConstraints(),
+        )
+
+        self.assertEqual(intent, "crop_info")
+        self.assertIn("soybean", response.lower())
+        self.assertIn("drainage", response.lower())
+        self.assertIn("waterlogging", response.lower())
+        self.assertIn("1.", response)
+        self.assertIn("2.", response)
+        self.assertIn("3.", response)
+        self.assertNotIn("Crop Recommendations", response)
+
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    def test_crop_drainage_question_uses_fast_grounded_path(self, phase1_post):
+        started = time.monotonic()
+        chunks = list(self.service.answer_stream(
+            "Why is drainage important for soybean during monsoon? Give three practical steps.",
+            self.ctx,
+            language="en",
+        ))
+        elapsed_ms = (time.monotonic() - started) * 1000
+        text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+
+        self.assertLess(elapsed_ms, 500)
+        self.assertIn("Drainage matters for Soybean", text)
+        self.assertEqual(chunks[-1]["chatbot_diagnostics"]["selected_tier"], "instant_rule")
+        phase1_post.assert_not_called()
+
     @patch("advisory.services.chat_intelligence_service.requests.post")
     def test_crop_profile_stream_skips_local_model_and_finishes_fast(self, phase1_post):
         started = time.monotonic()

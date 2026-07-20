@@ -1177,6 +1177,34 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
             }
 
+        crop_management_answer = (
+            self._crop_information_fallback(query, crops_mentioned, lang)
+            if intent == INTENT_CROP_INFO
+            else None
+        )
+        if crop_management_answer:
+            now = datetime.now(tz=timezone.utc)
+            data_source = "KrishiMitra verified crop-management rules"
+            _set_chat_meta(
+                selected_tier="instant_rule",
+                fallback_reason="grounded_crop_management_fast_path",
+                total_llm_ms=int((_time.monotonic() - answer_started) * 1000),
+            )
+            diagnostics = dict(_chat_meta())
+            return {
+                "response": crop_management_answer,
+                "intent": intent,
+                "sources": ["KrishiMitra crop profile 2026.07-beta1"],
+                "crops_detected": [crop["name"] for crop in crops_mentioned],
+                "crop_suggestions": [],
+                "language": lang,
+                "data_source": data_source,
+                "timestamp": now.isoformat(),
+                "location_context": ctx.to_dict() if hasattr(ctx, "to_dict") else None,
+                "chatbot_diagnostics": diagnostics,
+                "ai_data_quality": chatbot_quality_metadata(data_source, diagnostics),
+            }
+
         location_required_intents = {
             INTENT_WEATHER,
             INTENT_CROP_RECOMMENDATION,
@@ -2837,6 +2865,73 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             + "\n\nNext step today: test field pH and drainage, then confirm the variety and planting window with the local KVK."
         )
 
+    @staticmethod
+    def _crop_information_fallback(
+        query: str,
+        crops_mentioned: List[Dict[str, Any]],
+        lang: str,
+    ) -> Optional[str]:
+        """Answer bounded crop-management questions when the AI tiers time out."""
+        if len(crops_mentioned) != 1:
+            return None
+
+        crop = crops_mentioned[0]
+        crop_id = crop.get("id")
+        profile = _ALL_CROP_DATA.get(crop_id, {})
+        if not profile:
+            return None
+
+        q = query.lower()
+        drainage_question = bool(re.search(
+            r"\b(?:drainage|waterlog(?:ging|ged)?|standing\s+water|monsoon|"
+            r"jal\s*bharav|pani\s*nikas|paani\s*nikaas)\b|"
+            r"जलभराव|जल\s*निकास|पानी\s*निकास|मानसून",
+            q,
+            re.IGNORECASE,
+        ))
+        if not drainage_question:
+            return None
+
+        name = crop.get("name") or str(crop_id).replace("_", " ").title()
+        hindi_name = crop.get("hindi") or name
+        water_need = str(profile.get("water_requirement") or "not recorded")
+        season = str(profile.get("season") or "not recorded")
+
+        if lang == "hi":
+            return (
+                f"**{hindi_name} में मानसून के दौरान जल निकास जरूरी है।** लंबे समय तक जलभराव रहने से "
+                "जड़ों को ऑक्सीजन कम मिलती है, जड़ सड़न का खतरा बढ़ता है और पौधे पोषक तत्व ठीक से नहीं ले पाते। "
+                f"इस फसल की दर्ज पानी की जरूरत **{water_need}** और मौसम **{season}** है, लेकिन खेत में खड़ा पानी लाभकारी नहीं है।\n\n"
+                "**अभी ये 3 काम करें:**\n"
+                "1. मुख्य नाली और कतारों के बीच की छोटी नालियां खोलकर पानी को सुरक्षित निकास दें।\n"
+                "2. हर तेज बारिश के बाद खेत के निचले हिस्सों की जांच करें और जमा पानी तुरंत निकालें।\n"
+                "3. मिट्टी संतृप्त रहने तक सिंचाई रोकें; अगली सिंचाई से पहले जड़ क्षेत्र की नमी हाथ से जांचें।\n\n"
+                "पौधे पीले पड़ें, मुरझाएं या जड़ काली दिखे तो फोटो और खेत की स्थिति स्थानीय KVK को दिखाएं।"
+            )
+
+        if lang == "hinglish":
+            return (
+                f"**Monsoon mein {name} ke liye drainage zaroori hai.** Zyada der waterlogging rehne se "
+                "roots ko oxygen kam milti hai, root disease ka risk badhta hai aur nutrient uptake kam ho sakta hai. "
+                f"Is crop ki recorded water need **{water_need}** aur season **{season}** hai, lekin standing water faydemand nahi hai.\n\n"
+                "**Abhi ye 3 steps karein:**\n"
+                "1. Main drain aur rows ke beech ki chhoti drains kholkar pani ko safe outlet dein.\n"
+                "2. Har heavy rain ke baad low spots check karein aur jama pani turant nikalein.\n"
+                "3. Mitti saturated ho to irrigation rokein; agali irrigation se pehle root-zone moisture check karein.\n\n"
+                "Plants yellow ya wilt hon, ya roots kaali dikhein, to photo aur field condition local KVK ko dikhayein."
+            )
+
+        return (
+            f"**Drainage matters for {name} during the monsoon.** Prolonged waterlogging reduces oxygen around "
+            "the roots, raises root-disease risk, and limits nutrient uptake. "
+            f"Its recorded water requirement is **{water_need}** and season is **{season}**, but standing water is not beneficial.\n\n"
+            "**Take these 3 practical steps:**\n"
+            "1. Open the main field drain and shallow channels between rows so water has a safe outlet.\n"
+            "2. Check low spots after every heavy rain and remove standing water promptly.\n"
+            "3. Stop irrigation while the soil is saturated; check root-zone moisture before irrigating again.\n\n"
+            "If plants yellow or wilt, or roots turn dark, share a photo and field conditions with the local KVK."
+        )
+
     def _extract_query_entities(self, query: str) -> Dict[str, Any]:
         """
         Extract structured entities from free-form farming queries.
@@ -3396,8 +3491,28 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             # same WeatherConstraints text duplicates every warning.
             return resp
 
+        # ── CROP INFORMATION ─────────────────────────────────────
+        if intent == INTENT_CROP_INFO:
+            crop_answer = self._crop_information_fallback(query, crops, lang)
+            if crop_answer:
+                return alert_prefix + crop_answer
+            return alert_prefix + {
+                "hi": (
+                    "इस फसल से जुड़े सवाल का सुरक्षित, स्रोत-आधारित उत्तर अभी उपलब्ध नहीं हो पाया। "
+                    "कृपया फसल की अवस्था, खेत की समस्या और हाल की सिंचाई/बारिश बताएं; तब मैं अधिक सटीक सलाह दूंगा।"
+                ),
+                "hinglish": (
+                    "Is crop question ka safe, source-based answer abhi available nahi ho paya. "
+                    "Crop stage, field problem aur recent irrigation/rain batayein, phir main zyada exact advice dunga."
+                ),
+                "en": (
+                    "I could not verify a safe, source-based answer to this crop question just now. "
+                    "Please add the crop stage, field symptom, and recent irrigation or rainfall for a more precise answer."
+                ),
+            }.get(lang, "Please add the crop stage and field condition so I can give a safe, specific answer.")
+
         # ── CROP RECOMMENDATION ──────────────────────────────────
-        if intent in (INTENT_CROP_RECOMMENDATION, INTENT_CROP_INFO):
+        if intent == INTENT_CROP_RECOMMENDATION:
             rec_lines = [l for l in context_block.splitlines() if "suitability" in l]
 
             header = {
@@ -5026,7 +5141,13 @@ def _answer_stream(
         yield _done_payload("KrishiMitra Advisory Engine")
         return
 
-    if self._crop_profile_answer(query, crops_mentioned, lang):
+    if (
+        self._crop_profile_answer(query, crops_mentioned, lang)
+        or (
+            intent == INTENT_CROP_INFO
+            and self._crop_information_fallback(query, crops_mentioned, lang)
+        )
+    ):
         result = self.answer(
             query=query,
             ctx=ctx,
