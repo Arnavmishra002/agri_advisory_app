@@ -194,7 +194,8 @@ Create `.env` first and set at least `SECRET_KEY`.
 cp .env.example .env
 ```
 
-Common commands:
+Local development commands (the automatically loaded
+`docker-compose.override.yml` uses Django hot reload and SQLite):
 
 ```bash
 # API plus built frontend served by Django, host port 8001
@@ -206,12 +207,31 @@ docker compose --profile ai up --build web phase1
 # API plus nginx static UI, host ports 8001 and 8080
 docker compose --profile full up --build
 
-# Full stack: Django, nginx, PostgreSQL, Redis, Phase 1, MQTT
+# Development full stack
 docker compose --profile all up --build
 ```
 
 The compose file stores runtime state in named volumes for the database,
 uploads, static files, Redis, MQTT, and mounted ML models.
+
+For a production deployment, create an untracked `.env.production` with every
+required secret from `.env.example`, then use the production overlay explicitly:
+
+```bash
+docker compose --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.production.yml \
+  --profile all config --quiet
+
+docker compose --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.production.yml \
+  --profile all up --build -d
+```
+
+The explicit `-f` files prevent the local development override from loading.
+This production path uses Gunicorn, PostgreSQL, shared Redis rate limits/cache,
+strict RAG startup, and bearer authentication between Django and Phase 1. It
+fails before startup when the database password, data.gov.in key, Sentry DSN,
+OTP credentials, host/origin restrictions, or Phase 1 token are missing.
 
 ## Crop Disease Model
 
@@ -222,7 +242,10 @@ models/crop_disease/efficientnetb3_crop_disease.keras
 ```
 
 Large datasets and trained model artifacts are intentionally not committed.
-Install or mount the model in production, or train one from local datasets.
+Install or mount a validated model in production, or train one from local
+datasets. Advisory-only diagnostics are launch-safe and remain the default;
+an unverified image classifier is never enabled merely because a `.keras` file
+exists.
 
 Install ML dependencies:
 

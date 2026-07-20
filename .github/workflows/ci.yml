@@ -642,6 +642,33 @@ jobs:
         run: |
           docker compose config --quiet
           docker compose config | grep -q "PHASE1_CORS_ALLOWED_ORIGINS"
+          POSTGRES_PASSWORD=ci-postgres-password \
+          DATA_GOV_IN_API_KEY=ci-data-gov-key \
+          SENTRY_DSN=https://public@example.invalid/1 \
+          TWILIO_ACCOUNT_SID=AC-ci \
+          TWILIO_AUTH_TOKEN=ci-twilio-token \
+          TWILIO_FROM_NUMBER=+911234567890 \
+          PHASE1_SERVICE_TOKEN=ci-phase1-token \
+          ALLOWED_HOSTS=api.example.invalid \
+          CORS_ALLOWED_ORIGINS=https://app.example.invalid \
+          CSRF_TRUSTED_ORIGINS=https://app.example.invalid \
+            docker compose -f docker-compose.yml -f docker-compose.production.yml \
+              --profile all config --quiet
+          if POSTGRES_PASSWORD=ci-postgres-password \
+             DATA_GOV_IN_API_KEY=ci-data-gov-key \
+             SENTRY_DSN=https://public@example.invalid/1 \
+             TWILIO_ACCOUNT_SID=AC-ci \
+             TWILIO_AUTH_TOKEN=ci-twilio-token \
+             TWILIO_FROM_NUMBER=+911234567890 \
+             PHASE1_SERVICE_TOKEN=ci-phase1-token \
+             ALLOWED_HOSTS=api.example.invalid \
+             CORS_ALLOWED_ORIGINS=https://app.example.invalid \
+             CSRF_TRUSTED_ORIGINS=https://app.example.invalid \
+               docker compose -f docker-compose.yml -f docker-compose.production.yml \
+                 --profile all config | grep -q "runserver"; then
+            echo "Production Compose must not start Django runserver"
+            exit 1
+          fi
           echo "Docker Compose contract passed"
 
       - name: Build and start API plus Phase 1
