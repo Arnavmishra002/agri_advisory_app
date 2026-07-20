@@ -304,23 +304,43 @@ def readiness_check(request):
         checks["chatbot_runtime"] = "unavailable"
 
     # ── Crop disease ML model ────────────────────────────────────────────────
+    # Advisory-only diagnostics are a supported farmer-safe operating mode. An
+    # unverified classifier must remain disabled, but it must not make runtime
+    # readiness look unhealthy when the API is deliberately using that mode.
     try:
         from advisory.ml.config import DEFAULT_MODEL_DIR, MODEL_FILENAME, LABELS_FILENAME
         from advisory.ml.labels import load_labels
         from advisory.ml.model_metadata import load_model_metadata, readiness_summary
+        classification_enabled = os.environ.get(
+            "DISEASE_CLASSIFICATION_ENABLED", "false"
+        ).lower() in {"1", "true", "yes"}
         model_path = DEFAULT_MODEL_DIR / MODEL_FILENAME
         labels_path = DEFAULT_MODEL_DIR / LABELS_FILENAME
         if model_path.exists() and labels_path.exists():
             labels = load_labels(labels_path)
             metadata = load_model_metadata(DEFAULT_MODEL_DIR, labels)
-            checks["crop_disease_model"] = readiness_summary(metadata)
+            candidate_summary = readiness_summary(metadata)
         else:
-            checks["crop_disease_model"] = (
+            candidate_summary = (
                 f"missing ({model_path.name}); diagnostics use advisory_fallback"
             )
+        checks["crop_disease_candidate"] = candidate_summary
+        checks["crop_disease_model"] = (
+            candidate_summary
+            if classification_enabled
+            else "ok (advisory_fallback; image classification disabled)"
+        )
     except Exception as exc:
         logger.exception("readiness crop disease model check failed: %s", exc)
-        checks["crop_disease_model"] = "unavailable"
+        classification_enabled = os.environ.get(
+            "DISEASE_CLASSIFICATION_ENABLED", "false"
+        ).lower() in {"1", "true", "yes"}
+        checks["crop_disease_candidate"] = "unavailable"
+        checks["crop_disease_model"] = (
+            "unavailable"
+            if classification_enabled
+            else "ok (advisory_fallback; image classification disabled)"
+        )
 
     readiness_status = _readiness_status(checks, hard_ready=overall_ok)
     status_code = 503 if readiness_status == "not_ready" else 200

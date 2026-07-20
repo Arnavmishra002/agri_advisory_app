@@ -53,6 +53,19 @@ class LaunchReadinessTests(SimpleTestCase):
             "not_ready",
         )
 
+    def test_advisory_only_disease_mode_does_not_degrade_runtime(self):
+        checks = {
+            "cache": "ok",
+            "redis": "ok (shared)",
+            "phase1_ai": "ok (rag=True, ollama=True)",
+            "ollama": "ok (model=qwen2.5:7b, present=yes)",
+            "chatbot_runtime": "ok (local_ai_active=0/1, phase1_cb=closed)",
+            "crop_disease_model": "ok (advisory_fallback; image classification disabled)",
+            "crop_disease_candidate": "degraded (needs validation)",
+        }
+
+        self.assertEqual(_readiness_status(checks, hard_ready=True), "ready")
+
     @override_settings(DEBUG=True, RATE_LIMIT_ENABLED=False, SENTRY_DSN="")
     @patch.dict("os.environ", {"LAUNCH_CHECK": "false"}, clear=True)
     @patch("advisory.api.monitoring_views.readiness_check")

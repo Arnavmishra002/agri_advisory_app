@@ -92,6 +92,7 @@ class KrishiRakshaPestService:
         if raw_diagnosis is None:
             ml_status = (ml_result or {}).get("status")
             if ml_status in (
+                "classification_disabled",
                 "model_unavailable",
                 "model_unverified",
                 "tensorflow_missing",
@@ -113,6 +114,7 @@ class KrishiRakshaPestService:
 
         status = "advisory_fallback" if advisory_fallback else "success"
         if not advisory_fallback and ml_result and ml_result.get("status") in (
+            "classification_disabled",
             "low_confidence",
             "not_plant",
             "model_unavailable",
@@ -304,7 +306,13 @@ class KrishiRakshaPestService:
         if not ml_result:
             return None
         status = ml_result.get("status")
-        if status in ("model_unavailable", "model_unverified", "tensorflow_missing", "error"):
+        if status in (
+            "classification_disabled",
+            "model_unavailable",
+            "model_unverified",
+            "tensorflow_missing",
+            "error",
+        ):
             return None
         if status == "not_plant":
             return [
