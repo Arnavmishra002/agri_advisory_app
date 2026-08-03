@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import threading
 import time
 from dataclasses import asdict, dataclass, field
@@ -57,6 +58,7 @@ KNOWN_INDIAN_PLACES: Dict[str, Dict[str, Any]] = {
     "ahmedabad": {"lat": 23.0225, "lon": 72.5714, "city": "Ahmedabad", "state": "Gujarat", "region": "West"},
     "jaipur": {"lat": 26.9124, "lon": 75.7873, "city": "Jaipur", "state": "Rajasthan", "region": "North"},
     "lucknow": {"lat": 26.8467, "lon": 80.9462, "city": "Lucknow", "state": "Uttar Pradesh", "region": "North"},
+    "varanasi": {"lat": 25.3176, "lon": 82.9739, "city": "Varanasi", "state": "Uttar Pradesh", "region": "North"},
     "chandigarh": {"lat": 30.7333, "lon": 76.7794, "city": "Chandigarh", "state": "Chandigarh", "region": "North"},
     "indore": {"lat": 22.7196, "lon": 75.8577, "city": "Indore", "state": "Madhya Pradesh", "region": "Central"},
     "bhopal": {"lat": 23.2599, "lon": 77.4126, "city": "Bhopal", "state": "Madhya Pradesh", "region": "Central"},
@@ -72,6 +74,14 @@ KNOWN_INDIAN_PLACES: Dict[str, Dict[str, Any]] = {
 NOMINATIM_REVERSE = "https://nominatim.openstreetmap.org/reverse"
 NOMINATIM_SEARCH = "https://nominatim.openstreetmap.org/search"
 BIGDATACLOUD_REVERSE = "https://api.bigdatacloud.net/data/reverse-geocode-client"
+
+def _nominatim_timeout() -> Tuple[float, float]:
+    """Keep a DNS/provider outage from blocking a farmer request."""
+    try:
+        read_timeout = max(0.5, float(os.getenv("NOMINATIM_READ_TIMEOUT_S", "2")))
+    except (TypeError, ValueError):
+        read_timeout = 2.0
+    return (0.5, read_timeout)
 
 # Nominatim zoom: 18 ≈ building, 16 ≈ street, 14 ≈ village, 10 ≈ city
 def _zoom_for_accuracy(accuracy_meters: Optional[float]) -> int:
@@ -430,7 +440,7 @@ class LocationResolver:
                         "addressdetails": 1,
                         "zoom": zoom,
                     },
-                    timeout=(3, 15),
+                    timeout=_nominatim_timeout(),
                 )
                 if resp.status_code != 200:
                     return None
@@ -560,7 +570,7 @@ class LocationResolver:
                     "countrycodes": "in",
                     "addressdetails": 1,
                 },
-                timeout=(3, 15),
+                timeout=_nominatim_timeout(),
             )
             if resp.status_code != 200:
                 return []

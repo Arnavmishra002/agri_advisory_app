@@ -1,4 +1,5 @@
 from unittest.mock import Mock, patch
+from datetime import datetime, timezone
 
 from django.test import TestCase
 
@@ -7,9 +8,97 @@ from advisory.services.agmarknet_direct_client import AgmarknetDirectClient
 from advisory.services.data_gov_mandi_client import DataGovMandiClient
 from advisory.services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI
 from advisory.services.unified_realtime_service import MarketPricesService
+from advisory.services.market_data_quality import (
+    build_dated_official_reference,
+    filter_fresh_live_rows,
+)
 
 
 class MarketDataSecurityTests(TestCase):
+    def test_official_rows_older_than_one_day_are_not_current(self):
+        rows, age, _ = filter_fresh_live_rows(
+            [{
+                "crop_name": "Wheat",
+                "modal_price": 2400,
+                "reported_date": "27-07-2026",
+                "is_live": True,
+            }],
+            now=datetime(2026, 7, 29, 12, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(rows, [])
+        self.assertIsNone(age)
+
+    def test_recent_older_official_rows_are_kept_only_as_dated_reference(self):
+        rows, age, reported = build_dated_official_reference(
+            [{
+                "crop_name": "Wheat",
+                "modal_price": 2577.54,
+                "reported_date": "27-07-2026",
+                "is_live": True,
+                "price_source": "agmarknet_state_average",
+            }],
+            now=datetime(2026, 7, 29, 12, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(len(rows), 1)
+        self.assertFalse(rows[0]["is_live"])
+        self.assertEqual(rows[0]["freshness"], "dated_official")
+        self.assertEqual(reported, "27-07-2026")
+        self.assertGreater(age, 24 * 60)
+
+    @patch("advisory.services.data_gov_mandi_client.data_gov_mandi_client.get_national_prices")
+    @patch("advisory.services.agmarknet_client.agmarknet_client.get_market_prices")
+    def test_market_service_exposes_dated_official_state_reference_without_calling_it_live(
+        self, agmarknet, national
+    ):
+        national.return_value = {
+            "status": "unavailable",
+            "is_live": False,
+            "top_crops": [],
+        }
+        agmarknet.return_value = {
+            "status": "success",
+            "is_live": True,
+            "coverage": "state",
+            "state": "Uttar Pradesh",
+            "data_source": "Agmarknet 2.0 API",
+            "reported_date": "27-07-2026",
+            "top_crops": [{
+                "crop_name": "Wheat",
+                "modal_price": 2527.65,
+                "reported_date": "27-07-2026",
+                "is_live": True,
+                "price_source": "agmarknet_state_average",
+            }],
+        }
+
+        with patch(
+            "advisory.services.market_data_quality.datetime",
+            wraps=datetime,
+        ) as mocked_datetime:
+            mocked_datetime.now.return_value = datetime(
+                2026, 7, 29, 12, tzinfo=timezone.utc
+            )
+            response = MarketPricesService().get_prices(
+                "Varanasi", state="Uttar Pradesh"
+            )
+
+        self.assertEqual(response["status"], "unavailable")
+        self.assertFalse(response["is_live"])
+        self.assertTrue(response["has_dated_official_reference"])
+        self.assertEqual(
+            response["latest_official_rows"][0]["freshness"],
+            "dated_official",
+        )
+        self.assertEqual(
+            response["latest_official_coverage"],
+            "state",
+        )
+        self.assertIn("No estimated price", response["message"])
+        self.assertIn("displayed separately", response["message"])
+        self.assertNotIn("no historical fallback", response["message"].lower())
+
     @patch.object(DataGovMandiClient, "_fetch_data_gov", return_value=None)
     @patch.object(DataGovMandiClient, "_fetch_agmarknet_direct", return_value=None)
     def test_live_client_returns_unavailable_instead_of_seed_prices(
