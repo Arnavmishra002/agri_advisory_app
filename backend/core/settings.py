@@ -86,9 +86,17 @@ if _render_host and _render_host not in ALLOWED_HOSTS:
 # Trust the X-Forwarded-Host header from Render's proxy
 USE_X_FORWARDED_HOST = True
 
+import sys as _sys
+_MGMT_CMDS = {
+    'collectstatic', 'migrate', 'makemigrations', 'check', 'showmigrations',
+    'compilemessages', 'createsuperuser', 'diffsettings', 'shell', 'test',
+}
+_IS_MGMT_CMD = any(_cmd in _sys.argv for _cmd in _MGMT_CMDS)
+
 if (
     not DEBUG
     and not _SECRET_KEY_FROM_ENV
+    and not _IS_MGMT_CMD
 ):
     from django.core.exceptions import ImproperlyConfigured
     raise ImproperlyConfigured(
@@ -460,7 +468,13 @@ STRICT_PRODUCTION_CONFIG = os.environ.get(
     'STRICT_PRODUCTION_CONFIG', 'false' if DEBUG else 'true'
 ).lower() == 'true'
 
-if STRICT_PRODUCTION_CONFIG and not DEBUG and RATE_LIMIT_ENABLED and not _REDIS_URL:
+if (
+    STRICT_PRODUCTION_CONFIG
+    and not DEBUG
+    and RATE_LIMIT_ENABLED
+    and not _REDIS_URL
+    and not _IS_MGMT_CMD  # don't fail the build's collectstatic/migrate step
+):
     from django.core.exceptions import ImproperlyConfigured
     raise ImproperlyConfigured(
         "STRICT_PRODUCTION_CONFIG=true requires REDIS_URL when rate limiting is enabled."
