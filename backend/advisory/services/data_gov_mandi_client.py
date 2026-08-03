@@ -49,7 +49,10 @@ from .msp_data import MSP_2024_25 as _CANONICAL_MSP
 _DATA_GOV_BASE    = "https://api.data.gov.in/resource"
 _RESOURCE_ID      = "9ef84268-d588-465a-a308-a864a43d0070"  # Agmarknet daily prices
 _CACHE_TTL_SECS   = 3600   # 1 hour — prices update once daily at ~9 AM IST
-_REQUEST_TIMEOUT  = (8, 20)  # (connect, read) seconds
+_REQUEST_TIMEOUT  = (
+    max(0.5, float(os.getenv("MANDI_HTTP_CONNECT_TIMEOUT_S", "2"))),
+    max(1.0, float(os.getenv("MANDI_HTTP_READ_TIMEOUT_S", "8"))),
+)  # (connect, read) seconds; fail fast rather than block advice
 _MAX_RECORDS      = 100      # per API call
 
 # ── Placeholder fragments — never use these as real keys ─────────────────────
@@ -195,6 +198,27 @@ class DataGovMandiClient:
             )
             self._cache_set(cache_key, agmarknet_result)
             return agmarknet_result
+
+        # 5. Last resort: scrape the Agmarknet website (SearchCmmMkt.aspx).
+        # Records come back in OGD field shape and go through the SAME formatter
+        # + freshness filter, so scraped rows are labelled and vetted identically
+        # to API rows — stale/undated scraped rows are dropped, never shown live.
+        try:
+            from .agmarknet_scraper import agmarknet_scraper
+            scraped = agmarknet_scraper.fetch_records(commodity=commodity, state=state, days=3)
+            if scraped:
+                formatted = self._format_datagov_response(scraped, state=state, is_live=True)
+                if formatted and formatted.get("top_crops"):
+                    formatted["data_source"] = "Agmarknet website (scraped)"
+                    formatted["data_source_short"] = "Agmarknet live (scraped)"
+                    logger.info(
+                        "data_gov_mandi: Agmarknet scrape returned %d fresh crops",
+                        len(formatted["top_crops"]),
+                    )
+                    self._cache_set(cache_key, formatted)
+                    return formatted
+        except Exception as exc:
+            logger.warning("data_gov_mandi: Agmarknet scrape failed: %s", exc)
 
         logger.warning(
             "data_gov_mandi: no official live rows (commodity=%s state=%s)",

@@ -61,6 +61,11 @@ services:
         sync: false
       - key: GOOGLE_AI_API_KEY
         sync: false
+      # Anthropic Claude — primary chatbot brain (set in Render dashboard)
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: "claude-3-5-sonnet-latest"
       - key: WHATSAPP_TOKEN
         value: ""
       - key: WHATSAPP_PHONE_ID

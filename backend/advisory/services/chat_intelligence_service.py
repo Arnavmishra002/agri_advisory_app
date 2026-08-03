@@ -57,6 +57,16 @@ from .unified_realtime_service import (
 )
 from .msp_data import MSP_MARKETING_SEASON
 
+# Claude (Anthropic) — primary cloud brain. Imported soft so a missing module or
+# key never breaks startup; the tier is simply skipped when unavailable.
+try:
+    from .anthropic_service import claude_service, _is_valid_anthropic_key
+except Exception:  # pragma: no cover - defensive
+    claude_service = None  # type: ignore[assignment]
+
+    def _is_valid_anthropic_key(_key: str) -> bool:  # type: ignore[misc]
+        return False
+
 # ── Additional service imports for full interconnection ──────────────────────
 # These are imported lazily in methods to avoid circular imports at startup,
 # but we reference the module here for IDE type-checking.
@@ -184,6 +194,38 @@ def _safe_model_text(
         _set_chat_meta(fallback_reason="unverified_disease_claim_rejected")
         return None
     return text
+
+
+def _has_unverified_market_claim(
+    text: str,
+    intent: str,
+    prices_data: Optional[Dict[str, Any]],
+) -> bool:
+    """Reject generated market numbers unless the current feed verified them."""
+    if (prices_data or {}).get("is_live"):
+        return False
+
+    # A model may add a plausible-looking price even when the prompt explicitly
+    # says that no official row is available. Currency/numeric market claims are
+    # unsafe for every intent, while the rule path can explain the unavailable
+    # state without inventing a substitute.
+    market_claim = re.search(
+        r"(?:current\s+market|today(?:'s|s)?\s+(?:market|mandi)|market\s+rate|"
+        r"mandi\s+price|current\s+price|current\s+rate|बाजार\s*भाव|मंडी\s*भाव|"
+        r"₹\s*\d|rs\.?\s*\d|inr\s*\d|\d[\d,]*(?:\.\d+)?\s*(?:per\s+kg|/\s*kg|per\s+quintal|/\s*q))",
+        text,
+        re.IGNORECASE,
+    )
+    if market_claim:
+        logger.warning("Rejected generated answer with unverified market claim")
+        _set_chat_meta(fallback_reason="unverified_market_claim_rejected")
+        return True
+
+    # MSP is a separate policy value, but generated answers must not attach it
+    # to an unrelated storage/diagnosis answer when no market context exists.
+    return intent != INTENT_MARKET_PRICE and bool(
+        re.search(r"\b(?:msp|minimum\s+support\s+price)\b", text, re.IGNORECASE)
+    )
 
 def _env_float(name: str, default: float) -> float:
     try:
@@ -1068,7 +1110,20 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         intent, crops_mentioned = self.classify_query(query)
 
         # Multi-turn: inherit crops from recent history when none in current query
-        if not crops_mentioned and history:
+        # A new weather, market, or crop-choice question must not inherit the
+        # previous crop silently. That made a follow-up such as "which crop
+        # should I grow near Mumbai?" answer for the earlier wheat thread.
+        # Management follow-ups such as "how much water does it need?" still
+        # inherit the prior crop as intended.
+        if (
+            not crops_mentioned
+            and history
+            and intent not in {
+                INTENT_WEATHER,
+                INTENT_MARKET_PRICE,
+                INTENT_CROP_RECOMMENDATION,
+            }
+        ):
             for msg in reversed((history or [])[-6:]):
                 past = msg.get("content") or msg.get("message_content") or ""
                 if past:
@@ -1251,12 +1306,15 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             INTENT_GENERAL,
             INTENT_CROP_INFO,
         }
+        storage_market_query = bool(
+            intent == INTENT_STORAGE
+            and re.search(r"\b(mandi|market|price|bhav|भाव|rate|daam|दाम|sell|bech)\b", query, re.I)
+        )
         needs_prices = intent in {
             INTENT_MARKET_PRICE,
             INTENT_CROP_RECOMMENDATION,
             INTENT_PROFIT_CALC,
-            INTENT_STORAGE,
-        }
+        } or storage_market_query
         needs_iot = intent in {
             INTENT_IRRIGATION,
             INTENT_FERTILIZER,
@@ -1494,6 +1552,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         structured_rule_path = (
             fast_mode
             or intent == INTENT_SOWING
+            or intent == INTENT_STORAGE
+            or intent == INTENT_CROP_RECOMMENDATION
             or _is_residue_management_query(query, intent)
         )
         model_composition_allowed = (
@@ -1509,17 +1569,40 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             wc=wc,
         )
 
-        # Tier 1: krishimitra-llm — analyses ALL real-time data before responding
-        if not response_text and model_composition_allowed:
-            response_text = _safe_model_text(self._qwen_rag_answer(
-                query=query, ctx=ctx, lang=lang, history=history,
-                sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
-                local_kb_context=kb_grounding,
-            ), intent, lang)
-            if response_text:
-                data_source = _chat_meta().get("source_label") or "KrishiMitra local RAG"
+        # Hybrid brain: cloud LLMs are PRIMARY (most capable, question-aware),
+        # local Qwen is the offline fallback, rules are the last resort. Every
+        # tier uses the same per-request grounded prompt (live weather/mandi/RAG/
+        # history/profile) so answers are composed fresh, never pre-stored, and
+        # every output passes the same truthfulness guards.
 
-        # Tier 2: Gemini API — optional cloud, only when LLM unavailable
+        # Tier 1: Claude (Anthropic) — primary cloud brain
+        has_claude = (
+            model_composition_allowed
+            and claude_service is not None
+            and _is_valid_anthropic_key(getattr(claude_service, "api_key", ""))
+        )
+        if not response_text and has_claude:
+            try:
+                rendered = self._render_grounded_prompt(
+                    query=query, ctx=ctx, sc=sc, wc=wc, rag=rag,
+                    market_price_str=market_str, history_block=history_block,
+                    lang=lang, season=season,
+                )
+                response_text = _safe_model_text(claude_service.generate(
+                    prompt=rendered, system_prompt="",
+                    max_tokens=1600, user_query=query, temperature=0.3,
+                ), intent, lang)
+                if response_text and _has_unverified_market_claim(
+                    response_text, intent, prices_data
+                ):
+                    response_text = None
+                if response_text:
+                    _set_chat_meta(selected_tier="claude", fallback_reason="")
+                    data_source = "Claude AI + Official gov APIs"
+            except Exception as exc:
+                logger.warning("Claude failed: %s — trying next tier", exc)
+
+        # Tier 2: Gemini API — cloud fallback
         has_gemini = model_composition_allowed and _is_valid_gemini_key(
             gemini_service.api_key
         )
@@ -1534,15 +1617,33 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
                 ), intent, lang)
+                if response_text and _has_unverified_market_claim(
+                    response_text, intent, prices_data
+                ):
+                    response_text = None
                 if response_text:
                     _set_chat_meta(selected_tier="gemini", fallback_reason="")
                     data_source = "Gemini AI + Official gov APIs"
                 else:
-                    logger.warning("Gemini returned empty — using rule-based")
+                    logger.warning("Gemini returned empty — trying local LLM")
             except Exception as exc:
-                logger.warning("Gemini failed: %s — using rule-based", exc)
+                logger.warning("Gemini failed: %s — trying local LLM", exc)
 
-        # Tier 3: Rule-based (instant, ICAR-grounded, always available)
+        # Tier 3: Local krishimitra-llm (Qwen/Ollama) — offline fallback
+        if not response_text and model_composition_allowed:
+            response_text = _safe_model_text(self._qwen_rag_answer(
+                query=query, ctx=ctx, lang=lang, history=history,
+                sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
+                local_kb_context=kb_grounding, include_weather=needs_weather,
+            ), intent, lang)
+            if response_text and _has_unverified_market_claim(
+                response_text, intent, prices_data
+            ):
+                response_text = None
+            if response_text:
+                data_source = _chat_meta().get("source_label") or "KrishiMitra local RAG"
+
+        # Tier 4: Rule-based (instant, ICAR-grounded, always available)
         # Used when: fast_mode=True OR LLM offline OR Gemini unavailable
         if not response_text:
             if structured_rule_path:
@@ -1629,6 +1730,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         market_str: str,
         farmer_profile: Optional[Dict[str, Any]] = None,
         local_kb_context: str = "",
+        include_weather: bool = True,
     ) -> Optional[str]:
         """
         Tier 2: krishimitra-llm (fine-tuned custom model) via two paths:
@@ -1701,6 +1803,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "sensor_context": sensor_ctx,
             "farmer_profile": farmer_profile,
             "verified_knowledge": local_kb_context[:3000] or None,
+            "include_weather": include_weather,
             "stream":         False,
         }, ensure_ascii=False).encode("utf-8")
 
@@ -1807,6 +1910,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             w_lines.append(f"Alert: {wc.alerts_text}")
         if w_lines:
             prompt_parts.append("[REAL-TIME WEATHER — DO NOT IGNORE]\n" + "\n".join(w_lines))
+        elif not include_weather:
+            prompt_parts.append(
+                "[WEATHER DATA]\nNo weather data was requested for this question. "
+                "Do not mention current weather, rain, temperature, or weather-based actions."
+            )
 
         # 2. Live soil sensor readings
         if sensor_ctx:
@@ -1974,7 +2082,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             "12. COMPOSE: Answer the farmer's exact question in fresh, natural wording. Treat knowledge-base "
             "text as factual notes, not a stored answer. Do not copy retrieved paragraphs verbatim.\n"
             "13. RELEVANCE: Start with the direct answer. Include only details that help this question, then "
-            "give concise steps. Ask one clarifying question only when a required fact is missing."
+            "give concise steps. Ask one clarifying question only when a required fact is missing.\n"
+            "14. WEATHER SCOPE: Mention weather only when the farmer asks about weather or when it directly "
+            "changes irrigation, spraying, disease, crop-choice, or harvest advice. Never append unrelated "
+            "weather commentary to storage, market, scheme, or general knowledge answers. If the user prompt "
+            "contains [WEATHER DATA] saying no data was requested, do not mention weather at all."
         )
 
         ollama_payload = json.dumps({
@@ -2647,13 +2759,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         plant_parts = (
             "पत्ती", "पत्तियों", "पत्ते", "तना", "जड़", "फल",
             "leaf", "leaves", "stem", "root", "fruit",
-            "patti", "pattiyan", "pattiyon",
+            "patti", "pattiyan", "pattiyon", "patta", "patte",
         )
         symptom_terms = (
             "पीला", "पीली", "पीले", "धब्बा", "धब्बे", "दाग", "सूख",
             "मुरझ", "सड़", "झुलस", "छेद", "yellow", "spot", "spots",
             "lesion", "wilt", "rot", "curl", "blight", "rust",
-            "peela", "peeli", "peele", "dhabba", "dhabbe",
+            "peela", "peeli", "peele", "dhabba", "dhabbe", "daag",
+            "kala", "kaala", "kaale", "kali", "black",
         )
         if any(term in q for term in plant_parts) and any(
             term in q for term in symptom_terms
@@ -2670,6 +2783,18 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             q, re.IGNORECASE
         ):
             return INTENT_IRRIGATION, crops_mentioned
+
+        # Storage/post-harvest handling is more specific than generic harvest
+        # vocabulary. Without this guard, "store wheat after harvest" matched
+        # HARVEST first and returned a harvest-calendar template.
+        if re.search(
+            r"\b(storage|store|bhandaran|भंडारण|godown|silo|warehouse|"
+            r"post\s*harvest|fasal\s*ke\s*baad|कटाई\s*के\s*बाद|"
+            r"drying|sukha|moisture|nami|weevil|ghun|घुन)\b",
+            q,
+            re.IGNORECASE,
+        ):
+            return INTENT_STORAGE, crops_mentioned
 
         # "drip/sprinkler + subsidy/scheme" → IRRIGATION (not GOVT SCHEME)
         # But NOT if it's asking about applying for a specific named scheme like PM-KUSUM
@@ -3045,10 +3170,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             INTENT_MARKET_PRICE,
             INTENT_CROP_RECOMMENDATION,
             INTENT_PROFIT_CALC,
-            INTENT_STORAGE,
             INTENT_GENERAL,
             INTENT_CROP_INFO,
-        }
+        } or (
+            intent == INTENT_STORAGE
+            and re.search(r"\b(mandi|market|price|bhav|भाव|rate|daam|दाम|sell|bech)\b", query, re.I)
+        )
 
         # 1. Live weather for weather-sensitive intents
         if not weather_relevant:
@@ -3197,16 +3324,23 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     local = r.get("crop_name_local") or r.get("crop_name_hindi") or r.get("crop_name", "")
                     profit_value = r.get("profit_per_hectare")
                     profit_label = (
-                        f"Rs{profit_value:,}/ha"
-                        if isinstance(profit_value, (int, float))
+                        f"verified market return Rs{profit_value:,}/ha"
+                        if r.get("market_is_live") and isinstance(profit_value, (int, float))
                         else "verified sale price required"
                     )
+                    msp_value = r.get("msp_per_quintal")
+                    msp_label = (
+                        f"MSP reference Rs{msp_value}/q"
+                        if isinstance(msp_value, (int, float)) and msp_value > 0
+                        else "no central MSP"
+                    )
+                    reason = r.get("reason") or r.get("reason_hindi", "")
                     lines.append(
                         f"  {r.get('crop_name')} ({local}): "
                         f"suitability {r.get('suitability_score')}%, "
                         f"profit {profit_label}, "
-                        f"MSP Rs{r.get('msp_per_quintal', 0)}/q, "
-                        f"reason: {r.get('reason_hindi') or r.get('reason', '')}"
+                        f"{msp_label}, "
+                        f"reason: {reason}"
                     )
                 ws = rec.get("weather_snapshot") or {}
                 if ws.get("temperature"):
@@ -3471,6 +3605,78 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 ),
                 }.get(lang, f"Weather {loc}: {temp}°C, {cond}. {farming_advice}\n\n")
 
+            asks_irrigation = bool(
+                re.search(
+                    r"\b(irrigat(?:e|ion)|water(?:ing)?|sinchai|pani|paani)\b|सिंचाई|पानी",
+                    query,
+                    re.IGNORECASE,
+                )
+            )
+            if asks_irrigation:
+                if sc.soil_moisture_pct is not None:
+                    if wc.irrigation_blocked:
+                        irrigation_note = {
+                            "hi": (
+                                f"💧 **आज सिंचाई न करें।** मिट्टी की नमी {sc.soil_moisture_pct:.1f}% "
+                                f"({sc.moisture_status}) है और बारिश का संकेत भी है।"
+                            ),
+                            "hinglish": (
+                                f"💧 **Aaj irrigation na karein.** Soil moisture {sc.soil_moisture_pct:.1f}% "
+                                f"({sc.moisture_status}) hai aur rain signal bhi hai."
+                            ),
+                            "en": (
+                                f"💧 **Do not irrigate today.** Soil moisture is {sc.soil_moisture_pct:.1f}% "
+                                f"({sc.moisture_status}) and rain is also forecast."
+                            ),
+                        }.get(lang)
+                    else:
+                        irrigation_note = {
+                            "hi": (
+                                f"💧 मिट्टी की नमी {sc.soil_moisture_pct:.1f}% ({sc.moisture_status}) है। "
+                                "सिंचाई का निर्णय जड़-क्षेत्र की नमी और फसल अवस्था देखकर करें।"
+                            ),
+                            "hinglish": (
+                                f"💧 Soil moisture {sc.soil_moisture_pct:.1f}% ({sc.moisture_status}) hai. "
+                                "Root-zone moisture aur crop stage check karke irrigation karein."
+                            ),
+                            "en": (
+                                f"💧 Soil moisture is {sc.soil_moisture_pct:.1f}% ({sc.moisture_status}). "
+                                "Check root-zone moisture and crop stage before irrigating."
+                            ),
+                        }.get(lang)
+                elif wc.irrigation_blocked:
+                    irrigation_note = {
+                        "hi": (
+                            "💧 **आज नियमित सिंचाई टालें।** अगले 48 घंटों में बारिश की प्रबल संभावना है। "
+                            "बारिश के बाद जड़-क्षेत्र की मिट्टी देखकर दोबारा निर्णय लें; फसल मुरझा रही हो तो पहले खेत जांचें।"
+                        ),
+                        "hinglish": (
+                            "💧 **Aaj routine irrigation postpone karein.** Agle 48 hours mein rain ka strong signal hai. "
+                            "Rain ke baad root-zone soil check karein; crop wilt ho rahi ho to field pehle inspect karein."
+                        ),
+                        "en": (
+                            "💧 **Postpone routine irrigation today.** Rain is strongly indicated within 48 hours. "
+                            "Recheck root-zone soil after the rain; inspect the field first if the crop is already wilting."
+                        ),
+                    }.get(lang)
+                else:
+                    irrigation_note = {
+                        "hi": (
+                            "💧 केवल मौसम से सिंचाई तय नहीं की जा सकती। 5-10 सेमी गहराई पर मिट्टी सूखी हो "
+                            "और फसल तनाव में हो तभी सिंचाई करें।"
+                        ),
+                        "hinglish": (
+                            "💧 Sirf weather se irrigation decide nahi hogi. 5-10 cm depth par soil dry ho "
+                            "aur crop stress dikhe tabhi irrigation karein."
+                        ),
+                        "en": (
+                            "💧 Weather alone is not enough to decide irrigation. Irrigate only if soil is dry "
+                            "at 5-10 cm depth and the crop shows water stress."
+                        ),
+                    }.get(lang)
+                if irrigation_note:
+                    resp += irrigation_note + "\n\n"
+
             if alerts:
                 resp += ("⚠️ **कृषि चेतावनी:**\n" if lang == "hi" else "⚠️ **Farming Alerts:**\n")
                 resp += "\n".join(a.replace("[ALERT]", "").strip() for a in alerts[:3]) + "\n\n"
@@ -3525,7 +3731,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 for i, line in enumerate(rec_lines[:5], 1):
                     m = re.search(
                         r"\s*([^(:]+)\s*(?:\(([^)]*)\))?:\s*suitability\s*([\d]+)%,"
-                        r".*profit\s*Rs\s*([\d,]+)/ha,\s*MSP\s*Rs\s*([\d]+)/q",
+                        r"\s*profit\s*([^,]+),\s*((?:MSP reference|no central MSP)[^,]*),\s*reason:\s*(.*)",
                         line,
                     )
                     if m:
@@ -3537,12 +3743,24 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         )
                         local_desc = f" ({local_val})" if show_local else ""
                         score      = m.group(3)
-                        profit     = m.group(4)
-                        msp        = m.group(5)
+                        economics = m.group(4).strip()
+                        msp        = m.group(5).strip()
+                        reason     = m.group(6).strip()
                         bar = "🟢" if int(score) >= 80 else "🟡" if int(score) >= 60 else "🔴"
+                        if lang == "hi":
+                            economics = economics.replace("verified market return", "सत्यापित मंडी आधारित रिटर्न").replace(
+                                "verified sale price required", "सत्यापित बिक्री भाव आवश्यक"
+                            )
+                            msp = msp.replace("MSP reference", "MSP संदर्भ").replace("no central MSP", "केंद्रीय MSP उपलब्ध नहीं")
+                        elif lang == "hinglish":
+                            economics = economics.replace("verified market return", "verified mandi return").replace(
+                                "verified sale price required", "verified sale price zaroori"
+                            )
+                            msp = msp.replace("MSP reference", "MSP reference").replace("no central MSP", "central MSP nahi")
                         body += (
-                            f"{i}. {bar} **{crop_name}{local_desc}** — {score}% उपयुक्तता\n"
-                            f"   ₹{profit}/हे. लाभ | MSP ₹{msp}/q\n"
+                            f"{i}. {bar} **{crop_name}{local_desc}** — {score}% suitability\n"
+                            f"   {economics} | {msp}\n"
+                            + (f"   Why: {reason}\n" if lang != "hi" else f"   कारण: {reason}\n")
                         )
                     else:
                         body += f"• {line.strip().lstrip('- ')}\n"
@@ -3679,13 +3897,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     "• **PM-Kisan**: ₹6,000/वर्ष — pmkisan.gov.in | 155261\n"
                     "• **PMFBY**: 2% प्रीमियम फसल बीमा — pmfby.gov.in | 14447\n"
                     "• **KCC**: ₹3 लाख @4% ब्याज — निकटतम बैंक\n"
-                    "• **PM-KUSUM**: 90% सब्सिडी सोलर पंप — pmkusum.mnre.gov.in\n"
+                    "• **PM-KUSUM**: आम तौर पर 30% केंद्रीय CFA + कम-से-कम 30% राज्य सहायता; बैंक ऋण अलग — pmkusum.mnre.gov.in\n"
                     "• **Soil Health Card**: मुफ्त मिट्टी जांच — soilhealth.dac.gov.in"
                     if lang == "hi" else
                     "• **PM-Kisan**: ₹6,000/year — pmkisan.gov.in | 155261\n"
                     "• **PMFBY**: 2% premium crop insurance — pmfby.gov.in | 14447\n"
                     "• **KCC**: ₹3L credit @4% interest — nearest bank\n"
-                    "• **PM-KUSUM**: 90% subsidy solar pump — pmkusum.mnre.gov.in\n"
+                    "• **PM-KUSUM**: typically 30% central CFA + at least 30% state subsidy; bank finance is separate — pmkusum.mnre.gov.in\n"
                     "• **Soil Health Card**: Free soil testing — soilhealth.dac.gov.in"
                 )
             return alert_prefix + header + body + "\n\n📞 Kisan Call Centre: **1800-180-1551** (Free)"
@@ -3798,10 +4016,15 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
             has_leaf_context = _query_has(
                 "leaf", "leaves", "patti", "pattian", "pattiyan", "pattiyon",
-                "pattiya", "पत्ती", "पत्तियों", "पत्तियां",
+                "pattiya", "patta", "patte", "पत्ती", "पत्तियों", "पत्तियां", "पत्ते",
             )
             has_yellow_context = _query_has("yellow", "pili", "peeli", "peele", "peela", "पीली", "पीले", "पीला")
-            has_spot_context = _query_has("spot", "spots", "dhabba", "dhabbe", "धब्ब", "दाग", "stripe", "stripes", "धारी")
+            has_dark_context = _query_has(
+                "black", "dark", "kala", "kaala", "kaale", "kali", "काला", "काले", "काली",
+            )
+            has_spot_context = _query_has(
+                "spot", "spots", "dhabba", "dhabbe", "daag", "धब्ब", "दाग", "stripe", "stripes", "धारी",
+            )
             has_grain_context = _query_has("grain", "seed", "ear", "दाना", "दाने", "बाल", "bunt")
             has_curl_context = _query_has("curl", "मुड़", "mudi", "sticky", "चिपचिप")
             has_wilt_context = _query_has("wilt", "sukh", "सूख", "मुरझ")
@@ -3815,6 +4038,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     )
                 if has_yellow_context and has_leaf_context:
                     return ("पत्तियों का पीलापन", "yellowing leaves")
+                if has_dark_context and has_leaf_context and has_spot_context:
+                    return ("पत्तियों पर काले या गहरे धब्बे", "black or dark spots on leaves")
                 if has_spot_context and has_leaf_context:
                     return ("पत्तियों पर धब्बे", "leaf spots")
                 if has_grain_context:
@@ -3852,6 +4077,17 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     relevant = [
                         d for d in diseases
                         if any(word in (d[0] + d[1]).lower() for word in ("borer", "sundi", "सुंडी", "छेद", "bollworm"))
+                    ]
+                elif has_leaf_context and has_spot_context:
+                    relevant = [
+                        d for d in diseases
+                        if any(
+                            word in (d[0] + d[1]).lower()
+                            for word in (
+                                "leaf", "पत्ती", "पत्तियों", "spot", "धब्ब",
+                                "blight", "झुलसा", "rust", "रतुआ",
+                            )
+                        )
                     ]
                 elif detected_pest:
                     relevant = [d for d in diseases if any(
@@ -4173,7 +4409,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"• मक्का: **10 दिन**\n"
                         f"• सरसों: **25-30 दिन** (केवल 2 सिंचाई)\n"
                         f"• चना: **30 दिन** (केवल 2 सिंचाई)\n\n"
-                        f"**PM-KUSUM सोलर पंप:** 90% सब्सिडी — pmkusum.mnre.gov.in\n"
+                        f"**PM-KUSUM सोलर पंप:** आम तौर पर 30% केंद्रीय CFA + कम-से-कम 30% राज्य सहायता; बैंक ऋण अलग — pmkusum.mnre.gov.in\n"
                         + (f"⚠️ सिंचाई जरूरी: {', '.join(l.strip() for l in irr_lines[:3])}\n" if irr_lines else "")
                         + "\n📞 PM-KUSUM: 1800-180-3333"
                     ),
@@ -4186,11 +4422,15 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                         f"• Maize: **every 10 days**\n"
                         f"• Mustard: **every 25-30 days** (only 2 irrigations)\n"
                         f"• Gram: **every 30 days** (only 2 irrigations)\n\n"
-                        f"**PM-KUSUM Solar Pump:** 90% subsidy — pmkusum.mnre.gov.in\n"
+                        f"**PM-KUSUM Solar Pump:** typically 30% central CFA + at least 30% state subsidy; bank finance is separate — pmkusum.mnre.gov.in\n"
                         + (f"⚠️ Irrigate: {', '.join(l.strip() for l in irr_lines[:3])}\n" if irr_lines else "")
                         + "\n📞 PM-KUSUM: 1800-180-3333"
                     ),
-                }.get(lang, f"Irrigation: ET0={et0}mm/day. Use drip/sprinkler. PM-KUSUM 90% subsidy.")
+                }.get(
+                    lang,
+                    f"Irrigation: ET0={et0}mm/day. Use drip/sprinkler. "
+                    "Check PM-KUSUM component and state contribution on the official portal.",
+                )
             return alert_prefix + body
 
         # ── SOWING ───────────────────────────────────────────────
@@ -4453,13 +4693,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # ── STORAGE ──────────────────────────────────────────────
         if intent == INTENT_STORAGE:
             _STORAGE_DATA = {
-                "wheat":  ("12-14%", "18-24 महीने", "Aluminum phosphide 3g/quintal — घुन नियंत्रण"),
-                "rice":   ("12-14%", "12-18 महीने", "Silica gel packets + Neem leaves layer"),
-                "maize":  ("12-13%", "6-12 महीने", "Cob को अच्छे से सुखाएं — aflatoxin से बचें"),
-                "mustard":("6-8%",  "12-18 महीने", "Dry cool place, avoid sunlight"),
-                "potato": ("85-90% RH, 3-5°C", "4-6 महीने (cold storage)", "CIPC sprout inhibitor"),
-                "gram":   ("8-10%", "18-24 महीने", "Neem oil 5ml/kg grain coating"),
-                "soybean":("11-13%","12 महीने",    "Metal bin / HDPE bag, avoid moisture"),
+                "wheat":  ("12-14%", "18-24 months"),
+                "rice":   ("12-14%", "12-18 months"),
+                "maize":  ("12-13%", "6-12 months"),
+                "mustard":("6-8%",  "12-18 months"),
+                "potato": ("85-90% RH, 3-5°C", "4-6 months (cold storage)"),
+                "gram":   ("8-10%", "18-24 months"),
+                "soybean":("11-13%","12 months"),
             }
             crop_id = crops[0].get("id", "").lower() if crops else None
             if not crop_id:
@@ -4469,52 +4709,70 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
             crop_name_display = crops[0]["name"] if crops else (crop_id.title() if crop_id else "")
             if crop_id and crop_id in _STORAGE_DATA:
-                moisture, shelf_life, pest_ctrl = _STORAGE_DATA[crop_id]
-                body = {
-                    "hi": (
-                        f"🏪 **{crop_name_display} भंडारण — {loc}**\n\n"
-                        f"💧 **भंडारण के लिए नमी:** {moisture}\n"
-                        f"⏰ **शेल्फ लाइफ:** {shelf_life}\n"
-                        f"🐛 **कीट नियंत्रण:** {pest_ctrl}\n\n"
-                        f"**सुरक्षित भंडारण टिप्स:**\n"
-                        f"• साफ, सूखी जगह — ज़मीन से 15cm ऊपर रखें\n"
-                        f"• HDPE बैग या धातु बिन का उपयोग करें\n"
-                        f"• नियमित जाँच — घुन, फफूंदी की निशानी\n"
-                        f"• eNAM पर भाव देखकर सही समय पर बेचें\n\n"
-                        f"📞 WDRA (भंडारण): 1800-425-9110 | eNAM: 1800-270-0224"
-                    ),
-                    "en": (
-                        f"🏪 **{crop_name_display} Storage — {loc}**\n\n"
-                        f"💧 **Safe moisture content:** {moisture}\n"
-                        f"⏰ **Shelf life:** {shelf_life}\n"
-                        f"🐛 **Pest control:** {pest_ctrl}\n\n"
-                        f"**Storage tips:**\n"
-                        f"• Clean dry place — keep 15cm off ground\n"
-                        f"• Use HDPE bags or metal bins (not jute)\n"
-                        f"• Check regularly for weevils/mold\n"
-                        f"• Track eNAM prices, sell at peak\n\n"
-                        f"📞 WDRA: 1800-425-9110 | eNAM: 1800-270-0224"
-                    ),
-                }.get(lang, f"{crop_name_display}: store at {moisture} moisture. Shelf life {shelf_life}.")
+                moisture, shelf_life = _STORAGE_DATA[crop_id]
+                query_lower = query.lower()
+                area_match = re.search(
+                    r"(\d+(?:\.\d+)?)\s*(bigha|beegha|acre|hectare|ha)\b",
+                    query_lower,
+                )
+                no_metal_bin = bool(
+                    re.search(r"\b(no|without|don't have|do not have)\b.{0,25}\b(metal\s*bin|bin)\b", query_lower)
+                )
+                if lang == "hi":
+                    body = (
+                        f"{crop_name_display} को {loc} में सुरक्षित रखने के लिए पहले दाने को "
+                        f"{moisture} नमी तक अच्छी तरह सुखाइए। इसके बाद साफ और सूखी जगह में "
+                        "HDPE बैग या साफ धातु के बिन में रखें और बोरियों को जमीन से कम-से-कम 15 सेमी ऊपर रखें।\n\n"
+                        f"सही तरीके से रखने पर लगभग {shelf_life} तक भंडारण संभव हो सकता है। "
+                        "हर सप्ताह घुन, फफूंदी, बदबू या नमी की जांच करें। रासायनिक फ्यूमिगेशन केवल "
+                        "अनुमोदित लेबल और प्रशिक्षित व्यक्ति/KVK की सलाह के अनुसार कराएं; घर पर खुद दवा न डालें।"
+                        + (f"\n\nआपने {area_match.group(1)} {area_match.group(2)} बताया है, लेकिन केवल खेत का रकबा पर्याप्त नहीं है। "
+                           "बोरियों की संख्या निकालने के लिए सुखाई हुई वास्तविक उपज तौलें।" if area_match else "")
+                        + ("\n\nधातु का बिन नहीं है तो साफ food-grade HDPE बैग को उठे हुए पैलेट पर रखें, "
+                           "बैग को दीवार से थोड़ा दूर रखें और नमी से बचाएं।" if no_metal_bin else "")
+                    )
+                elif lang == "hinglish":
+                    body = (
+                        f"{crop_name_display} ko {loc} mein store karne se pehle daane ko {moisture} moisture "
+                        "tak achchhi tarah sukha lijiye. Phir clean, dry jagah par HDPE bags ya saaf metal bin mein "
+                        "rakhein aur bags ko zameen se kam-se-kam 15 cm upar rakhein.\n\n"
+                        f"Is tarah lagbhag {shelf_life} tak storage possible ho sakta hai. Har hafte weevil, fungus, "
+                        "badbu ya nami check karein. Chemical fumigation sirf approved label aur trained person/KVK "
+                        "ki salah se karayein; ghar par khud fumigant na daalein."
+                        + (f"\n\nAapne {area_match.group(1)} {area_match.group(2)} bataya hai, lekin sirf area se bags ki sankhya "
+                           "nahi niklegi. Sukhi hui actual fasal ko pehle weigh karein." if area_match else "")
+                        + ("\n\nMetal bin nahi hai to clean food-grade HDPE bags ko raised pallet par rakhein aur nami se bachayein."
+                           if no_metal_bin else "")
+                    )
+                else:
+                    body = (
+                        f"To store {crop_name_display} safely in {loc}, first dry the grain to {moisture} moisture. "
+                        "Then use clean HDPE bags or a clean metal bin in a dry place, keeping the bags at least 15 cm "
+                        "off the floor.\n\n"
+                        f"With good storage, it may remain usable for about {shelf_life}. Check weekly for weevils, "
+                        "mould, smell, or moisture. Use chemical fumigation only under an approved label and trained "
+                        "operator/KVK guidance; do not apply fumigants yourself."
+                        + (f"\n\nYou mentioned {area_match.group(1)} {area_match.group(2)}, but area alone cannot determine the "
+                           "number of bags. Weigh the dried harvest first." if area_match else "")
+                        + ("\n\nSince you do not have a metal bin, use clean food-grade HDPE bags on a raised pallet and keep them dry."
+                           if no_metal_bin else "")
+                    )
             else:
                 body = {
                     "hi": (
-                        f"🏪 **फसल भंडारण गाइड**\n\n"
-                        f"• अनाज: 12-14% नमी पर सुखाएं\n"
-                        f"• सब्जियां: 3-5°C cold storage\n"
-                        f"• घुन रोकें: Aluminium Phosphide 3g/quintal\n"
-                        f"• HDPE बैग सबसे सुरक्षित — जूट से बेहतर\n"
-                        f"• एग्री warehousing: NWR/eNAM\n\n"
-                        f"📞 WDRA: 1800-425-9110"
+                        "फसल को सुरक्षित रखने के लिए पहले अनाज को उसकी फसल-विशिष्ट सुरक्षित नमी तक सुखाएं। "
+                        "साफ, सूखी जगह में HDPE बैग या साफ धातु के बिन को जमीन से ऊपर रखें और हर सप्ताह घुन या फफूंदी जांचें। "
+                        "फ्यूमिगेशन केवल KVK/प्रशिक्षित व्यक्ति की सलाह से कराएं।"
                     ),
                     "en": (
-                        f"🏪 **Crop Storage Guide**\n\n"
-                        f"• Grains: dry to 12-14% moisture\n"
-                        f"• Vegetables: 3-5°C cold storage\n"
-                        f"• Pest control: Aluminium Phosphide 3g/quintal\n"
-                        f"• HDPE bags > jute bags for safety\n"
-                        f"• NWR/eNAM for warehouse receipts\n\n"
-                        f"📞 WDRA: 1800-425-9110"
+                        "For safe crop storage, dry the grain to the crop-specific safe moisture level. "
+                        "Use clean HDPE bags or a clean metal bin in a dry place above the floor, and inspect weekly "
+                        "for weevils or mould. Arrange fumigation only through KVK or a trained operator."
+                    ),
+                    "hinglish": (
+                        "Fasal ko safely store karne ke liye grain ko crop-specific safe moisture tak sukha lijiye. "
+                        "Clean HDPE bags ya metal bin ko dry jagah par floor se upar rakhein aur har hafte weevil ya "
+                        "fungus check karein. Fumigation sirf KVK ya trained operator ki salah se karayein."
                     ),
                 }.get(lang, "Storage: dry to 12-14% moisture. HDPE bags. Check for weevils regularly.")
             return alert_prefix + body
@@ -5208,6 +5466,7 @@ def _answer_stream(
         INTENT_WEATHER,
         INTENT_SOWING,
         INTENT_HARVEST,
+        INTENT_STORAGE,
         INTENT_GOVERNMENT_SCHEME,
     } or _is_residue_management_query(query, intent) or (
         intent == INTENT_MARKET_PRICE and not is_msp_policy_query
