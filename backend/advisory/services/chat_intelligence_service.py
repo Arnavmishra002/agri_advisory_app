@@ -67,6 +67,17 @@ except Exception:  # pragma: no cover - defensive
     def _is_valid_anthropic_key(_key: str) -> bool:  # type: ignore[misc]
         return False
 
+# Open-model LLM over the network (Groq / OpenRouter / hosted Ollama). Lets an
+# open model run over the internet with no GPU host, so the "local LLM" tier
+# still gives real answers in production. Imported soft.
+try:
+    from .open_llm_service import open_llm_service, _is_valid_open_llm_key
+except Exception:  # pragma: no cover - defensive
+    open_llm_service = None  # type: ignore[assignment]
+
+    def _is_valid_open_llm_key(_key: str) -> bool:  # type: ignore[misc]
+        return False
+
 # ── Additional service imports for full interconnection ──────────────────────
 # These are imported lazily in methods to avoid circular imports at startup,
 # but we reference the module here for IDE type-checking.
@@ -1629,7 +1640,36 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             except Exception as exc:
                 logger.warning("Gemini failed: %s — trying local LLM", exc)
 
-        # Tier 3: Local krishimitra-llm (Qwen/Ollama) — offline fallback
+        # Tier 3: Open LLM over the network (Groq/OpenRouter/hosted Ollama).
+        # Runs an open model over the internet with no GPU host, so this "local
+        # LLM" tier still produces real, question-aware answers in production.
+        has_open_llm = (
+            model_composition_allowed
+            and open_llm_service is not None
+            and _is_valid_open_llm_key(getattr(open_llm_service, "api_key", ""))
+        )
+        if not response_text and has_open_llm:
+            try:
+                rendered = self._render_grounded_prompt(
+                    query=query, ctx=ctx, sc=sc, wc=wc, rag=rag,
+                    market_price_str=market_str, history_block=history_block,
+                    lang=lang, season=season,
+                )
+                response_text = _safe_model_text(open_llm_service.generate(
+                    prompt=rendered, system_prompt="",
+                    max_tokens=1600, user_query=query, temperature=0.3,
+                ), intent, lang)
+                if response_text and _has_unverified_market_claim(
+                    response_text, intent, prices_data
+                ):
+                    response_text = None
+                if response_text:
+                    _set_chat_meta(selected_tier="open_llm_net", fallback_reason="")
+                    data_source = f"{open_llm_service.model} (open LLM) + Official gov APIs"
+            except Exception as exc:
+                logger.warning("Open LLM failed: %s — trying local Ollama", exc)
+
+        # Tier 4: Local krishimitra-llm (Qwen/Ollama) — on-box / self-hosted
         if not response_text and model_composition_allowed:
             response_text = _safe_model_text(self._qwen_rag_answer(
                 query=query, ctx=ctx, lang=lang, history=history,
@@ -1643,7 +1683,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             if response_text:
                 data_source = _chat_meta().get("source_label") or "KrishiMitra local RAG"
 
-        # Tier 4: Rule-based (instant, ICAR-grounded, always available)
+        # Tier 5: Rule-based (instant, ICAR-grounded, always available)
         # Used when: fast_mode=True OR LLM offline OR Gemini unavailable
         if not response_text:
             if structured_rule_path:

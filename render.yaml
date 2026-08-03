@@ -66,6 +66,13 @@ services:
         sync: false
       - key: ANTHROPIC_MODEL
         value: "claude-3-5-sonnet-latest"
+      # Open LLM over the net (Groq etc.) — production "local LLM" tier
+      - key: OPEN_LLM_BASE_URL
+        value: "https://api.groq.com/openai/v1"
+      - key: OPEN_LLM_API_KEY
+        sync: false
+      - key: OPEN_LLM_MODEL
+        value: "llama-3.3-70b-versatile"
       - key: WHATSAPP_TOKEN
         value: ""
       - key: WHATSAPP_PHONE_ID
