@@ -86,6 +86,11 @@ if _render_host and _render_host not in ALLOWED_HOSTS:
 # Trust the X-Forwarded-Host header from Render's proxy
 USE_X_FORWARDED_HOST = True
 
+# Build / one-off management commands (collectstatic, migrate, …) run during
+# the deploy build before runtime-only env vars (e.g. a linked REDIS_URL) are
+# guaranteed to be injected. They must NOT be blocked by runtime prerequisites,
+# or a transient missing env var fails the whole build. The serving process
+# (gunicorn/wsgi) has none of these in argv, so runtime enforcement is intact.
 import sys as _sys
 _MGMT_CMDS = {
     'collectstatic', 'migrate', 'makemigrations', 'check', 'showmigrations',
@@ -639,13 +644,20 @@ if not DEBUG:
     CSRF_COOKIE_SAMESITE = 'Lax'
     # Content-Security-Policy — blocks inline XSS and rogue script sources
     CSP_HEADERS = {
-        'Content-Security-Policy': (
+        # Report-Only: emit violations for monitoring but NEVER block a resource,
+        # so the CSP can't break the UI. (An earlier enforced policy omitted
+        # cdn.jsdelivr.net from style-src, which blocked Bootstrap's CSS and broke
+        # the layout in production.) The directives below are corrected so this can
+        # be switched to the enforcing 'Content-Security-Policy' header later once
+        # confirmed clean. All CDN hosts the app actually uses are now allowlisted
+        # in every relevant directive.
+        'Content-Security-Policy-Report-Only': (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
-            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
             "img-src 'self' data: blob: https:; "
-            "connect-src 'self'; "
+            "connect-src 'self' https:; "
             "frame-ancestors 'none';"
         )
     }
