@@ -47,9 +47,9 @@ jobs:
       github.ref == 'refs/heads/main' ||
       github.ref == 'refs/heads/master'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -61,7 +61,7 @@ jobs:
       - name: Django check and migrations
         working-directory: backend
         env:
-          SECRET_KEY: pre-deploy-check-key
+          SECRET_KEY: ${{ secrets.CI_SECRET_KEY }}
           DEBUG: "True"
           DATABASE_URL: sqlite:////tmp/pre-deploy.db
           ALLOWED_HOSTS: localhost,testserver
@@ -80,7 +80,7 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: docker/setup-buildx-action@v3
 

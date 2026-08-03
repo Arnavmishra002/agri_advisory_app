@@ -489,7 +489,12 @@ class FarmerProfile(models.Model):
 
 class FarmerInteractionLog(models.Model):
     """
-    Stores every farmer–AI interaction for future ML training and analytics.
+    Stores farmer-AI interactions for product quality and reviewed learning.
+
+    Rows are never training data by themselves. Only de-identified negative or
+    unanswered cases may enter the human review queue; agronomist approval,
+    source verification, safety evaluation, and staging promotion are required
+    before a separate versioned dataset can be used for training.
 
     This is the prediction dataset. Each row = one chat Q&A with full context:
       - The question and answer

@@ -5,7 +5,7 @@
  * management, auto-refresh, navbar state, and guest mode.
  *
  * Design:
- *   - Token storage: localStorage (km_access_token, km_refresh_token, km_user)
+ *   - Token storage: access/user in localStorage; refresh in sessionStorage
  *   - Auto-refresh: 55 minutes after login (access token lives 60 min)
  *   - OTP flow: phone → request → 6-digit boxes → verify → logged in
  *   - Guest mode: close modal, session_id from app.js used as anonymous id
@@ -26,8 +26,9 @@
 
   /* ── Constants ──────────────────────────────────────────────── */
   var LS_ACCESS  = 'km_access_token';
-  var LS_REFRESH = 'km_refresh_token';
   var LS_USER    = 'km_user';
+  var SS_REFRESH = 'km_refresh_token';
+  var LEGACY_LS_REFRESH = 'km_refresh_token';
   var REFRESH_MS = 55 * 60 * 1000;   // refresh 5 min before 60-min expiry
   var OTP_RESEND_S = 60;              // resend OTP countdown seconds
 
@@ -45,8 +46,9 @@
     init: function () {
       try {
         var tok  = localStorage.getItem(LS_ACCESS);
-        var ref  = localStorage.getItem(LS_REFRESH);
+        var ref  = sessionStorage.getItem(SS_REFRESH);
         var user = localStorage.getItem(LS_USER);
+        localStorage.removeItem(LEGACY_LS_REFRESH);
         if (tok && user) {
           this._accessToken  = tok;
           this._refreshToken = ref;
@@ -58,24 +60,45 @@
 
       // Wire OTP digit box keyboard navigation
       this._wireOtpInputs();
+      var self = this;
+      var authModal = document.getElementById('authModal');
+      if (authModal && !authModal.dataset.authResetBound) {
+        authModal.dataset.authResetBound = 'true';
+        authModal.addEventListener('hidden.bs.modal', function () {
+          self._resetAuthUi();
+          self.switchTab('phone');
+        });
+      }
     },
 
     /* ── openModal ───────────────────────────────────────────── */
     openModal: function (tab) {
       tab = tab || 'phone';
+      if (['phone', 'password', 'register'].indexOf(tab) === -1) tab = 'phone';
       var el = document.getElementById('authModal');
       if (!el) return;
       if (!this._bsModal) {
         this._bsModal = new bootstrap.Modal(el, { backdrop: true });
       }
+      this._resetAuthUi();
       this.switchTab(tab);
-      this._clearAllErrors();
       this._bsModal.show();
     },
 
     /* ── closeModal ──────────────────────────────────────────── */
     closeModal: function () {
       if (this._bsModal) this._bsModal.hide();
+    },
+
+    openProfile: function () {
+      if (typeof window.showService === 'function') window.showService('ai-assistant');
+      setTimeout(function () {
+        var profile = document.getElementById('farmerProfileCard');
+        if (!profile) return;
+        profile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var firstInput = profile.querySelector('input,select');
+        if (firstInput) firstInput.focus({ preventScroll: true });
+      }, 100);
     },
 
     /* ── switchTab ───────────────────────────────────────────── */
@@ -153,10 +176,12 @@
       self._setLoading('btnVerifyOtp', 'spinnerVerifyOtp', true);
 
       var sessionId = (window._getSessionId && window._getSessionId()) || '';
+      var guestSessionToken = (window._getGuestSessionToken && window._getGuestSessionToken()) || '';
       self._post('/api/users/otp/verify/', {
         phone_number: self._currentPhone,
         otp_code:     digits,
         session_id:   sessionId,
+        guest_session_token: guestSessionToken,
       })
         .then(function (data) {
           self._onLoginSuccess(data);
@@ -193,7 +218,7 @@
           });
         })
         .catch(function (err) {
-          var msg = (err.detail || err.error || 'गलत username या password');
+          var msg = self._errorMessage(err, 'गलत username या password');
           if (msg === 'No active account found with the given credentials') {
             msg = 'गलत username या password';
           }
@@ -213,6 +238,7 @@
       var phone     = ((document.getElementById('regPhoneInput')    || {}).value || '').replace(/\D/g, '');
       var state     = ((document.getElementById('regStateInput')    || {}).value || '').trim();
       var sessionId = (window._getSessionId && window._getSessionId()) || '';
+      var guestSessionToken = (window._getGuestSessionToken && window._getGuestSessionToken()) || '';
 
       if (!username) { self._setError('registerError', 'Username जरूरी है'); return; }
       if (!password) { self._setError('registerError', 'Password जरूरी है'); return; }
@@ -226,14 +252,15 @@
         name:         name,
         phone_number: phone,
         state:        state,
-        language:     (window._currentLang || 'hi'),
+        language:     (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'hi'),
         session_id:   sessionId,
+        guest_session_token: guestSessionToken,
       })
         .then(function (data) {
           self._onLoginSuccess(data);
         })
         .catch(function (err) {
-          self._setError('registerError', err.error || 'पंजीकरण में समस्या आई');
+          self._setError('registerError', self._errorMessage(err, 'पंजीकरण में समस्या आई'));
         })
         .finally(function () {
           self._setLoading('btnRegister', 'spinnerRegister', false);
@@ -281,11 +308,17 @@
       self._user         = null;
       try {
         localStorage.removeItem(LS_ACCESS);
-        localStorage.removeItem(LS_REFRESH);
+        localStorage.removeItem(LEGACY_LS_REFRESH);
         localStorage.removeItem(LS_USER);
       } catch (e) {}
+      try { sessionStorage.removeItem(SS_REFRESH); } catch (e) {}
       if (self._refreshTimer) { clearTimeout(self._refreshTimer); self._refreshTimer = null; }
+      self._resetAuthUi();
+      self.closeModal();
       self._updateNavbar();
+      window.dispatchEvent(new CustomEvent('km:auth-changed', {
+        detail: { user: null, guestSessionMigrated: false }
+      }));
       if (window.showToast) showToast('✅ लॉगआउट सफल', 'success', 2000);
     },
 
@@ -330,6 +363,8 @@
       if (icon) {
         icon.className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
       }
+      btn.setAttribute('aria-label', isText ? 'Show password' : 'Hide password');
+      btn.title = isText ? 'Show password' : 'Hide password';
     },
 
     /* ── _onLoginSuccess ─────────────────────────────────────── */
@@ -339,12 +374,20 @@
       this._user         = data.user;
       try {
         localStorage.setItem(LS_ACCESS,  data.access);
-        localStorage.setItem(LS_REFRESH, data.refresh);
         localStorage.setItem(LS_USER,    JSON.stringify(data.user));
+        localStorage.removeItem(LEGACY_LS_REFRESH);
       } catch (e) {}
+      try { sessionStorage.setItem(SS_REFRESH, data.refresh); } catch (e) {}
       this._scheduleRefresh();
       this._updateNavbar();
+      window.dispatchEvent(new CustomEvent('km:auth-changed', {
+        detail: {
+          user: data.user || null,
+          guestSessionMigrated: data.guest_session_migrated === true
+        }
+      }));
       this.closeModal();
+      this._resetAuthUi();
       var name = (data.user && data.user.name) ? data.user.name : 'किसान';
       if (window.showToast) showToast('🌾 नमस्ते ' + name + '! लॉगिन सफल', 'success');
     },
@@ -439,13 +482,13 @@
     /* ── _setError ───────────────────────────────────────────── */
     _setError: function (id, msg) {
       var el = document.getElementById(id);
-      if (el) { el.textContent = msg; el.style.display = msg ? '' : 'none'; }
+      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
     },
 
     /* ── _setSuccess ─────────────────────────────────────────── */
     _setSuccess: function (id, msg) {
       var el = document.getElementById(id);
-      if (el) { el.textContent = msg; el.style.display = msg ? '' : 'none'; }
+      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
     },
 
     /* ── _clearAllErrors ─────────────────────────────────────── */
@@ -457,6 +500,70 @@
         var el = document.getElementById(id);
         if (el) { el.textContent = ''; el.style.display = 'none'; }
       });
+    },
+
+    _resetAuthUi: function () {
+      var self = this;
+      [
+        'authPhoneInput', 'authUsernameInput', 'authPasswordInput',
+        'regNameInput', 'regUsernameInput', 'regPasswordInput',
+        'regPhoneInput', 'regStateInput'
+      ].forEach(function (id) {
+        var input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+      document.querySelectorAll('#otpInputGroup .otp-digit').forEach(function (input) {
+        input.value = '';
+      });
+      ['authPasswordInput', 'regPasswordInput'].forEach(function (id) {
+        var input = document.getElementById(id);
+        if (input) input.type = 'password';
+      });
+      document.querySelectorAll('.auth-password-toggle i').forEach(function (icon) {
+        icon.className = 'fas fa-eye';
+      });
+      document.querySelectorAll('.auth-password-toggle').forEach(function (button) {
+        button.setAttribute('aria-label', 'Show password');
+        button.title = 'Show password';
+      });
+      var step1 = document.getElementById('otpStep1');
+      var step2 = document.getElementById('otpStep2');
+      var phoneDisplay = document.getElementById('otpPhoneDisplay');
+      var countdown = document.getElementById('otpCountdown');
+      var resend = document.getElementById('btnResendOtp');
+      if (step1) step1.style.display = '';
+      if (step2) step2.style.display = 'none';
+      if (phoneDisplay) phoneDisplay.textContent = '';
+      if (countdown) countdown.textContent = '';
+      if (resend) resend.disabled = true;
+      if (self._countdownTimer) {
+        clearInterval(self._countdownTimer);
+        self._countdownTimer = null;
+      }
+      self._currentPhone = null;
+      self._clearAllErrors();
+      [
+        ['btnSendOtp', 'spinnerSendOtp'],
+        ['btnVerifyOtp', 'spinnerVerifyOtp'],
+        ['btnLoginPassword', 'spinnerLoginPassword'],
+        ['btnRegister', 'spinnerRegister']
+      ].forEach(function (ids) { self._setLoading(ids[0], ids[1], false); });
+    },
+
+    _errorMessage: function (error, fallback) {
+      if (!error) return fallback;
+      var value = error.detail || error.error_hi || error.error || error.message;
+      if (typeof value === 'string') return value;
+      if (value && typeof value === 'object') {
+        var messages = [];
+        Object.keys(value).forEach(function (field) {
+          var fieldValue = value[field];
+          var text = Array.isArray(fieldValue) ? fieldValue.join(' ') : String(fieldValue || '');
+          if (text) messages.push(field + ': ' + text);
+        });
+        if (messages.length) return messages.join(' ');
+      }
+      return fallback;
     },
 
     /* ── _setLoading ─────────────────────────────────────────── */

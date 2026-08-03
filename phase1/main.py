@@ -18,11 +18,14 @@ Endpoints:
 """
 
 import json
+import asyncio
+import hmac
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 # ── Ensure phase1 modules are importable ─────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent))
@@ -34,9 +37,9 @@ logging.basicConfig(
 logger = logging.getLogger("krishimitra")
 
 try:
-    from fastapi import FastAPI, HTTPException, Query
+    from fastapi import FastAPI, HTTPException, Query, Request
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import StreamingResponse
+    from fastapi.responses import JSONResponse, StreamingResponse
     from pydantic import BaseModel, Field
 except ImportError:
     print("❌  FastAPI not installed. Run: pip install fastapi uvicorn")
@@ -58,12 +61,79 @@ app = FastAPI(
     version="1.0.0",
 )
 
+
+def _phase1_cors_origins() -> list[str]:
+    raw = os.environ.get("PHASE1_CORS_ALLOWED_ORIGINS", "")
+    origins = [item.strip() for item in raw.split(",") if item.strip()]
+    allow_all = os.environ.get("PHASE1_ALLOW_ALL_CORS", "false").lower() in {"1", "true", "yes"}
+    debug = os.environ.get("DEBUG", "false").lower() == "true"
+    if allow_all and debug:
+        return ["*"]
+    return origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],       # tighten in production
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_phase1_cors_origins(),
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+
+_PROTECTED_PATH_PREFIXES = ("/chat", "/rag")
+_REQUEST_SEMAPHORE = asyncio.Semaphore(
+    max(1, int(os.environ.get("PHASE1_MAX_CONCURRENT_REQUESTS", "4")))
+)
+
+
+@app.middleware("http")
+async def protect_ai_service(request: Request, call_next):
+    """Fail closed for remote AI calls while keeping health probes public."""
+    if not request.url.path.startswith(_PROTECTED_PATH_PREFIXES):
+        return await call_next(request)
+
+    configured_token = os.environ.get("PHASE1_SERVICE_TOKEN", "").strip()
+    debug = os.environ.get("DEBUG", "false").lower() == "true"
+    require_token = (
+        os.environ.get("PHASE1_REQUIRE_SERVICE_TOKEN", str(not debug)).lower()
+        in {"1", "true", "yes"}
+    )
+    if require_token and not configured_token:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "Phase 1 service authentication is not configured.",
+                "error_code": "SERVICE_AUTH_NOT_CONFIGURED",
+            },
+        )
+    if configured_token:
+        supplied = request.headers.get("Authorization", "")
+        expected = f"Bearer {configured_token}"
+        if not hmac.compare_digest(supplied, expected):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Unauthorized", "error_code": "UNAUTHORIZED"},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    max_body_bytes = max(1024, int(os.environ.get("PHASE1_MAX_BODY_BYTES", "65536")))
+    content_length = request.headers.get("content-length")
+    if content_length and content_length.isdigit() and int(content_length) > max_body_bytes:
+        return JSONResponse(
+            status_code=413,
+            content={"detail": "Request body is too large.", "error_code": "PAYLOAD_TOO_LARGE"},
+        )
+
+    try:
+        await asyncio.wait_for(_REQUEST_SEMAPHORE.acquire(), timeout=0.1)
+    except asyncio.TimeoutError:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Local AI is busy.", "error_code": "CAPACITY_FULL"},
+            headers={"Retry-After": "2"},
+        )
+    try:
+        return await call_next(request)
+    finally:
+        _REQUEST_SEMAPHORE.release()
 
 
 @app.get("/")
@@ -87,19 +157,57 @@ def root():
 
 
 # ── Request / Response models ─────────────────────────────────────────────────
-class ChatRequest(BaseModel):
-    query:    str              = Field(..., min_length=1, max_length=2000)
-    language: str              = Field("hi", description="hi|en|mr|ta|te|gu|pa|bn|auto")
-    location: Optional[str]   = Field(None, description="City or district name")
+class _StrictModel(BaseModel):
+    class Config:
+        extra = "forbid"
+
+
+class HistoryEntry(_StrictModel):
+    role: Literal["user", "assistant"] = "user"
+    content: str = Field(..., min_length=1, max_length=2000)
+
+
+class SensorContextPayload(_StrictModel):
+    moisture_pct: Optional[float] = Field(None, ge=0, le=100)
+    moisture_status: Optional[str] = Field(None, max_length=40)
+    soil_temp_c: Optional[float] = Field(None, ge=-20, le=80)
+    ph: Optional[float] = Field(None, ge=0, le=14)
+    nitrogen_kg_ha: Optional[float] = Field(None, ge=0, le=5000)
+    phosphorus_kg_ha: Optional[float] = Field(None, ge=0, le=2000)
+    potassium_kg_ha: Optional[float] = Field(None, ge=0, le=5000)
+    temp_c: Optional[float] = Field(None, ge=-50, le=70)
+    humidity_pct: Optional[float] = Field(None, ge=0, le=100)
+    source: Optional[str] = Field(None, max_length=120)
+
+
+class FarmerProfilePayload(_StrictModel):
+    location: Optional[str] = Field(None, max_length=200)
+    state: Optional[str] = Field(None, max_length=120)
+    farm_size_bigha: Optional[float] = Field(None, ge=0, le=1_000_000)
+    current_crop: Optional[str] = Field(None, max_length=120)
+    current_season: Optional[str] = Field(None, max_length=40)
+    soil_ph: Optional[float] = Field(None, ge=0, le=14)
+    irrigation_type: Optional[str] = Field(None, max_length=40)
+    crop_history: Optional[str] = Field(None, max_length=2000)
+    has_pm_kisan: Optional[bool] = None
+    has_kcc: Optional[bool] = None
+    language: Optional[str] = Field(None, max_length=20)
+    sensor_reading: Optional[SensorContextPayload] = None
+
+
+class ChatRequest(_StrictModel):
+    query: str = Field(..., min_length=1, max_length=2000)
+    language: str = Field("hi", min_length=2, max_length=20, description="Language code")
+    location: Optional[str] = Field(None, max_length=200)
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
-    crop:     Optional[str]   = Field(None, description="Current crop being grown")
-    season:   Optional[str]   = Field(None, description="Kharif / Rabi / Zaid")
-    history:  Optional[List[dict]] = Field(default_factory=list,
-                                           description="Previous [{role,content}] turns")
-    sensor_context:  Optional[dict] = Field(None, description="IoT sensor readings if available")
-    farmer_profile:  Optional[dict] = Field(None, description="Farmer profile context for personalisation")
-    stream:   bool             = Field(False, description="Stream tokens in real-time")
+    crop: Optional[str] = Field(None, max_length=120)
+    season: Optional[str] = Field(None, max_length=40)
+    history: List[HistoryEntry] = Field(default_factory=list, max_length=20)
+    sensor_context: Optional[SensorContextPayload] = None
+    farmer_profile: Optional[FarmerProfilePayload] = None
+    verified_knowledge: Optional[str] = Field(None, max_length=3000)
+    stream: bool = False
 
     class Config:
         json_schema_extra = {
@@ -112,6 +220,13 @@ class ChatRequest(BaseModel):
             }
         }
 
+
+def _model_dict(value):
+    if value is None:
+        return None
+    if hasattr(value, "model_dump"):
+        return value.model_dump(exclude_none=True)
+    return value.dict(exclude_none=True)
 
 class ChatResponse(BaseModel):
     response:    str
@@ -152,14 +267,18 @@ def _get_weather_summary(location: str, lat: float, lon: float, lang: str) -> st
             return ""
         w = ws.get_weather(location, lat, lon, lang=lang)
         cur     = w.get("current") or {}
-        alerts  = w.get("farming_alerts") or []
+        alerts = [
+            str(alert)
+            for alert in (w.get("farming_alerts") or [])
+            if "uv" not in str(alert).casefold()
+        ]
         forecast = (w.get("forecast_7day") or [])[:3]
         lines = [
             f"Current: {cur.get('temperature')}°C, {cur.get('condition', '')}",
             f"Air humidity: {cur.get('humidity')}% (not soil moisture)",
         ]
         if alerts:
-            lines.append(f"ALERT: {' | '.join(str(a) for a in alerts[:2])}")
+            lines.append(f"ALERT: {' | '.join(alerts[:2])}")
         if forecast:
             fc_text = "; ".join(
                 f"{d.get('date')}: {d.get('max_temp')}°C rain {d.get('rainfall_mm', 0)}mm"
@@ -186,6 +305,14 @@ async def chat_endpoint(req: ChatRequest):
     rag_results = retrieve_with_sources(req.query, k=5)
     rag_texts   = [r["text"]        for r in rag_results]
     rag_sources = list({r["source_file"] for r in rag_results})
+    if not rag_texts and not (req.verified_knowledge or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": "NO_GROUNDING",
+                "message": "No verified knowledge matched this question.",
+            },
+        )
 
     # 2. Optional weather (non-blocking)
     weather_summary = ""
@@ -195,32 +322,26 @@ async def chat_endpoint(req: ChatRequest):
         )
 
     # 3. Build prompt
-    farmer_profile = {
-        "location": req.location,
-        "crop":     req.crop,
-        "season":   req.season,
-        **(req.farmer_profile or {}),   # merge full profile if provided
-    }
     prompt = build_farming_prompt(
         question=req.query,
         rag_chunks=rag_texts,
+        verified_knowledge=req.verified_knowledge,
         weather_summary=weather_summary or None,
-        sensor_data=req.sensor_context,
-        farmer_profile=farmer_profile,
-        conversation_history=req.history,
+        sensor_data=_model_dict(req.sensor_context),
+        farmer_profile={
+            "location": req.location,
+            "crop": req.crop,
+            "season": req.season,
+            **(_model_dict(req.farmer_profile) or {}),
+        },
+        conversation_history=[_model_dict(item) for item in req.history],
     )
 
-    # 4. Generate response via Qwen
-    # Bug 6 fix: if Qwen returns empty string (e.g. Ollama overloaded),
-    # return a safe fallback message instead of letting Pydantic validation
-    # reject the empty string and emit a 422 to the Django caller.
-    _OFFLINE_MSG = (
-        "माफ़ करें, AI सेवा अभी व्यस्त है। "
-        "Kisan Helpline: 1800-180-1551 (Free, 24x7)\n\n"
-        "Sorry, AI service is temporarily busy. "
-        "Please call Kisan Helpline: 1800-180-1551 (Free, 24x7)"
-    )
-    response_text = chat(prompt) or _OFFLINE_MSG
+    # An empty model result is a service failure, not an answer. Returning 503
+    # lets Django continue through direct Ollama and its grounded rule fallback.
+    response_text = chat(prompt)
+    if not response_text:
+        raise HTTPException(status_code=503, detail="Local AI model unavailable")
 
     return ChatResponse(
         response=response_text,
@@ -241,6 +362,14 @@ async def chat_stream_endpoint(req: ChatRequest):
     """
     # 1. RAG — Top-20 → rerank → Top-5 (RAG-1/2/3 pipeline)
     rag_texts = retrieve(req.query, k=5)
+    if not rag_texts and not (req.verified_knowledge or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": "NO_GROUNDING",
+                "message": "No verified knowledge matched this question.",
+            },
+        )
 
     # 2. Weather
     weather_summary = ""
@@ -253,15 +382,16 @@ async def chat_stream_endpoint(req: ChatRequest):
     prompt = build_farming_prompt(
         question=req.query,
         rag_chunks=rag_texts,
+        verified_knowledge=req.verified_knowledge,
         weather_summary=weather_summary or None,
-        sensor_data=req.sensor_context,
+        sensor_data=_model_dict(req.sensor_context),
         farmer_profile={
             "location": req.location,
             "crop":     req.crop,
             "season":   req.season,
-            **(req.farmer_profile or {}),   # Fix 3: merge full profile, consistent with /chat
+            **(_model_dict(req.farmer_profile) or {}),
         },
-        conversation_history=req.history,
+        conversation_history=[_model_dict(item) for item in req.history],
     )
 
     def _token_generator():
@@ -308,17 +438,21 @@ def rag_status():
         "vector_store_ready": rag_ok,
         "knowledge_files":    len(files),
         "categories": sorted({f.parent.name for f in files}),
-        "chroma_dir": str(Path(__file__).parent / "chroma_db"),
+        "chroma_storage": "server_local",
         "ingest_command": "python3 rag/ingest.py",
     }
 
 
 @app.get("/rag/search")
 def rag_search(
-    q: str = Query(..., description="Test search query"),
+    request: Request,
+    q: str = Query(..., min_length=1, max_length=2000, description="Test search query"),
     k: int = Query(3, ge=1, le=10),
 ):
     """Manually test what the RAG retrieves for a given query."""
+    unknown = set(request.query_params) - {"q", "k"}
+    if unknown:
+        raise HTTPException(status_code=400, detail="Unexpected query parameter")
     results = retrieve_with_sources(q, k=k)
     return {
         "query":   q,

@@ -46,10 +46,15 @@ agri_advisory_app/
   Ollama next, Gemini only when `GOOGLE_AI_API_KEY` is configured, then a
   rule-based farmer-safe fallback.
 - Weather uses Open-Meteo without an API key. `OPENWEATHER_API_KEY` is optional.
-- Mandi prices work best with `DATA_GOV_IN_API_KEY`; without it coverage and
-  rate limits are restricted.
-- Crop recommendations are location-aware and use weather/market data with
-  bounded fallbacks.
+- Mandi prices use only fresh, dated official Agmarknet/data.gov.in rows.
+  Agmarknet 2.0 provides current state-level rows without a key. A valid
+  `DATA_GOV_IN_API_KEY` adds fuller commodity and exact-mandi coverage. The app
+  never substitutes synthetic or MSP-estimate prices when an official row is
+  absent.
+- Crop recommendations use 200+ canonical Indian crop profiles and combine
+  location, season, weather, soil, irrigation, optional soil-test readings,
+  farmer budget, crop rotation, and verified market signals. Static cost and
+  profit figures are explicitly labeled as indicative planning estimates.
 - Disease diagnostics do not fake image classification. If the trained model is
   missing or low quality, the API returns an advisory fallback instead of a false
   disease label.
@@ -58,8 +63,11 @@ agri_advisory_app/
 
 ## Quick Start - Backend
 
+Use Python 3.11, matching Docker and GitHub Actions. Django 5.2 requires Python
+3.10 or newer; the macOS system Python 3.9 is not supported by this project.
+
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
 cp .env.example .env
@@ -74,6 +82,7 @@ Useful backend URLs:
 | `http://127.0.0.1:8000/` | API/root app |
 | `http://127.0.0.1:8000/api/health/` | Basic health |
 | `http://127.0.0.1:8000/api/health/readiness/` | Database, cache, AI, model readiness |
+| `http://127.0.0.1:8000/api/health/launch-readiness/` | Explicit production launch blockers |
 | `http://127.0.0.1:8000/api/schema/swagger-ui/` | Swagger UI |
 | `http://127.0.0.1:8000/admin/` | Django admin |
 
@@ -131,7 +140,7 @@ Create the custom local model if needed:
 
 ```bash
 cd custom_llm_trainer
-ollama create krishimitra-llm -f Modelfile
+ollama pull qwen2.5:7b
 ```
 
 Start Phase 1 locally:
@@ -142,6 +151,26 @@ bash start.sh
 # or:
 uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 ```
+
+`phase1/start.sh` fingerprints every `.txt` and `.pdf` knowledge source and
+rebuilds Chroma only when the content changes. Docker performs the same check
+and stores the generated index in the `krishimitra_rag_data` volume. Set
+`RAG_INDEX_REQUIRED=true` in production to stop startup when fresh knowledge
+cannot be indexed; the default local setting starts in a clearly degraded mode.
+
+The canonical 202-crop recommendation catalog is also exported into Phase 1 as
+grounded planning profiles. Regenerate and verify that snapshot whenever crop
+metadata changes:
+
+```bash
+python3 scripts/generate_crop_knowledge.py
+python3 scripts/generate_crop_knowledge.py --check
+python3 phase1/rag/eval_retrieval.py --static
+```
+
+The snapshot deliberately excludes estimated economics, synthetic live data,
+disease classification, and chemical doses. Crop-specific field practices must
+still be confirmed against the local KVK or current state package of practices.
 
 Check it:
 
@@ -165,7 +194,8 @@ Create `.env` first and set at least `SECRET_KEY`.
 cp .env.example .env
 ```
 
-Common commands:
+Local development commands (the automatically loaded
+`docker-compose.override.yml` uses Django hot reload and SQLite):
 
 ```bash
 # API plus built frontend served by Django, host port 8001
@@ -177,12 +207,31 @@ docker compose --profile ai up --build web phase1
 # API plus nginx static UI, host ports 8001 and 8080
 docker compose --profile full up --build
 
-# Full stack: Django, nginx, PostgreSQL, Redis, Phase 1, MQTT
+# Development full stack
 docker compose --profile all up --build
 ```
 
 The compose file stores runtime state in named volumes for the database,
 uploads, static files, Redis, MQTT, and mounted ML models.
+
+For a production deployment, create an untracked `.env.production` with every
+required secret from `.env.example`, then use the production overlay explicitly:
+
+```bash
+docker compose --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.production.yml \
+  --profile all config --quiet
+
+docker compose --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.production.yml \
+  --profile all up --build -d
+```
+
+The explicit `-f` files prevent the local development override from loading.
+This production path uses Gunicorn, PostgreSQL, shared Redis rate limits/cache,
+strict RAG startup, and bearer authentication between Django and Phase 1. It
+fails before startup when the database password, data.gov.in key, Sentry DSN,
+OTP credentials, host/origin restrictions, or Phase 1 token are missing.
 
 ## Crop Disease Model
 
@@ -193,7 +242,10 @@ models/crop_disease/efficientnetb3_crop_disease.keras
 ```
 
 Large datasets and trained model artifacts are intentionally not committed.
-Install or mount the model in production, or train one from local datasets.
+Install or mount a validated model in production, or train one from local
+datasets. Advisory-only diagnostics are launch-safe and remain the default;
+an unverified image classifier is never enabled merely because a `.keras` file
+exists.
 
 Install ML dependencies:
 
@@ -207,35 +259,44 @@ Prepare datasets under `data/datasets/` and inspect them:
 python scripts/setup_training_data.py --analyze-only
 ```
 
-Train EfficientNet-B3:
+Train a bounded candidate without replacing the installed model:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.train \
-  --data-dir data/datasets \
-  --output-dir models/crop_disease \
-  --architecture efficientnetb3
+python3 scripts/train_crop_disease.py --skip-setup \
+  --max-per-class 100 --epochs 4 --warmup-epochs 3 \
+  --fine-tune-layers 20 --max-test-samples 760
+```
+
+The default output is `models/crop_disease_candidate/`. Production mode also
+requires an approved provenance manifest and non-plant negatives:
+
+```bash
+python3 scripts/train_crop_disease.py --skip-setup --production \
+  --max-per-class 0 --epochs 20 --max-test-samples 0 \
+  --dataset-manifest data/datasets/dataset_manifest.json
 ```
 
 Evaluate before production:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.evaluate \
-  --model-dir models/crop_disease \
+PYTHONPATH=backend python3 -m advisory.ml.evaluate \
+  --model-dir models/crop_disease_candidate \
   --data-dir data/datasets
 ```
 
 For quick local/CI smoke checks on constrained hardware:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.evaluate \
-  --model-dir models/crop_disease \
+PYTHONPATH=backend python3 -m advisory.ml.evaluate \
+  --model-dir models/crop_disease_candidate \
   --data-dir data/datasets \
   --max-test-samples 390
 ```
 
 `/api/health/readiness/` reports whether the model is missing, needs retraining,
-or is a production candidate. Models marked `needs_retraining` or `unknown` are
-blocked from farmer-facing predictions by default; use
+needs validation, or is a production candidate. Models marked
+`needs_retraining`, `needs_validation`, or `unknown` are blocked from
+farmer-facing predictions by default; use
 `ML_ALLOW_UNVERIFIED_MODEL=true` only for offline evaluation, never for a farmer
 production deployment.
 
@@ -265,16 +326,43 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `ALLOWED_HOSTS` | Production | Django host allow-list |
 | `CORS_ALLOWED_ORIGINS` | Production | Frontend origins allowed to call API |
 | `CSRF_TRUSTED_ORIGINS` | Production | Trusted origins for state-changing requests |
-| `DATA_GOV_IN_API_KEY` | Recommended | Fuller live mandi coverage |
+| `DATA_GOV_IN_API_KEY` | Recommended | Fuller commodity and exact-mandi coverage beyond the no-key Agmarknet state feed |
+| `MANDI_MAX_DATA_AGE_HOURS` | Optional | Maximum accepted age for an official daily mandi row; default `72` |
 | `GOOGLE_AI_API_KEY` | Optional | Gemini fallback for chatbot |
 | `OPENWEATHER_API_KEY` | Optional | OpenWeather fallback; Open-Meteo works without a key |
 | `REDIS_URL` | Production | Shared cache, rate limits, Celery broker |
+| `RATE_LIMIT_ENABLED` | Production | Enables API and chatbot-stream throttling |
+| `RATE_LIMIT_FAIL_OPEN` | Development only | Allow traffic when the rate-limit cache is unavailable; keep `false` in production |
+| `RATE_LIMIT_PUBLIC_RPM/RPH/RPD` | Optional | Public per-IP minute/hour/day limits |
+| `RATE_LIMIT_AUTHENTICATED_RPM/RPH/RPD` | Optional | Authenticated per-IP and per-account limits |
+| `RATE_LIMIT_AUTH_RPM/RPH/RPD` | Optional | Login, OTP, and registration limits |
+| `RATE_LIMIT_HEAVY_RPM/RPH/RPD` | Optional | Diagnostics, pest, and TTS limits |
+| `RATE_LIMIT_CHAT_*`, `RATE_LIMIT_DATA_*`, `RATE_LIMIT_DIAG_*`, `RATE_LIMIT_DEFAULT_*`, `RATE_LIMIT_NOMINATIM_*` | Optional | Token-bucket capacity and refill settings for non-HTTP integrations |
+| `AUTH_BACKOFF_THRESHOLD` | Optional | Failed OTP attempts before progressive delay |
+| `AUTH_BACKOFF_BASE_SECONDS` | Optional | Initial OTP backoff delay |
+| `AUTH_BACKOFF_MAX_SECONDS` | Optional | Maximum OTP backoff delay |
+| `AUTH_BACKOFF_WINDOW_SECONDS` | Optional | Failed-attempt counter lifetime |
+| `KRISHI_RAKSHA_MAX_UPLOAD_MB` | Optional | Maximum decoded diagnostic image size; default `5` |
+| `DATA_UPLOAD_MAX_MEMORY_SIZE` | Optional | Django request parser limit in bytes; default `8388608` |
+| `FILE_UPLOAD_MAX_MEMORY_SIZE` | Optional | Django in-memory file limit in bytes; default `8388608` |
+| `PRIVATE_UPLOAD_ROOT` | Optional | Private future-upload directory; never expose it as static/media content |
+| `SENTRY_DSN` | Production | Error tracing without exposing farmer PII |
+| `LAUNCH_CHECK` | CI/deploy | Return HTTP 503 from strict launch checks when blockers remain |
 | `SERVE_FRONTEND` | Optional | Serve `frontend/dist/` from Django |
 | `VITE_API_BASE_URL` | Frontend | Browser API base URL |
 | `PHASE1_BASE_URL` | Optional | Django -> Phase 1 service URL |
+| `PHASE1_CORS_ALLOWED_ORIGINS` | Optional | Explicit browser origins allowed to call Phase 1; empty means no cross-origin access |
+| `PHASE1_ALLOW_ALL_CORS` | Development only | Allows wildcard Phase 1 CORS only when `DEBUG=true`; keep `false` in production |
+| `OLLAMA_MODEL` | Optional | Local composition model; `qwen2.5:7b` is the current quality-tested default |
 | `PHASE1_TIMEOUT_S` | Optional | Phase 1 request timeout |
+| `PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S` | Optional | Max wait for first streamed local-AI token |
+| `PHASE1_STREAM_IDLE_TIMEOUT_S` | Optional | Max idle gap between streamed local-AI tokens |
+| `PHASE1_STREAM_TOTAL_TIMEOUT_S` | Optional | Total Phase 1 stream budget |
+| `CHAT_LOCAL_AI_MAX_CONCURRENCY` | Optional | Max concurrent local Phase 1/Ollama chatbot calls; use `1` on small CPU-only hosts |
 | `OLLAMA_BASE_URL` | Optional | Local Ollama URL |
-| `OLLAMA_MODEL` | Optional | Local LLM model name |
+| `OLLAMA_MAX_TOKENS` | Optional | JSON answer generation cap; default `320` for bounded CPU latency |
+| `OLLAMA_STREAM_MAX_TOKENS` | Optional | Streamed answer generation cap; default `320` |
+| `OLLAMA_DIRECT_TIMEOUT_S` | Optional | Direct Ollama fallback read timeout |
 | `CROP_DISEASE_MODEL_DIR` | Optional | Directory containing disease model artifacts |
 | `ML_CONFIDENCE_THRESHOLD` | Optional | Minimum confidence for image classification |
 | `ML_ALLOW_UNVERIFIED_MODEL` | Development only | Allows low-quality/unverified disease model predictions for offline testing |
@@ -283,10 +371,35 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `GROQ_API_KEY` | Optional | Voice transcription for WhatsApp audio |
 | `MQTT_BROKER_HOST` | Optional | ESP32/IoT telemetry ingestion |
 
+## Security And API Contracts
+
+- Farmer profile reads and writes require JWT authentication and are always
+  resolved from the authenticated farmer. Legacy `phone`/`session_id` fields
+  may be accepted for compatibility but are ignored for ownership.
+- Saving IoT sensor readings requires JWT authentication. Public field
+  recommendations remain read-only and may use anonymous GPS data.
+- OTP request/verification and password registration use strict schemas,
+  per-IP/per-account limits, and progressive backoff after repeated failures.
+- Chatbot JSON and SSE requests share one strict schema. Unknown fields,
+  malformed coordinates, oversized history, and invalid language values are
+  rejected with a safe 400 response.
+- The Phase 1 FastAPI service rejects unknown body fields, bounds nested farmer,
+  history, and sensor payloads, and has no wildcard CORS by default.
+- Diagnostic and pest image uploads are decoded before inference. Only JPEG,
+  PNG, and WebP images within the configured size/pixel limits are accepted;
+  uploads are processed in memory and are not persisted by these endpoints.
+- Nginx denies public `/media/` access. Any future persisted upload must use
+  `PRIVATE_UPLOAD_ROOT` with restrictive permissions and an authenticated download
+  endpoint rather than static file serving.
+- Production errors return stable farmer-safe messages and error codes. Full
+  exception details remain in server logs/Sentry only.
+- The DRF rate limiter uses atomic shared-cache counters. Set `REDIS_URL` in
+  production so limits and OTP backoff are consistent across workers.
+
 ## Verification
 
-This repo currently uses smoke checks and CI contract tests rather than a pytest
-suite.
+This repo uses Django regression tests, deterministic service verifiers,
+Playwright browser journeys, dependency audits, and Docker smoke checks.
 
 Backend:
 
@@ -294,6 +407,7 @@ Backend:
 python3 -m compileall -q backend phase1 scripts custom_llm_trainer
 python manage.py check
 python manage.py makemigrations --check --dry-run
+python manage.py test advisory.tests
 python scripts/check_before_push.py
 ```
 
@@ -303,13 +417,15 @@ Frontend:
 cd frontend
 node --check public/js/app.js
 npm audit --audit-level=high
+npm run test:ui
+npm run test:e2e
 npm run build
 ```
 
 Mobile:
 
 ```bash
-cd mobile/krishimitra
+cd mobile/krishimitra_app
 flutter analyze
 ```
 
@@ -317,6 +433,7 @@ Manual farmer-critical API probes:
 
 ```bash
 curl http://127.0.0.1:8000/api/health/readiness/
+curl "http://127.0.0.1:8000/api/health/launch-readiness/?strict=true"
 curl "http://127.0.0.1:8000/api/locations/search/?q=lucknow&limit=2"
 curl "http://127.0.0.1:8000/api/crops/search/?q=makhana"
 ```
@@ -324,8 +441,15 @@ curl "http://127.0.0.1:8000/api/crops/search/?q=makhana"
 ## GitHub Actions
 
 The CI workflow validates backend routes and farmer-critical API behavior,
-frontend build health, mobile analysis, code quality rules, and Docker build
-contracts. Pull requests should be green before merging.
+desktop/mobile-width Playwright journeys, frontend build health, mobile
+analysis, code quality rules, and Docker build contracts. It starts the API and
+Phase 1 containers, checks both health routes, and verifies an instant chatbot
+greeting. Quick-service, browser-failure, and production reports are uploaded
+as Actions artifacts for 14 days. Pull requests should be green before merging.
+
+For a deployed pre-launch gate, set repository variable `LAUNCH_CHECK=true` and
+`LAUNCH_READINESS_URL=https://your-api.example.com`. The optional Actions job
+then calls the strict endpoint and fails while any production blocker remains.
 
 ## Deployment
 
@@ -337,12 +461,44 @@ Recommended production setup:
 4. Frontend hosted by CDN/static hosting, nginx, or Django with
    `SERVE_FRONTEND=true`.
 5. Optional Phase 1 service plus Ollama for local RAG/LLM.
-6. Trained crop disease model mounted at `models/crop_disease/`.
+6. Optional production-candidate disease model mounted at
+   `models/crop_disease/`; otherwise keep advisory-only diagnostics enabled.
 7. `DATA_GOV_IN_API_KEY` set for stronger mandi coverage.
+8. `SENTRY_DSN`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, and
+   `CSRF_TRUSTED_ORIGINS` set to production values.
+9. `PHASE1_BASE_URL`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, and
+   `CHAT_LOCAL_AI_MAX_CONCURRENCY` matched to the deployed CPU/RAM capacity.
+10. `RAG_INDEX_REQUIRED=true` so stale or missing local knowledge blocks the
+    production Phase 1 service instead of silently weakening answers.
+
+Before launch, the strict readiness endpoint must return `ready`. Missing Redis,
+mandi key, Phase 1/RAG, configured Ollama model, or Sentry are explicit blockers.
+An unverified disease model is a blocker only when image classification is
+enabled; advisory-only disease guidance remains launch-safe. Development remains
+usable with honest fallback labels when `LAUNCH_CHECK=false`.
+
+Disease model training must use a licensed dataset manifest in the format at
+`backend/advisory/ml/dataset_manifest.schema.json`:
+
+```bash
+python3 -m advisory.ml.dataset_manifest data/datasets/dataset_manifest.json
+python3 -m advisory.ml.train --data-dir data/datasets \
+  --output-dir models/crop_disease_candidate \
+  --require-manifest --require-non-plant
+python3 -m advisory.ml.evaluate --model-dir models/crop_disease_candidate \
+  --data-dir data/datasets
+```
+
+Evaluation writes per-class precision, recall, F1, support, and false-negative
+rates. Farmer image classification remains disabled unless metadata quality is
+`production_candidate`; otherwise diagnostics return `advisory_fallback`.
 
 Render/Railway style API-only deployments can use `Procfile`, `render.yaml`,
 or `scripts/deploy.sh`. Combined single-container deployments should build the
 frontend first and set `SERVE_FRONTEND=true`.
+
+The production procedures, stop conditions, incident responses, and rollback
+checks are in `docs/FARMER_BETA_RUNBOOK.md`.
 
 ## Troubleshooting
 

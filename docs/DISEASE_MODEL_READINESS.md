@@ -1,81 +1,97 @@
 # Disease Model Readiness
 
-Last checked: 2026-07-04
+Last checked: 2026-07-18
 
-## Current Local Artifact
+## Farmer-Facing Status
 
-Local files exist under `models/crop_disease/`, but they are intentionally ignored
-by git and are not part of the repository:
+Disease image classification remains disabled. The API returns an honest
+`advisory_fallback` with symptom questions and escalation guidance instead of a
+predicted disease label. Keep `ML_ALLOW_UNVERIFIED_MODEL=false` in farmer
+environments.
 
-- `efficientnetb3_crop_disease.keras` exists locally.
-- `class_labels.json` has 39 labels across 15 crop buckets.
-- `training_history.json` records only 2 training epochs.
-- Best recorded validation accuracy is 2.63%.
-- Best recorded validation top-3 accuracy is 7.89%.
-- Bounded smoke evaluation on 390 deterministic test images produced 3.08%
-  accuracy and 2.58% weighted F1.
+The old artifact under `models/crop_disease/` is not production-ready. It was
+trained for two epochs through a decoder bug that silently replaced every image
+with black pixels, and its reported validation accuracy was 2.63%. Do not mount
+or promote it.
 
-This model is **not farmer-ready**. The backend now blocks it by default because
-its metadata quality is `needs_retraining`. The API returns
-`model_unverified`/`advisory_fallback` with zero confidence instead of emitting a
-farmer-facing disease prediction.
+## Repaired Pipeline
 
-## Coverage Gap
+The training and evaluation pipeline now:
 
-The installed label set is PlantVillage-shaped and covers:
+- Deduplicates physical images before splitting. The local PlantVillage mirror
+  contains 54,305 unique images across 38 populated classes.
+- Creates the full deterministic train/validation/test split before applying a
+  local sample cap, preventing train-to-test leakage during later evaluation.
+- Fails on corrupt image decoding instead of silently training on black images.
+- Starts with a frozen ImageNet EfficientNet-B3 backbone, then fine-tunes only
+  the requested top non-BatchNorm layers at a lower learning rate.
+- Evaluates labels in the persisted model order and fails on label drift.
+- Records top-1/top-3 accuracy, per-class precision/recall/F1, false-negative
+  rates, non-plant support, manifest approval, and whether evaluation was
+  bounded.
+- Recomputes the model quality label from evidence; a stale value in
+  `metrics.json` cannot promote a model.
 
-`apple`, `blueberry`, `cherry`, `corn/maize`, `grape`, `orange`, `peach`,
-`pepper_bell`, `potato`, `raspberry`, `soybean`, `squash`, `strawberry`,
-`tomato`, and `unknown`.
+## Bounded Candidate Evidence
 
-It does not cover several high-priority Indian farmer crops and diseases:
+A leakage-free CPU candidate was trained with 100 images per class, three
+frozen-backbone warm-up epochs, and one limited fine-tuning epoch:
 
-- Cereals: wheat, rice, bajra, jowar, ragi.
-- Pulses: arhar/tur, moong, urad, chana, masoor.
-- Oilseeds: mustard, groundnut, sunflower, sesame.
-- Cash crops: cotton, sugarcane, jute.
-- Horticulture/spices: chilli, onion, okra, brinjal, banana, mango.
+- 38 classes; train 2,850; validation 570; capped test 380.
+- Best validation accuracy: 77.72%.
+- Best validation top-3 accuracy: 92.98%.
+- Deterministic 760-image evaluation accuracy: 79.87%.
+- Evaluation top-3 accuracy: 94.34%.
+- Weighted F1: 79.30%.
+- Quality verdict: `needs_validation`.
 
-Do not market this as broad Indian crop disease detection until those classes are
-represented in training and held-out evaluation data.
+These numbers prove the repaired pipeline learns. They do not approve the model
+for farmers because evaluation was bounded, no non-plant negatives were
+available, and the current source manifest is not approved for production use.
+The candidate was intentionally kept outside `models/crop_disease/`.
 
-## Dataset And License Notes
+## Coverage And License Gaps
 
-- PlantVillage/PlantVillage-derived data is common and large, but official
-  challenge documentation describes it as CC BY-SA 3.0 and states that trained
-  algorithms fall under the same license. Treat this as a share-alike licensing
-  obligation, not a permissive production default, until legal review confirms
-  the release plan.
-- PlantDoc is listed by its official repository as CC BY 4.0. It is more
-  permissive for commercial use with attribution, but it is much smaller and
-  should be used mainly for real-world-photo robustness, not as the only source.
-- Kaggle mirrors vary by uploader. Do not train production models from a Kaggle
-  mirror unless the original source and license are recorded in model metadata.
+The current PlantVillage-shaped labels cover apple, blueberry, cherry,
+corn/maize, grape, orange, peach, bell pepper, potato, raspberry, soybean,
+squash, strawberry, and tomato. They do not provide broad Indian field coverage
+for wheat, rice, millets, pulses, mustard, groundnut, cotton, sugarcane, chilli,
+onion, okra, brinjal, banana, or mango.
 
-## Required Go/No-Go Evidence
+The local dataset is the [Kaggle PlantVillage mirror](https://www.kaggle.com/datasets/abdallahalidev/plantvillage-dataset),
+which declares CC BY-NC-SA 4.0. The checked-in example manifest therefore keeps
+`usage_approved: false`; legal/product approval is required before production
+training. Dataset mirrors must not be treated as licensed merely because files
+are available.
 
-Before enabling farmer-facing disease predictions:
+## Production Go/No-Go
 
-1. Add a dataset manifest with source URL, license, crop/disease classes, sample
-   counts, and source date.
-2. Train with Indian-crop coverage and unknown/non-plant negatives.
-3. Run full held-out evaluation, not only `--max-test-samples`.
-4. Record per-class precision/recall/F1 and false-negative rate for serious
-   diseases.
-5. Mark the model `production_candidate` only when validation accuracy >= 75% and
-   top-3 accuracy >= 90%, or update the thresholds with a documented safety
-   rationale.
-6. Keep `ML_ALLOW_UNVERIFIED_MODEL=false` in farmer production.
+All of the following are required before enabling classification:
 
-Useful commands:
+1. Every dataset source has a reviewed manifest and `usage_approved: true`.
+2. Indian crop coverage and representative phone-camera field images are added.
+3. Unknown/non-plant negatives are present in train, validation, and test data.
+4. Full held-out evaluation runs without `--max-test-samples`.
+5. Every model label has held-out support and no unsupported dataset label exists.
+6. Validation and held-out top-1 accuracy are at least 75% and top-3 accuracy is
+   at least 90%, with reviewed per-class false-negative rates.
+7. The resulting metadata verdict is `production_candidate`.
+
+Safe candidate run:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.evaluate \
-  --model-dir models/crop_disease \
-  --data-dir data/datasets
-
-PYTHONPATH=backend python -m advisory.ml.evaluate \
-  --model-dir models/crop_disease \
-  --data-dir data/datasets \
-  --max-test-samples 390
+python3 scripts/train_crop_disease.py --skip-setup \
+  --max-per-class 100 --epochs 4 --warmup-epochs 3 \
+  --fine-tune-layers 20 --max-test-samples 760
 ```
+
+Production-candidate gate after approved data and negatives are available:
+
+```bash
+python3 scripts/train_crop_disease.py --skip-setup --production \
+  --max-per-class 0 --epochs 20 --max-test-samples 0 \
+  --dataset-manifest data/datasets/dataset_manifest.json \
+  --output-dir models/crop_disease_candidate
+```
+
+Promotion into `models/crop_disease/` is a separate reviewed release step.

@@ -52,7 +52,9 @@ FROM python:3.11-slim AS builder
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=10
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
@@ -74,7 +76,7 @@ FROM python:3.11-slim AS production
 
 # ── Labels ────────────────────────────────────────────────────
 LABEL org.opencontainers.image.title="KrishiMitra AI"
-LABEL org.opencontainers.image.description="Precision Agriculture Advisory — 167 crops, 22 languages, local LLM/RAG, real-time mandi prices, diagnostics fallback"
+LABEL org.opencontainers.image.description="Precision Agriculture Advisory — 202 crops, 22 languages, local LLM/RAG, real-time mandi prices, diagnostics fallback"
 LABEL org.opencontainers.image.source="https://github.com/Arnavmishra002/agri_advisory_app"
 LABEL org.opencontainers.image.version="4.3.0"
 
@@ -97,7 +99,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     OLLAMA_DIRECT_TIMEOUT_S=8 \
     CHAT_REALTIME_TIMEOUT_S=4 \
     CROP_REC_REALTIME_TIMEOUT_S=5 \
-    OLLAMA_CHAT_TIMEOUT_S=12 \
+    OLLAMA_CHAT_TIMEOUT_S=45 \
     OLLAMA_STREAM_TIMEOUT_S=60
 
 # FIX: Set PYTHONPATH so Django is importable in ALL execution contexts
@@ -135,8 +137,10 @@ RUN mkdir -p \
     /app/data \
     /app/models/crop_disease \
     /app/backend/staticfiles \
-    /app/backend/media \
+    /app/backend/private_uploads \
     /app/backend/logs
+
+RUN chmod 0700 /app/backend/private_uploads /app/backend/logs
 
 # ── Collect static assets ─────────────────────────────────────
 # Uses a throwaway SQLite so no DB connection is needed at build time

@@ -40,22 +40,44 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from ...rate_limiters import SharedRateLimiter
+from ...rate_limiters import AtomicWindowRateLimiter, ExponentialBackoff, client_ip_from_request
+from ...services.guest_session_service import verify_guest_session_token
+from ..serializers import (
+    OTPRequestInputSerializer,
+    OTPVerifyInputSerializer,
+    RegistrationInputSerializer,
+    LogoutInputSerializer,
+)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-# ── OTP rate limiter: max 3 OTP requests per phone per hour ──────────────────
+# ── OTP rate limiters ─────────────────────────────────────────────────────────
 # Uses phone number as client_id (not IP) so rate limit is per-user not per-network.
-otp_rate_limiter = SharedRateLimiter(
+otp_rate_limiter = AtomicWindowRateLimiter(
     key_prefix="otp",
-    capacity=3,
-    fill_rate=3 / 3600,  # refill 3 tokens over 1 hour (steady state = 3/hr)
+    capacity=settings.OTP_REQUEST_CAPACITY,
+    window_seconds=settings.OTP_REQUEST_WINDOW_SECONDS,
 )
-otp_verify_rate_limiter = SharedRateLimiter(
+otp_verify_rate_limiter = AtomicWindowRateLimiter(
     key_prefix="otp_verify",
-    capacity=5,
-    fill_rate=5 / 3600,  # refill 5 verification attempts over 1 hour
+    capacity=settings.OTP_VERIFY_CAPACITY,
+    window_seconds=settings.OTP_VERIFY_WINDOW_SECONDS,
+)
+otp_backoff = ExponentialBackoff("otp_verify")
+
+# Per-IP and global OTP send ceilings. The per-phone limiter above does not stop
+# an attacker rotating phone numbers to SMS-bomb arbitrary numbers / burn Twilio
+# credit, so cap sends per source IP and across the whole service per window.
+otp_ip_rate_limiter = AtomicWindowRateLimiter(
+    key_prefix="otp_ip",
+    capacity=getattr(settings, "OTP_IP_CAPACITY", 10),
+    window_seconds=getattr(settings, "OTP_IP_WINDOW_SECONDS", 3600),
+)
+otp_global_rate_limiter = AtomicWindowRateLimiter(
+    key_prefix="otp_global",
+    capacity=getattr(settings, "OTP_GLOBAL_CAPACITY", 500),
+    window_seconds=getattr(settings, "OTP_GLOBAL_WINDOW_SECONDS", 3600),
 )
 
 # Indian mobile number: optional +, optional 91, then 6-9 followed by 9 digits
@@ -119,6 +141,46 @@ def _send_otp_sms(phone: str, otp: str) -> bool:
         return False
 
 
+def _auth_identifiers(request, phone: str) -> tuple[str, str]:
+    """Return independent IP and account keys for OTP failure backoff."""
+    return f"ip:{client_ip_from_request(request)}", f"phone:{phone}"
+
+
+def _backoff_response(request, identifiers: tuple[str, str]):
+    retry_after = max((otp_backoff.retry_after(identifier) for identifier in identifiers), default=0)
+    if retry_after <= 0:
+        return None
+    return Response(
+        {
+            "error": "Too many verification attempts. Please wait before trying again.",
+            "error_code": "OTP_VERIFY_RATE_LIMITED",
+            "error_hi": "बहुत अधिक प्रयास। कृपया कुछ देर बाद फिर कोशिश करें।",
+            "retry_after": retry_after,
+        },
+        status=429,
+        headers={"Retry-After": str(retry_after)},
+    )
+
+
+def _verified_guest_session(validated: dict) -> str:
+    session_id = str(validated.get("session_id") or "")
+    token = str(validated.get("guest_session_token") or "")
+    return session_id if verify_guest_session_token(session_id, token) else ""
+
+
+def _copy_guest_profile_fields(source, target) -> None:
+    for field in (
+        "location_name", "state", "district", "latitude", "longitude",
+        "farm_size_bigha", "farm_size_hectare", "irrigation_type", "soil_type",
+        "soil_ph", "crop_history", "current_crop", "current_season",
+        "preferred_language",
+    ):
+        current = getattr(target, field)
+        incoming = getattr(source, field)
+        if current in (None, "", [], {}) and incoming not in (None, "", [], {}):
+            setattr(target, field, incoming)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 class AuthViewSet(viewsets.ViewSet):
     """
@@ -137,12 +199,10 @@ class AuthViewSet(viewsets.ViewSet):
         Response:     { "success": true, "expires_in": 600, "sms_sent": bool }
         Dev mode only: { ..., "dev_otp": "123456" }
         """
-        phone_raw = (request.data.get("phone_number") or "").strip()
-        if not phone_raw:
-            return Response(
-                {"error": "phone_number is required", "error_code": "MISSING_PHONE"},
-                status=400,
-            )
+        serializer = OTPRequestInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors, "error_code": "INVALID_REQUEST"}, status=400)
+        phone_raw = serializer.validated_data["phone_number"]
 
         phone = _normalise_phone(phone_raw)
         if not _PHONE_RE.match(phone):
@@ -151,8 +211,15 @@ class AuthViewSet(viewsets.ViewSet):
                 status=400,
             )
 
-        # Rate limiting: 3 OTPs per phone per hour
-        if not otp_rate_limiter.is_allowed(phone):
+        # Rate limiting: per-phone, per-IP, and global ceilings. All three must
+        # pass before an SMS is sent so a rotating-phone attacker cannot bomb SMS
+        # or exhaust the Twilio budget from a single network or across the fleet.
+        client_ip = client_ip_from_request(request)
+        if (
+            not otp_rate_limiter.is_allowed(phone)
+            or not otp_ip_rate_limiter.is_allowed(client_ip)
+            or not otp_global_rate_limiter.is_allowed("_all")
+        ):
             return Response(
                 {
                     "error": "Too many OTP requests. Please wait 1 hour before trying again.",
@@ -172,7 +239,7 @@ class AuthViewSet(viewsets.ViewSet):
         resp: dict = {"success": True, "expires_in": 600, "sms_sent": sms_sent}
 
         # In DEBUG mode, include the OTP in the response for easier dev/testing
-        if os.getenv("DEBUG", "False").lower() == "true":
+        if settings.DEBUG:
             resp["dev_otp"] = otp
 
         return Response(resp)
@@ -192,17 +259,19 @@ class AuthViewSet(viewsets.ViewSet):
         }
         Response: { "access": "...", "refresh": "...", "user": {...} }
         """
-        phone_raw  = (request.data.get("phone_number") or "").strip()
-        otp_code   = (request.data.get("otp_code") or "").strip()
-        session_id = (request.data.get("session_id") or "").strip()
-
-        if not phone_raw or not otp_code:
-            return Response(
-                {"error": "phone_number and otp_code are required", "error_code": "MISSING_FIELDS"},
-                status=400,
-            )
+        serializer = OTPVerifyInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors, "error_code": "INVALID_REQUEST"}, status=400)
+        phone_raw = serializer.validated_data["phone_number"]
+        otp_code = serializer.validated_data["otp_code"]
+        session_id = serializer.validated_data.get("session_id", "")
+        verified_guest_session = _verified_guest_session(serializer.validated_data)
 
         phone = _normalise_phone(phone_raw)
+        identifiers = _auth_identifiers(request, phone)
+        blocked = _backoff_response(request, identifiers)
+        if blocked:
+            return blocked
 
         if not otp_verify_rate_limiter.is_allowed(phone):
             return Response(
@@ -217,6 +286,8 @@ class AuthViewSet(viewsets.ViewSet):
         # Check OTP from cache
         stored_otp = cache.get(f"otp:{phone}")
         if not stored_otp:
+            for identifier in identifiers:
+                otp_backoff.record_failure(identifier)
             return Response(
                 {
                     "error": "OTP has expired. Please request a new one.",
@@ -227,6 +298,8 @@ class AuthViewSet(viewsets.ViewSet):
             )
 
         if stored_otp != otp_code:
+            for identifier in identifiers:
+                otp_backoff.record_failure(identifier)
             return Response(
                 {
                     "error": "Invalid OTP. Please check and try again.",
@@ -239,6 +312,8 @@ class AuthViewSet(viewsets.ViewSet):
         # OTP verified — delete it (one-time use)
         cache.delete(f"otp:{phone}")
         otp_verify_rate_limiter.reset(phone)
+        for identifier in identifiers:
+            otp_backoff.clear(identifier)
 
         # Get or create User (username = phone digits without +)
         username = phone.lstrip("+").replace(" ", "")
@@ -255,15 +330,22 @@ class AuthViewSet(viewsets.ViewSet):
         profile_name = ""
         try:
             from ...models import FarmerProfile
-            profile, profile_created = FarmerProfile.objects.get_or_create(
-                phone_number=phone,
-                defaults={"is_active": True} if hasattr(FarmerProfile, "is_active") else {},
-            )
-            # Migrate guest session data into this profile
-            if session_id and not profile.session_id:
-                profile.session_id = session_id
-                profile.save(update_fields=["session_id"])
-                logger.info("Guest session %s migrated to phone account %s", session_id, phone)
+            profile = FarmerProfile.objects.filter(phone_number=phone).first()
+            guest_profile = None
+            if verified_guest_session:
+                guest_profile = FarmerProfile.objects.filter(
+                    session_id=verified_guest_session, phone_number=""
+                ).first()
+            if profile is None:
+                profile = guest_profile or FarmerProfile(phone_number=phone)
+                profile.phone_number = phone
+            elif guest_profile and guest_profile.pk != profile.pk:
+                _copy_guest_profile_fields(guest_profile, profile)
+            if verified_guest_session and not profile.session_id:
+                profile.session_id = verified_guest_session
+            profile.save()
+            if verified_guest_session:
+                logger.info("Verified guest session migrated to phone account %s", phone)
             profile_name = profile.location_name or ""
         except Exception as exc:
             logger.warning("FarmerProfile OTP link failed: %s", exc)
@@ -275,6 +357,7 @@ class AuthViewSet(viewsets.ViewSet):
         return Response({
             "access":  str(refresh.access_token),
             "refresh": str(refresh),
+            "guest_session_migrated": bool(verified_guest_session),
             "user": {
                 "id":       user.id,
                 "username": username,
@@ -303,27 +386,46 @@ class AuthViewSet(viewsets.ViewSet):
             "session_id": "sess_xxxx"       (optional)
         }
         """
-        username   = (request.data.get("username") or "").strip()
-        password   = (request.data.get("password") or "").strip()
-        phone_raw  = (request.data.get("phone_number") or "").strip()
-        name       = (request.data.get("name") or "").strip()
-        state      = (request.data.get("state") or "").strip()
-        language   = (request.data.get("language") or "hi").strip()
-        session_id = (request.data.get("session_id") or "").strip()
-
-        # Validation
-        if not username:
-            return Response({"error": "username is required", "error_code": "MISSING_USERNAME"}, status=400)
-        if not password:
-            return Response({"error": "password is required", "error_code": "MISSING_PASSWORD"}, status=400)
-        if len(password) < 8:
-            return Response(
-                {"error": "Password must be at least 8 characters.", "error_code": "PASSWORD_TOO_SHORT"},
-                status=400,
-            )
+        serializer = RegistrationInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"error": serializer.errors, "error_code": "INVALID_REQUEST"}, status=400)
+        validated = serializer.validated_data
+        username = validated["username"]
+        password = validated["password"]
+        phone_raw = validated.get("phone_number", "")
+        name = validated.get("name", "")
+        state = validated.get("state", "")
+        language = validated.get("language", "hi")
+        session_id = validated.get("session_id", "")
+        verified_guest_session = _verified_guest_session(validated)
+        phone_normalised = ""
+        if phone_raw:
+            phone_normalised = _normalise_phone(phone_raw)
+            if not _PHONE_RE.match(phone_normalised):
+                return Response(
+                    {"error": "Invalid Indian mobile number.", "error_code": "INVALID_PHONE"},
+                    status=400,
+                )
         if User.objects.filter(username=username).exists():
             return Response(
                 {"error": "This username is already taken. Please choose another.", "error_code": "USERNAME_TAKEN"},
+                status=400,
+            )
+
+        # Enforce Django's configured password validators (length, common
+        # passwords, all-numeric, similarity). The serializer only checks a
+        # minimum length, so without this a password like "12345678" would pass.
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            validate_password(password)
+        except DjangoValidationError as pw_exc:
+            return Response(
+                {
+                    "error": " ".join(pw_exc.messages),
+                    "error_code": "WEAK_PASSWORD",
+                    "error_hi": "पासवर्ड बहुत कमज़ोर है। कृपया अधिक मज़बूत पासवर्ड चुनें।",
+                },
                 status=400,
             )
 
@@ -341,13 +443,6 @@ class AuthViewSet(viewsets.ViewSet):
         )
 
         # Create FarmerProfile
-        phone_normalised = ""
-        if phone_raw:
-            try:
-                phone_normalised = _normalise_phone(phone_raw)
-            except Exception:
-                phone_normalised = phone_raw
-
         try:
             from ...models import FarmerProfile
             profile_defaults = {
@@ -357,22 +452,23 @@ class AuthViewSet(viewsets.ViewSet):
             if session_id:
                 profile_defaults["session_id"] = session_id
 
-            identifier = phone_normalised or session_id
-            if identifier:
-                if phone_normalised:
-                    profile, _ = FarmerProfile.objects.get_or_create(
-                        phone_number=phone_normalised,
-                        defaults=profile_defaults,
-                    )
-                else:
-                    profile, _ = FarmerProfile.objects.get_or_create(
-                        session_id=session_id,
-                        defaults=profile_defaults,
-                    )
-                # Ensure session_id is set for guest migration
-                if session_id and not profile.session_id:
-                    profile.session_id = session_id
-                    profile.save(update_fields=["session_id"])
+            owned_session_id = f"user:{user.id}"
+            profile = None
+            if verified_guest_session:
+                profile = FarmerProfile.objects.filter(
+                    session_id=verified_guest_session, phone_number=""
+                ).first()
+            if profile is None:
+                profile = FarmerProfile.objects.filter(session_id=owned_session_id).first()
+            if profile is None:
+                profile = FarmerProfile(**profile_defaults)
+            for field, value in profile_defaults.items():
+                if getattr(profile, field) in (None, "", [], {}) and value not in (None, "", [], {}):
+                    setattr(profile, field, value)
+            profile.session_id = owned_session_id
+            if phone_normalised:
+                profile.phone_number = phone_normalised
+            profile.save()
         except Exception as exc:
             logger.warning("FarmerProfile register link failed: %s", exc)
 
@@ -382,6 +478,7 @@ class AuthViewSet(viewsets.ViewSet):
             {
                 "access":  str(refresh.access_token),
                 "refresh": str(refresh),
+                "guest_session_migrated": bool(verified_guest_session),
                 "user": {
                     "id":       user.id,
                     "username": username,
@@ -407,13 +504,15 @@ class AuthViewSet(viewsets.ViewSet):
 
         try:
             from ...models import FarmerProfile
-            # Try to find profile by phone number (username for OTP users) or session_id
-            session_id = request.query_params.get("session_id", "")
-            profile = (
-                FarmerProfile.objects.filter(phone_number=f"+91{user.username}").first()
-                or FarmerProfile.objects.filter(phone_number=user.username).first()
-                or (FarmerProfile.objects.filter(session_id=session_id).first() if session_id else None)
-            )
+            from .farmer_profile import FarmerProfileViewSet
+            # Resolve only through the authenticated user's phone/username. A
+            # client-supplied session_id must never select another farmer's PII.
+            # Reuse the canonical owned-profile filter so phone normalisation
+            # (e.g. username "919876543210" -> "+919876543210") stays consistent
+            # and OTP users don't get an empty profile from a double "+91".
+            profile = FarmerProfile.objects.filter(
+                FarmerProfileViewSet._owned_filter(user)
+            ).first()
             if profile:
                 profile_data = {
                     "location_name":    profile.location_name,
@@ -454,7 +553,10 @@ class AuthViewSet(viewsets.ViewSet):
         Request body: { "refresh": "<refresh_token>" }  (optional)
         """
         try:
-            refresh_token = request.data.get("refresh", "")
+            serializer = LogoutInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({"success": False, "message": "Invalid logout request", "errors": serializer.errors}, status=400)
+            refresh_token = serializer.validated_data.get("refresh", "")
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()

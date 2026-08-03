@@ -8,10 +8,15 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from ..location_utils import attach_location_metadata, resolve_request_location
+from ..location_utils import (
+    attach_location_metadata,
+    require_confirmed_location,
+    resolve_request_location,
+)
 from ..errors import safe_error_message
 from ...services.crop_catalog import crop_catalog
 from ...services.unified_realtime_service import market_service
+from ..serializers import LocationQuerySerializer, MandiListQuerySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -22,18 +27,25 @@ class MarketPricesViewSet(viewsets.ViewSet):
     def list(self, request):
         """
         Get real-time mandi prices for the user's location.
-        Hits Agmarknet 2.0 API → data.gov.in → MSP estimate (labeled).
+        Uses official Agmarknet/data.gov.in feeds only. If no fresh official
+        row is available, the response is explicitly unavailable and contains
+        no estimated price.
         """
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "error": "Invalid market query", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx = resolve_request_location(request)
-            mandi = request.GET.get("mandi")
-            crop  = request.GET.get("crop") or request.GET.get("q")
+            location_error = require_confirmed_location(ctx, service="market_prices")
+            if location_error:
+                return location_error
+            mandi = params.get("mandi")
+            crop  = params.get("crop") or params.get("q")
             norm  = crop_catalog.normalize(crop) if crop else None
             commodity = norm["name"] if norm else crop
 
-            include_estimates = request.GET.get("include_estimates", "").lower() in (
-                "1", "true", "yes",
-            )
+            include_estimates = params.get("include_estimates", False)
 
             data = market_service.get_prices(
                 ctx.query_label,
@@ -70,12 +82,17 @@ class MarketPricesViewSet(viewsets.ViewSet):
         Returns the closest mandis first. Use ?radius_km=200 to expand range.
         """
         try:
+            serializer = MandiListQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "error": "Invalid mandi parameters", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx = resolve_request_location(request)
-            try:
-                radius_km = float(request.GET.get("radius_km", 150))
-                radius_km = max(10, min(radius_km, 500))   # clamp 10–500 km
-            except (ValueError, TypeError):
-                radius_km = 150
+            location_error = require_confirmed_location(ctx, service="nearby_mandis")
+            if location_error:
+                return location_error
+            radius_km = max(10, min(params.get("radius_km", 150), 500))
+            scope = params.get("scope", "nearby")
+            max_results = params.get("limit", 50)
 
             data = market_service.list_mandis(
                 ctx.query_label,
@@ -83,6 +100,8 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 lon=ctx.longitude,
                 state=ctx.state or None,
                 radius_km=radius_km,
+                max_results=max_results,
+                include_all=scope == "state",
             )
             return Response(attach_location_metadata(data, ctx))
         except Exception as exc:
@@ -101,22 +120,28 @@ class MarketPricesViewSet(viewsets.ViewSet):
     def mandi_prices(self, request):
         """
         Get real-time prices specifically for a single selected mandi.
-        Tries Agmarknet 2.0 with mandi filter → data.gov.in filtered →
-        MSP seasonal estimate (labeled) as last resort.
+        Tries official Agmarknet/data.gov.in sources with the selected mandi
+        and returns unavailable when no fresh official row can be verified.
 
         Query params:
           mandi       — mandi name (required)
           state       — state name (optional, improves accuracy)
           crop        — optional commodity filter
-          include_estimates — show MSP estimates if no live data (default false)
+          include_estimates — accepted for backwards compatibility; ignored
+                              because synthetic prices are never returned
         """
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "error": "Invalid mandi price parameters", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx  = resolve_request_location(request)
-            mandi = request.GET.get("mandi", "").strip()
-            crop  = request.GET.get("crop", "").strip() or None
-            include_estimates = request.GET.get("include_estimates", "").lower() in (
-                "1", "true", "yes",
-            )
+            location_error = require_confirmed_location(ctx, service="mandi_prices")
+            if location_error:
+                return location_error
+            mandi = params.get("mandi", "").strip()
+            crop  = params.get("crop", "").strip() or None
+            include_estimates = params.get("include_estimates", False)
 
             if not mandi:
                 return Response(
@@ -137,6 +162,31 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 state=ctx.state or None,
                 include_estimates=include_estimates,
             )
+
+            # Keep the selected mandi result authoritative. When it has no
+            # current arrival row, offer fresh official rows from other nearby
+            # mandis in a separate field instead of substituting their prices.
+            data["nearby_live_alternatives"] = []
+            if not data.get("top_crops"):
+                try:
+                    nearby_rows = market_service.get_nearby_live_prices(
+                        ctx.query_label,
+                        selected_mandi=mandi,
+                        crop=commodity,
+                        lat=ctx.latitude,
+                        lon=ctx.longitude,
+                        state=ctx.state or None,
+                        radius_km=params.get("radius_km", 150),
+                        limit=8,
+                    )
+                    data["nearby_live_alternatives"] = nearby_rows
+                    data["nearby_live_count"] = len(nearby_rows)
+                except Exception as nearby_exc:
+                    logger.warning(
+                        "Nearby live mandi alternatives failed for %s: %s",
+                        mandi,
+                        nearby_exc,
+                    )
 
             # Tag each row with the selected mandi name for frontend clarity
             for row in data.get("top_crops", []):
@@ -164,11 +214,12 @@ class MarketPricesViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="crop-search")
     def crop_search(self, request):
         """Google-style crop autocomplete for mandi price lookup."""
-        query = request.query_params.get("q", "").strip()
-        try:
-            limit = min(int(request.query_params.get("limit", 10)), 20)
-        except (ValueError, TypeError):
-            limit = 10
+        serializer = LocationQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response({"error": "Invalid crop search parameters", "errors": serializer.errors}, status=400)
+        params = serializer.validated_data
+        query = params.get("q", "").strip()
+        limit = min(params.get("limit", 10), 20)
         results = crop_catalog.search(query, limit=limit) if query else crop_catalog.popular(limit)
         return Response({
             "query": query,
@@ -185,6 +236,9 @@ class MarketPricesViewSet(viewsets.ViewSet):
         """
         try:
             from ...services.data_gov_mandi_client import data_gov_mandi_client
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "message": "Invalid market status parameters", "errors": serializer.errors}, status=400)
             ctx = resolve_request_location(request)
             has_datagov_key = data_gov_mandi_client.has_valid_api_key()
 
@@ -200,12 +254,16 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 "data_gov_key_set":    has_datagov_key,
                 "source_priority": [
                     {"tier": 1, "name": "data.gov.in OGD API", "active": has_datagov_key},
-                    {"tier": 2, "name": "Agmarknet Direct (no key)", "active": not has_datagov_key},
-                    {"tier": 3, "name": "Seed/Reference prices", "active": False},
+                    {
+                        "tier": 2,
+                        "name": "Agmarknet Direct (no key)",
+                        "active": bool(probe.get("is_live")) and not has_datagov_key,
+                    },
+                    {"tier": 3, "name": "Unavailable (no synthetic prices)", "active": False},
                 ],
                 "data_source":         probe.get("data_source", ""),
                 "setup_instructions": (
-                    None if has_datagov_key else
+                    None if has_datagov_key or probe.get("is_live") else
                     "Register free at https://data.gov.in/user/register → "
                     "API Keys → copy key → set DATA_GOV_IN_API_KEY in .env"
                 ),

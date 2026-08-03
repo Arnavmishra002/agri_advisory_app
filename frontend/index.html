@@ -31,7 +31,7 @@
         body { font-family: 'Inter', sans-serif; }
         /* ── Section header decoration ── */
         .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-        .section-header h2 { margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+        .section-header h2 { margin: 0; font-weight: 800; }
         /* Scroll to top button */
         #scrollTopBtn {
             position: fixed; bottom: 90px; right: 20px;
@@ -40,7 +40,6 @@
             font-size: 1.1rem; cursor: pointer; display: none;
             box-shadow: 0 4px 14px rgba(45,80,22,0.4);
             transition: all 0.25s ease; z-index: 999;
-        }
         }
         #scrollTopBtn:hover { transform: translateY(-4px) scale(1.06); }
         #scrollTopBtn.show { display: flex; align-items: center; justify-content: center; }
@@ -54,8 +53,9 @@
      ══════════════════════════════════════════════════════════ -->
 <nav class="navbar navbar-expand-lg">
     <div class="container">
-        <a class="navbar-brand" href="#" onclick="showService('home');return false;">
-            🌾 <span data-i18n="hero_title">KrishiMitra AI</span>
+        <a class="navbar-brand" href="#home" onclick="showService('home');return false;">
+            <span class="brand-mark" aria-hidden="true"><i class="fas fa-wheat-awn"></i></span>
+            <span>KrishiMitra</span>
         </a>
         <div class="d-flex align-items-center gap-2 ms-auto">
             <!-- Dark mode toggle -->
@@ -82,7 +82,7 @@
                             <i class="fas fa-phone me-2 text-success"></i><span id="navUserPhone"></span>
                         </span></li>
                         <li><hr class="dropdown-divider my-1"></li>
-                        <li><a class="dropdown-item" href="#" onclick="window.KM_Auth&&KM_Auth.openModal('profile');return false;" style="font-size:0.85rem;">
+                        <li><a class="dropdown-item" href="#" onclick="window.KM_Auth&&KM_Auth.openProfile();return false;" style="font-size:0.85rem;">
                             <i class="fas fa-user me-2 text-success"></i><span data-i18n="nav_profile">मेरी प्रोफ़ाइल</span>
                         </a></li>
                         <li><hr class="dropdown-divider my-1"></li>
@@ -113,18 +113,17 @@
 <!-- ══════════════════════════════════════════════════════════
      HERO
      ══════════════════════════════════════════════════════════ -->
-<div class="hero-section">
-    <!-- Animated depth orbs (pure CSS, no JS) -->
-    <div class="hero-orb-1"></div>
-    <div class="hero-orb-2"></div>
-    <div class="hero-orb-3"></div>
+<div class="hero-section" id="appHero">
     <div class="container">
 
-        <h1 class="hero-title" data-i18n="hero_title">🌾 KrishiMitra AI</h1>
-        <p class="hero-subtitle" data-i18n="hero_subtitle">किसानों का सबसे अच्छा दोस्त — AI से स्मार्ट खेती करें</p>
+        <div class="hero-copy">
+            <span class="hero-kicker"><i class="fas fa-shield-heart"></i> भरोसेमंद डिजिटल कृषि सहायक</span>
+            <h1 class="hero-title">KrishiMitra AI</h1>
+            <p class="hero-subtitle">मौसम, मंडी, फसल और रोग सलाह — आपके स्थान और खेत के अनुसार</p>
+        </div>
 
         <!-- Live Weather Mini-Widget -->
-        <div class="hero-weather-widget" id="heroWeatherWidget" onclick="showService('weather')" style="display:none;">
+        <button type="button" class="hero-weather-widget" id="heroWeatherWidget" onclick="showService('weather')" style="display:none;" aria-label="पूरा मौसम पूर्वानुमान देखें">
             <div style="font-size:2rem;line-height:1;" id="heroWeatherIcon">🌤️</div>
             <div class="hero-weather-divider"></div>
             <div class="hero-weather-details">
@@ -138,7 +137,7 @@
                 <div style="font-size:0.78rem;opacity:0.85;">🌬️ <span id="heroWind">--</span> km/h</div>
                 <div style="font-size:0.78rem;opacity:0.85;">🌧️ <span id="heroRain">0</span> mm</div>
             </div>
-        </div>
+        </button>
 
         <!-- Location Search -->
         <div class="location-search-container">
@@ -151,8 +150,8 @@
                     onfocus="searchLocations(event)"
                     onkeydown="if(event.key==='Enter'){event.preventDefault();applyManualLocation();}"
                     autocomplete="off">
-                <button class="btn" onclick="applyManualLocation()" title="खोजें">
-                    <i class="fas fa-search"></i> खोजें
+                <button class="btn" type="button" onclick="applyManualLocation()" title="स्थान खोजें">
+                    <i class="fas fa-search"></i> <span>खोजें</span>
                 </button>
             </div>
             <div id="locationSuggestions" class="location-suggestions"></div>
@@ -161,11 +160,18 @@
         <!-- Current location bar -->
         <div class="current-location-display mt-3">
             <span class="location-label">📍 स्थान:</span>
-            <span id="currentLocationDisplay" class="location-name">Delhi</span>
+            <span id="currentLocationDisplay" class="location-name">स्थान चुनें या GPS चलाएं</span>
             <span id="locationAccuracyBadge" class="location-accuracy-badge" style="display:none;"></span>
-            <button class="btn btn-sm btn-outline-light" onclick="detectLocation()" style="font-size:0.8rem;border-radius:999px;">
+            <button class="btn btn-sm btn-outline-light" type="button" onclick="detectLocation()">
                 <i class="fas fa-crosshairs"></i> <span data-i18n="detect_location">GPS</span>
             </button>
+        </div>
+
+        <div class="hero-quick-actions" aria-label="मुख्य किसान सेवाएं">
+            <button type="button" onclick="showService('ai-assistant')"><i class="fas fa-comments"></i><span>AI से पूछें</span></button>
+            <button type="button" onclick="showService('crop-recommendations')"><i class="fas fa-seedling"></i><span>फसल चुनें</span></button>
+            <button type="button" onclick="showService('market-prices')"><i class="fas fa-indian-rupee-sign"></i><span>मंडी भाव</span></button>
+            <button type="button" onclick="showService('pest-control')"><i class="fas fa-camera"></i><span>फोटो जांच</span></button>
         </div>
     </div>
 </div>
@@ -177,36 +183,30 @@
     <div class="container">
 
         <!-- Section title -->
-        <div class="text-center mb-2">
-            <h2 style="color:#1a3a0a;font-weight:800;letter-spacing:-0.02em;">किसानों के लिए आवश्यक सेवाएं</h2>
-            <p style="color:#666;font-size:0.92rem;margin-top:4px;">🌾 AI-Powered &nbsp;•&nbsp; Real-Time Data &nbsp;•&nbsp; Government APIs &nbsp;•&nbsp; 22 Languages</p>
+        <div class="services-heading">
+            <div>
+                <span class="section-eyebrow">काम चुनें</span>
+                <h2>आज आपको किस काम में मदद चाहिए?</h2>
+            </div>
+            <p>बड़े और साफ बटन दबाएं। हर सेवा आपके चुने हुए स्थान का उपयोग करती है।</p>
         </div>
 
-        <!-- MSP Stats bar — animated counters via IntersectionObserver -->
-        <div class="stats-bar mb-4" id="statsBar">
-            <div class="stat-item" data-count="2425" data-prefix="₹" data-suffix="">
-                <div class="stat-value" id="stat-wheat">₹2,425</div>
-                <div class="stat-label">🌾 गेहूँ MSP 2024-25</div>
+        <div class="stats-bar mb-4" id="statsBar" aria-label="KrishiMitra की सुविधाएं">
+            <div class="stat-item" data-count="202" data-prefix="" data-suffix="">
+                <div class="stat-value" id="stat-crops">202</div>
+                <div class="stat-label">फसल प्रोफाइल</div>
             </div>
-            <div class="stat-item" data-count="2369" data-prefix="₹" data-suffix="">
-                <div class="stat-value" id="stat-rice">₹2,369</div>
-                <div class="stat-label">🍚 धान MSP 2024-25</div>
+            <div class="stat-item" data-count="3" data-prefix="" data-suffix="">
+                <div class="stat-value" id="stat-langs">3</div>
+                <div class="stat-label">लॉन्च भाषाएं</div>
             </div>
-            <div class="stat-item" data-count="6000" data-prefix="₹" data-suffix="">
-                <div class="stat-value" id="stat-pmkisan">₹6,000</div>
-                <div class="stat-label">🏛️ PM-Kisan वार्षिक</div>
+            <div class="stat-item" data-count="16" data-prefix="" data-suffix=" दिन">
+                <div class="stat-value">16 दिन</div>
+                <div class="stat-label">मौसम पूर्वानुमान</div>
             </div>
-            <div class="stat-item" data-count="4" data-prefix="" data-suffix="%">
-                <div class="stat-value" id="stat-kcc">4%</div>
-                <div class="stat-label">💳 KCC ब्याज दर</div>
-            </div>
-            <div class="stat-item" data-count="80" data-prefix="" data-suffix="">
-                <div class="stat-value" id="stat-crops">80</div>
-                <div class="stat-label">🌱 फसलें विश्लेषण DB</div>
-            </div>
-            <div class="stat-item" data-count="22" data-prefix="" data-suffix="">
-                <div class="stat-value" id="stat-langs">22</div>
-                <div class="stat-label">🌐 भारतीय भाषाएं</div>
+            <div class="stat-item stat-source-item">
+                <div class="stat-value"><i class="fas fa-circle-check"></i></div>
+                <div class="stat-label">लाइव और fallback साफ चिन्हित</div>
             </div>
         </div>
 
@@ -226,10 +226,10 @@
                             🌾 PM-Kisan — <strong>₹6,000/वर्ष</strong><br>
                             🛡️ PMFBY — <strong>2% प्रीमियम</strong> पर बीमा<br>
                             💳 KCC — <strong>₹3L @4% ब्याज</strong><br>
-                            ☀️ PM-KUSUM — <strong>90% सब्सिडी</strong>
+                            ☀️ PM-KUSUM — <strong>केंद्र + राज्य सहायता</strong>
                         </div>
                     </div>
-                    <button class="service-button">योजनाएं देखें →</button>
+                    <span class="service-button">योजनाएं देखें <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -239,7 +239,7 @@
                     <div class="status-indicator"></div>
                     <div class="service-icon">🌾</div>
                     <h3 class="service-title" data-i18n="service_crops">फसल सुझाव</h3>
-                    <p class="service-description">165+ फसल प्रोफाइल · 126 जिले · लाइव/फॉलबैक मौसम + मंडी भाव</p>
+                    <p class="service-description">202 फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
                     <div class="service-info-panel" style="border-left-color:#388e3c;">
                         <div class="service-info-panel-label" style="color:#1b5e20;">🌱 Multi-Factor Score</div>
                         <div class="service-info-panel-body">
@@ -249,7 +249,7 @@
                             📅 सीजन + सिंचाई विश्लेषण
                         </div>
                     </div>
-                    <button class="service-button">फसल सुझाव →</button>
+                    <span class="service-button">फसल सुझाव <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -269,7 +269,7 @@
                             ⚠️ लू / बाढ़ / पाला अलर्ट
                         </div>
                     </div>
-                    <button class="service-button">मौसम देखें →</button>
+                    <span class="service-button">मौसम देखें <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -283,13 +283,13 @@
                     <div class="service-info-panel" style="border-left-color:#f57f17;">
                         <div class="service-info-panel-label" style="color:#e65100;">📊 Live Mandi Data</div>
                         <div class="service-info-panel-body">
-                            🌾 गेहूँ MSP ₹2,425 / q<br>
-                            🍚 धान MSP ₹2,369 / q<br>
-                            🌻 सोयाबीन MSP ₹4,892 / q<br>
+                            🌾 गेहूँ MSP 2026-27 ₹2,585 / q<br>
+                            🍚 धान MSP 2026-27 ₹2,441 / q<br>
+                            🌻 सोयाबीन MSP 2026-27 ₹5,708 / q<br>
                             🔄 हर 3 मिनट अपडेट
                         </div>
                     </div>
-                    <button class="service-button">मंडी भाव →</button>
+                    <span class="service-button">मंडी भाव <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -309,7 +309,7 @@
                             📞 ICAR: 1800-180-1551
                         </div>
                     </div>
-                    <button class="service-button" style="background:linear-gradient(135deg,#b71c1c,#e53935);">जांच शुरू →</button>
+                    <span class="service-button">जांच शुरू <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -319,7 +319,7 @@
                     <div class="status-indicator"></div>
                     <div class="service-icon">🤖</div>
                     <h3 class="service-title" data-i18n="service_ai">AI सहायक</h3>
-                    <p class="service-description">22 भाषाएं · Local KrishiMitra LLM + RAG · Gemini fallback</p>
+                    <p class="service-description">हिंदी, Hinglish और English में कृषि सलाह</p>
                     <div class="service-info-panel" style="border-left-color:#6a1b9a;">
                         <div class="service-info-panel-label" style="color:#4a148c;">💬 किसी भी भाषा में पूछें</div>
                         <div class="service-info-panel-body">
@@ -329,7 +329,7 @@
                             🌤️ "आज खेत में क्या करें?"
                         </div>
                     </div>
-                    <button class="service-button" style="background:linear-gradient(135deg,#4a148c,#7b1fa2);">बात करें →</button>
+                    <span class="service-button">बात करें <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -349,7 +349,7 @@
                             📊 ICAR fertiliser gaps
                         </div>
                     </div>
-                    <button class="service-button" style="background:linear-gradient(135deg,#bf360c,#ff6f00);">खेत जांचें →</button>
+                    <span class="service-button">खेत जांचें <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -357,7 +357,7 @@
 
         <!-- Farming Calendar -->
         <div class="farming-calendar mt-2">
-            <h4 style="color:#1a3a0a;font-weight:800;text-align:center;margin-bottom:20px;letter-spacing:-0.01em;">📅 कृषि कैलेंडर 2025-26</h4>
+            <h4 style="color:#1a3a0a;font-weight:800;text-align:center;margin-bottom:20px;">📅 कृषि मौसम कैलेंडर</h4>
             <div class="row g-3">
                 <div class="col-md-3 col-6">
                     <div class="calendar-season" style="background:#fff3cd;border-left-color:#ffc107;">
@@ -438,7 +438,7 @@
 <div class="content-section" id="crop-recommendations-content">
     <div class="container">
         <div class="section-header"><h2>🌾 फसल सुझाव</h2><span class="live-dot ms-2"></span></div>
-        <p class="text-muted mb-4">165+ भारतीय फसल प्रोफाइल · 126 जिले · लाइव/फॉलबैक मौसम + मंडी भाव विश्लेषण</p>
+        <p class="text-muted mb-4">202 भारतीय फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
         <div class="crop-search-container mb-4" style="position:relative;max-width:560px;">
             <div class="search-box">
                 <i class="fas fa-seedling"></i>
@@ -446,8 +446,71 @@
                     placeholder="फसल खोजें — Wheat, गेहूँ, Cotton..."
                     onkeyup="searchCrop(event)" onfocus="showCropSuggestions()" autocomplete="off">
                 <button class="btn btn-success btn-sm" onclick="searchSpecificCrop()" style="font-size:0.82rem;">खोजें</button>
+                <button class="btn btn-outline-success btn-sm" type="button" onclick="clearCropRecommendationSearch()" style="font-size:0.82rem;white-space:nowrap;">सभी फसलें</button>
             </div>
             <div id="cropSuggestions" class="crop-suggestions"></div>
+        </div>
+        <div class="mb-4" style="border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:16px 0;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;">
+                <label class="form-label mb-0">मौसम / Season
+                    <select id="cropRecSeason" class="form-select form-select-sm mt-1">
+                        <option value="">Auto</option><option value="kharif">Kharif</option>
+                        <option value="rabi">Rabi</option><option value="zaid">Zaid</option>
+                        <option value="year_round">Year round</option>
+                    </select>
+                </label>
+                <label class="form-label mb-0">मिट्टी / Soil
+                    <select id="cropRecSoil" class="form-select form-select-sm mt-1">
+                        <option value="">Auto</option><option value="alluvial">Alluvial</option>
+                        <option value="loamy">Loamy</option><option value="sandy_loam">Sandy loam</option>
+                        <option value="clay_loam">Clay loam</option><option value="black">Black</option>
+                        <option value="red">Red</option><option value="laterite">Laterite</option>
+                        <option value="saline">Saline</option>
+                    </select>
+                </label>
+                <label class="form-label mb-0">सिंचाई / Irrigation
+                    <select id="cropRecIrrigation" class="form-select form-select-sm mt-1">
+                        <option value="">Auto</option><option value="rainfed">Rainfed</option>
+                        <option value="drip">Drip</option><option value="sprinkler">Sprinkler</option>
+                        <option value="flood">Flood</option>
+                    </select>
+                </label>
+                <label class="form-label mb-0">Soil pH
+                    <input id="cropRecPh" class="form-control form-control-sm mt-1" type="number" min="0" max="14" step="0.1" placeholder="6.5">
+                </label>
+                <label class="form-label mb-0">बजट ₹/हे.
+                    <input id="cropRecBudget" class="form-control form-control-sm mt-1" type="number" min="0" step="1000" placeholder="60000">
+                </label>
+                <label class="form-label mb-0">जोखिम / Risk
+                    <select id="cropRecRisk" class="form-select form-select-sm mt-1">
+                        <option value="medium">Medium</option><option value="low">Low</option><option value="high">High</option>
+                    </select>
+                </label>
+                <button class="btn btn-success btn-sm" id="cropAnalyzeBtn" type="button" onclick="loadCropRecommendations()">
+                    <i class="fas fa-sliders-h"></i> विश्लेषण करें
+                </button>
+            </div>
+            <details class="mt-3">
+                <summary style="cursor:pointer;color:#2d5016;font-weight:600;">मिट्टी जाँच और खेत विवरण</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px;margin-top:12px;">
+                    <label class="form-label mb-0">N kg/ha<input id="cropRecN" class="form-control form-control-sm mt-1" type="number" min="0" max="5000"></label>
+                    <label class="form-label mb-0">P kg/ha<input id="cropRecP" class="form-control form-control-sm mt-1" type="number" min="0" max="2000"></label>
+                    <label class="form-label mb-0">K kg/ha<input id="cropRecK" class="form-control form-control-sm mt-1" type="number" min="0" max="5000"></label>
+                    <label class="form-label mb-0">EC dS/m<input id="cropRecEc" class="form-control form-control-sm mt-1" type="number" min="0" max="100" step="0.1"></label>
+                    <label class="form-label mb-0">नमी %<input id="cropRecMoisture" class="form-control form-control-sm mt-1" type="number" min="0" max="100" step="0.1"></label>
+                    <label class="form-label mb-0">Organic carbon %<input id="cropRecOc" class="form-control form-control-sm mt-1" type="number" min="0" max="100" step="0.1"></label>
+                    <label class="form-label mb-0">खेत ha<input id="cropRecFarmSize" class="form-control form-control-sm mt-1" type="number" min="0.01" step="0.01"></label>
+                    <label class="form-label mb-0">पिछली फसल<input id="cropRecPrevious" class="form-control form-control-sm mt-1" maxlength="120" placeholder="wheat"></label>
+                    <label class="form-label mb-0">श्रेणी
+                        <select id="cropRecCategory" class="form-select form-select-sm mt-1">
+                            <option value="">Any</option><option value="vegetable">Vegetable</option>
+                            <option value="pulse">Pulse</option><option value="cereal">Cereal</option>
+                            <option value="fruit">Fruit</option><option value="spice">Spice</option>
+                            <option value="oilseed">Oilseed</option><option value="medicinal">Medicinal</option>
+                        </select>
+                    </label>
+                </div>
+            </details>
         </div>
         <div id="cropsData" class="loading">
             <div class="skeleton-card mb-3">
@@ -513,24 +576,23 @@
         <!-- Live banner -->
         <div id="marketLiveBanner" class="market-live-banner" style="display:none;" role="alert"></div>
 
-        <!-- MSP estimates toggle -->
-        <label class="market-estimates-toggle">
-            <input type="checkbox" id="showMspEstimates" onchange="loadMarketPrices()">
-            MSP अनुमान भी दिखाएं (live mandi न होने पर — असली भाव नहीं)
-        </label>
-
         <!-- Mandi selector -->
         <div class="mandi-bar">
-            <label class="fw-bold m-0 mandi-bar-label">🏪 नज़दीकी मंडी:</label>
-            <select id="mandiRadiusSelect" onchange="onMandiRadiusChanged()" class="form-select form-select-sm mandi-radius-select" title="मंडी खोज दायरा">
+            <label class="fw-bold m-0 mandi-bar-label">🏪 मंडी सूची:</label>
+            <select id="mandiRadiusSelect" onchange="onMandiRadiusChanged()" class="form-select form-select-sm mandi-radius-select" title="मंडी सूची का दायरा">
                 <option value="50">50 km</option>
                 <option value="100">100 km</option>
                 <option value="150" selected>150 km</option>
                 <option value="250">250 km</option>
+                <option value="state">पूरा राज्य</option>
             </select>
+            <input id="mandiSearchInput" type="search" class="form-control form-control-sm mandi-selector"
+                placeholder="मंडी या जिला खोजें..." autocomplete="off"
+                oninput="filterMandiOptions(this.value)" aria-label="मंडी या जिला खोजें">
             <select id="mandiSelector" onchange="onMandiSelected(this.value)" class="form-select form-select-sm mandi-selector">
                 <option value="">-- सभी मंडियां (All Mandis) --</option>
             </select>
+            <span id="mandiRegistryStatus" class="mandi-status-badge" aria-live="polite"></span>
             <span id="mandiStatusBadge" class="mandi-status-badge"></span>
             <button id="mandiRefreshBtn" class="btn btn-sm btn-outline-success mandi-refresh-btn" onclick="refreshNearbyMandis()" title="नज़दीकी मंडियां फिर से लोड करें">
                 <i class="fas fa-location-crosshairs"></i>
@@ -558,7 +620,7 @@
 <div class="content-section" id="pest-control-content">
     <div class="container">
         <div class="section-header mb-1"><h2>🩺 KrishiRaksha 2.0</h2></div>
-        <p class="text-muted mb-4">EfficientNet-B3 model readiness · honest advisory fallback · GPS weather verification</p>
+        <p class="text-muted mb-4">फोटो गुणवत्ता जांच · लक्षण-आधारित सुरक्षित सलाह · GPS मौसम सत्यापन</p>
 
         <div class="row g-4">
             <!-- Step 1 -->
@@ -618,10 +680,10 @@
 
             <!-- Run button -->
             <div class="col-12 text-center">
-                <button class="btn btn-lg px-5 py-3 text-white fw-bold rounded-pill shadow"
+                <button class="btn btn-lg px-5 py-3 text-white fw-bold rounded-pill shadow" id="diagnosisRunBtn" type="button"
                     style="background:linear-gradient(135deg,#b71c1c,#e53935);border:none;font-size:1rem;letter-spacing:0.02em;"
                     onclick="runKrishiRakshaDiagnosis()">
-                    <i class="fas fa-microscope me-2"></i> Run AI Diagnosis — जांच शुरू करें
+                    <i class="fas fa-microscope me-2"></i> Photo Advisory — फोटो सलाह लें
                 </button>
             </div>
         </div>
@@ -630,8 +692,8 @@
         <div id="krishiRakshaResults" style="display:none;" class="animated-result mt-4">
             <div class="text-center py-5">
                 <i class="fas fa-spinner fa-spin fa-3x" style="color:#4a7c59;"></i>
-                <h4 class="mt-3">Analyzing Crop Health...</h4>
-                <p class="text-muted">Plant validation · EfficientNet-B3 · Weather verification</p>
+                <h4 class="mt-3">फोटो और फसल की जानकारी देखी जा रही है...</h4>
+                <p class="text-muted">Photo quality · symptom guidance · weather verification</p>
             </div>
         </div>
     </div>
@@ -730,7 +792,7 @@
             </div>
 
             <div class="text-center mt-4">
-                <button class="btn btn-lg px-5 py-2 rounded-pill text-white fw-bold"
+                <button class="btn btn-lg px-5 py-2 rounded-pill text-white fw-bold" id="fieldAnalyzeBtn" type="button"
                     style="background:linear-gradient(135deg,#bf360c,#ff6f00);border:none;box-shadow:0 4px 16px rgba(191,54,12,0.35);font-size:0.95rem;"
                     onclick="loadFieldAdvisory()">
                     🔬 फसल सलाह प्राप्त करें
@@ -752,7 +814,7 @@
                 <div id="chatLanguageSwitcherContainer"></div>
             </div>
         </div>
-        <p class="text-muted mb-3" id="chat-subtitle">22 भाषाएं · Local KrishiMitra LLM + RAG + ICAR data · Gemini fallback</p>
+        <p class="text-muted mb-3" id="chat-subtitle">अपने खेत, मौसम, मंडी और फसल के हिसाब से सवाल पूछें</p>
 
         <!-- Suggested chips Empty State -->
         <div id="empty-state" class="mb-3">
@@ -813,10 +875,17 @@
             </div>
         </div>
 
-        <!-- AI Status badge -->
+        <!-- Source status badge -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-size:0.8rem;color:#666;">AI Engine:</span>
-            <span id="aiStatusBadge" style="display:inline-block;background:#f3e5f5;color:#4a148c;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;">📚 Loading...</span>
+            <span style="font-size:0.8rem;color:#666;">स्रोत:</span>
+            <span id="aiStatusBadge" style="display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;">कृषि सलाह तैयार</span>
+            <span style="flex:1;"></span>
+            <button type="button" id="chatHistoryBtn" class="chat-toolbar-btn" onclick="openChatHistory()" title="पुरानी बातचीत" aria-label="पुरानी बातचीत खोलें">
+                <i class="fas fa-history"></i>
+            </button>
+            <button type="button" id="chatNewBtn" class="chat-toolbar-btn" onclick="clearChat()" title="नई बातचीत" aria-label="नई बातचीत शुरू करें">
+                <i class="fas fa-plus"></i>
+            </button>
         </div>
 
         <!-- Chat window -->
@@ -841,7 +910,7 @@
 
         <!-- Input -->
         <div class="chat-input-row">
-            <button class="chat-voice-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice input">
+            <button class="chat-voice-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice input" aria-label="आवाज से सवाल पूछें">
                 <i class="fas fa-microphone"></i>
             </button>
             <textarea id="messageInput"
@@ -849,14 +918,27 @@
                 rows="1"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleChatUserMessage();}"
                 oninput="autoResizeChatInput(this)"></textarea>
-            <button onclick="clearChat()" class="chat-voice-btn" title="चैट साफ करें">
-                <i class="fas fa-trash-alt"></i>
-            </button>
             <span id="stream-dot" class="stream-dot" style="display: none;" title="Streaming response..."></span>
-            <button class="chat-send-btn" id="chatSendBtn" onclick="handleChatUserMessage()" title="भेजें">
+            <button class="chat-send-btn" id="chatSendBtn" onclick="handleChatUserMessage()" title="भेजें" aria-label="सवाल भेजें">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
+
+        <dialog id="chatHistoryDialog" class="chat-history-dialog" aria-labelledby="chatHistoryTitle">
+            <div class="chat-history-header">
+                <div>
+                    <strong id="chatHistoryTitle">पुरानी बातचीत</strong>
+                    <small>यह इतिहास केवल इसी डिवाइस पर रहता है।</small>
+                </div>
+                <button type="button" class="chat-toolbar-btn" onclick="closeChatHistory()" title="बंद करें" aria-label="इतिहास बंद करें">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="chatHistoryList" class="chat-history-list"></div>
+            <button type="button" id="chatHistoryClearAllBtn" class="chat-history-clear" onclick="clearArchivedChats()">
+                <i class="fas fa-trash-alt"></i> पुराना इतिहास हटाएं
+            </button>
+        </dialog>
 
         <!-- Quick info -->
         <div style="margin-top:14px;background:#fff8e1;border-radius:10px;padding:10px 14px;font-size:0.82rem;color:#856404;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -875,7 +957,7 @@
 <div id="notification" class="notification"></div>
 
 <!-- Scroll-to-top button -->
-<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="ऊपर जाएं">
+<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="ऊपर जाएं" aria-label="पेज के ऊपर जाएं">
     <i class="fas fa-chevron-up"></i>
 </button>
 
@@ -941,9 +1023,9 @@
       <span>🌾 NABARD: <strong style="color:#b9f0c8;">1800-200-1025</strong></span>
     </div>
     <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;font-size:0.72rem;opacity:0.5;margin-top:10px;">
-      <span>Open-Meteo</span><span>·</span><span>Agmarknet</span><span>·</span><span>data.gov.in</span><span>·</span><span>Local LLM + RAG</span><span>·</span><span>Gemini fallback</span><span>·</span><span>ICAR</span>
+	      <span>Open-Meteo</span><span>·</span><span>Agmarknet</span><span>·</span><span>data.gov.in</span><span>·</span><span>ICAR/KVK guidance</span>
     </div>
-    <p style="margin:10px 0 0;font-size:0.7rem;opacity:0.4;">&copy; 2025 KrishiMitra AI &middot; For farmers, by technology</p>
+    <p style="margin:10px 0 0;font-size:0.7rem;opacity:0.55;">&copy; <span id="footerYear">2026</span> KrishiMitra AI &middot; किसानों के लिए डिजिटल कृषि सहायता</p>
   </div>
 </footer>
 
@@ -1043,7 +1125,14 @@ window.showToast = function (message, type, duration) {
         'transform:translateX(40px) scale(0.9)',
         'transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1)'
     ].join(';');
-    toast.innerHTML = '<span>' + c.icon + '</span><span>' + message + '</span>';
+    // Build with textContent so a message containing HTML (e.g. a user's name
+    // like "<img onerror=...>") is shown as text, never executed (XSS-safe).
+    var iconSpan = document.createElement('span');
+    iconSpan.textContent = c.icon;
+    var msgSpan = document.createElement('span');
+    msgSpan.textContent = message;
+    toast.appendChild(iconSpan);
+    toast.appendChild(msgSpan);
     toast.onclick = function () { toast.remove(); };
     var container = document.getElementById('toastContainer');
     if (!container) return;
@@ -1187,7 +1276,13 @@ window.toggleVoiceInput = function() {
     }
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     _voiceRecognition = new SpeechRecognition();
-    _voiceRecognition.lang = 'hi-IN';
+    var speechLanguageMap = {
+        hi: 'hi-IN', en: 'en-IN', bn: 'bn-IN', te: 'te-IN', mr: 'mr-IN',
+        ta: 'ta-IN', gu: 'gu-IN', kn: 'kn-IN', ml: 'ml-IN', pa: 'pa-IN',
+        or: 'or-IN', as: 'as-IN', ur: 'ur-IN', ne: 'ne-NP'
+    };
+    var selectedLanguage = window.getCurrentLang ? window.getCurrentLang() : 'hi';
+    _voiceRecognition.lang = speechLanguageMap[selectedLanguage] || 'hi-IN';
     _voiceRecognition.interimResults = false;
     _voiceRecognition.maxAlternatives = 1;
     _voiceRecognition.onstart = function() {
@@ -1236,13 +1331,13 @@ window.toggleVoiceInput = function() {
         <button type="button" class="btn-close auth-close-btn" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="auth-tabs-row">
-        <button class="auth-tab-btn active" id="tabBtnPhone" onclick="KM_Auth.switchTab('phone')">
+        <button type="button" class="auth-tab-btn active" id="tabBtnPhone" onclick="KM_Auth.switchTab('phone')">
           <i class="fas fa-mobile-alt me-1"></i><span>OTP Login</span>
         </button>
-        <button class="auth-tab-btn" id="tabBtnPassword" onclick="KM_Auth.switchTab('password')">
+        <button type="button" class="auth-tab-btn" id="tabBtnPassword" onclick="KM_Auth.switchTab('password')">
           <i class="fas fa-lock me-1"></i><span>Password</span>
         </button>
-        <button class="auth-tab-btn" id="tabBtnRegister" onclick="KM_Auth.switchTab('register')">
+        <button type="button" class="auth-tab-btn" id="tabBtnRegister" onclick="KM_Auth.switchTab('register')">
           <i class="fas fa-user-plus me-1"></i><span>Register</span>
         </button>
       </div>
@@ -1259,18 +1354,18 @@ window.toggleVoiceInput = function() {
                 onkeydown="if(event.key==='Enter'){KM_Auth.requestOtp();}">
             </div>
             <div class="auth-error-msg" id="otpPhoneError"></div>
-            <button class="auth-btn-primary mt-2" id="btnSendOtp" onclick="KM_Auth.requestOtp()">
+            <button type="button" class="auth-btn-primary mt-2" id="btnSendOtp" onclick="KM_Auth.requestOtp()">
               <span data-i18n="auth_send_otp">OTP भेजें</span>
               <span class="auth-btn-spinner d-none" id="spinnerSendOtp"><i class="fas fa-circle-notch fa-spin"></i></span>
             </button>
             <div class="auth-divider"><span data-i18n="auth_or_divider">या</span></div>
-            <button class="auth-btn-ghost" onclick="KM_Auth.continueAsGuest()">
+            <button type="button" class="auth-btn-ghost" onclick="KM_Auth.continueAsGuest()">
               👤 <span data-i18n="auth_guest_continue">Guest के रूप में जारी रखें</span>
             </button>
           </div>
           <div id="otpStep2" style="display:none;">
             <div class="auth-back-row">
-              <button class="auth-back-btn" onclick="KM_Auth.backToPhoneStep()">
+              <button type="button" class="auth-back-btn" onclick="KM_Auth.backToPhoneStep()">
                 <i class="fas fa-arrow-left me-1"></i> वापस
               </button>
               <span class="auth-phone-display" id="otpPhoneDisplay"></span>
@@ -1286,12 +1381,12 @@ window.toggleVoiceInput = function() {
             </div>
             <div class="auth-error-msg" id="otpVerifyError"></div>
             <div class="auth-success-msg" id="otpVerifySuccess"></div>
-            <button class="auth-btn-primary" id="btnVerifyOtp" onclick="KM_Auth.verifyOtp()">
+            <button type="button" class="auth-btn-primary" id="btnVerifyOtp" onclick="KM_Auth.verifyOtp()">
               <span data-i18n="auth_verify_otp">OTP सत्यापित करें</span>
               <span class="auth-btn-spinner d-none" id="spinnerVerifyOtp"><i class="fas fa-circle-notch fa-spin"></i></span>
             </button>
             <div class="auth-resend-row">
-              <button class="auth-resend-btn" id="btnResendOtp" onclick="KM_Auth.resendOtp()" disabled>
+              <button type="button" class="auth-resend-btn" id="btnResendOtp" onclick="KM_Auth.resendOtp()" disabled>
                 <span data-i18n="auth_resend_otp">OTP दोबारा भेजें</span>
               </button>
               <span class="auth-countdown" id="otpCountdown"></span>
@@ -1300,9 +1395,9 @@ window.toggleVoiceInput = function() {
         </div>
         <!-- TAB 2: Password -->
         <div id="authTabPassword" class="auth-tab-panel" style="display:none;">
-          <label class="auth-label" for="authUsernameInput">👤 Username</label>
+          <label class="auth-label" for="authUsernameInput">👤 Username या email</label>
           <input type="text" id="authUsernameInput" class="auth-input"
-            placeholder="username या phone" autocomplete="username"
+            placeholder="username या email" autocomplete="username"
             onkeydown="if(event.key==='Enter'){document.getElementById('authPasswordInput').focus();}">
           <label class="auth-label mt-3" for="authPasswordInput">🔒 Password</label>
           <div class="auth-password-group">
@@ -1310,13 +1405,14 @@ window.toggleVoiceInput = function() {
               placeholder="••••••••" autocomplete="current-password"
               onkeydown="if(event.key==='Enter'){KM_Auth.loginPassword();}">
             <button class="auth-password-toggle" type="button"
+              aria-label="Show password" title="Show password"
               onclick="KM_Auth.togglePasswordVisibility('authPasswordInput',this)">
               <i class="fas fa-eye"></i>
             </button>
           </div>
           <div class="auth-error-msg" id="passwordLoginError"></div>
           <div class="auth-success-msg" id="passwordLoginSuccess"></div>
-          <button class="auth-btn-primary mt-3" id="btnLoginPassword" onclick="KM_Auth.loginPassword()">
+          <button type="button" class="auth-btn-primary mt-3" id="btnLoginPassword" onclick="KM_Auth.loginPassword()">
             <span data-i18n="auth_login">लॉगिन करें</span>
             <span class="auth-btn-spinner d-none" id="spinnerLoginPassword"><i class="fas fa-circle-notch fa-spin"></i></span>
           </button>
@@ -1324,14 +1420,15 @@ window.toggleVoiceInput = function() {
         <!-- TAB 3: Register -->
         <div id="authTabRegister" class="auth-tab-panel" style="display:none;">
           <label class="auth-label" for="regNameInput">👤 नाम (वैकल्पिक)</label>
-          <input type="text" id="regNameInput" class="auth-input" placeholder="Ramesh Kumar" autocomplete="name">
+          <input type="text" id="regNameInput" class="auth-input" placeholder="Ramesh Kumar" autocomplete="off">
           <label class="auth-label mt-3" for="regUsernameInput">🆔 Username</label>
-          <input type="text" id="regUsernameInput" class="auth-input" placeholder="ramesh_farmer" autocomplete="username">
+          <input type="text" id="regUsernameInput" class="auth-input" placeholder="ramesh_farmer" autocomplete="off">
           <label class="auth-label mt-3" for="regPasswordInput">🔒 Password (min 8 chars)</label>
           <div class="auth-password-group">
             <input type="password" id="regPasswordInput" class="auth-input auth-password-input"
               placeholder="••••••••" autocomplete="new-password">
             <button class="auth-password-toggle" type="button"
+              aria-label="Show password" title="Show password"
               onclick="KM_Auth.togglePasswordVisibility('regPasswordInput',this)">
               <i class="fas fa-eye"></i>
             </button>
@@ -1340,11 +1437,11 @@ window.toggleVoiceInput = function() {
           <div class="auth-phone-input-group">
             <span class="auth-phone-prefix">+91</span>
             <input type="tel" id="regPhoneInput" class="auth-input auth-phone-input"
-              placeholder="9876543210" maxlength="10" inputmode="numeric"
+              placeholder="9876543210" maxlength="10" inputmode="numeric" autocomplete="off"
               oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)">
           </div>
           <label class="auth-label mt-3" for="regStateInput">🗺️ राज्य (वैकल्पिक)</label>
-          <input type="text" id="regStateInput" class="auth-input" placeholder="Uttar Pradesh" list="stateList">
+          <input type="text" id="regStateInput" class="auth-input" placeholder="Uttar Pradesh" list="stateList" autocomplete="off">
           <datalist id="stateList">
             <option value="Andhra Pradesh"><option value="Assam"><option value="Bihar">
             <option value="Chhattisgarh"><option value="Gujarat"><option value="Haryana">
@@ -1356,7 +1453,7 @@ window.toggleVoiceInput = function() {
           </datalist>
           <div class="auth-error-msg" id="registerError"></div>
           <div class="auth-success-msg" id="registerSuccess"></div>
-          <button class="auth-btn-primary mt-3" id="btnRegister" onclick="KM_Auth.register()">
+          <button type="button" class="auth-btn-primary mt-3" id="btnRegister" onclick="KM_Auth.register()">
             <span data-i18n="auth_register">खाता बनाएं</span>
             <span class="auth-btn-spinner d-none" id="spinnerRegister"><i class="fas fa-circle-notch fa-spin"></i></span>
           </button>

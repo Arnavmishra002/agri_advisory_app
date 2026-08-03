@@ -10,14 +10,17 @@ import time
 from datetime import datetime
 
 from django.conf import settings
+from django.db import connection
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..middleware.rate_limiting import get_rate_limit_status, reset_rate_limits
+from .serializers import EmptyInputSerializer, LocationQuerySerializer, RateLimitResetInputSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +34,22 @@ def _now() -> str:
 
 def _uptime_seconds() -> float:
     return round(time.time() - _SERVICE_START, 1)
+
+
+def _readiness_status(checks: Dict[str, str], *, hard_ready: bool) -> str:
+    """Return a truthful runtime label without taking degraded fallbacks down."""
+    if not hard_ready:
+        return "not_ready"
+
+    healthy = (
+        str(checks.get("cache", "")).startswith("ok")
+        and str(checks.get("redis", "")).startswith("ok")
+        and str(checks.get("phase1_ai", "")).startswith("ok")
+        and "present=yes" in str(checks.get("ollama", ""))
+        and str(checks.get("chatbot_runtime", "")).startswith("ok")
+        and str(checks.get("crop_disease_model", "")).startswith("ok")
+    )
+    return "ready" if healthy else "degraded"
 
 
 def _staff_or_debug(request) -> bool:
@@ -89,7 +108,7 @@ class MonitoringViewSet(viewsets.ViewSet):
             }, status=status.HTTP_200_OK)
         except Exception as e:
             logger.exception("system_health error: %s", e)
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "System health is temporarily unavailable", "error_code": "HEALTH_UNAVAILABLE"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["get"])
     def performance_summary(self, request):
@@ -115,6 +134,12 @@ class MonitoringViewSet(viewsets.ViewSet):
         """No-op stub — activity tracking via Sentry/Gemini usage analytics."""
         if not _staff_or_debug(request):
             return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        serializer = EmptyInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "This endpoint does not accept request parameters", "error_code": "UNEXPECTED_INPUT"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({"status": "success", "message": "Activity noted"})
 
 
@@ -133,7 +158,7 @@ class RateLimitViewSet(viewsets.ViewSet):
         try:
             client_ip = request.META.get("REMOTE_ADDR", "127.0.0.1")
             user_id   = request.user.id if request.user.is_authenticated else None
-            client_id = f"user_{user_id}" if user_id else f"ip_{client_ip}"
+            client_id = f"user:{user_id}" if user_id else f"ip:{client_ip}"
             return Response({
                 "client_id":   client_id,
                 "rate_limits": get_rate_limit_status(client_id),
@@ -141,27 +166,29 @@ class RateLimitViewSet(viewsets.ViewSet):
             })
         except Exception as e:
             logger.exception("rate limit status error: %s", e)
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "Rate limit status is temporarily unavailable", "error_code": "RATE_STATUS_UNAVAILABLE"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["post"])
     def reset(self, request):
         try:
             if not (request.user.is_staff or request.user.is_superuser):
                 return Response({"error": "Insufficient permissions"}, status=status.HTTP_403_FORBIDDEN)
-            client_id = request.data.get("client_id")
-            if not client_id:
-                return Response({"error": "client_id required"}, status=status.HTTP_400_BAD_REQUEST)
+            serializer = RateLimitResetInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid rate-limit reset request", "errors": serializer.errors}, status=400)
+            client_id = serializer.validated_data["client_id"]
             reset_rate_limits(client_id)
             return Response({"status": "success", "message": f"Rate limits reset for {client_id}"})
         except Exception as e:
             logger.exception("rate limit reset error: %s", e)
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "Rate limit reset failed", "error_code": "RATE_RESET_FAILED"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ══════════════════════════════════════════════════════════════
 # Function-based health views
 # ══════════════════════════════════════════════════════════════
 @csrf_exempt
+@require_GET
 def simple_health_check(request):
     """Simple health check for load balancers — no auth."""
     return JsonResponse({
@@ -172,6 +199,7 @@ def simple_health_check(request):
 
 
 @csrf_exempt
+@require_GET
 def readiness_check(request):
     """Readiness probe — checks DB, cache, Phase 1 AI server, and Ollama."""
     checks: Dict[str, str] = {}
@@ -179,12 +207,14 @@ def readiness_check(request):
 
     # ── Database ──────────────────────────────────────────────────────────────
     try:
-        from django.db import connection
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
         checks["database"] = "ok"
+        checks["database_backend"] = connection.vendor
     except Exception as e:
-        checks["database"] = f"error: {e}"
+        logger.exception("readiness database check failed: %s", e)
+        checks["database"] = "unavailable"
+        checks["database_backend"] = "unavailable"
         overall_ok = False
 
     # ── Cache ─────────────────────────────────────────────────────────────────
@@ -193,7 +223,27 @@ def readiness_check(request):
         cache.set("readiness_probe", "ok", 10)
         checks["cache"] = "ok" if cache.get("readiness_probe") == "ok" else "miss"
     except Exception as e:
-        checks["cache"] = f"error: {e}"
+        logger.exception("readiness cache check failed: %s", e)
+        checks["cache"] = "unavailable"
+
+    # Shared Redis is a distinct production dependency. A working LocMem cache
+    # must never make launch readiness claim cross-worker protection is active.
+    try:
+        from django.core.cache import caches
+        redis_backend = settings.CACHES.get("rate_limit", {}).get("BACKEND", "")
+        if "RedisCache" not in redis_backend:
+            checks["redis"] = "not_configured"
+        else:
+            redis_cache = caches["rate_limit"]
+            redis_cache.set("launch_readiness_probe", "ok", 10)
+            checks["redis"] = (
+                "ok (shared)"
+                if redis_cache.get("launch_readiness_probe") == "ok"
+                else "unavailable"
+            )
+    except Exception as exc:
+        logger.exception("readiness redis check failed: %s", exc)
+        checks["redis"] = "unavailable"
 
     # ── Phase 1 AI server (Qwen + RAG) ────────────────────────────────────────
     try:
@@ -201,11 +251,17 @@ def readiness_check(request):
         phase1_base = os.environ.get("PHASE1_BASE_URL") or os.environ.get("PHASE1_URL", "http://127.0.0.1:8001")
         if phase1_base.rstrip("/").endswith("/chat"):
             phase1_base = phase1_base.rstrip("/")[:-5]
-        req = urllib.request.Request(phase1_base.rstrip("/") + "/health")
+        headers = {}
+        phase1_token = os.environ.get("PHASE1_SERVICE_TOKEN", "").strip()
+        if phase1_token:
+            headers["Authorization"] = f"Bearer {phase1_token}"
+        req = urllib.request.Request(
+            phase1_base.rstrip("/") + "/health", headers=headers
+        )
         with urllib.request.urlopen(req, timeout=2) as resp:
             import json
             h = json.loads(resp.read())
-            if h.get("status") == "healthy":
+            if h.get("status") == "healthy" and h.get("rag") is True and h.get("ollama") is True:
                 checks["phase1_ai"] = f"ok (rag={h.get('rag')}, ollama={h.get('ollama')})"
             else:
                 checks["phase1_ai"] = f"degraded: {h.get('status')}"
@@ -219,38 +275,283 @@ def readiness_check(request):
         with urllib.request.urlopen(req, timeout=2) as resp:
             import json
             models = [m["name"] for m in json.loads(resp.read()).get("models", [])]
-            qwen_present = any("qwen2.5" in m for m in models)
-            checks["ollama"] = f"ok (qwen={'present' if qwen_present else 'missing'})"
+            desired_model = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b").strip()
+            desired_base = desired_model.split(":", 1)[0]
+            model_present = any(
+                model == desired_model or model.split(":", 1)[0] == desired_base
+                for model in models
+            )
+            checks["ollama"] = (
+                f"ok (model={desired_model}, "
+                f"present={'yes' if model_present else 'no'})"
+            )
     except Exception:
         checks["ollama"] = "offline (local LLM unavailable)"
 
+    # ── Chatbot runtime capacity ─────────────────────────────────────────────
+    try:
+        from advisory.services.chat_intelligence_service import chatbot_runtime_status
+        chat_runtime = chatbot_runtime_status()
+        local_ai = chat_runtime.get("local_ai", {})
+        phase1 = chat_runtime.get("phase1", {})
+        cb_label = "open" if phase1.get("circuit_breaker_open") else "closed"
+        checks["chatbot_runtime"] = (
+            f"ok (local_ai_active={local_ai.get('active')}/"
+            f"{local_ai.get('max_concurrency')}, phase1_cb={cb_label})"
+        )
+    except Exception as exc:
+        logger.exception("readiness chatbot runtime check failed: %s", exc)
+        checks["chatbot_runtime"] = "unavailable"
+
     # ── Crop disease ML model ────────────────────────────────────────────────
+    # Advisory-only diagnostics are a supported farmer-safe operating mode. An
+    # unverified classifier must remain disabled, but it must not make runtime
+    # readiness look unhealthy when the API is deliberately using that mode.
     try:
         from advisory.ml.config import DEFAULT_MODEL_DIR, MODEL_FILENAME, LABELS_FILENAME
         from advisory.ml.labels import load_labels
         from advisory.ml.model_metadata import load_model_metadata, readiness_summary
+        classification_enabled = os.environ.get(
+            "DISEASE_CLASSIFICATION_ENABLED", "false"
+        ).lower() in {"1", "true", "yes"}
         model_path = DEFAULT_MODEL_DIR / MODEL_FILENAME
         labels_path = DEFAULT_MODEL_DIR / LABELS_FILENAME
         if model_path.exists() and labels_path.exists():
             labels = load_labels(labels_path)
             metadata = load_model_metadata(DEFAULT_MODEL_DIR, labels)
-            checks["crop_disease_model"] = readiness_summary(metadata)
+            candidate_summary = readiness_summary(metadata)
         else:
-            checks["crop_disease_model"] = (
+            candidate_summary = (
                 f"missing ({model_path.name}); diagnostics use advisory_fallback"
             )
+        checks["crop_disease_candidate"] = candidate_summary
+        checks["crop_disease_model"] = (
+            candidate_summary
+            if classification_enabled
+            else "ok (advisory_fallback; image classification disabled)"
+        )
     except Exception as exc:
-        checks["crop_disease_model"] = f"unknown: {exc}"
+        logger.exception("readiness crop disease model check failed: %s", exc)
+        classification_enabled = os.environ.get(
+            "DISEASE_CLASSIFICATION_ENABLED", "false"
+        ).lower() in {"1", "true", "yes"}
+        checks["crop_disease_candidate"] = "unavailable"
+        checks["crop_disease_model"] = (
+            "unavailable"
+            if classification_enabled
+            else "ok (advisory_fallback; image classification disabled)"
+        )
 
-    status_code = 200 if overall_ok else 503
+    readiness_status = _readiness_status(checks, hard_ready=overall_ok)
+    status_code = 503 if readiness_status == "not_ready" else 200
     return JsonResponse({
-        "status":    "ready" if overall_ok else "not_ready",
+        "status":    readiness_status,
         "checks":    checks,
         "timestamp": _now(),
     }, status=status_code)
 
 
+def _configured_env(name: str) -> bool:
+    value = os.environ.get(name, "").strip()
+    return bool(value) and value.lower() not in {
+        "change_me",
+        "your_api_key_here",
+        "your_data_gov_in_api_key_here",
+    }
+
+
 @csrf_exempt
+@require_GET
+def launch_readiness_check(request):
+    """Production launch gate with explicit, non-secret remediation details."""
+    import json
+
+    readiness_response = readiness_check(request)
+    try:
+        runtime_checks = json.loads(readiness_response.content).get("checks", {})
+    except Exception:
+        runtime_checks = {}
+
+    query_serializer = LocationQuerySerializer(data=request.GET)
+    if not query_serializer.is_valid():
+        return JsonResponse({"status": "blocked_for_launch", "error": "Invalid readiness parameters", "errors": query_serializer.errors}, status=400)
+    strict = (
+        os.environ.get("LAUNCH_CHECK", "false").lower() in {"1", "true", "yes"}
+        or query_serializer.validated_data.get("strict", False)
+    )
+    blockers = []
+
+    def block(code: str, service: str, message: str, action: str) -> None:
+        blockers.append({
+            "code": code,
+            "service": service,
+            "message": message,
+            "action": action,
+        })
+
+    database_ok = str(runtime_checks.get("database", "")).startswith("ok")
+    postgres_ok = runtime_checks.get("database_backend") == "postgresql"
+    redis_ok = str(runtime_checks.get("redis", "")).startswith("ok")
+    phase1_status = str(runtime_checks.get("phase1_ai", ""))
+    phase1_ok = (
+        phase1_status.startswith("ok")
+        and "rag=True" in phase1_status
+        and "ollama=True" in phase1_status
+    )
+    ollama_status = str(runtime_checks.get("ollama", ""))
+    ollama_ok = ollama_status.startswith("ok") and "present=yes" in ollama_status
+    disease_ok = str(runtime_checks.get("crop_disease_model", "")).startswith("ok")
+    data_gov_ok = _configured_env("DATA_GOV_IN_API_KEY")
+    sentry_ok = bool(getattr(settings, "SENTRY_DSN", None))
+    debug_ok = not settings.DEBUG
+    rate_limit_ok = bool(settings.RATE_LIMIT_ENABLED)
+    strict_config_ok = bool(getattr(settings, "STRICT_PRODUCTION_CONFIG", False))
+    rag_required = os.environ.get("RAG_INDEX_REQUIRED", "false").lower() in {"1", "true", "yes"}
+    phase1_auth_ok = _configured_env("PHASE1_SERVICE_TOKEN")
+    disease_classification_enabled = os.environ.get(
+        "DISEASE_CLASSIFICATION_ENABLED", "false"
+    ).lower() in {"1", "true", "yes"}
+    allowed_hosts_ok = bool(settings.ALLOWED_HOSTS) and "*" not in settings.ALLOWED_HOSTS
+    cors_ok = not bool(getattr(settings, "CORS_ALLOW_ALL_ORIGINS", False))
+    twilio_ok = all(
+        _configured_env(name)
+        for name in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER")
+    )
+
+    if not database_ok:
+        block(
+            "database_unavailable",
+            "database",
+            "The farmer data service is not ready.",
+            "Verify DATABASE_URL and database connectivity.",
+        )
+    if not postgres_ok:
+        block(
+            "postgresql_required",
+            "database",
+            "Production is not using managed PostgreSQL.",
+            "Set DATABASE_URL to the managed PostgreSQL connection string.",
+        )
+    if not debug_ok:
+        block("debug_enabled", "django", "Debug mode is enabled.", "Set DEBUG=false.")
+    if not rate_limit_ok:
+        block(
+            "rate_limiting_disabled", "security",
+            "Production request limits are disabled.", "Set RATE_LIMIT_ENABLED=true.",
+        )
+    if not strict_config_ok:
+        block(
+            "strict_config_disabled", "configuration",
+            "Production fail-fast configuration is disabled.",
+            "Set STRICT_PRODUCTION_CONFIG=true after all required secrets are configured.",
+        )
+    if not redis_ok:
+        block(
+            "redis_required",
+            "redis",
+            "Shared rate limiting and cache are not configured for production.",
+            "Set REDIS_URL to a production Redis instance.",
+        )
+    if not data_gov_ok:
+        block(
+            "mandi_api_key_missing",
+            "mandi",
+            "Full live mandi coverage is not configured.",
+            "Set DATA_GOV_IN_API_KEY from data.gov.in.",
+        )
+    if not phase1_ok:
+        block(
+            "phase1_offline",
+            "local_ai",
+            "The local knowledge and RAG service is unavailable.",
+            "Start Phase 1 and verify PHASE1_BASE_URL/health.",
+        )
+    if not ollama_ok:
+        block(
+            "ollama_model_unavailable",
+            "local_ai",
+            "The configured local language model is not available.",
+            "Install OLLAMA_MODEL and verify the Ollama tags endpoint.",
+        )
+    if not rag_required:
+        block(
+            "rag_index_not_required", "local_ai",
+            "Phase 1 can start without its knowledge index.", "Set RAG_INDEX_REQUIRED=true.",
+        )
+    if not phase1_auth_ok:
+        block(
+            "phase1_service_token_missing", "local_ai",
+            "Phase 1 service authentication is not configured.",
+            "Set the same PHASE1_SERVICE_TOKEN on Django and Phase 1.",
+        )
+    if disease_classification_enabled and not disease_ok:
+        block(
+            "disease_model_unverified",
+            "diagnostics",
+            "Image disease classification is not production-verified.",
+            "Keep advisory fallback enabled until model quality is production_candidate.",
+        )
+    if not allowed_hosts_ok or not cors_ok:
+        block(
+            "invalid_origins", "http_security",
+            "Production host or origin restrictions are unsafe.",
+            "Set explicit ALLOWED_HOSTS and disable wildcard CORS.",
+        )
+    if not twilio_ok:
+        block(
+            "otp_provider_unconfigured", "authentication",
+            "Farmer OTP delivery is not configured.",
+            "Set Twilio account, auth token, and sender number secrets.",
+        )
+    if not sentry_ok:
+        block(
+            "sentry_missing",
+            "observability",
+            "Production error monitoring is not configured.",
+            "Set SENTRY_DSN before farmer launch.",
+        )
+
+    status_label = (
+        "blocked_for_launch" if strict and blockers
+        else "degraded" if blockers
+        else "ready"
+    )
+    http_status = 503 if strict and blockers else 200
+    return JsonResponse({
+        "status": status_label,
+        "strict": strict,
+        "message": (
+            "Launch checks need attention. Development fallbacks remain available."
+            if blockers
+            else "All required farmer-launch checks passed."
+        ),
+        "checks": {
+            "database": database_ok,
+            "postgresql": postgres_ok,
+            "debug_disabled": debug_ok,
+            "rate_limiting": rate_limit_ok,
+            "strict_production_config": strict_config_ok,
+            "redis": redis_ok,
+            "data_gov_in_api_key": data_gov_ok,
+            "phase1_rag": phase1_ok,
+            "ollama_model": ollama_ok,
+            "disease_model": disease_ok,
+            "disease_mode": (
+                "classification" if disease_classification_enabled else "advisory_fallback"
+            ),
+            "rag_index_required": rag_required,
+            "phase1_service_auth": phase1_auth_ok,
+            "origins_restricted": allowed_hosts_ok and cors_ok,
+            "otp_provider": twilio_ok,
+            "sentry": sentry_ok,
+        },
+        "blockers": blockers,
+        "timestamp": _now(),
+    }, status=http_status)
+
+
+@csrf_exempt
+@require_GET
 def liveness_check(request):
     """Liveness probe — returns alive if process is responding."""
     return JsonResponse({
@@ -262,6 +563,7 @@ def liveness_check(request):
 
 # ── Data freshness endpoint (Fix 8) ──────────────────────────────────────────
 @csrf_exempt
+@require_GET
 def data_freshness(request):
     """
     GET /api/health/data-freshness/
@@ -300,7 +602,8 @@ def data_freshness(request):
             ),
         }
     except Exception as exc:
-        result["market"] = {"error": str(exc)}
+        logger.exception("market readiness probe failed")
+        result["market"] = {"status": "unavailable", "error_code": "MARKET_READINESS_UNAVAILABLE"}
 
     # ── Weather (Open-Meteo) ──────────────────────────────────
     try:
@@ -315,7 +618,8 @@ def data_freshness(request):
             "note": "Weather cache is per-location; probe checks Delhi as sentinel.",
         }
     except Exception as exc:
-        result["weather"] = {"error": str(exc)}
+        logger.exception("weather readiness probe failed")
+        result["weather"] = {"status": "unavailable", "error_code": "WEATHER_READINESS_UNAVAILABLE"}
 
     # ── RAG / Phase1 ──────────────────────────────────────────
     try:
@@ -342,12 +646,14 @@ def data_freshness(request):
             "sources": {},
         }
     except Exception as exc:
-        result["crop_recommendation"] = {"error": str(exc)}
+        logger.exception("crop recommendation readiness probe failed")
+        result["crop_recommendation"] = {"status": "unavailable", "error_code": "CROP_READINESS_UNAVAILABLE"}
 
     return JsonResponse(result)
 
 
 @csrf_exempt
+@require_GET
 def sentry_test(request):
     """
     GET /api/health/sentry-test/
@@ -356,6 +662,11 @@ def sentry_test(request):
     post-deploy.  Returns {"sentry": "event_sent"} when DSN is active,
     {"sentry": "not_configured"} when absent — never raises.
     """
+    if not _staff_or_debug(request):
+        return JsonResponse(
+            {"status": "forbidden", "error_code": "STAFF_REQUIRED"},
+            status=403,
+        )
     try:
         import sentry_sdk
         from django.conf import settings as _s
@@ -364,4 +675,8 @@ def sentry_test(request):
             return JsonResponse({"status": "ok", "sentry": "event_sent"})
         return JsonResponse({"status": "ok", "sentry": "not_configured"})
     except Exception as exc:
-        return JsonResponse({"status": "ok", "sentry": f"error: {exc}"})
+        logger.exception("Sentry test failed")
+        return JsonResponse(
+            {"status": "error", "sentry": "unavailable", "error_code": "SENTRY_TEST_FAILED"},
+            status=503,
+        )

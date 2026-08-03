@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from urllib.parse import urlencode
 
-from .msp_data import MSP_2024_25
+from .msp_data import MSP_2024_25, MSP_MARKETING_SEASON
 
 logger = logging.getLogger(__name__)
 
@@ -409,7 +409,7 @@ class EnhancedMarketPricesService:
         
         state = state.lower()
         if 'maharashtra' in state or 'pune' in state:
-            common_crops.update({'Cotton': MSP_2024_25['cotton'], 'Soybean': MSP_2024_25['soybean'], 'Sugarcane': MSP_2024_25['sugarcane'], 'Turmeric': 7500, 'Pomegranate': 6000})
+            common_crops.update({'Cotton': MSP_2024_25['cotton'], 'Soybean': MSP_2024_25['soybean'], 'Turmeric': 7500, 'Pomegranate': 6000})
         elif 'delhi' in state:
             common_crops.update({'Mustard': MSP_2024_25['mustard'], 'Cauliflower': 1500, 'Carrot': 1800})
         elif 'karnataka' in state or 'bangalore' in state:
@@ -890,200 +890,19 @@ class EnhancedMarketPricesService:
             return []
     
     def _fetch_agmarknet_mandi_specific(self, mandi_name: str, state: str) -> Dict[str, Any]:
-        """Fetch mandi-specific data from Agmarknet API with real-time simulation"""
-        try:
-            # Since government APIs are not accessible, simulate real-time data
-            # This creates realistic, dynamic pricing based on actual market conditions
-            
-            logger.info(f"Simulating real-time mandi data for {mandi_name}")
-            
-            # Get real government MSP data
-            government_msp_data = self._get_real_government_msp_data()
-            
-            # Create realistic mandi-specific pricing
-            crops = []
-            import random
-            import hashlib
-            from datetime import datetime, timedelta
-            
-            # Use dynamic seed based on current time for truly real-time pricing
-            current_time = datetime.now()
-            # Include seconds and microseconds for true real-time variation
-            dynamic_seed = int(hashlib.md5(f"{mandi_name}_{state}_{current_time.strftime('%Y%m%d%H%M%S')}_{current_time.microsecond}".encode()).hexdigest()[:8], 16)
-            random.seed(dynamic_seed)
-            
-            # Simulate real-time market conditions
-            current_hour = datetime.now().hour
-            day_of_week = datetime.now().weekday()
-            
-            # Market activity factors (higher prices during peak hours)
-            time_factor = 1.0 + (0.1 * abs(current_hour - 12) / 12)  # Peak at noon
-            day_factor = 1.0 + (0.05 if day_of_week < 5 else 0.1)  # Higher on weekends
-            
-            crop_index = 0
-            for crop_name, msp_data in government_msp_data.items():
-                if crop_index >= 8:  # Limit to 8 crops
-                    break
-                
-                # Mandi-specific base multiplier (consistent per mandi)
-                mandi_base_multiplier = 0.85 + (random.random() * 0.3)  # 0.85 to 1.15
-                
-                # Real-time market variations with more dynamic factors
-                # Add second-level variation for true real-time pricing
-                second_factor = 1.0 + (random.uniform(-0.05, 0.05) * (current_time.second / 60))  # ±5% per minute
-                minute_factor = 1.0 + (random.uniform(-0.02, 0.02) * (current_time.minute / 60))  # ±2% per hour
-                market_volatility = random.uniform(0.80, 1.20)  # ±20% daily variation
-                seasonal_factor = random.uniform(0.85, 1.15)  # Seasonal variations
-                demand_factor = random.uniform(0.90, 1.10)  # Demand fluctuations
-                supply_factor = random.uniform(0.95, 1.05)  # Supply fluctuations
-                
-                # Calculate realistic current price with all dynamic factors
-                base_price = msp_data['msp'] * (1.3 + random.random() * 0.7)  # 1.3x to 2.0x MSP
-                current_price = int(base_price * mandi_base_multiplier * time_factor * day_factor * market_volatility * seasonal_factor * demand_factor * supply_factor * minute_factor * second_factor)
-                
-                # Ensure price is reasonable
-                current_price = max(current_price, int(msp_data['msp'] * 1.1))  # At least 10% above MSP
-                
-                profit_margin = current_price - msp_data['msp']
-                profit_percentage = round((profit_margin / msp_data['msp']) * 100, 2)
-                
-                # Generate realistic arrival data
-                arrival_date = (datetime.now() - timedelta(days=random.randint(0, 3))).strftime('%Y-%m-%d')
-                
-                crops.append({
-                    'name': crop_name,
-                    'current_price': current_price,
-                    'msp': msp_data['msp'],
-                    'mandi': mandi_name,
-                    'state': state,
-                    'date': arrival_date,
-                    'source': f'Agmarknet Real-time ({mandi_name})',
-                    'profit_margin': profit_margin,
-                    'profit_percentage': profit_percentage,
-                    'unit': '/quintal',
-                    'season': msp_data.get('season', 'All Season'),
-                    'arrival_quantity': random.randint(50, 500),  # Quintals
-                    'quality': random.choice(['A Grade', 'B Grade', 'Premium']),
-                    'api_source': 'agmarknet_real_time_simulation',
-                    'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'market_trend': random.choice(['Rising', 'Stable', 'Falling']),
-                    'mandi_multiplier': round(mandi_base_multiplier, 3),
-                    'time_factor': round(time_factor, 3),
-                    'market_volatility': round(market_volatility, 3),
-                    'minute_factor': round(minute_factor, 3),
-                    'second_factor': round(second_factor, 3),
-                    'demand_factor': round(demand_factor, 3),
-                    'supply_factor': round(supply_factor, 3),
-                    'price_change_percent': round((market_volatility - 1) * 100, 2)
-                })
-                
-                crop_index += 1
-            
-            # Sort by price
-            crops.sort(key=lambda x: x['current_price'], reverse=True)
-            
-            return {'crops': crops, 'sources': [f'Agmarknet Real-time ({mandi_name})']}
-            
-        except Exception as e:
-            logger.error(f"Error simulating Agmarknet mandi-specific data: {e}")
-            return None
-    
+        """Deprecated. Previously synthesised random prices (random.seed on
+        the clock) and labelled them 'Agmarknet Real-time'. Fabrication has
+        been removed so no invented price is ever shown to a farmer as real.
+        Live mandi prices come from MarketPricesService (data.gov.in /
+        Agmarknet 2.0); this stub returns an honest 'unavailable'."""
+        return {'crops': [], 'sources': [], 'is_live': False, 'status': 'unavailable'}
+
     def _fetch_enam_mandi_specific(self, mandi_name: str, state: str) -> Dict[str, Any]:
-        """Fetch mandi-specific data from e-NAM API with real-time simulation"""
-        try:
-            # Since government APIs are not accessible, simulate real-time e-NAM data
-            logger.info(f"Simulating real-time e-NAM data for {mandi_name}")
-            
-            # Get real government MSP data
-            government_msp_data = self._get_real_government_msp_data()
-            
-            # Create realistic e-NAM pricing (slightly different from Agmarknet)
-            crops = []
-            import random
-            import hashlib
-            from datetime import datetime, timedelta
-            
-            # Use dynamic seed based on current time for truly real-time pricing
-            current_time = datetime.now()
-            # Include seconds and microseconds for true real-time variation
-            enam_dynamic_seed = int(hashlib.md5(f"enam_{mandi_name}_{state}_{current_time.strftime('%Y%m%d%H%M%S')}_{current_time.microsecond}".encode()).hexdigest()[:8], 16)
-            random.seed(enam_dynamic_seed)
-            
-            # e-NAM typically has slightly different pricing patterns
-            current_hour = datetime.now().hour
-            day_of_week = datetime.now().weekday()
-            
-            # e-NAM market factors (different from Agmarknet)
-            time_factor = 1.0 + (0.08 * abs(current_hour - 14) / 14)  # Peak at 2 PM
-            day_factor = 1.0 + (0.03 if day_of_week < 5 else 0.08)  # Different weekend pattern
-            
-            crop_index = 0
-            for crop_name, msp_data in government_msp_data.items():
-                if crop_index >= 8:  # Limit to 8 crops
-                    break
-                
-                # e-NAM specific pricing (usually competitive with Agmarknet)
-                enam_multiplier = 0.88 + (random.random() * 0.25)  # 0.88 to 1.13
-                
-                # e-NAM market variations with more dynamic factors
-                second_factor = 1.0 + (random.uniform(-0.04, 0.04) * (current_time.second / 60))  # ±4% per minute
-                minute_factor = 1.0 + (random.uniform(-0.015, 0.015) * (current_time.minute / 60))  # ±1.5% per hour
-                market_volatility = random.uniform(0.85, 1.15)  # ±15% daily variation
-                seasonal_factor = random.uniform(0.88, 1.12)  # Seasonal variations
-                demand_factor = random.uniform(0.92, 1.08)  # Demand fluctuations
-                supply_factor = random.uniform(0.96, 1.04)  # Supply fluctuations
-                
-                # Calculate e-NAM current price with all dynamic factors
-                base_price = msp_data['msp'] * (1.25 + random.random() * 0.75)  # 1.25x to 2.0x MSP
-                current_price = int(base_price * enam_multiplier * time_factor * day_factor * market_volatility * seasonal_factor * demand_factor * supply_factor * minute_factor * second_factor)
-                
-                # Ensure price is reasonable
-                current_price = max(current_price, int(msp_data['msp'] * 1.05))  # At least 5% above MSP
-                
-                profit_margin = current_price - msp_data['msp']
-                profit_percentage = round((profit_margin / msp_data['msp']) * 100, 2)
-                
-                # Generate realistic e-NAM arrival data
-                arrival_date = (datetime.now() - timedelta(days=random.randint(0, 2))).strftime('%Y-%m-%d')
-                
-                crops.append({
-                    'name': crop_name,
-                    'current_price': current_price,
-                    'msp': msp_data['msp'],
-                    'mandi': mandi_name,
-                    'state': state,
-                    'date': arrival_date,
-                    'source': f'e-NAM Real-time ({mandi_name})',
-                    'profit_margin': profit_margin,
-                    'profit_percentage': profit_percentage,
-                    'unit': '/quintal',
-                    'season': msp_data.get('season', 'All Season'),
-                    'arrival_quantity': random.randint(30, 400),  # Quintals
-                    'quality': random.choice(['A Grade', 'B Grade', 'Standard']),
-                    'api_source': 'enam_real_time_simulation',
-                    'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        'market_trend': random.choice(['Rising', 'Stable', 'Falling']),
-                        'enam_multiplier': round(enam_multiplier, 3),
-                        'time_factor': round(time_factor, 3),
-                        'market_volatility': round(market_volatility, 3),
-                        'minute_factor': round(minute_factor, 3),
-                        'second_factor': round(second_factor, 3),
-                        'demand_factor': round(demand_factor, 3),
-                        'supply_factor': round(supply_factor, 3),
-                        'price_change_percent': round((market_volatility - 1) * 100, 2)
-                })
-                
-                crop_index += 1
-            
-            # Sort by price
-            crops.sort(key=lambda x: x['current_price'], reverse=True)
-            
-            return {'crops': crops, 'sources': [f'e-NAM Real-time ({mandi_name})']}
-            
-        except Exception as e:
-            logger.error(f"Error simulating e-NAM mandi-specific data: {e}")
-            return None
-    
+        """Deprecated. Previously synthesised random prices labelled
+        'e-NAM Real-time'. Fabrication removed — returns honest
+        'unavailable' instead of invented figures."""
+        return {'crops': [], 'sources': [], 'is_live': False, 'status': 'unavailable'}
+
     def _parse_agmarknet_mandi_response(self, data: Dict[str, Any], mandi_name: str) -> List[Dict[str, Any]]:
         """Parse Agmarknet mandi-specific API response"""
         crops = []
@@ -1177,95 +996,20 @@ class EnhancedMarketPricesService:
             return mandi_crops
     
     def _get_mandi_filtered_fallback_data(self, mandi_name: str, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
-        """Get mandi-filtered fallback data using real government MSP data"""
-        try:
-            # Get real government MSP data (2024-25)
-            government_msp_data = self._get_real_government_msp_data()
-            
-            # Get state and region info
-            state = self._get_state_from_location(location)
-            region_multiplier = self._get_region_multiplier(location, latitude, longitude)
-            
-            # Get nearest mandis for this location
-            nearest_mandis = self.get_nearest_mandis(location, latitude, longitude)
-            
-            crops = []
-            
-            # Process each crop with mandi-specific pricing
-            import random
-            import hashlib
-            
-            # Use mandi hash for consistent but different pricing per mandi
-            mandi_hash = int(hashlib.md5(f"{mandi_name}_{location}".encode()).hexdigest()[:8], 16)
-            random.seed(mandi_hash)
-            
-            crop_index = 0
-            for crop_name, msp_data in government_msp_data.items():
-                if crop_index >= 8:  # Limit to 8 crops
-                    break
-                
-                # Mandi-specific price variation
-                mandi_multiplier = 0.8 + (random.random() * 0.4)  # 0.8 to 1.2
-                base_price = msp_data['msp'] * (1.2 + random.random() * 0.8)  # 1.2x to 2.0x MSP
-                current_price = int(base_price * mandi_multiplier * region_multiplier)
-                
-                profit_margin = current_price - msp_data['msp']
-                profit_percentage = round((profit_margin / msp_data['msp']) * 100, 2)
-                
-                crops.append({
-                    'name': crop_name,
-                    'current_price': current_price,
-                    'estimated_price': current_price,
-                    'msp': msp_data['msp'],
-                    'mandi': mandi_name,
-                    'state': state,
-                    'date': datetime.now().strftime('%Y-%m-%d'),
-                    'source': 'MSP reference estimate (not live mandi price)',
-                    'data_source': 'msp_reference_estimate',
-                    'price_status': 'estimated',
-                    'is_live': False,
-                    'live': False,
-                    'profit_margin': profit_margin,
-                    'profit_percentage': profit_percentage,
-                    'unit': msp_data.get('unit', '/quintal'),
-                    'season': msp_data.get('season', 'All Season'),
-                    'location_factor': round(region_multiplier, 2),
-                    'mandi_multiplier': round(mandi_multiplier, 2),
-                    'api_source': 'mandi_specific_estimate'
-                })
-                
-                crop_index += 1
-            
-            # Sort crops by price to show variety
-            crops.sort(key=lambda x: x['current_price'], reverse=True)
-            
-            return {
-                'status': 'fallback',
-                'is_live': False,
-                'data_status': 'estimated',
-                'crops': crops,
-                'sources': ['MSP 2024-25 reference', f'{mandi_name} estimate'],
-                'location': location,
-                'mandi': mandi_name,
-                'state': state,
-                'nearest_mandis': [m['name'] for m in nearest_mandis[:3]],
-                'timestamp': datetime.now().isoformat(),
-                'data_reliability': 0.35,
-                'data_source': 'MSP reference estimate (not live mandi price)',
-                'note': (
-                    f'Estimated mandi reference for {mandi_name}, {location}; '
-                    'not live market data. Verify on Agmarknet/e-NAM or local mandi before trading.'
-                )
-            }
-            
-        except Exception as e:
-            logger.error(f"Error generating mandi-filtered fallback data: {e}")
-            return self._get_enhanced_fallback_data(location, latitude, longitude)
-    
+        """Deprecated. Previously fabricated per-mandi prices via random.seed
+        and returned them as data. Fabrication removed. Only reachable from the
+        unused get_mandi_specific_prices path; returns honest 'unavailable'.
+        For labelled MSP estimates use _get_enhanced_fallback_data instead."""
+        return {
+            'status': 'unavailable', 'is_live': False, 'crops': [],
+            'data_source': 'unavailable', 'data_reliability': 0.0,
+            'note': 'Mandi-specific live prices unavailable (no fabricated data).',
+        }
+
     def _get_enhanced_fallback_data(self, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Enhanced fallback data using real government MSP data with location-specific pricing"""
         # Use MSP-based structured fallback when all real-time government APIs fail
-        # Get real government MSP data (2024-25)
+        # Get current government MSP reference data.
         government_msp_data = self._get_real_government_msp_data()
         
         # Get state and region info
@@ -1344,7 +1088,7 @@ class EnhancedMarketPricesService:
             'is_live': False,
             'data_status': 'estimated',
             'crops': crops,
-            'sources': ['MSP 2024-25 reference', 'Location estimate'],
+            'sources': [f'MSP {MSP_MARKETING_SEASON} reference', 'Location estimate'],
             'location': location,
             'state': state,
             'nearest_mandis': [m['name'] for m in nearest_mandis[:3]],
@@ -1512,7 +1256,6 @@ class EnhancedMarketPricesService:
             'Maize': {'msp': MSP_2024_25['maize'], 'unit': '/quintal', 'season': 'Kharif'},
             'Mustard': {'msp': MSP_2024_25['mustard'], 'unit': '/quintal', 'season': 'Rabi'},
             'Cotton': {'msp': MSP_2024_25['cotton'], 'unit': '/quintal', 'season': 'Kharif'},
-            'Sugarcane': {'msp': MSP_2024_25['sugarcane'], 'unit': '/quintal', 'season': 'All Season'},
             'Potato': {'msp': 800, 'unit': '/quintal', 'season': 'All Season'},
             'Onion': {'msp': 1200, 'unit': '/quintal', 'season': 'All Season'},
             'Tomato': {'msp': 900, 'unit': '/quintal', 'season': 'All Season'},

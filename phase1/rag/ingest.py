@@ -19,12 +19,23 @@ import re
 import sys
 import time
 import urllib.request
+import uuid
+from functools import lru_cache
 from pathlib import Path
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from rag.crop_profile_snapshot import load_crop_terms, merge_crop_terms
+    from rag.kb_fingerprint import knowledge_fingerprint
+else:
+    from .crop_profile_snapshot import load_crop_terms, merge_crop_terms
+    from .kb_fingerprint import knowledge_fingerprint
 
 ROOT       = Path(__file__).parent.parent
 KB_DIR     = ROOT / "knowledge_base"
 CHROMA_DIR = ROOT / "chroma_db"
 COLLECTION = "krishimitra_kb"
+FINGERPRINT_FILE = CHROMA_DIR / "kb_fingerprint.txt"
 EMBED_MODEL = "nomic-embed-text"
 OLLAMA_URL  = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 
@@ -57,6 +68,20 @@ _CROP_TERMS = {
     "brinjal": ("brinjal", "eggplant", "बैंगन"),
     "chilli": ("chilli", "chili", "pepper", "मिर्च"),
     "okra": ("okra", "bhindi", "भिंडी"),
+    "cucumber": ("cucumber", "khira", "खीरा"),
+    "french_bean": ("french bean", "green bean", "फ्रेंच बीन"),
+    "broccoli": ("broccoli", "ब्रोकली"),
+    "turnip": ("turnip", "shaljam", "शलजम"),
+    "leafy_greens": ("amaranth greens", "bathua", "mustard greens", "fenugreek greens", "बथुआ", "मेथी"),
+    "tapioca": ("tapioca", "cassava", "कसावा"),
+    "yam": ("elephant foot yam", "greater yam", "suran", "सूरन"),
+    "pear": ("pear", "nashpati", "नाशपाती"),
+    "citrus": ("lemon", "acid lime", "kinnow", "mandarin", "sweet lime", "mosambi", "किन्नू", "मौसम्बी"),
+    "ber": ("ber", "indian jujube", "बेर"),
+    "bael": ("bael", "bel fruit", "बेल"),
+    "underutilized_fruit": ("phalsa", "karonda", "passion fruit", "rambutan", "mangosteen", "करौंदा", "फालसा"),
+    "saffron": ("saffron", "kesar", "केसर"),
+    "vanilla": ("vanilla", "वेनिला"),
     "mango": ("mango", "आम"),
     "banana": ("banana", "केला"),
     "pomegranate": ("pomegranate", "अनार"),
@@ -64,6 +89,7 @@ _CROP_TERMS = {
     "ginger": ("ginger", "अदरक"),
     "garlic": ("garlic", "लहसुन"),
 }
+_CROP_TERMS = merge_crop_terms(_CROP_TERMS, load_crop_terms())
 
 _TOPIC_TERMS = {
     "disease": ("disease", "blast", "blight", "rust", "rot", "wilt", "smut", "रोग", "झुलसा", "रतुआ"),
@@ -85,6 +111,21 @@ def _normalize_spaces(text: str) -> str:
     lines = [" ".join(line.split()) for line in text.splitlines()]
     compact = "\n".join(lines)
     return re.sub(r"\n{3,}", "\n\n", compact).strip()
+
+
+@lru_cache(maxsize=4096)
+def _taxonomy_pattern(term: str):
+    return re.compile(rf"(?<![a-z0-9_]){re.escape(term)}(?![a-z0-9_])")
+
+
+def _contains_taxonomy_term(text_lower: str, term: str) -> bool:
+    """Match Latin terms as words so `rice` never matches `prices`."""
+    normalized = str(term or "").strip().lower()
+    if not normalized:
+        return False
+    if re.search(r"[a-z0-9]", normalized):
+        return bool(_taxonomy_pattern(normalized).search(text_lower))
+    return normalized in text_lower
 
 
 def _detect_heading(section: str) -> tuple[str, str]:
@@ -168,12 +209,12 @@ def _metadata_for_chunk(text: str, source_file: str, category: str, chunk_index:
     crops = [
         crop
         for crop, terms in _CROP_TERMS.items()
-        if any(term.lower() in lower for term in terms)
+        if any(_contains_taxonomy_term(lower, term) for term in terms)
     ]
     topics = [
         topic
         for topic, terms in _TOPIC_TERMS.items()
-        if any(term.lower() in lower for term in terms)
+        if any(_contains_taxonomy_term(lower, term) for term in terms)
     ]
     language = "hi-en" if re.search(r"[\u0900-\u097F]", text) and re.search(r"[A-Za-z]", text) else (
         "hi" if re.search(r"[\u0900-\u097F]", text) else "en"
@@ -215,6 +256,31 @@ def chunk_text(text: str, source_file: str, category: str) -> list[dict]:
     Split text into overlapping chunks, keeping section headings together
     with their content so pest/disease sections aren't split mid-way.
     """
+    profile_blocks = re.split(r"(?=^CROP_ID:\s*)", text, flags=re.MULTILINE)
+    if len(profile_blocks) > 2:
+        catalog_chunks: list[dict] = []
+        for block in profile_blocks:
+            block = block.strip()
+            if not block:
+                continue
+            identity_match = re.match(r"^(CROP_ID:\s*[^\n]+)", block)
+            identity = identity_match.group(1).strip() if identity_match else ""
+            for chunk in chunk_text(block, source_file, category):
+                chunk_text_value = chunk["text"]
+                if identity and identity not in chunk_text_value:
+                    prefix = identity + "\n"
+                    chunk_text_value = prefix + chunk_text_value[: CHUNK_SIZE - len(prefix)]
+                catalog_chunks.append({
+                    "text": chunk_text_value,
+                    **_metadata_for_chunk(
+                        chunk_text_value,
+                        source_file,
+                        category,
+                        len(catalog_chunks),
+                    ),
+                })
+        return catalog_chunks
+
     chunks = []
 
     # Split on major section headings (ALL CAPS lines or lines ending with :)
@@ -321,18 +387,12 @@ def main():
     CHROMA_DIR.mkdir(parents=True, exist_ok=True)
     client = cdb.PersistentClient(path=str(CHROMA_DIR))
 
-    # Delete old collection if exists
-    try:
-        client.delete_collection(COLLECTION)
-        print(f"🗑   Old collection '{COLLECTION}' deleted")
-    except Exception:
-        pass
-
+    build_collection_name = f"krishimitra_build_{uuid.uuid4().hex[:12]}"
     collection = client.create_collection(
-        name=COLLECTION,
+        name=build_collection_name,
         metadata={"hnsw:space": "cosine"},
     )
-    print(f"✅  Created collection '{COLLECTION}' with cosine similarity")
+    print(f"✅  Created temporary collection '{build_collection_name}'")
 
     # ── Embed and store in batches ────────────────────────────────────────────
     print(f"\n🔢  Embedding {len(all_chunks)} chunks with {EMBED_MODEL}...")
@@ -348,7 +408,9 @@ def main():
             vectors = embed(texts)
         except Exception as e:
             print(f"  ❌  Embed batch {start}-{start+len(batch)} failed: {e}")
-            continue
+            client.delete_collection(build_collection_name)
+            print("  Existing RAG collection was preserved")
+            return 1
 
         ids       = [f"chunk_{start + i}" for i in range(len(batch))]
         metadatas = [{k: v for k, v in c.items() if k != "text"} for c in batch]
@@ -367,6 +429,23 @@ def main():
 
     # ── Verify ────────────────────────────────────────────────────────────────
     final_count = collection.count()
+    if final_count != total:
+        client.delete_collection(build_collection_name)
+        print(f"❌  Incomplete build: expected {total} vectors, stored {final_count}")
+        print("  Existing RAG collection was preserved")
+        return 1
+
+    try:
+        client.delete_collection(COLLECTION)
+    except Exception:
+        pass
+    collection.modify(name=COLLECTION)
+    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+    fingerprint = knowledge_fingerprint(KB_DIR)
+    temporary_marker = FINGERPRINT_FILE.with_suffix(".tmp")
+    temporary_marker.write_text(fingerprint + "\n", encoding="ascii")
+    temporary_marker.replace(FINGERPRINT_FILE)
+
     total_time  = round(time.time() - t0, 1)
     print(f"\n✅  Done — {final_count} vectors stored in {total_time}s")
     print(f"📦  Chroma DB: {CHROMA_DIR}")
@@ -406,7 +485,8 @@ def main():
     print("  Ingestion complete. Start the server:")
     print("  uvicorn main:app --port 8001 --reload")
     print("═" * 55 + "\n")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

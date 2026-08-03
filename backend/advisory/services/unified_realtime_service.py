@@ -12,10 +12,13 @@ Fixed bugs:
 """
 
 import os
+import re
 import json
 import logging
 import threading
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 
@@ -186,7 +189,10 @@ CROP_HINDI = {
     "banana": "केला", "apple": "सेब",
 }
 
-from .msp_data import MSP_2024_25
+from .msp_data import MSP_CURRENT, MSP_MARKETING_SEASON
+
+# Kept as a module-level alias because older services import this symbol.
+MSP_2024_25 = MSP_CURRENT
 
 # ── DB-backed MSP lookup (falls back to dict above) ─────────────────────────
 # Run `python manage.py seed_msp` once to populate the Crop table.
@@ -194,18 +200,8 @@ from .msp_data import MSP_2024_25
 # no code deploy needed for annual CACP price announcements.
 
 def get_msp(crop_id: str, fallback: int = 0) -> int:
-    """
-    Return MSP ₹/quintal for a crop. Tries DB first, then in-memory dict.
-    Safe to call at any time — never raises.
-    """
-    try:
-        from advisory.models import Crop
-        crop = Crop.objects.filter(name=crop_id).only("msp_per_quintal").first()
-        if crop and crop.msp_per_quintal:
-            return crop.msp_per_quintal
-    except Exception:
-        pass
-    return MSP_2024_25.get(crop_id, fallback)
+    """Return only the current official MSP for a crop ID or alias."""
+    return MSP_CURRENT.get((crop_id or "").strip().lower(), fallback)
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  WEATHER SERVICE
@@ -218,19 +214,45 @@ class WeatherService:
     GEOCODING_URL = "https://nominatim.openstreetmap.org/search"
 
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "KrishiMitra-AI/3.0 (contact@krishimitra.in)",
-            "Accept": "application/json"
-        })
+        self._local = threading.local()
         self._coord_cache: Dict[str, Tuple[float, float]] = {}
+
+    @property
+    def session(self) -> requests.Session:
+        """Per-thread weather client with bounded transient retries."""
+        if not hasattr(self._local, "session"):
+            session = requests.Session()
+            session.headers.update({
+                "User-Agent": "KrishiMitra-AI/3.0 (contact@krishimitra.in)",
+                "Accept": "application/json",
+            })
+            retry = Retry(
+                total=1,
+                connect=1,
+                read=1,
+                status=1,
+                backoff_factor=0.2,
+                status_forcelist=(429, 500, 502, 503, 504),
+                allowed_methods=frozenset({"GET"}),
+                raise_on_status=False,
+            )
+            session.mount("https://", HTTPAdapter(max_retries=retry))
+            self._local.session = session
+        return self._local.session
 
     def get_weather(self, location: str, lat: float = None, lon: float = None,
                     lang: str = "hi") -> Dict[str, Any]:
         """Get complete weather data with 7-day forecast in the requested language."""
         try:
             if lat is None or lon is None:
-                lat, lon = self._geocode(location)
+                coordinates = self._geocode(location)
+                if coordinates is None:
+                    return self._static_fallback(
+                        location,
+                        lang=lang,
+                        reason="location_not_resolved",
+                    )
+                lat, lon = coordinates
 
             # Try Open-Meteo first (FREE, highly reliable)
             data = self._fetch_open_meteo(lat, lon, location, lang=lang)
@@ -249,7 +271,7 @@ class WeatherService:
             logger.error(f"Weather error for {location}: {e}")
             return self._static_fallback(location, lang=lang)
 
-    def _geocode(self, location: str) -> Tuple[float, float]:
+    def _geocode(self, location: str) -> Optional[Tuple[float, float]]:
         """Convert location name to coordinates.
 
         Bug 4 fix: replaced unbounded in-process dict with a two-tier cache:
@@ -260,8 +282,8 @@ class WeatherService:
         The old code cached forever in the process — yesterday's geocode for a
         misspelled village survived until a dyno restart.
         """
-        key_norm  = location.lower().strip()
-        cache_key = f"geocode:{key_norm}"
+        key_norm = location.lower().strip()
+        cache_key = f"geocode:{_cache_token(key_norm)}"
 
         # L1: in-process dict (fast path)
         if key_norm in self._coord_cache:
@@ -287,8 +309,12 @@ class WeatherService:
             "lucknow": (26.8467, 80.9462), "jaipur": (26.9124, 75.7873),
             "greater noida": (28.4745, 77.5040), "noida": (28.5355, 77.3910),
         }
+        # Only use the fast-path when the known city IS the location (or the
+        # leading "city, state" token) — a bare substring test wrongly maps
+        # "Pune Road, Nashik" to Pune. Anything else falls through to Nominatim.
+        primary = key_norm.split(",")[0].strip()
         for key, coords in known.items():
-            if key in key_norm:
+            if key_norm == key or primary == key:
                 self._write_geocode_cache(key_norm, coords, cache_key)
                 return coords
 
@@ -307,10 +333,8 @@ class WeatherService:
         except Exception as exc:
             logger.warning("Nominatim geocoding failed for %r: %s", location, exc)
 
-        # Default: New Delhi
-        default = (28.6139, 77.2090)
-        logger.warning("Geocoding failed for %r — defaulting to New Delhi", location)
-        return default
+        logger.warning("Geocoding failed for %r; no coordinates substituted", location)
+        return None
 
     def _write_geocode_cache(
         self, key_norm: str, coords: Tuple[float, float], cache_key: str
@@ -406,6 +430,10 @@ class WeatherService:
                 "latitude": lat,
                 "longitude": lon,
                 "data_source": "Open-Meteo (Real-time, Free)",
+                "provider": "open-meteo",
+                "observation_time": curr.get("time"),
+                "freshness": "live",
+                "is_stale": False,
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "language": lang,
                 "current": current_data,
@@ -426,7 +454,7 @@ class WeatherService:
             resp = self.session.get(
                 self.OWM_URL,
                 params={"lat": lat, "lon": lon, "appid": OPENWEATHER_KEY,
-                        "units": "metric", "lang": "hi", "cnt": 40},
+                        "units": "metric", "lang": (lang or "hi"), "cnt": 40},
                 timeout=8
             )
             if resp.status_code != 200:
@@ -453,6 +481,10 @@ class WeatherService:
                 "is_live": True,
                 "location": location,
                 "data_source": "OpenWeatherMap",
+                "provider": "openweathermap",
+                "observation_time": current_item.get("dt_txt"),
+                "freshness": "live",
+                "is_stale": False,
                 "language": lang,
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "current": current_data,
@@ -466,13 +498,23 @@ class WeatherService:
             logger.error(f"OWM error: {e}")
             return None
 
-    def _static_fallback(self, location: str, lang: str = "hi") -> Dict:
+    def _static_fallback(
+        self,
+        location: str,
+        lang: str = "hi",
+        reason: str = "providers_unavailable",
+    ) -> Dict:
         """Last-resort fallback with honest labeling."""
         return {
-            "status": "fallback",
+            "status": "unavailable",
             "is_live": False,
             "location": location,
-            "data_source": "Estimated (all APIs unavailable)",
+            "data_source": "Unavailable (no weather values substituted)",
+            "provider": "unavailable",
+            "observation_time": None,
+            "freshness": "unavailable",
+            "is_stale": True,
+            "unavailable_reason": reason,
             "language": lang,
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "current": {
@@ -623,7 +665,7 @@ def _parse_owm_forecast(items: list) -> List[Dict]:
 #  MARKET PRICES SERVICE
 # ─────────────────────────────────────────────────────────────────────────────
 class MarketPricesService:
-    """Real-time mandi prices: Agmarknet 2.0 API → data.gov.in → MSP estimate (labeled)."""
+    """Latest official mandi prices from Agmarknet/data.gov.in, with no price fallback."""
 
     def __init__(self):
         # BUG 4 FIX: bounded FIFO cache — prevents unbounded RAM growth in
@@ -633,11 +675,13 @@ class MarketPricesService:
         self._MAX_CACHE_ENTRIES = 200
         self._cache: OrderedDict = OrderedDict()
         self._cache_ts: Dict[str, datetime] = {}
+        # get_prices() runs concurrently on the module-level ThreadPoolExecutor,
+        # so all _cache / _cache_ts mutations must be guarded to avoid a KeyError
+        # race between the membership check and the timestamp read.
+        self._cache_lock = threading.Lock()
         # Agmarknet updates once daily (~9 AM IST). A 3-min TTL causes unnecessary
         # hammering — each expiry fires a real network call for no new data.
-        # 60 min for live data (Agmarknet), 24 h for seed/estimate fallback.
-        self.CACHE_TTL      = 3600   # 60 min — live Agmarknet data
-        self.CACHE_TTL_SEED = 86400  # 24 h  — seed/MSP-estimate fallback
+        self.CACHE_TTL = 3600
         # BUG 5 FIX: use per-thread session to prevent urllib3 connection pool
         # corruption when the module-level ThreadPoolExecutor calls get_prices()
         # concurrently from multiple threads sharing the same Session object.
@@ -669,7 +713,7 @@ class MarketPricesService:
         state: str = None,
         include_estimates: bool = False,
     ) -> Dict[str, Any]:
-        """Get real-time mandi prices from government APIs (no silent MSP fill)."""
+        """Get fresh official prices; ``include_estimates`` is ignored for compatibility."""
         coord_key = (
             f"{round(lat, 4)}:{round(lon, 4)}" if lat is not None and lon is not None else ""
         )
@@ -680,25 +724,43 @@ class MarketPricesService:
             _cache_token(state),
             _cache_token(mandi),
             _cache_token(crop),
-            "est" if include_estimates else "live",
+            "live_only",
         ])
-        if cache_key in self._cache:
-            age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
-            cached = self._cache[cache_key]
-            # Live Agmarknet data: 60-min TTL (API updates once daily — 3-min TTL
-            # was causing 20× unnecessary network calls with no new data).
-            # Seed/MSP-estimate fallback: 24-h TTL (it never changes intraday).
-            ttl = self.CACHE_TTL_SEED if not cached.get("is_live") else self.CACHE_TTL
-            if age < ttl:
-                return cached
+        with self._cache_lock:
+            if cache_key in self._cache:
+                ts = self._cache_ts.get(cache_key)
+                cached = self._cache[cache_key]
+                if ts is not None and (datetime.now(tz=timezone.utc) - ts).total_seconds() < self.CACHE_TTL:
+                    self._cache.move_to_end(cache_key)  # mark as recently used (real LRU)
+                    return cached
 
         data = None
+        dated_official = None
 
-        # Priority 0: data.gov.in official API (free key) → Agmarknet scraper → seed prices
-        # DataGovMandiClient handles the full fallback chain automatically:
-        #   data.gov.in OGD API (if DATA_GOV_IN_API_KEY is set and valid)
-        #   → Agmarknet direct dashboard (no key needed — 25 commodities)
-        #   → Hardcoded seed prices (always returns data, labeled clearly)
+        def remember_dated_official(candidate: Optional[Dict[str, Any]]) -> None:
+            nonlocal dated_official
+            if dated_official or not candidate:
+                return
+            from .market_data_quality import build_dated_official_reference
+
+            rows, age_minutes, reported_date = build_dated_official_reference(
+                candidate.get("top_crops") or [],
+                response_date=candidate.get("reported_date"),
+            )
+            if not rows:
+                return
+            dated_official = {
+                "rows": rows,
+                "reported_date": reported_date,
+                "data_age_minutes": age_minutes,
+                "data_source": candidate.get(
+                    "data_source", "Agmarknet/data.gov.in official feed"
+                ),
+                "coverage": candidate.get("coverage", "state"),
+            }
+
+        # Priority 0: data.gov.in official API; national Agmarknet dashboard is
+        # used only when no state scope was requested.
         # Redis-backed cache (1-hour TTL, shared across all Gunicorn workers).
         try:
             from .data_gov_mandi_client import data_gov_mandi_client
@@ -706,10 +768,11 @@ class MarketPricesService:
                 commodity=crop or None,
                 state=state or None,
             )
+            remember_dated_official(direct_data)
+            direct_data = self._validated_live_data(direct_data)
             if direct_data and direct_data.get("top_crops"):
                 # If a specific crop is requested, filter to that crop first
                 # DataGovMandiClient already filters by commodity & state internally;
-                # accept result directly. Fallback chain (Agmarknet → seed) already applied.
                 data = direct_data
                 source_short = direct_data.get("data_source_short", "data.gov.in/Agmarknet")
                 logger.info(
@@ -728,9 +791,19 @@ class MarketPricesService:
                 p1_data = agmarknet_client.get_market_prices(
                     location, mandi, crop, state=resolved_state or state
                 )
+                remember_dated_official(p1_data)
+                p1_data = self._validated_live_data(p1_data)
                 if p1_data and p1_data.get("top_crops"):
                     logger.info("Market prices from Agmarknet API for %s", location)
-                    data = self._tag_live_crop_rows(p1_data)
+                    data = p1_data
+                elif mandi and dated_official is None:
+                    # An exact APMC report can be empty while the state summary
+                    # has a recently published official benchmark. Keep it
+                    # separate and never substitute it for the selected mandi.
+                    state_summary = agmarknet_client.get_market_prices(
+                        location, None, crop, state=resolved_state or state
+                    )
+                    remember_dated_official(state_summary)
             except Exception as exc:
                 logger.warning("Agmarknet client error: %s", exc)
 
@@ -742,18 +815,22 @@ class MarketPricesService:
                     data = self._fetch_data_gov(
                         location, mandi, crop, resource_key, api_key, state=state
                     )
+                    remember_dated_official(data)
+                    data = self._validated_live_data(data)
                     if data:
-                        data = self._tag_live_crop_rows(data)
                         break
-
-        # Optional MSP seasonal estimates (opt-in only — never presented as mandi trades)
-        if not data and include_estimates:
-            data = self._curated_fallback(location, mandi, crop)
 
         if not data:
             data = self._unavailable_market_response(
                 location, mandi, crop, state=state or self._infer_state(location, state=state)
             )
+            if dated_official:
+                data["latest_official_rows"] = dated_official["rows"]
+                data["latest_official_reported_date"] = dated_official["reported_date"]
+                data["latest_official_age_minutes"] = dated_official["data_age_minutes"]
+                data["latest_official_source"] = dated_official["data_source"]
+                data["latest_official_coverage"] = dated_official["coverage"]
+                data["has_dated_official_reference"] = True
 
         if crop and data and data.get("top_crops"):
             data = self._apply_crop_filter(data, crop)
@@ -768,14 +845,14 @@ class MarketPricesService:
 
         data = self._finalize_market_response(data)
 
-        # BUG 4 FIX: evict oldest entry when at capacity
-        if len(self._cache) >= self._MAX_CACHE_ENTRIES:
-            oldest = next(iter(self._cache))
-            self._cache.pop(oldest, None)
-            self._cache_ts.pop(oldest, None)
-        self._cache[cache_key] = data
-        self._cache[cache_key]  # move to end (mark as recently used)
-        self._cache_ts[cache_key] = datetime.now(tz=timezone.utc)
+        # Bounded LRU cache — evict least-recently-used entry when at capacity.
+        with self._cache_lock:
+            if cache_key not in self._cache and len(self._cache) >= self._MAX_CACHE_ENTRIES:
+                oldest, _ = self._cache.popitem(last=False)  # evict LRU (front)
+                self._cache_ts.pop(oldest, None)
+            self._cache[cache_key] = data
+            self._cache.move_to_end(cache_key)  # mark as most-recently-used
+            self._cache_ts[cache_key] = datetime.now(tz=timezone.utc)
         return data
 
     # Core MSP crops always present for advisory UI and tests (demo API returns random 10 rows)
@@ -815,6 +892,34 @@ class MarketPricesService:
         data["top_crops"] = tagged
         return data
 
+    @staticmethod
+    def _validated_live_data(data: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Reject fallback, stale, undated, and non-positive upstream price rows."""
+        if not data or data.get("is_live") is not True:
+            return None
+        from .market_data_quality import filter_fresh_live_rows, max_market_age_hours
+
+        rows, age_minutes, reported_date = filter_fresh_live_rows(
+            data.get("top_crops") or [],
+            response_date=data.get("reported_date"),
+        )
+        if not rows:
+            logger.warning(
+                "Rejected mandi response: no verifiably fresh rows within %.0f hours from %s",
+                max_market_age_hours(),
+                data.get("data_source", "unknown source"),
+            )
+            return None
+        result = dict(data)
+        result["top_crops"] = rows
+        result["total_records"] = len(rows)
+        result["reported_date"] = reported_date
+        result["data_age_minutes"] = age_minutes
+        result["freshness"] = "latest_official"
+        result["status"] = "success"
+        result["is_live"] = True
+        return result
+
     def _unavailable_market_response(
         self,
         location: str,
@@ -823,11 +928,11 @@ class MarketPricesService:
         state: Optional[str] = None,
     ) -> Dict[str, Any]:
         registered = self._has_registered_data_gov_key()
-        using_demo = not registered
         msg = (
-            "Live mandi data unavailable — configure DATA_GOV_IN_API_KEY in .env "
-            "(free registration at https://data.gov.in/user/register). "
-            "The public demo key returns only 10 rows and is rate-limited."
+            "Current official mandi prices are unavailable. Configure a valid "
+            "DATA_GOV_IN_API_KEY for state and mandi coverage, then try again. "
+            "No estimated price is being shown. Any older official rows are "
+            "displayed separately with their reported date and coverage."
         )
         if crop:
             msg = (
@@ -842,11 +947,11 @@ class MarketPricesService:
         return {
             "status": "unavailable",
             "is_live": False,
-            "using_demo_key": using_demo,
+            "using_demo_key": False,
             "api_key_registered": registered,
             "location": location,
             "state": state or "",
-            "data_source": "Agmarknet (API key required for live data)",
+            "data_source": "Agmarknet/data.gov.in live feeds",
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "top_crops": [],
             "total_records": 0,
@@ -856,51 +961,18 @@ class MarketPricesService:
     def _finalize_market_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         data       = dict(data)
         registered = self._has_registered_data_gov_key()
-        # Bug 6 fix: _effective_data_gov_key() returns None (not the shared demo key)
-        # when no registered key is configured.
-        using_demo = self._effective_data_gov_key() is None
-        data["using_demo_key"]     = data.get("using_demo_key", using_demo)
+        data["using_demo_key"] = False
         data["api_key_registered"] = registered
 
-        top = list(data.get("top_crops") or [])
-        live_rows = [
-            c for c in top
-            if c.get("is_live")
-            or (
-                c.get("price_source") == "live_mandi"
-                and not c.get("supplemented")
-            )
-        ]
-        estimate_rows = [
-            c for c in top
-            if c.get("price_source") in ("msp_mandi_estimate", "msp_seasonal_estimate")
-            or c.get("supplemented")
-        ]
-
-        src = str(data.get("data_source") or "").lower()
-        is_msp_only = data.get("status") == "fallback" or "msp" in src or "estimate" in src
-
-        if is_msp_only or (estimate_rows and not live_rows):
-            data["is_live"] = False
-            data["status"] = "fallback"
-        elif live_rows and estimate_rows:
+        top = [dict(c) for c in (data.get("top_crops") or []) if c.get("is_live") is True]
+        data["top_crops"] = top
+        data["total_records"] = len(top)
+        if top:
             data["is_live"] = True
-            data["status"] = "partial"
-        elif live_rows:
-            data["is_live"] = True
-            if data.get("status") not in ("fallback", "unavailable"):
-                data["status"] = "success"
+            data["status"] = "success"
         else:
             data["is_live"] = False
-            if data.get("status") != "fallback":
-                data["status"] = "unavailable"
-
-        if using_demo and live_rows:
-            note = (
-                "Using data.gov.in demo key (max 10 rows). Register your own "
-                "DATA_GOV_IN_API_KEY for full state coverage."
-            )
-            data["message"] = f"{data.get('message', '')} {note}".strip()
+            data["status"] = "unavailable"
 
         # Always surface exact fetch time and age so Flutter UI can show
         # "Data as of 09:15 AM (2 hours ago)" — honest freshness disclosure.
@@ -908,7 +980,7 @@ class MarketPricesService:
         data["fetched_at"] = data.get("fetched_at") or now_utc.isoformat()
         # Compute age from the Agmarknet reported_date if available (daily data)
         reported = data.get("reported_date", "")
-        if reported and not data.get("data_age_minutes"):
+        if reported and data.get("data_age_minutes") is None:
             try:
                 from datetime import timezone as _tz
                 import re as _re
@@ -982,6 +1054,7 @@ class MarketPricesService:
         state: str = None,
         radius_km: float = 150,     # NEW: only return mandis within this radius when GPS available
         max_results: int = 50,       # NEW: cap the list for frontend usability
+        include_all: bool = False,
     ) -> Dict[str, Any]:
         """
         Nearby mandi list, sorted by distance from user's GPS.
@@ -992,7 +1065,10 @@ class MarketPricesService:
 
         Falls back to state-wide list when no GPS is available.
         """
-        cache_key = f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:{location}:{state}:{radius_km}"
+        cache_key = (
+            f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:"
+            f"{location}:{state}:{radius_km}:{include_all}:{max_results}"
+        )
         if cache_key in self._cache:
             age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
             # Mandi list is stable — 60-min TTL is sufficient and avoids hammering
@@ -1011,7 +1087,7 @@ class MarketPricesService:
             from .agmarknet_client import agmarknet_client
 
             for m in agmarknet_client.list_markets_for_location(location, state=resolved_state):
-                self._upsert_mandi(mandis_map, m, live=True)
+                self._upsert_mandi(mandis_map, m, live=bool(m.get("live")))
         except Exception as exc:
             logger.warning("Agmarknet mandi list error: %s", exc)
 
@@ -1058,43 +1134,33 @@ class MarketPricesService:
                         )
 
         live_count = sum(1 for m in mandis_map.values() if m.get("live"))
+        registered_count = sum(1 for m in mandis_map.values() if m.get("registered"))
 
-        # 3) Reference mandis — fill gaps (demo key / few live rows / GPS nearby)
+        # 3) Reference mandis — fill nearby-mode gaps only. State discovery must
+        # remain an official registry, otherwise static reference entries inflate
+        # the count and look indistinguishable from Agmarknet-registered markets.
         ref_before = len(mandis_map)
-        # Always merge reference DB so users see full state/nearby coverage, not a sparse live-only list
-        self._merge_reference_mandis(
-            mandis_map, location, resolved_state, lat, lon, fill_gaps=True
-        )
+        if not include_all or not registered_count:
+            self._merge_reference_mandis(
+                mandis_map, location, resolved_state, lat, lon, fill_gaps=True
+            )
         ref_count = len(mandis_map) - ref_before
 
         mandis = self._enrich_and_sort_mandis(list(mandis_map.values()), lat, lon)
 
         # ── GPS-based nearby filtering ─────────────────────────────────────
         # When the user has GPS, trim to the nearest mandis within radius_km.
-        # Key insight: reference DB mandis with no coordinate data are EXCLUDED
-        # when GPS is available — we only show mandis we can confirm are nearby.
-        # The fallback to unknown_dist only kicks in when we have < 3 confirmed
-        # nearby mandis (e.g. very rural area with sparse coordinate coverage).
+        # Entries without coordinates must never be presented as "nearby". A
+        # sparse verified list is safer than padding it with unrelated state
+        # markets whose distance from the farmer is unknown.
         has_gps = lat is not None and lon is not None
-        if has_gps:
+        if has_gps and not include_all:
             # Mandis with known distance within radius
             nearby = [
                 m for m in mandis
                 if m.get("distance_km") is not None and m["distance_km"] <= radius_km
             ]
-            # Mandis with no coordinate data — only use as fallback if list is tiny
-            unknown_dist = [m for m in mandis if m.get("distance_km") is None]
-
-            if len(nearby) >= 3:
-                # Good coverage — drop all unknown-distance mandis entirely
-                mandis = nearby[:max_results]
-            elif len(nearby) > 0:
-                # Sparse coverage — add a few unknown-distance to pad to 10
-                mandis = (nearby + unknown_dist[:max(0, 10 - len(nearby))])[:max_results]
-            else:
-                # No known-distance mandis at all — show limited unknown-dist ones
-                # This happens in very rural areas with no coordinate data
-                mandis = unknown_dist[:min(20, max_results)]
+            mandis = nearby[:max_results]
 
             # Tag each mandi with a human-readable proximity label
             for m in mandis:
@@ -1109,13 +1175,17 @@ class MarketPricesService:
                     else:
                         m["proximity"] = "regional"
                         m["proximity_label"] = f"~{d:.0f} km (क्षेत्रीय)"
-                else:
-                    m["proximity"] = "unknown"
-                    m["proximity_label"] = "दूरी अज्ञात"
         else:
             mandis = mandis[:max_results]
 
-        if registered_key and not using_demo:
+        if include_all and registered_count:
+            coverage = "official_registry"
+            data_source = "Agmarknet official market registry"
+            message = (
+                f"{len(mandis)} Agmarknet-registered mandis for "
+                f"{resolved_state or location}. Current price rows are verified after selection."
+            )
+        elif registered_key and not using_demo:
             coverage = "full"
             data_source = "Agmarknet + data.gov.in (live)"
             if has_gps:
@@ -1171,6 +1241,7 @@ class MarketPricesService:
             "mandis": mandis,
             "total": len(mandis),
             "live_count": live_count,
+            "registered_count": registered_count,
             "reference_count": ref_count,
             "coverage": coverage,
             "api_key_registered": registered_key,
@@ -1181,6 +1252,7 @@ class MarketPricesService:
             "nearest_mandi": nearest_mandi,
             "radius_km": radius_km if has_gps else None,
             "has_gps": has_gps,
+            "scope": "state" if include_all else "nearby",
         }
         self._cache[cache_key] = result
         self._cache_ts[cache_key] = datetime.now(tz=timezone.utc)
@@ -1188,7 +1260,7 @@ class MarketPricesService:
 
     @staticmethod
     def _has_registered_data_gov_key() -> bool:
-        key = DATA_GOV_KEY.strip()
+        key = os.getenv("DATA_GOV_IN_API_KEY", "").strip()
         return bool(key) and key.lower() not in DATA_GOV_PLACEHOLDER_KEYS
 
     @staticmethod
@@ -1213,6 +1285,8 @@ class MarketPricesService:
             if entry.get("distance_km") is not None:
                 existing["distance_km"] = entry["distance_km"]
                 existing["distance"] = entry.get("distance", existing.get("distance", ""))
+            if entry.get("registered"):
+                existing["registered"] = True
             return
         mandis_map[key] = {
             "name": name,
@@ -1220,6 +1294,7 @@ class MarketPricesService:
             "state": entry.get("state", ""),
             "source": entry.get("source", ""),
             "live": bool(live or entry.get("live")),
+            "registered": bool(entry.get("registered")),
             "commodity_count": int(entry.get("commodity_count", 0)),
             "distance_km": entry.get("distance_km"),
             "distance": entry.get("distance", ""),
@@ -1292,6 +1367,87 @@ class MarketPricesService:
             logger.debug("Mandi coordinate lookup build failed: %s", exc)
         cls._mandi_coord_cache = lookup
         return lookup
+
+    def get_nearby_live_prices(
+        self,
+        location: str,
+        *,
+        selected_mandi: str,
+        crop: str = None,
+        lat: float = None,
+        lon: float = None,
+        state: str = None,
+        radius_km: float = 150,
+        limit: int = 8,
+    ) -> List[Dict[str, Any]]:
+        """Return fresh official rows from other mandis near the selected mandi.
+
+        These rows are intentionally separate from ``top_crops`` so callers
+        cannot mistake a nearby mandi's price for the selected mandi's price.
+        Rows without verifiable coordinates or a live marker are excluded.
+        """
+        coordinates = self._mandi_coordinate_lookup()
+        selected_key = str(selected_mandi or "").strip().lower()
+        origin = coordinates.get(selected_key)
+        if origin is None and lat is not None and lon is not None:
+            origin = (float(lat), float(lon))
+        if origin is None:
+            return []
+
+        live_data = self.get_prices(
+            location,
+            mandi=None,
+            crop=crop,
+            lat=lat,
+            lon=lon,
+            state=state,
+            include_estimates=False,
+        )
+        if live_data.get("is_live") is not True:
+            return []
+
+        alternatives: List[Dict[str, Any]] = []
+        seen = set()
+        for source_row in live_data.get("top_crops") or []:
+            if source_row.get("is_live") is not True:
+                continue
+            mandi_name = str(source_row.get("mandi_name") or "").strip()
+            mandi_key = mandi_name.lower()
+            if not mandi_name or self._mandi_name_matches(mandi_name, selected_key):
+                continue
+            row_coords = coordinates.get(mandi_key)
+            if row_coords is None:
+                row_coords = next(
+                    (
+                        value
+                        for name, value in coordinates.items()
+                        if self._mandi_name_matches(mandi_name, name)
+                    ),
+                    None,
+                )
+            if row_coords is None:
+                continue
+            distance_km = _haversine_km(origin[0], origin[1], row_coords[0], row_coords[1])
+            if distance_km > max(1, min(float(radius_km), 500)):
+                continue
+            unique_key = (
+                mandi_key,
+                str(source_row.get("crop_name") or "").strip().lower(),
+                str(source_row.get("variety") or "").strip().lower(),
+            )
+            if unique_key in seen:
+                continue
+            seen.add(unique_key)
+            row = dict(source_row)
+            row["distance_km"] = round(distance_km, 1)
+            row["is_live"] = True
+            row["price_source"] = row.get("price_source") or "live_mandi"
+            row["data_source"] = live_data.get("data_source", "Agmarknet/data.gov.in")
+            row["reported_date"] = row.get("date") or live_data.get("reported_date")
+            alternatives.append(row)
+
+        alternatives.sort(key=lambda item: (item["distance_km"], item["mandi_name"].lower()))
+        return alternatives[:max(1, min(int(limit), 20))]
 
     def _enrich_and_sort_mandis(
         self,
@@ -1381,7 +1537,25 @@ class MarketPricesService:
             return False
         mn = str(mandi_name).lower().strip()
         mq = mandi_query_lower.strip()
-        return mq in mn or mn in mq
+        if mq in mn or mn in mq:
+            return True
+
+        # The official registry uses APMC while the farmer-facing nearby list
+        # commonly uses Mandi/Market for the same place. Strip only standard
+        # market suffixes; retain qualifiers such as "grain" so distinct yards
+        # are not merged accidentally.
+        suffixes = {"apmc", "mandi", "market", "yard", "committee"}
+
+        def core(value: str) -> str:
+            tokens = (
+                value.replace("-", " ")
+                .replace("(", " ")
+                .replace(")", " ")
+                .split()
+            )
+            return " ".join(token for token in tokens if token not in suffixes)
+
+        return bool(core(mn) and core(mn) == core(mq))
 
     def _apply_mandi_pricing(
         self,
@@ -1403,7 +1577,7 @@ class MarketPricesService:
 
         if live_matches:
             for row in live_matches:
-                row["mandi_name"] = mandi
+                row.setdefault("mandi_name", mandi)
                 row["price_source"] = "live_mandi"
                 row["is_live"] = True
             data["top_crops"] = live_matches
@@ -1413,11 +1587,15 @@ class MarketPricesService:
             data["message"] = f"{len(live_matches)} live commodities at {mandi}"
             return data
 
+        data["top_crops"] = []
+        data["total_records"] = 0
+        data["is_live"] = False
+        data["status"] = "unavailable"
         data["mandi_pricing_applied"] = True
         data["mandi_no_live_rows"] = True
         data["message"] = (
-            f"No live arrival rows for '{mandi}' today — showing state-wide mandi feed. "
-            "Pick another mandi or register DATA_GOV_IN_API_KEY for fuller coverage."
+            f"No current official arrival rows for '{mandi}'. "
+            "No state-wide or estimated prices are substituted."
         )
         return data
 
@@ -1446,10 +1624,13 @@ class MarketPricesService:
             data["message"] = f"{len(filtered)} mandi record(s) for {data['searched_crop']}"
         elif norm:
             data = dict(data)
+            data["top_crops"] = []
+            data["total_records"] = 0
+            data["is_live"] = False
+            data["status"] = "unavailable"
             data["searched_crop"] = norm["name"]
             data["crop_search_note"] = (
-                f"No live mandi rows for '{norm['name']}' in this state today; "
-                "showing nearest available commodities."
+                f"No current official mandi rows for '{norm['name']}' in this state."
             )
         return data
 
@@ -1470,7 +1651,7 @@ class MarketPricesService:
         all users of the demo, causing unpredictable failures at scale.
         Callers must handle None and surface a clear unavailability message.
         """
-        key = DATA_GOV_KEY.strip()
+        key = os.getenv("DATA_GOV_IN_API_KEY", "").strip()
         if key and key.lower() not in DATA_GOV_PLACEHOLDER_KEYS:
             return key
         return None
@@ -1708,7 +1889,6 @@ class MarketPricesService:
                 "grade": self._record_field(rec, "grade", "Grade", default=""),
                 "date": self._record_field(
                     rec, "arrival_date", "Arrival_Date", "Arrival Date",
-                    default=datetime.now(tz=timezone.utc).strftime("%d/%m/%Y"),
                 ),
                 "unit": "₹/quintal",
             })
@@ -1838,13 +2018,34 @@ class MarketPricesService:
                 "ℹ️ Live mandi feed unavailable. Register a free key at "
                 "https://data.gov.in/user/register and set DATA_GOV_IN_API_KEY in .env"
             ),
-            "msp_source": "Cabinet approval 2024-25 — Ministry of Agriculture & Farmers Welfare",
+            "msp_source": (
+                f"Cabinet-approved MSP {MSP_MARKETING_SEASON} — "
+                "Ministry of Agriculture & Farmers Welfare"
+            ),
         }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  GEMINI AI SERVICE  (BUG-05 FIXED: correct model + proper fallback chain)
 # ─────────────────────────────────────────────────────────────────────────────
+def _kw_match(text: str, words) -> bool:
+    """Keyword match that respects word boundaries for ASCII keywords.
+
+    Plain ``w in text`` mis-fires on substrings — e.g. "rice" inside "price",
+    "gram" inside "program/telegram", "dhan" inside "dhaniya" (coriander).
+    ASCII keywords are matched on word boundaries; Devanagari/other-script
+    keywords (which have no Latin-substring collisions) fall back to ``in``.
+    """
+    for w in words:
+        wl = w.lower()
+        if wl.isascii():
+            if re.search(r"\b" + re.escape(wl) + r"\b", text):
+                return True
+        elif wl in text:
+            return True
+    return False
+
+
 class GeminiService:
     """Google Gemini Pro integration with proper fallback chain"""
 
@@ -1996,10 +2197,10 @@ class GeminiService:
         p = prompt.lower()
 
         # ── WHEAT ─────────────────────────────────────────────────
-        if any(w in p for w in ["wheat", "गेहूँ", "gehu", "gehun"]):
+        if _kw_match(p, ["wheat", "गेहूँ", "gehu", "gehun"]):
             return (
                 "🌾 **गेहूँ की खेती (Wheat Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['wheat']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['wheat']}/क्विंटल\n"
                 "• **बुवाई का समय:** नवंबर पहला-दूसरा सप्ताह\n"
                 "• **मिट्टी:** दोमट या भारी दोमट (pH 6.0-7.5)\n"
                 "• **बीज दर:** 100-125 kg/हेक्टेयर\n"
@@ -2012,10 +2213,10 @@ class GeminiService:
             )
 
         # ── RICE / PADDY ─────────────────────────────────────────
-        if any(w in p for w in ["rice", "धान", "paddy", "dhan", "kharif"]):
+        if _kw_match(p, ["rice", "धान", "paddy", "dhan"]):
             return (
                 "🌾 **धान की खेती (Rice/Paddy Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['rice']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['rice']}/क्विंटल\n"
                 "• **रोपाई का समय:** जून-जुलाई\n"
                 "• **नर्सरी:** बुवाई से 25-30 दिन बाद रोपाई करें\n"
                 "• **मिट्टी:** चिकनी मिट्टी / जलभराव वाली\n"
@@ -2029,10 +2230,10 @@ class GeminiService:
             )
 
         # ── MUSTARD ──────────────────────────────────────────────
-        if any(w in p for w in ["mustard", "सरसों", "sarson", "sarso"]):
+        if _kw_match(p, ["mustard", "सरसों", "sarson", "sarso"]):
             return (
                 "🌼 **सरसों की खेती (Mustard Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['mustard']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['mustard']}/क्विंटल\n"
                 "• **बुवाई:** अक्टूबर 15 – नवंबर 15\n"
                 "• **मिट्टी:** हल्की से मध्यम दोमट (pH 6.0-7.5)\n"
                 "• **बीज दर:** 4-5 kg/हेक्टेयर\n"
@@ -2045,10 +2246,10 @@ class GeminiService:
             )
 
         # ── GRAM / CHICKPEA ──────────────────────────────────────
-        if any(w in p for w in ["gram", "चना", "chana", "chickpea", "chick"]):
+        if _kw_match(p, ["gram", "चना", "chana", "chickpea", "chick"]):
             return (
                 "🫘 **चना की खेती (Gram/Chickpea Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['gram']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['gram']}/क्विंटल\n"
                 "• **बुवाई:** अक्टूबर अंत – नवंबर मध्य\n"
                 "• **मिट्टी:** हल्की से मध्यम दोमट\n"
                 "• **बीज:** 80-100 kg/हेक्टेयर\n"
@@ -2060,10 +2261,10 @@ class GeminiService:
             )
 
         # ── COTTON ───────────────────────────────────────────────
-        if any(w in p for w in ["cotton", "कपास", "kapas"]):
+        if _kw_match(p, ["cotton", "कपास", "kapas"]):
             return (
                 "🌿 **कपास की खेती (Cotton Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['cotton']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['cotton']}/क्विंटल\n"
                 "• **बुवाई:** मई-जून (वर्षा शुरू होते ही)\n"
                 "• **मिट्टी:** काली मिट्टी (pH 6.0-8.0)\n"
                 "• **Bt Cotton:** Pink Bollworm से सुरक्षा\n"
@@ -2075,10 +2276,10 @@ class GeminiService:
             )
 
         # ── SOYBEAN ──────────────────────────────────────────────
-        if any(w in p for w in ["soybean", "सोयाबीन", "soya"]):
+        if _kw_match(p, ["soybean", "सोयाबीन", "soya"]):
             return (
                 "🌱 **सोयाबीन की खेती (Soybean Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['soybean']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['soybean']}/क्विंटल\n"
                 "• **बुवाई:** जून अंत – जुलाई (मानसून के साथ)\n"
                 "• **मिट्टी:** मध्यम काली / दोमट\n"
                 "• **बीज:** 70-80 kg/हेक्टेयर\n"
@@ -2089,10 +2290,10 @@ class GeminiService:
             )
 
         # ── MAIZE ────────────────────────────────────────────────
-        if any(w in p for w in ["maize", "मक्का", "makka", "corn"]):
+        if _kw_match(p, ["maize", "मक्का", "makka", "corn"]):
             return (
                 "🌽 **मक्का की खेती (Maize/Corn Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['maize']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['maize']}/क्विंटल\n"
                 "• **बुवाई:** खरीफ: जून-जुलाई | रबी: अक्टूबर-नवंबर\n"
                 "• **मिट्टी:** बलुई दोमट (pH 5.5-7.0)\n"
                 "• **बीज दर:** 20-25 kg/हेक्टेयर\n"
@@ -2103,7 +2304,7 @@ class GeminiService:
             )
 
         # ── TOMATO ───────────────────────────────────────────────
-        if any(w in p for w in ["tomato", "टमाटर", "tamatar"]):
+        if _kw_match(p, ["tomato", "टमाटर", "tamatar"]):
             return (
                 "🍅 **टमाटर की खेती (Tomato Farming)**\n\n"
                 "• **नर्सरी:** 25-30 दिन पहले तैयार करें\n"
@@ -2114,11 +2315,11 @@ class GeminiService:
                 "• **रोग:** Late Blight — Metalaxyl + Mancozeb\n"
                 "• **कीट:** Fruitborer — Spinosad 45SC @ 1.5 ml/L\n"
                 "• **उपज:** 300-400 क्विंटल/हेक्टेयर\n"
-                "💡 PM-KUSUM सोलर पंप से सिंचाई लागत 90% कम करें"
+                "💡 PM-KUSUM सहायता और किसान अंश राज्य के अनुसार जांचें"
             )
 
         # ── POTATO ───────────────────────────────────────────────
-        if any(w in p for w in ["potato", "आलू", "aloo", "alu"]):
+        if _kw_match(p, ["potato", "आलू", "aloo", "alu"]):
             return (
                 "🥔 **आलू की खेती (Potato Farming)**\n\n"
                 "• **बुवाई:** अक्टूबर-नवंबर\n"
@@ -2133,7 +2334,7 @@ class GeminiService:
             )
 
         # ── PEST CONTROL ──────────────────────────────────────────
-        if any(w in p for w in ["pest", "कीट", "keet", "insect", "disease", "रोग",
+        if _kw_match(p, ["pest", "कीट", "keet", "insect", "disease", "रोग",
                                  "blast", "blight", "wilt", "aphid", "borer",
                                  "fungicide", "pesticide", "spray"]):
             return (
@@ -2156,7 +2357,7 @@ class GeminiService:
             )
 
         # ── FERTILIZER ────────────────────────────────────────────
-        if any(w in p for w in ["fertilizer", "urea", "dap", "npk", "खाद", "उर्वरक", "khad"]):
+        if _kw_match(p, ["fertilizer", "urea", "dap", "npk", "खाद", "उर्वरक", "khad"]):
             return (
                 "🌱 **उर्वरक प्रबंधन (Fertilizer Management)**\n\n"
                 "**मुख्य उर्वरक एवं दरें:**\n"
@@ -2173,15 +2374,17 @@ class GeminiService:
             )
 
         # ── IRRIGATION ────────────────────────────────────────────
-        if any(w in p for w in ["irrigation", "सिंचाई", "sinchai", "drip", "water", "पानी"]):
+        if _kw_match(p, ["irrigation", "सिंचाई", "sinchai", "drip", "water", "पानी"]):
             return (
                 "💧 **सिंचाई प्रबंधन (Irrigation Management)**\n\n"
                 "**सिंचाई विधियाँ:**\n"
-                "• **ड्रिप इरिगेशन:** 40-50% पानी बचाव | सब्सिडी: 90% (छोटे किसान)\n"
+                "• **ड्रिप इरिगेशन:** 40-50% पानी बचाव | सब्सिडी राज्य/श्रेणी के अनुसार\n"
                 "• **स्प्रिंकलर:** 30-35% बचाव | समतल खेत के लिए उपयुक्त\n"
                 "• **SRI (धान):** पानी 25% कम + उपज 20% अधिक\n\n"
                 "**PM-KUSUM योजना:**\n"
-                "• सोलर पंप पर 90% सब्सिडी (30% केंद्र + 30% राज्य + 30% बैंक ऋण)\n"
+                "• सामान्य राज्यों में 30% केंद्रीय CFA + कम-से-कम 30% राज्य सहायता; "
+                "शेष किसान अंश में बैंक ऋण मिल सकता है\n"
+                "• किसान का शुरुआती भुगतान आम तौर पर 10% हो सकता है; अंतिम हिस्सा राज्य/घटक पर निर्भर है\n"
                 "• आवेदन: pmkusum.mnre.gov.in\n"
                 "• हेल्पलाइन: 1800-180-3333\n\n"
                 "**सिंचाई का सही समय:**\n"
@@ -2191,7 +2394,7 @@ class GeminiService:
             )
 
         # ── SOIL HEALTH ───────────────────────────────────────────
-        if any(w in p for w in ["soil", "मिट्टी", "mitti", "ph", "organic", "health card",
+        if _kw_match(p, ["soil", "मिट्टी", "mitti", "ph", "organic", "health card",
                                  "mrida", "मृदा"]):
             return (
                 "🧪 **मृदा स्वास्थ्य (Soil Health)**\n\n"
@@ -2209,7 +2412,7 @@ class GeminiService:
             )
 
         # ── PM-KISAN ──────────────────────────────────────────────
-        if any(w in p for w in ["pm kisan", "pm-kisan", "pmkisan", "6000", "₹6000",
+        if _kw_match(p, ["pm kisan", "pm-kisan", "pmkisan", "6000", "₹6000",
                                  "किसान सम्मान", "kisan samman"]):
             return (
                 "🏛️ **PM-Kisan Samman Nidhi**\n\n"
@@ -2223,7 +2426,7 @@ class GeminiService:
             )
 
         # ── FASAL BIMA ────────────────────────────────────────────
-        if any(w in p for w in ["fasal bima", "bima", "insurance", "pmfby", "crop insurance",
+        if _kw_match(p, ["fasal bima", "bima", "insurance", "pmfby", "crop insurance",
                                  "फसल बीमा"]):
             return (
                 "🏛️ **PM Fasal Bima Yojana (PMFBY)**\n\n"
@@ -2237,7 +2440,7 @@ class GeminiService:
             )
 
         # ── KCC ───────────────────────────────────────────────────
-        if any(w in p for w in ["kcc", "kisan credit", "किसान क्रेडिट", "loan", "rin", "ऋण"]):
+        if _kw_match(p, ["kcc", "kisan credit", "किसान क्रेडिट", "loan", "rin", "ऋण"]):
             return (
                 "💳 **Kisan Credit Card (KCC)**\n\n"
                 "• **ऋण सीमा:** ₹3 लाख तक\n"
@@ -2250,14 +2453,14 @@ class GeminiService:
             )
 
         # ── MARKET / MANDI ────────────────────────────────────────
-        if any(w in p for w in ["mandi", "market", "price", "भाव", "msp", "बाजार", "sell", "बेचना"]):
+        if _kw_match(p, ["mandi", "market", "price", "भाव", "msp", "बाजार", "sell", "बेचना"]):
             msp_info = "\n".join([
                 f"  • {k.capitalize()}: ₹{v}/क्विंटल"
-                for k, v in list(MSP_2024_25.items())[:8]
+                for k, v in list(MSP_CURRENT.items())[:8]
             ])
             return (
                 "💰 **बाजार भाव एवं MSP (Market Prices & MSP)**\n\n"
-                f"**MSP 2024-25 (प्रमुख फसलें):**\n{msp_info}\n\n"
+                f"**MSP {MSP_MARKETING_SEASON} (प्रमुख फसलें):**\n{msp_info}\n\n"
                 "**eNAM (ऑनलाइन मंडी):**\n"
                 "• पूरे भारत में सबसे अच्छे भाव पर फसल बेचें\n"
                 "• पंजीकरण: enam.gov.in | हेल्पलाइन: 1800-270-0224\n\n"
@@ -2268,7 +2471,7 @@ class GeminiService:
             )
 
         # ── WEATHER ───────────────────────────────────────────────
-        if any(w in p for w in ["weather", "मौसम", "mausam", "rain", "बारिश", "temperature",
+        if _kw_match(p, ["weather", "मौसम", "mausam", "rain", "बारिश", "temperature",
                                   "तापमान", "forecast"]):
             return (
                 "🌤️ **मौसम एवं कृषि सलाह (Weather Advisory)**\n\n"
@@ -2285,7 +2488,7 @@ class GeminiService:
             )
 
         # ── ORGANIC FARMING ───────────────────────────────────────
-        if any(w in p for w in ["organic", "जैविक", "jaivik", "natural", "compost", "vermi"]):
+        if _kw_match(p, ["organic", "जैविक", "jaivik", "natural", "compost", "vermi"]):
             return (
                 "🌿 **जैविक खेती (Organic Farming)**\n\n"
                 "**जैविक इनपुट:**\n"
@@ -2300,14 +2503,14 @@ class GeminiService:
             )
 
         # ── GOVERNMENT SCHEMES (GENERAL) ─────────────────────────
-        if any(w in p for w in ["scheme", "योजना", "yojana", "subsidy", "सब्सिडी",
+        if _kw_match(p, ["scheme", "योजना", "yojana", "subsidy", "सब्सिडी",
                                   "government", "सरकार", "benefit", "लाभ"]):
             return (
                 "🏛️ **प्रमुख सरकारी योजनाएं (Government Schemes)**\n\n"
                 "**1. PM-Kisan:** ₹6,000/वर्ष → pmkisan.gov.in\n"
                 "**2. PM Fasal Bima (PMFBY):** 2% प्रीमियम पर फसल बीमा → pmfby.gov.in\n"
                 "**3. KCC (Kisan Credit Card):** ₹3L ऋण @ 4% ब्याज\n"
-                "**4. PM-KUSUM:** 90% सब्सिडी पर सोलर पंप → pmkusum.mnre.gov.in\n"
+                "**4. PM-KUSUM:** केंद्र/राज्य सहायता + वैकल्पिक बैंक ऋण; राज्य का हिस्सा जांचें → pmkusum.mnre.gov.in\n"
                 "**5. Soil Health Card:** निःशुल्क मिट्टी जांच → soilhealth.dac.gov.in\n"
                 "**6. eNAM:** ऑनलाइन मंडी → enam.gov.in\n"
                 "**7. Kisan Samridhi Kendra:** बीज/खाद/बीमा → एक ही छत के नीचे\n\n"
@@ -2316,7 +2519,7 @@ class GeminiService:
             )
 
         # ── CROP ROTATION ─────────────────────────────────────────
-        if any(w in p for w in ["rotation", "फसल चक्र", "fasal chakra", "succession"]):
+        if _kw_match(p, ["rotation", "फसल चक्र", "fasal chakra", "succession"]):
             return (
                 "🔄 **फसल चक्र (Crop Rotation)**\n\n"
                 "**उत्तर भारत (UP/Punjab/Haryana):**\n"
@@ -2334,7 +2537,7 @@ class GeminiService:
             )
 
         # ── STORAGE ───────────────────────────────────────────────
-        if any(w in p for w in ["storage", "warehouse", "भंडारण", "bhandaran", "cold", "silo"]):
+        if _kw_match(p, ["storage", "warehouse", "भंडारण", "bhandaran", "cold", "silo"]):
             return (
                 "🏪 **फसल भंडारण (Crop Storage)**\n\n"
                 "**सरकारी सुविधाएं:**\n"
@@ -2349,7 +2552,7 @@ class GeminiService:
             )
 
         # ── FPO / COOPERATIVE ─────────────────────────────────────
-        if any(w in p for w in ["fpo", "cooperative", "farmer producer", "किसान उत्पादक", "10000"]):
+        if _kw_match(p, ["fpo", "cooperative", "farmer producer", "किसान उत्पादक", "10000"]):
             return (
                 "🤝 **FPO (Farmer Producer Organisation)**\n\n"
                 "• **सरकारी लक्ष्य:** 10,000 FPO गठन (₹6,865 करोड़ बजट)\n"
@@ -2445,8 +2648,14 @@ GOVERNMENT_SCHEMES = [
         "id": "pm-kusum",
         "name": "PM-KUSUM Solar Pump Scheme",
         "name_hindi": "पीएम-कुसुम सोलर पंप योजना",
-        "benefit": "90% subsidy on solar pumps (30% central + 30% state + 30% bank loan)",
-        "benefit_hindi": "सोलर पंप पर 90% सब्सिडी",
+        "benefit": (
+            "Typically 30% central CFA plus at least 30% state subsidy; bank finance "
+            "may cover up to 30%, subject to component and state rules"
+        ),
+        "benefit_hindi": (
+            "आमतौर पर 30% केंद्रीय CFA + कम-से-कम 30% राज्य सहायता; "
+            "30% तक बैंक ऋण संभव, घटक/राज्य नियम लागू"
+        ),
         "eligibility": "Individual farmers, Panchayats, Cooperatives",
         "documents": ["Aadhaar", "Land records", "Bank account"],
         "website": "https://pmkusum.mnre.gov.in",
@@ -2505,7 +2714,7 @@ class GovernmentSchemesService:
                 "Official MoAFW / DAC&FW scheme catalog (reference; not live enrollment status)"
             ),
             "source": "Ministry of Agriculture & Farmers Welfare",
-            "last_updated": "2024-25 Season",
+            "last_updated": f"{MSP_MARKETING_SEASON} season",
             "message": (
                 "Curated government scheme summaries from published MoAFW documentation — "
                 "verify eligibility on the official portal before applying."
@@ -2513,13 +2722,28 @@ class GovernmentSchemesService:
         }
 
     def check_eligibility(self, farmer_profile: Dict) -> Dict:
-        """Simple eligibility checker"""
-        eligible = []
+        """Return potentially relevant schemes without claiming enrollment eligibility."""
+        candidates = []
         for scheme in GOVERNMENT_SCHEMES:
             scheme_copy = scheme.copy()
-            scheme_copy["eligible"] = True  # Simplified — all farmers eligible for most
-            eligible.append(scheme_copy)
-        return {"status": "success", "eligible_schemes": eligible, "farmer_profile": farmer_profile}
+            scheme_copy["eligible"] = None
+            scheme_copy["eligibility_status"] = "needs_official_verification"
+            scheme_copy["eligibility_message"] = (
+                "Profile details are not sufficient to confirm eligibility. "
+                "Verify current rules on the scheme's official portal or at the local agriculture office."
+            )
+            candidates.append(scheme_copy)
+        return {
+            "status": "success",
+            "eligibility_confirmed": False,
+            "eligible_schemes": candidates,
+            "candidate_schemes": candidates,
+            "farmer_profile": farmer_profile,
+            "message": (
+                "These are possible schemes, not confirmed eligibility results. "
+                "Current state, land, crop, category, and enrollment rules must be checked officially."
+            ),
+        }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

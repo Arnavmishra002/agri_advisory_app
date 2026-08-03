@@ -22,8 +22,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..errors import safe_error_message
-from ..location_utils import attach_location_metadata, resolve_request_location
+from ..location_utils import (
+    attach_location_metadata,
+    require_confirmed_location,
+    resolve_request_location,
+)
 from ..validation import query_too_long, MAX_LOCATION_QUERY_LENGTH
+from ..serializers import FieldSensorInputSerializer, InputGapsInputSerializer, LocationQuerySerializer
 from ...services.field_sensor_service import field_sensor_service, CROP_SOIL_REQUIREMENTS
 from ...services.language_service import normalise_language_code
 
@@ -73,8 +78,27 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
         }
         """
         try:
-            ctx = resolve_request_location(request)
             data = request.data if request.method == "POST" else request.query_params
+            if request.method == "POST":
+                serializer = FieldSensorInputSerializer(data=data)
+                if not serializer.is_valid():
+                    return Response(
+                        {"status": "error", "error_code": "INVALID_SENSOR_REQUEST", "errors": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                data = serializer.validated_data
+            else:
+                serializer = LocationQuerySerializer(data=data)
+                if not serializer.is_valid():
+                    return Response(
+                        {"status": "error", "error_code": "INVALID_FIELD_REQUEST", "errors": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                data = serializer.validated_data
+            ctx = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="field_recommendation")
+            if location_error:
+                return location_error
 
             lang        = normalise_language_code(data.get("language", "hi"))
             field_id    = data.get("field_id")
@@ -98,11 +122,12 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                         "previous_crop":  data.get("previous_crop"),
                         "irrigation_type": data.get("irrigation_type", "unknown"),
                         "field_area_ha":  _safe_float(data.get("field_area_ha")),
-                        "_sensor_meta":   _live_request_sensor_meta(),
                     }
-                    sensor_freshness = sensor_data["_sensor_meta"]
+                    if raw_sensors:
+                        sensor_data["_sensor_meta"] = _live_request_sensor_meta()
+                        sensor_freshness = sensor_data["_sensor_meta"]
 
-            if not sensor_data:
+            if not sensor_data and data.get("use_saved_sensor", True):
                 try:
                     from ...models import IoTSensorReading
                     iot_reading = None
@@ -174,8 +199,26 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
         POST body: same sensor_data structure as /recommend/
         """
         try:
-            ctx  = resolve_request_location(request)
-            data = request.data
+            if not request.user.is_authenticated:
+                return Response(
+                    {
+                        "status": "error",
+                        "message": "Authentication is required to save sensor readings.",
+                        "error_code": "AUTHENTICATION_REQUIRED",
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+            serializer = FieldSensorInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(
+                    {"status": "error", "error_code": "INVALID_SENSOR_REQUEST", "errors": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            data = serializer.validated_data
+            ctx = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="sensor_submission")
+            if location_error:
+                return location_error
             lang = normalise_language_code(data.get("language", "hi"))
 
             raw_sensors = data.get("sensors") or {}
@@ -234,8 +277,14 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
         No IoT sensor needed.
         """
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "message": "Invalid soil profile parameters", "errors": serializer.errors}, status=400)
             ctx = resolve_request_location(request)
-            lang = normalise_language_code(request.query_params.get("language", "hi"))
+            location_error = require_confirmed_location(ctx, service="soil_profile")
+            if location_error:
+                return location_error
+            lang = normalise_language_code(serializer.validated_data.get("language", "hi"))
 
             om  = field_sensor_service._fetch_open_meteo_soil_weather(ctx.latitude, ctx.longitude)
             gov = field_sensor_service._fetch_soil_health_card(ctx.latitude, ctx.longitude, ctx.state)
@@ -246,7 +295,8 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
             )
 
             return Response(attach_location_metadata({
-                "status":         "success",
+                "status":         "success" if om.get("is_live") else "degraded",
+                "is_live":        bool(om.get("is_live")),
                 "soil_profile":   soil,
                 "weather_current": om.get("current", {}),
                 "weather_alerts": weather_analysis.get("alerts", []),
@@ -273,8 +323,14 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
           - daily ET₀ and water balance
         """
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"status": "error", "message": "Invalid weather analysis parameters", "errors": serializer.errors}, status=400)
             ctx  = resolve_request_location(request)
-            lang = normalise_language_code(request.query_params.get("language", "hi"))
+            location_error = require_confirmed_location(ctx, service="field_weather_analysis")
+            if location_error:
+                return location_error
+            lang = normalise_language_code(serializer.validated_data.get("language", "hi"))
 
             om = field_sensor_service._fetch_open_meteo_soil_weather(ctx.latitude, ctx.longitude)
             analysis = field_sensor_service._analyse_weather_for_farming(
@@ -282,7 +338,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
             )
 
             return Response(attach_location_metadata({
-                "status":              "success",
+                "status":              om.get("status", "unavailable"),
+                "is_live":             bool(om.get("is_live")),
+                "is_stale":            bool(om.get("is_stale", not om.get("is_live"))),
                 "current_weather":     om.get("current", {}),
                 "forecast_16_days":    om.get("forecast", []),
                 "farming_alerts":      analysis.get("alerts", []),
@@ -292,7 +350,9 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 "rain_7d_mm":          analysis.get("rain_7d_mm", 0),
                 "rain_14d_mm":         analysis.get("rain_14d_mm", 0),
                 "avg_max_temp_7d":     analysis.get("avg_max_temp_7d"),
-                "data_source":         "Open-Meteo (real-time, free, 1km grid)",
+                "data_source":         om.get(
+                    "data_source", "Open-Meteo unavailable (no values substituted)"
+                ),
                 "timestamp":           datetime.now(tz=timezone.utc).isoformat(),
             }, ctx))
 
@@ -315,8 +375,15 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
         POST body:  sensors + crop
         """
         try:
-            ctx  = resolve_request_location(request)
             data = request.data if request.method == "POST" else request.query_params
+            serializer = InputGapsInputSerializer(data=data) if request.method == "POST" else LocationQuerySerializer(data=data)
+            if not serializer.is_valid():
+                return Response({"status": "error", "message": "Invalid input-gap parameters", "errors": serializer.errors}, status=400)
+            data = serializer.validated_data
+            ctx  = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="crop_input_gaps")
+            if location_error:
+                return location_error
             lang = normalise_language_code(data.get("language", "hi"))
             crop = data.get("crop", "wheat").lower().strip()
 
@@ -424,12 +491,12 @@ def _iot_sensor_max_age_minutes() -> int:
 def _live_request_sensor_meta() -> dict:
     now = django_timezone.now()
     return {
-        "status": "live_request",
+        "status": "farmer_entered",
         "source": "request_payload",
         "recorded_at": now.isoformat(),
         "age_minutes": 0,
         "max_age_minutes": _iot_sensor_max_age_minutes(),
-        "message": "Sensor values came with this request.",
+        "message": "Soil or sensor values were entered with this request.",
     }
 
 def _sensor_freshness_from_reading(reading) -> dict:

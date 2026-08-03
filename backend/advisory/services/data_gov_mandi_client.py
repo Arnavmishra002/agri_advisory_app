@@ -13,10 +13,10 @@ Why this is better than scraping Agmarknet directly:
   - Stable endpoint — government API versioning, no URL changes overnight
   - Supports: commodity filter, state filter, market filter, date filter, pagination
 
-Priority chain:
+Live source chain:
   1. data.gov.in OGD API (if DATA_GOV_IN_API_KEY set and not placeholder)
   2. Agmarknet direct dashboard API (no key needed — 25 commodities)
-  3. In-memory seed prices (12-06-2026 real data — labeled clearly)
+  3. Unavailable response with no price rows
 
 Redis caching:
   - With REDIS_URL: 1-hour TTL, shared across all Gunicorn workers
@@ -49,7 +49,10 @@ from .msp_data import MSP_2024_25 as _CANONICAL_MSP
 _DATA_GOV_BASE    = "https://api.data.gov.in/resource"
 _RESOURCE_ID      = "9ef84268-d588-465a-a308-a864a43d0070"  # Agmarknet daily prices
 _CACHE_TTL_SECS   = 3600   # 1 hour — prices update once daily at ~9 AM IST
-_REQUEST_TIMEOUT  = (8, 20)  # (connect, read) seconds
+_REQUEST_TIMEOUT  = (
+    max(0.5, float(os.getenv("MANDI_HTTP_CONNECT_TIMEOUT_S", "2"))),
+    max(1.0, float(os.getenv("MANDI_HTTP_READ_TIMEOUT_S", "8"))),
+)  # (connect, read) seconds; fail fast rather than block advice
 _MAX_RECORDS      = 100      # per API call
 
 # ── Placeholder fragments — never use these as real keys ─────────────────────
@@ -134,7 +137,7 @@ class DataGovMandiClient:
     Official data.gov.in mandi price client.
 
     Falls back gracefully through:
-      data.gov.in OGD API → Agmarknet direct → seed prices (always returns data)
+      data.gov.in OGD API → Agmarknet direct → unavailable (no synthetic prices)
     """
 
     def __init__(self):
@@ -152,7 +155,8 @@ class DataGovMandiClient:
     ) -> Dict[str, Any]:
         """
         Fetch mandi prices for a commodity/state.
-        Returns full response dict — always has data (fallback chain guarantees it).
+        Return only official live rows. Missing live data produces an empty,
+        explicit unavailable response.
         """
         cache_key = self._cache_key(commodity, state)
 
@@ -182,8 +186,11 @@ class DataGovMandiClient:
                 return result
             logger.warning("data_gov_mandi: data.gov.in returned no records — trying Agmarknet")
 
-        # 4. Try Agmarknet direct dashboard API (no key needed)
-        agmarknet_result = self._fetch_agmarknet_direct(commodity=commodity)
+        # 4. Try Agmarknet's national dashboard only for national requests.
+        # It cannot satisfy a state filter and must never be presented as local.
+        agmarknet_result = None
+        if not state:
+            agmarknet_result = self._fetch_agmarknet_direct(commodity=commodity)
         if agmarknet_result and agmarknet_result.get("top_crops"):
             logger.info(
                 "data_gov_mandi: Agmarknet direct returned %d crops",
@@ -192,11 +199,46 @@ class DataGovMandiClient:
             self._cache_set(cache_key, agmarknet_result)
             return agmarknet_result
 
-        # 5. Seed fallback — always works
-        logger.info("data_gov_mandi: all live sources failed — serving seed prices")
-        seed = self._get_seed_result(commodity=commodity)
-        # Don't cache seeds — retry live sources next request
-        return seed
+        # 5. Last resort: scrape the Agmarknet website (SearchCmmMkt.aspx).
+        # Records come back in OGD field shape and go through the SAME formatter
+        # + freshness filter, so scraped rows are labelled and vetted identically
+        # to API rows — stale/undated scraped rows are dropped, never shown live.
+        try:
+            from .agmarknet_scraper import agmarknet_scraper
+            scraped = agmarknet_scraper.fetch_records(commodity=commodity, state=state, days=3)
+            if scraped:
+                formatted = self._format_datagov_response(scraped, state=state, is_live=True)
+                if formatted and formatted.get("top_crops"):
+                    formatted["data_source"] = "Agmarknet website (scraped)"
+                    formatted["data_source_short"] = "Agmarknet live (scraped)"
+                    logger.info(
+                        "data_gov_mandi: Agmarknet scrape returned %d fresh crops",
+                        len(formatted["top_crops"]),
+                    )
+                    self._cache_set(cache_key, formatted)
+                    return formatted
+        except Exception as exc:
+            logger.warning("data_gov_mandi: Agmarknet scrape failed: %s", exc)
+
+        logger.warning(
+            "data_gov_mandi: no official live rows (commodity=%s state=%s)",
+            commodity,
+            state,
+        )
+        return {
+            "status": "unavailable",
+            "is_live": False,
+            "data_source": "Agmarknet/data.gov.in live feeds",
+            "data_source_short": "Live feed unavailable",
+            "reported_date": "",
+            "top_crops": [],
+            "total_records": 0,
+            "message": "No current official mandi price rows are available.",
+            "api_key_registered": bool(api_key),
+            "using_demo_key": False,
+            "coverage": "state" if state else "national",
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        }
 
     def get_prices_for_crops(self, crop_ids: List[str]) -> List[Dict[str, Any]]:
         """Return price rows filtered to specific crop IDs."""
@@ -235,7 +277,7 @@ class DataGovMandiClient:
                 logger.warning("data.gov.in: empty records for commodity=%s state=%s", commodity, state)
                 return None
 
-            return self._format_datagov_response(records, is_live=True)
+            return self._format_datagov_response(records, state=state, is_live=True)
 
         except requests.exceptions.Timeout:
             logger.warning("data.gov.in: request timed out")
@@ -252,6 +294,7 @@ class DataGovMandiClient:
     def _format_datagov_response(
         self,
         records: List[Dict[str, Any]],
+        state: Optional[str] = None,
         is_live: bool = True,
     ) -> Dict[str, Any]:
         """Normalise data.gov.in OGD records to our standard shape."""
@@ -283,8 +326,11 @@ class DataGovMandiClient:
 
             arrival_date = (
                 r.get("arrival_date") or r.get("Arrival_Date") or
-                r.get("date") or datetime.now(tz=timezone.utc).strftime("%d-%m-%Y")
+                r.get("date") or r.get("Date")
             )
+            if not arrival_date:
+                # Never manufacture a current date for an undated upstream row.
+                continue
 
             # For national view: deduplicate crop_id, keep highest modal_price record
             if crop_id in seen:
@@ -320,19 +366,31 @@ class DataGovMandiClient:
         # Sort: highest modal price first within category
         top_crops.sort(key=lambda x: x["modal_price"], reverse=True)
 
-        reported = top_crops[0]["reported_date"] if top_crops else ""
+        if is_live:
+            from .market_data_quality import filter_fresh_live_rows
+
+            top_crops, age_minutes, newest_date = filter_fresh_live_rows(top_crops)
+            if not top_crops:
+                return {}
+        else:
+            age_minutes, newest_date = None, ""
+
+        reported = newest_date or (top_crops[0]["reported_date"] if top_crops else "")
         return {
             "status":              "success",
             "is_live":             is_live,
             "data_source":         "data.gov.in Official API (Agmarknet OGD)",
             "data_source_short":   "data.gov.in (live)",
             "reported_date":       reported,
+            "data_age_minutes":    age_minutes,
+            "freshness":           "latest_official" if is_live else "historical_reference",
             "top_crops":           top_crops,
             "total_records":       len(top_crops),
             "message":             f"Live mandi prices from data.gov.in ({len(top_crops)} commodities)",
             "api_key_registered":  True,
             "using_demo_key":      False,
-            "coverage":            "national",
+            "coverage":            "state" if state else "national",
+            "requested_state":     state or "",
             "timestamp":           datetime.now(tz=timezone.utc).isoformat(),
         }
 
@@ -381,7 +439,7 @@ class DataGovMandiClient:
                 modal_price = round(float(r.get("as_on_price") or 0), 2)
             except (ValueError, TypeError):
                 continue
-            msp = _MSP_2024_25.get(crop_id) or (float(r["msp_price"]) if r.get("msp_price") else None)
+            msp = _MSP_2024_25.get(crop_id)
             profit_vs_msp = None
             if msp and msp > 0:
                 profit_vs_msp = round(((modal_price - msp) / msp) * 100, 1)

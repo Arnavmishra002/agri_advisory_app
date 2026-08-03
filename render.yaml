@@ -5,6 +5,12 @@ databases:
     plan: free
 
 services:
+  - type: keyvalue
+    name: agri-advisory-cache
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
   - type: web
     name: agri-advisory-web
     env: python
@@ -24,6 +30,14 @@ services:
         generateValue: true
       - key: DEBUG
         value: "False"
+      - key: STRICT_PRODUCTION_CONFIG
+        value: "true"
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
       - key: PYTHON_VERSION
         value: "3.11.0"
       - key: NODE_VERSION
@@ -42,25 +56,30 @@ services:
         value: "true"
       # API keys — fill these in the Render dashboard after first deploy
       - key: DATA_GOV_IN_API_KEY
-        value: ""
+        sync: false
       - key: SENTRY_DSN
-        value: ""
+        sync: false
       - key: GOOGLE_AI_API_KEY
-        value: ""
+        sync: false
+      # Anthropic Claude — primary chatbot brain (set in Render dashboard)
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: "claude-3-5-sonnet-latest"
       - key: WHATSAPP_TOKEN
         value: ""
       - key: WHATSAPP_PHONE_ID
         value: ""
       - key: WHATSAPP_VERIFY_TOKEN
-        value: "krishimitra-webhook-secret-2025"
+        sync: false
       - key: WHATSAPP_APP_SECRET
         value: ""
       - key: TWILIO_ACCOUNT_SID
-        value: ""
+        sync: false
       - key: TWILIO_AUTH_TOKEN
-        value: ""
+        sync: false
       - key: TWILIO_FROM_NUMBER
-        value: ""
+        sync: false
       - key: GROQ_API_KEY
         value: ""
       - key: MQTT_BROKER_HOST
@@ -78,13 +97,30 @@ services:
       - key: FETCH_POOL_WORKERS
         value: "8"
       - key: PHASE1_TIMEOUT_S
-        value: "25"
+        value: "8"
+      - key: PHASE1_BASE_URL
+        sync: false
+      - key: PHASE1_SERVICE_TOKEN
+        sync: false
+      - key: CHAT_LOCAL_AI_MAX_CONCURRENCY
+        value: "2"
+      - key: RAG_INDEX_REQUIRED
+        value: "true"
+      - key: DISEASE_CLASSIFICATION_ENABLED
+        value: "false"
       - key: REDIS_URL
-        value: ""
+        fromService:
+          type: keyvalue
+          name: agri-advisory-cache
+          property: connectionString
       - key: OLLAMA_MODEL
         value: "krishimitra-llm"
       - key: RATE_LIMIT_ENABLED
         value: "true"
+      - key: RATE_LIMIT_FAIL_OPEN
+        value: "false"
+      - key: LAUNCH_CHECK
+        value: "false"
 
   - type: worker
     name: agri-advisory-mqtt-worker
@@ -102,6 +138,11 @@ services:
         generateValue: true
       - key: DEBUG
         value: "False"
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agri-advisory-cache
+          property: connectionString
       - key: PYTHON_VERSION
         value: "3.11.0"
       - key: MQTT_BROKER_HOST

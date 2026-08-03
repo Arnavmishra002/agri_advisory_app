@@ -1,5 +1,9 @@
 # Web Login & Authentication — Requirements
 
+> Canonical beta policy: `.kiro/specs/farmer-ready-beta/requirements.md`
+> supersedes this document for guest access, farmer OTP registration, classic
+> registration, refresh-token storage, and the three-attempt OTP lockout.
+
 ## Overview
 
 Add a login/register system to the KrishiMitra web frontend so farmers can save their profile, chat history, and preferences across sessions. The system must be farmer-friendly — most users are rural, Hindi-speaking, and mobile-first.

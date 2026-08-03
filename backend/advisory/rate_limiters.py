@@ -19,8 +19,43 @@ from __future__ import annotations
 import time
 import logging
 import functools
+import hashlib
+import ipaddress
+from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _rate_cache():
+    """Use the dedicated shared cache for all security counters."""
+    from django.core.cache import caches
+
+    return caches["rate_limit"]
+
+
+def _cache_key(prefix: str, client_id: str) -> str:
+    # Do not put user-controlled phone/user strings directly into cache keys.
+    digest = hashlib.sha256(str(client_id).encode("utf-8")).hexdigest()[:32]
+    return f"km:security:{prefix}:{digest}"
+
+
+def client_ip_from_request(request) -> str:
+    """Resolve the client IP using only configured trusted proxy hops."""
+    from django.conf import settings
+
+    trusted = max(0, int(getattr(settings, "RATE_LIMIT_TRUSTED_PROXIES", 0)))
+    remote = request.META.get("REMOTE_ADDR", "0.0.0.0")
+    if trusted == 0:
+        return remote
+    entries = [value.strip() for value in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",") if value.strip()]
+    if len(entries) <= trusted:
+        return remote
+    candidate = entries[-trusted - 1]
+    try:
+        ipaddress.ip_address(candidate)
+        return candidate
+    except ValueError:
+        return remote
 
 
 class SharedRateLimiter:
@@ -67,8 +102,8 @@ class SharedRateLimiter:
                means concurrent workers correctly see each other's decrements.
         """
         try:
-            from django.core.cache import cache
-            cache_key = f"tb:{self.key_prefix}:{client_id}"
+            cache = _rate_cache()
+            cache_key = _cache_key(f"tb:{self.key_prefix}", client_id)
             now = time.time()  # Bug 1: wall-clock, safe across all Gunicorn workers
 
             for _attempt in range(3):  # Bug 2: CAS retry on write contention
@@ -99,15 +134,15 @@ class SharedRateLimiter:
             return True
 
         except Exception as exc:
-            # Cache unavailable — allow request (fail open, not closed)
-            logger.warning("Rate limiter cache error (allowing request): %s", exc)
-            return True
+            fail_open = getattr(__import__("django.conf", fromlist=["settings"]), "settings").RATE_LIMIT_FAIL_OPEN
+            logger.error("Rate limiter cache error: %s", exc)
+            return bool(fail_open)
 
     def remaining(self, client_id: str) -> int:
         """Return approximate remaining tokens (for X-RateLimit-Remaining header)."""
         try:
-            from django.core.cache import cache
-            state = cache.get(f"tb:{self.key_prefix}:{client_id}")
+            cache = _rate_cache()
+            state = cache.get(_cache_key(f"tb:{self.key_prefix}", client_id))
             if state is None:
                 return self.capacity
             tokens, last = state
@@ -120,16 +155,16 @@ class SharedRateLimiter:
     def reset(self, client_id: str) -> None:
         """Reset rate limit for a client (admin use)."""
         try:
-            from django.core.cache import cache
-            cache.delete(f"tb:{self.key_prefix}:{client_id}")
+            cache = _rate_cache()
+            cache.delete(_cache_key(f"tb:{self.key_prefix}", client_id))
         except Exception as exc:
             logger.warning("Rate limiter reset failed: %s", exc)
 
     def wait_time(self, client_id: str) -> float:
         """Return estimated seconds until next token is available."""
         try:
-            from django.core.cache import cache
-            state = cache.get(f"tb:{self.key_prefix}:{client_id}")
+            cache = _rate_cache()
+            state = cache.get(_cache_key(f"tb:{self.key_prefix}", client_id))
             if state is None:
                 return 0.0
             tokens, last = state
@@ -143,35 +178,192 @@ class SharedRateLimiter:
             return 0.0
 
 
+class AtomicWindowRateLimiter:
+    """Atomic fixed-window limiter for HTTP abuse controls.
+
+    Django cache ``add`` and ``incr`` are atomic in Redis/Memcached, so this
+    avoids the tuple read-modify-write race of the legacy token bucket.
+    """
+
+    def __init__(self, key_prefix: str, capacity: int, window_seconds: int):
+        self.key_prefix = key_prefix
+        self.capacity = max(1, int(capacity))
+        self.window_seconds = max(1, int(window_seconds))
+
+    def _key(self, client_id: str, bucket: int) -> str:
+        return _cache_key(f"window:{self.key_prefix}", f"{client_id}:{bucket}")
+
+    def _current(self):
+        now = int(time.time())
+        return now, now // self.window_seconds
+
+    def is_allowed(self, client_id: str) -> bool:
+        try:
+            cache = _rate_cache()
+            now, bucket = self._current()
+            key = self._key(client_id, bucket)
+            if cache.add(key, 1, timeout=self.window_seconds + 2):
+                count = 1
+            else:
+                count = int(cache.incr(key))
+            return count <= self.capacity
+        except Exception as exc:
+            from django.conf import settings
+
+            logger.error("Atomic rate limiter cache error: %s", exc)
+            return bool(getattr(settings, "RATE_LIMIT_FAIL_OPEN", False))
+
+    def remaining(self, client_id: str) -> int:
+        try:
+            _now, bucket = self._current()
+            count = int(_rate_cache().get(self._key(client_id, bucket)) or 0)
+            return max(0, self.capacity - count)
+        except Exception:
+            return self.capacity
+
+    def wait_time(self, client_id: str) -> float:
+        try:
+            now, bucket = self._current()
+            if self.remaining(client_id) > 0:
+                return 0.0
+            return float(self.window_seconds - (now % self.window_seconds))
+        except Exception:
+            return float(self.window_seconds)
+
+    def reset(self, client_id: str) -> None:
+        try:
+            _now, bucket = self._current()
+            _rate_cache().delete(self._key(client_id, bucket))
+        except Exception as exc:
+            logger.warning("Atomic rate limiter reset failed: %s", exc)
+
+
+class ExponentialBackoff:
+    """Shared failure backoff for authentication attempts.
+
+    A failed attempt increases the delay after a configurable threshold. The
+    counter expires, so this is a progressive speed bump rather than a
+    permanent account lockout.
+    """
+
+    def __init__(
+        self,
+        key_prefix: str,
+        *,
+        threshold: Optional[int] = None,
+        base_seconds: Optional[float] = None,
+        max_seconds: Optional[float] = None,
+        window_seconds: Optional[int] = None,
+    ):
+        from django.conf import settings
+
+        self.key_prefix = key_prefix
+        self.threshold = max(
+            1,
+            int(threshold if threshold is not None else settings.AUTH_BACKOFF_THRESHOLD),
+        )
+        self.base_seconds = max(
+            0.0,
+            float(base_seconds if base_seconds is not None else settings.AUTH_BACKOFF_BASE_SECONDS),
+        )
+        self.max_seconds = max(
+            self.base_seconds,
+            float(max_seconds if max_seconds is not None else settings.AUTH_BACKOFF_MAX_SECONDS),
+        )
+        self.window_seconds = max(
+            60,
+            int(window_seconds if window_seconds is not None else settings.AUTH_BACKOFF_WINDOW_SECONDS),
+        )
+
+    def _count_key(self, client_id: str) -> str:
+        return _cache_key(f"backoff-count:{self.key_prefix}", client_id)
+
+    def _until_key(self, client_id: str) -> str:
+        return _cache_key(f"backoff-until:{self.key_prefix}", client_id)
+
+    def retry_after(self, client_id: str) -> int:
+        try:
+            until = float(_rate_cache().get(self._until_key(client_id)) or 0)
+            return max(0, int(until - time.time() + 0.999))
+        except Exception as exc:
+            logger.error("Auth backoff lookup failed: %s", exc)
+            return 0
+
+    def record_failure(self, client_id: str) -> int:
+        try:
+            cache = _rate_cache()
+            count_key = self._count_key(client_id)
+            if cache.add(count_key, 1, timeout=self.window_seconds):
+                count = 1
+            else:
+                try:
+                    count = int(cache.incr(count_key))
+                except ValueError:
+                    cache.set(count_key, 1, timeout=self.window_seconds)
+                    count = 1
+
+            if count < self.threshold or self.base_seconds <= 0:
+                return 0
+
+            delay = min(
+                self.max_seconds,
+                self.base_seconds * (2 ** (count - self.threshold)),
+            )
+            cache.set(
+                self._until_key(client_id),
+                time.time() + delay,
+                timeout=max(self.window_seconds, int(delay) + 1),
+            )
+            return int(delay)
+        except Exception as exc:
+            logger.error("Auth backoff update failed: %s", exc)
+            return 0
+
+    def clear(self, client_id: str) -> None:
+        try:
+            cache = _rate_cache()
+            cache.delete(self._count_key(client_id))
+            cache.delete(self._until_key(client_id))
+        except Exception as exc:
+            logger.error("Auth backoff reset failed: %s", exc)
+
+
 # ── Pre-configured limiters ────────────────────────────────────────────────────
-# These are shared singletons — import and use directly.
+# These are shared singletons — import and use directly. Values come from
+# Django settings so integrations do not silently bypass deployment policy.
+def _configured_number(name, default):
+    try:
+        from django.conf import settings
+        return getattr(settings, name, default)
+    except Exception:
+        return default
 
 # Chatbot: 60 requests/minute per IP, sustained 1/s
 chat_rate_limiter = SharedRateLimiter(
     key_prefix="chat",
-    capacity=60,
-    fill_rate=1.0,
+    capacity=_configured_number("RATE_LIMIT_CHAT_CAPACITY", 60),
+    fill_rate=_configured_number("RATE_LIMIT_CHAT_FILL_RATE", 1.0),
 )
 
 # Weather/market data: 120 requests/minute per IP
 data_rate_limiter = SharedRateLimiter(
     key_prefix="data",
-    capacity=120,
-    fill_rate=2.0,
+    capacity=_configured_number("RATE_LIMIT_DATA_CAPACITY", 120),
+    fill_rate=_configured_number("RATE_LIMIT_DATA_FILL_RATE", 2.0),
 )
 
 # Disease diagnosis (heavy ML): 20 requests/minute per IP
 diagnosis_rate_limiter = SharedRateLimiter(
     key_prefix="diag",
-    capacity=20,
-    fill_rate=0.33,  # ~1 per 3 seconds sustained
+    capacity=_configured_number("RATE_LIMIT_DIAG_CAPACITY", 20),
+    fill_rate=_configured_number("RATE_LIMIT_DIAG_FILL_RATE", 0.33),
 )
 
 # Default global limiter
 default_rate_limiter = SharedRateLimiter(
     key_prefix="default",
-    capacity=200,
-    fill_rate=3.0,
+    capacity=_configured_number("RATE_LIMIT_DEFAULT_CAPACITY", 200),
+    fill_rate=_configured_number("RATE_LIMIT_DEFAULT_FILL_RATE", 3.0),
 )
 
 
@@ -180,8 +372,8 @@ default_rate_limiter = SharedRateLimiter(
 # We use a single key so all workers share the same bucket.
 nominatim_limiter = SharedRateLimiter(
     key_prefix="nominatim",
-    capacity=10,     # burst up to 10 geocoding requests
-    fill_rate=1.0,   # refill 1 token/second (Nominatim ToS)
+    capacity=_configured_number("RATE_LIMIT_NOMINATIM_CAPACITY", 10),
+    fill_rate=_configured_number("RATE_LIMIT_NOMINATIM_FILL_RATE", 1.0),
 )
 
 

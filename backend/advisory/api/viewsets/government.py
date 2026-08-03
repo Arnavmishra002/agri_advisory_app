@@ -1,6 +1,6 @@
 """
 Real-Time Government Data ViewSet
-Delegates to the canonical CropRecommendationEngine v3 and unified services.
+Delegates to the canonical CropRecommendationEngine v4 and unified services.
 No longer depends on the legacy crop recommendation system.
 """
 import logging
@@ -11,11 +11,16 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from ..location_utils import attach_location_metadata, resolve_request_location
+from ..location_utils import (
+    attach_location_metadata,
+    require_confirmed_location,
+    resolve_request_location,
+)
 from ...services.crop_catalog import crop_catalog
 from ...services.crop_recommendation_engine import crop_recommendation_engine
 from ...services.language_service import normalise_language_code
 from ...services.unified_realtime_service import market_service, weather_service
+from ..serializers import CropRecommendationQuerySerializer, GovernmentPestInputSerializer, LocationQuerySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +48,15 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     def weather(self, request):
         """Real-time weather — delegates to unified WeatherService (Open-Meteo)."""
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid weather parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx  = resolve_request_location(request)
-            lang = normalise_language_code(request.query_params.get('language', 'hi'))
+            location_error = require_confirmed_location(ctx, service="government_weather")
+            if location_error:
+                return location_error
+            lang = normalise_language_code(params.get('language', 'hi'))
             data = weather_service.get_weather(ctx.query_label, ctx.latitude, ctx.longitude, lang=lang)
             return Response(attach_location_metadata(data, ctx))
         except Exception as e:
@@ -57,12 +69,19 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     def market_prices(self, request):
         """Real-time mandi prices — delegates to unified MarketPricesService."""
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid market parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx   = resolve_request_location(request)
-            mandi = request.query_params.get('mandi')
-            crop  = request.query_params.get('crop')
+            location_error = require_confirmed_location(ctx, service="government_market_prices")
+            if location_error:
+                return location_error
+            mandi = params.get('mandi')
+            crop  = params.get('crop')
             norm  = crop_catalog.normalize(crop) if crop else None
             commodity = norm['name'] if norm else crop
-            include_estimates = request.query_params.get('include_estimates', '').lower() in ('1', 'true', 'yes')
+            include_estimates = params.get('include_estimates', False)
 
             data = market_service.get_prices(
                 ctx.query_label, mandi=mandi, crop=commodity,
@@ -79,13 +98,24 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def crop_recommendations(self, request):
         """
-        Location-aware crop recommendations — uses CropRecommendationEngine v3
-        (80 crops, live weather, mandi prices, district profiles).
+        Location-aware crop recommendations — uses CropRecommendationEngine v4
+        (200+ crops, live weather, mandi prices, district profiles).
         """
         try:
+            serializer = CropRecommendationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid crop recommendation parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx  = resolve_request_location(request)
-            lang = normalise_language_code(request.query_params.get('language', 'hi'))
-            data = crop_recommendation_engine.recommend_from_context(ctx, language=lang)
+            location_error = require_confirmed_location(ctx, service="government_crop_recommendations")
+            if location_error:
+                return location_error
+            lang = normalise_language_code(params.get('language', 'hi'))
+            data = crop_recommendation_engine.recommend_from_context(
+                ctx,
+                language=lang,
+                agronomic_inputs=serializer.recommendation_inputs,
+            )
             return Response(attach_location_metadata(data, ctx))
         except Exception as e:
             logger.error("Crop recommendations API error: %s", e)
@@ -97,18 +127,43 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     def pest_detection(self, request):
         """Pest guidance for a crop/location — use /api/diagnostics/detect/ for image-based."""
         try:
-            crop     = request.data.get('crop', 'Wheat')
-            location = request.data.get('location', 'Delhi')
-            language = request.data.get('language', 'hi')
-            pest_data = self.gov_api.get_pest_control_recommendations(crop, location, language=language)
-            return Response({
-                'status': 'success',
+            serializer = GovernmentPestInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid pest request', 'errors': serializer.errors}, status=400)
+            data = serializer.validated_data
+            crop     = data.get('crop', 'Wheat')
+            language = data.get('language', 'hi')
+            ctx = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="government_pest_guidance")
+            if location_error:
+                return location_error
+            if not self.gov_api:
+                return Response(attach_location_metadata({
+                    'status': 'unavailable',
+                    'is_live': False,
+                    'crop': crop,
+                    'message': 'Official pest guidance source is temporarily unavailable.',
+                    'data_source': 'unavailable',
+                    'timestamp': datetime.now(tz=timezone.utc).isoformat(),
+                }, ctx), status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            pest_data = self.gov_api.get_pest_control_recommendations(
+                crop, ctx.query_label, language=language
+            )
+            result_status = (
+                pest_data.get('status', 'unavailable')
+                if isinstance(pest_data, dict) else 'unavailable'
+            )
+            return Response(attach_location_metadata({
+                'status': result_status,
+                'is_live': bool(isinstance(pest_data, dict) and pest_data.get('is_live')),
                 'crop': crop,
-                'location': location,
                 'pest_analysis': pest_data,
-                'data_source': 'ICAR pest database',
+                'data_source': (
+                    pest_data.get('data_source', 'unavailable')
+                    if isinstance(pest_data, dict) else 'unavailable'
+                ),
                 'timestamp': datetime.now(tz=timezone.utc).isoformat(),
-            })
+            }, ctx))
         except Exception as e:
             logger.error("Pest detection API error: %s", e)
             return Response({'error': 'Unable to process pest detection'},
@@ -119,8 +174,15 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     def mandi_search(self, request):
         """Search mandis near the user's location."""
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid mandi search parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx   = resolve_request_location(request)
-            query = request.query_params.get('q', '').strip()
+            location_error = require_confirmed_location(ctx, service="government_mandi_search")
+            if location_error:
+                return location_error
+            query = params.get('q', '').strip()
 
             mandi_data = market_service.list_mandis(
                 ctx.query_label, lat=ctx.latitude, lon=ctx.longitude, state=ctx.state or None
@@ -144,14 +206,18 @@ class RealTimeGovernmentDataViewSet(viewsets.ViewSet):
     # ── Crop Search ──────────────────────────────────────────
     @action(detail=False, methods=['get'])
     def crop_search(self, request):
-        """Crop autocomplete using the crop catalog (80+ crops)."""
+        """Crop autocomplete using the canonical recommendation catalog."""
         try:
-            query = (request.query_params.get('crop') or request.query_params.get('q', '')).strip()
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({'error': 'Invalid crop search parameters', 'errors': serializer.errors}, status=400)
+            params = serializer.validated_data
+            query = (params.get('crop') or params.get('q', '')).strip()
             if not query:
                 return Response({'error': 'Provide crop or q parameter'},
                                 status=status.HTTP_400_BAD_REQUEST)
             try:
-                limit = min(int(request.query_params.get('limit', 20)), 50)
+                limit = min(params.get('limit', 20), 50)
             except (ValueError, TypeError):
                 limit = 20
 

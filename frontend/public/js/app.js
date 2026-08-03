@@ -19,7 +19,10 @@
     }
 
     async function apiGetJson(path) {
-        const response = await fetch(apiFetch(path));
+        const response = await fetch(apiFetch(path), {
+            cache: 'no-store',
+            headers: { 'Accept': 'application/json' },
+        });
         if (!response.ok) {
             let detail = '';
             try {
@@ -57,14 +60,127 @@
         return response.json();
     }
 
+    function notifyFarmer(message, type = 'info') {
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type, 4500);
+            return;
+        }
+        console[type === 'error' ? 'error' : 'info'](message);
+    }
+
+    async function apiPostEventStream(path, body, onToken) {
+        const authHeaders = (window.KM_Auth && KM_Auth.isLoggedIn())
+            ? KM_Auth.getAuthHeaders()
+            : {};
+        const controller = new AbortController();
+        // Track WHY we aborted. Calling abort('string') makes fetch reject with
+        // that string (not a DOMException named "AbortError"), so the timeout
+        // branch below was unreachable and users saw a generic "undefined"
+        // network error. Abort with no arg + a flag instead.
+        let timedOut = false;
+        const totalTimer = setTimeout(() => { timedOut = true; controller.abort(); }, 60000);
+        let idleTimer = null;
+        const resetIdleTimer = () => {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => { timedOut = true; controller.abort(); }, 20000);
+        };
+        resetIdleTimer();
+
+        try {
+            const response = await fetch(apiFetch(path), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream',
+                    ...authHeaders,
+                },
+                body: JSON.stringify(body),
+                signal: controller.signal,
+            });
+            if (!response.ok) {
+                let detail = '';
+                try {
+                    const errBody = await response.json();
+                    detail = errBody.message || errBody.error || '';
+                } catch (e) {
+                    detail = '';
+                }
+                throw new Error(`HTTP ${response.status}${detail ? ': ' + detail : ''}`);
+            }
+            if (!response.body || typeof response.body.getReader !== 'function') {
+                const unsupported = new Error('Streaming is not supported by this browser');
+                unsupported.code = 'STREAM_UNSUPPORTED';
+                throw unsupported;
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+            let answer = '';
+            let metadata = null;
+
+            const consumeFrame = (frame) => {
+                const payloadText = frame
+                    .split('\n')
+                    .filter(line => line.startsWith('data:'))
+                    .map(line => line.slice(5).trimStart())
+                    .join('\n');
+                if (!payloadText) return;
+                const payload = JSON.parse(payloadText);
+                if (payload.error) {
+                    throw new Error(payload.detail || payload.error);
+                }
+                if (payload.token) {
+                    answer += payload.token;
+                    if (typeof onToken === 'function') onToken(payload.token, answer);
+                }
+                if (payload.done) metadata = payload;
+            };
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                resetIdleTimer();
+                buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+                let boundary = buffer.indexOf('\n\n');
+                while (boundary !== -1) {
+                    consumeFrame(buffer.slice(0, boundary));
+                    buffer = buffer.slice(boundary + 2);
+                    boundary = buffer.indexOf('\n\n');
+                }
+            }
+            buffer += decoder.decode();
+            if (buffer.trim()) consumeFrame(buffer.trim());
+            if (!metadata || !metadata.done) {
+                throw new Error('AI response ended before completion');
+            }
+            return {
+                ...metadata,
+                status: 'success',
+                response: answer,
+                answer,
+            };
+        } catch (error) {
+            if (timedOut || (error && (error.name === 'AbortError' || error === 'total_timeout' || error === 'idle_timeout'))) {
+                throw new Error('AI response timed out. Please try again.');
+            }
+            throw error;
+        } finally {
+            clearTimeout(totalTimer);
+            clearTimeout(idleTimer);
+        }
+    }
+
     // Global variables
-    let currentLocation = 'Delhi';
-    let currentLatitude = 28.7041;
-    let currentLongitude = 77.1025;
-    let currentState = 'Delhi';
+    let currentLocation = '';
+    let currentLatitude = null;
+    let currentLongitude = null;
+    let currentState = '';
     let currentLocationAccuracy = null;
+    let currentLocationSource = 'unconfirmed';
     let allMandisCache = [];
     let mandiDropdownVisibleCount = 80;
+    let mandiFilterText = '';
     let currentMandi = '';
     let currentCropSearch = '';
     let krSelectedCrop = '';
@@ -74,11 +190,38 @@
 
     // Real-time GPS tracking globals
     let _gpsWatchId = null;          // navigator.geolocation.watchPosition handle
+    let _gpsRequestTimer = null;     // independent timeout for browsers with stalled watches
     let _lastReloadLat = null;       // lat at last service reload
     let _lastReloadLon = null;       // lon at last service reload
     let _gpsReloadDebounce = null;   // debounce timer for movement-triggered reload
     const GPS_RELOAD_THRESHOLD_M = 50;  // reload services only if moved ≥50 m
     const LS_LOC_KEY = 'km_location'; // localStorage key for persisted location
+
+    function _isIndiaCoordinate(latitude, longitude) {
+        const lat = Number(latitude);
+        const lon = Number(longitude);
+        return Number.isFinite(lat) && Number.isFinite(lon)
+            && lat >= 6 && lat <= 38 && lon >= 68 && lon <= 98;
+    }
+
+    function hasConfirmedLocation() {
+        return Boolean(currentLocation && _isIndiaCoordinate(currentLatitude, currentLongitude));
+    }
+
+    function apiLocationSource() {
+        return ['gps', 'manual_search', 'profile'].includes(currentLocationSource)
+            ? currentLocationSource
+            : 'unknown';
+    }
+
+    function renderLocationRequired(container, serviceLabel) {
+        if (!container) return;
+        container.innerHTML = `<div class="location-required-state" style="padding:24px;text-align:center;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;">
+            <strong style="display:block;color:#6d4c00;margin-bottom:8px;">सही ${escapeHtml(serviceLabel)} के लिए स्थान चुनें</strong>
+            <span style="display:block;color:#6b6254;font-size:0.88rem;margin-bottom:14px;">GPS चालू करें या ऊपर अपना शहर, जिला या गाँव खोजें। बिना पुष्टि के कोई दूसरी लोकेशन इस्तेमाल नहीं की जाएगी।</span>
+            <button type="button" class="btn btn-sm btn-success" onclick="detectLocation()"><i class="fas fa-crosshairs"></i> GPS से स्थान लें</button>
+        </div>`;
+    }
 
     // Haversine distance (metres) between two lat/lon points
     function _haversineM(lat1, lon1, lat2, lon2) {
@@ -95,17 +238,31 @@
         try {
             const key = 'krishi_session_id';
             let id = localStorage.getItem(key);
-            if (!id) {
-                id = 'sess_' + Date.now();
+            const isLegacyTimestampId = /^sess_\d{10,}$/.test(id || '');
+            if (!id || isLegacyTimestampId) {
+                if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                    id = 'sess_' + window.crypto.randomUUID();
+                } else if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+                    const bytes = new Uint8Array(16);
+                    window.crypto.getRandomValues(bytes);
+                    id = 'sess_' + Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+                } else {
+                    throw new Error('Secure random session IDs are unavailable');
+                }
                 localStorage.setItem(key, id);
             }
             return id;
         } catch (e) {
-            return 'sess_' + Date.now();
+            return '';
         }
     })();
     // Expose for auth.js guest session migration
     window._getSessionId = () => sessionId;
+    const GUEST_SESSION_TOKEN_KEY = 'km_guest_session_token';
+    window._getGuestSessionToken = () => {
+        try { return sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY) || ''; }
+        catch (e) { return ''; }
+    };
 
     const escapeHtml = (s) => String(s || '')
         .replace(/&/g, '&amp;')
@@ -113,6 +270,21 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+
+    // Only allow http(s) links — blocks javascript:/data: URLs from API fields.
+    const safeUrl = (u) => {
+        const s = String(u || '').trim();
+        return /^https?:\/\//i.test(s) ? s : '#';
+    };
+    // Clamp a value to a safe 0–100 number for use inside style width/percentages.
+    const numPct = (n) => {
+        const v = Number(n);
+        return isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
+    };
+
+    const renderChatText = (value) => escapeHtml(value)
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
 
     const INDIAN_CITIES = [
         { name: 'Delhi', state: 'Delhi', lat: 28.7041, lon: 77.1025 },
@@ -146,21 +318,28 @@
     ];
 
     function buildLocationQuery(extraParams = '') {
-        let q = `location=${encodeURIComponent(currentLocation)}`;
-        if (currentLatitude != null && currentLongitude != null) {
-            q += `&latitude=${currentLatitude}&longitude=${currentLongitude}`;
+        const params = new URLSearchParams();
+        if (currentLocation) params.set('location', currentLocation);
+        if (_isIndiaCoordinate(currentLatitude, currentLongitude)) {
+            params.set('latitude', String(currentLatitude));
+            params.set('longitude', String(currentLongitude));
         }
-        if (currentState) {
-            q += `&state=${encodeURIComponent(currentState)}`;
+        if (currentState) params.set('state', currentState);
+        params.set('location_confirmed', String(hasConfirmedLocation()));
+        if (currentLocationSource !== 'unconfirmed') {
+            params.set('location_source', currentLocationSource);
         }
-        if (currentLocationAccuracy != null) {
-            q += `&accuracy=${currentLocationAccuracy}&accuracy_meters=${currentLocationAccuracy}`;
+        if (Number.isFinite(currentLocationAccuracy)) {
+            params.set('accuracy', String(currentLocationAccuracy));
+            params.set('accuracy_meters', String(currentLocationAccuracy));
         }
         // Always pass the active language so all API responses are in the right language
         const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
-        q += `&language=${encodeURIComponent(lang)}`;
-        q += `&_t=${Date.now()}`;
-        return extraParams ? `${q}&${extraParams}` : q;
+        params.set('language', lang);
+        if (extraParams) {
+            new URLSearchParams(extraParams).forEach((value, key) => params.set(key, value));
+        }
+        return params.toString();
     }
 
     function updateAccuracyBadge(accuracyMeters) {
@@ -203,25 +382,45 @@
     // LOCATION FUNCTIONS
     // ========================================
 
-    function updateLocation(locationName, latitude, longitude, accuracyMeters, stateName) {
-        currentLocation = locationName;
-        if (latitude != null && longitude != null) {
-            currentLatitude = latitude;
-            currentLongitude = longitude;
+    function updateLocation(
+        locationName,
+        latitude,
+        longitude,
+        accuracyMeters,
+        stateName,
+        locationSource = 'manual_search',
+    ) {
+        const cleanName = String(locationName || '').trim();
+        if (!cleanName || !_isIndiaCoordinate(latitude, longitude)) {
+            notifyFarmer('स्थान की सही GPS जानकारी नहीं मिली। कृपया सूची से स्थान चुनें या GPS फिर चलाएं।', 'warning');
+            return false;
         }
-        if (stateName) {
-            currentState = stateName;
-        }
-        if (accuracyMeters !== undefined && accuracyMeters !== null) {
-            currentLocationAccuracy = accuracyMeters;
-        }
+        currentLocation = cleanName;
+        currentLatitude = Number(latitude);
+        currentLongitude = Number(longitude);
+        currentState = String(stateName || '').trim();
+        currentLocationSource = locationSource === 'gps' ? 'gps' : 'manual_search';
+        currentLocationAccuracy = Number.isFinite(Number(accuracyMeters))
+            ? Number(accuracyMeters)
+            : null;
         updateAccuracyBadge(currentLocationAccuracy);
+        _saveLocationToStorage(
+            currentLocation,
+            currentLatitude,
+            currentLongitude,
+            currentLocationAccuracy,
+            currentState,
+            currentLocationSource,
+        );
 
         currentMandi = '';
         allMandisCache = [];
         mandiDropdownVisibleCount = 80;
+        mandiFilterText = '';
         const mandiSel = document.getElementById('mandiSelector');
         if (mandiSel) mandiSel.value = '';
+        const mandiSearch = document.getElementById('mandiSearchInput');
+        if (mandiSearch) mandiSearch.value = '';
 
         const accLabel = currentLocationAccuracy != null
             ? ` ±${Math.round(currentLocationAccuracy)}m` : '';
@@ -244,6 +443,7 @@
         // Bug #5 fix: debounce service reloads to prevent parallel API floods
         clearTimeout(updateLocation._debounceTimer);
         updateLocation._debounceTimer = setTimeout(() => { reloadAllServices(); }, 150);
+        return true;
     }
 
     // ── Farmer profile helpers ────────────────────────────────────────────────
@@ -302,6 +502,11 @@
     function searchLocations(event) {
         clearTimeout(locationSearchTimeout);
 
+        if (event.key === 'Enter') {
+            hideLocationSuggestions();
+            return;
+        }
+
         const input = event.target;
         const query = input.value.trim();
 
@@ -314,7 +519,7 @@
             let suggestions = filterLocalCitySuggestions(query);
             try {
                 const response = await fetch(
-                    apiFetch(`/api/locations/search/?q=${encodeURIComponent(query)}`),
+                    apiFetch(`/api/locations/search/?q=${encodeURIComponent(query)}&limit=8`),
                 );
                 const data = await response.json();
                 const apiResults = (data.results || []).map(r => ({
@@ -324,7 +529,12 @@
                     lon: r.lon,
                     state: r.state || '',
                     type: r.type || 'place',
-                }));
+                })).filter((result, index, all) => {
+                    const key = `${String(result.name).toLowerCase()}|${String(result.subtitle).toLowerCase()}`;
+                    return all.findIndex(candidate =>
+                        `${String(candidate.name).toLowerCase()}|${String(candidate.subtitle).toLowerCase()}` === key
+                    ) === index;
+                });
                 if (apiResults.length) {
                     const seen = new Set(apiResults.map(r => `${r.lat}:${r.lon}`));
                     for (const local of suggestions) {
@@ -339,7 +549,7 @@
             } catch (err) {
                 console.error('Location search failed:', err);
             }
-            showLocationSuggestions(suggestions);
+            showLocationSuggestions(suggestions.slice(0, 8));
         }, 300);
     }
 
@@ -404,6 +614,7 @@
         const input = document.getElementById('locationSearchInput');
         if (!input || !input.value.trim()) return;
         const query = input.value.trim();
+        clearTimeout(locationSearchTimeout);
         hideLocationSuggestions();
 
         const match = INDIAN_CITIES.find(c => c.name.toLowerCase() === query.toLowerCase())
@@ -415,6 +626,14 @@
             apiGetJson(`/api/locations/resolve/?location=${encodeURIComponent(query)}`)
                 .then(data => {
                     const loc = data.location || {};
+                    const source = String(loc.source || '');
+                    const confidence = Number(loc.confidence || 0);
+                    if (source === 'text_query_ungeocoded'
+                        || source === 'default_fallback'
+                        || confidence < 0.55
+                        || !_isIndiaCoordinate(loc.latitude, loc.longitude)) {
+                        throw new Error('Location could not be verified');
+                    }
                     updateLocation(
                         loc.display_name || query,
                         loc.latitude,
@@ -423,21 +642,24 @@
                         loc.state || ''
                     );
                 })
-                .catch(() => updateLocation(
-                    query,
-                    currentLatitude,
-                    currentLongitude,
-                    null,
-                    currentState || ''
-                ));
+                .catch(() => {
+                    if (input) input.value = '';
+                    notifyFarmer('यह स्थान सत्यापित नहीं हो पाया। सही वर्तनी से खोजें और सूची में से विकल्प चुनें।', 'warning');
+                });
         }
     }
 
     // ── Persist location to localStorage ──────────────────────────────────
-    function _saveLocationToStorage(name, lat, lon, acc, state) {
+    function _saveLocationToStorage(name, lat, lon, acc, state, source) {
         try {
             localStorage.setItem(LS_LOC_KEY, JSON.stringify({
-                name, lat, lon, acc: acc || null, state: state || '', ts: Date.now()
+                name,
+                lat,
+                lon,
+                acc: acc || null,
+                state: state || '',
+                source: source === 'gps' ? 'gps' : 'manual_search',
+                ts: Date.now(),
             }));
         } catch (_) {}
     }
@@ -451,6 +673,54 @@
             if (Date.now() - (d.ts || 0) > 30 * 60 * 1000) return null;
             return d;
         } catch (_) { return null; }
+    }
+
+    const OFFLINE_CACHE_PREFIX = 'km_offline_v1';
+
+    function _offlineCacheKey(service, variant) {
+        if (!hasConfirmedLocation()) return '';
+        const lat = Number(currentLatitude).toFixed(3);
+        const lon = Number(currentLongitude).toFixed(3);
+        const suffix = String(variant || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
+        return `${OFFLINE_CACHE_PREFIX}:${service}:${lat}:${lon}:${suffix}`;
+    }
+
+    function _saveOfflineResult(service, variant, data) {
+        const key = _offlineCacheKey(service, variant);
+        if (!key || !data) return;
+        try {
+            localStorage.setItem(key, JSON.stringify({
+                saved_at: new Date().toISOString(),
+                location: currentLocation,
+                latitude: currentLatitude,
+                longitude: currentLongitude,
+                data,
+            }));
+        } catch (error) {
+            console.warn('Offline cache unavailable', error);
+        }
+    }
+
+    function _loadOfflineResult(service, variant, maxAgeHours) {
+        const key = _offlineCacheKey(service, variant);
+        if (!key) return null;
+        try {
+            const entry = JSON.parse(localStorage.getItem(key) || 'null');
+            const savedAt = entry && Date.parse(entry.saved_at);
+            if (!entry || !entry.data || !Number.isFinite(savedAt)) return null;
+            if (Date.now() - savedAt > maxAgeHours * 60 * 60 * 1000) return null;
+            const data = JSON.parse(JSON.stringify(entry.data));
+            data.is_live = false;
+            data.status = 'cached_stale';
+            data.freshness = 'cached_stale';
+            data.is_stale = true;
+            data.cached_at = entry.saved_at;
+            data.data_source = `Cached successful response from ${new Date(savedAt).toLocaleString('hi-IN')}`;
+            data._offline_cache = true;
+            return data;
+        } catch (error) {
+            return null;
+        }
     }
 
     // ── Reverse geocode helper ────────────────────────────────────────────
@@ -509,11 +779,29 @@
 
     // ── One-time detect (button press) — keeps watching permanently ──────
     function detectLocation() {
+        if (!window.isSecureContext) {
+            notifyFarmer('इस लिंक पर GPS अनुमति उपलब्ध नहीं है। ऊपर अपना शहर, जिला या गाँव खोजें।', 'warning');
+            return;
+        }
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser');
+            notifyFarmer('इस ब्राउज़र में GPS उपलब्ध नहीं है। ऊपर शहर या गाँव खोजें।', 'warning');
             return;
         }
         startContinuousLocationWatch();
+    }
+
+    async function startLocationIfAlreadyAllowed() {
+        if (!window.isSecureContext || !navigator.geolocation) return;
+        if (!navigator.permissions || typeof navigator.permissions.query !== 'function') return;
+        try {
+            const status = await navigator.permissions.query({ name: 'geolocation' });
+            if (status.state === 'granted') {
+                startContinuousLocationWatch();
+            }
+        } catch (_) {
+            // Safari and some embedded browsers do not expose geolocation via
+            // Permissions API. The farmer can still use the explicit GPS button.
+        }
     }
 
     // ── CONTINUOUS GPS TRACKING (runs for the whole session) ─────────────
@@ -523,6 +811,7 @@
             navigator.geolocation.clearWatch(_gpsWatchId);
             _gpsWatchId = null;
         }
+        clearTimeout(_gpsRequestTimer);
 
         const locationDisplay = document.getElementById('currentLocationDisplay');
         if (locationDisplay) locationDisplay.textContent = 'GPS खोज रहा है… (±10m)';
@@ -538,6 +827,7 @@
         let _bestAccuracy = Infinity;  // track the best fix seen in this session
 
         const onPosition = async (position) => {
+            clearTimeout(_gpsRequestTimer);
             const { latitude: lat, longitude: lon, accuracy } = position.coords;
             _showGpsPulse(true);
             updateAccuracyBadge(accuracy);
@@ -583,30 +873,42 @@
                     const { name, state } = await _reverseGeocode(lat, lon, accuracy);
                     _lastReloadLat = lat;
                     _lastReloadLon = lon;
-                    _saveLocationToStorage(name, lat, lon, accuracy, state);
-                    updateLocation(name, lat, lon, accuracy, state);
+                    updateLocation(name, lat, lon, accuracy, state, 'gps');
                 } catch (err) {
                     console.warn('Reverse geocode failed, using coords:', err.message);
                     _lastReloadLat = lat;
                     _lastReloadLon = lon;
                     const coordName = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                    updateLocation(coordName, lat, lon, accuracy, currentState);
+                    updateLocation(coordName, lat, lon, accuracy, currentState, 'gps');
                 }
             }, isFirstFix ? 500 : 2000); // faster on first fix
         };
 
         const onError = (err) => {
+            clearTimeout(_gpsRequestTimer);
             console.warn('GPS error:', err.message);
             _showGpsPulse(false);
+            if (_gpsWatchId !== null) {
+                navigator.geolocation.clearWatch(_gpsWatchId);
+                _gpsWatchId = null;
+            }
             const display = document.getElementById('currentLocationDisplay');
-            if (display) display.textContent = currentLocation;
+            if (display) display.textContent = currentLocation || 'स्थान चुनें या GPS चलाएं';
             if (_lastReloadLat === null) {
-                // Never got a fix — show helpful message
-                console.log('No GPS — using stored/default location');
+                const messages = {
+                    1: 'GPS अनुमति बंद है। ब्राउज़र में Location अनुमति दें या ऊपर अपना स्थान खोजें।',
+                    2: 'अभी GPS स्थान उपलब्ध नहीं है। खुले स्थान में फिर कोशिश करें या अपना गाँव खोजें।',
+                    3: 'GPS ने समय पर जवाब नहीं दिया। फिर कोशिश करें या ऊपर अपना स्थान खोजें।',
+                };
+                notifyFarmer(messages[err.code] || 'GPS स्थान नहीं मिला। ऊपर शहर, जिला या गाँव खोजें।', 'warning');
             }
         };
 
         _gpsWatchId = navigator.geolocation.watchPosition(onPosition, onError, geoOptions);
+        _gpsRequestTimer = setTimeout(() => onError({
+            code: 3,
+            message: 'Location request timed out',
+        }), 32000);
         console.log('🛰️ Continuous GPS watch started (ID:', _gpsWatchId, ')');
     }
 
@@ -615,18 +917,26 @@
     // ========================================
 
     function showService(serviceName) {
+        const body = document.body;
+        const servicesContainer = document.querySelector('.services-container');
+        const hero = document.getElementById('appHero');
+
         // 'home' — hide all panels and scroll back to services section
         if (serviceName === 'home') {
             const sections = document.querySelectorAll('.content-section');
             sections.forEach(section => { section.style.display = 'none'; });
-            const servicesContainer = document.querySelector('.services-container');
+            body.classList.remove('service-view');
+            if (hero) hero.removeAttribute('aria-hidden');
+            if (servicesContainer) servicesContainer.style.display = '';
             if (servicesContainer) {
-                servicesContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
             // Sync bottom nav & top nav
             if (typeof window._syncBottomNav === 'function') window._syncBottomNav('home');
+            syncTopNavigation('home');
+            closeMobileNavigation();
             return;
         }
 
@@ -637,14 +947,24 @@
 
         const targetSection = document.getElementById(serviceName + '-content');
         if (targetSection) {
+            body.classList.add('service-view');
+            if (hero) hero.setAttribute('aria-hidden', 'true');
+            if (servicesContainer) servicesContainer.style.display = 'none';
             targetSection.style.display = 'block';
-            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const heading = targetSection.querySelector('h2');
+            if (heading) {
+                heading.setAttribute('tabindex', '-1');
+                window.setTimeout(() => heading.focus({ preventScroll: true }), 250);
+            }
         } else {
             console.warn(`⚠️ No content section found for service: ${serviceName}`);
         }
 
         // Sync bottom nav & top nav active states
         if (typeof window._syncBottomNav === 'function') window._syncBottomNav(serviceName);
+        syncTopNavigation(serviceName);
+        closeMobileNavigation();
 
         // Reload live data when user opens a service panel
         const loaders = {
@@ -668,6 +988,35 @@
         }
     }
 
+    function syncTopNavigation(serviceName) {
+        const aliases = {
+            home: 'home', weather: 'weather', 'market-prices': 'market',
+            'government-schemes': 'schemes', 'ai-assistant': 'ai',
+        };
+        document.querySelectorAll('.navbar .nav-link').forEach(link => link.classList.remove('active'));
+        const active = document.getElementById(`nav-${aliases[serviceName] || ''}`);
+        if (active) active.classList.add('active');
+    }
+
+    function closeMobileNavigation() {
+        const menu = document.getElementById('navbarNav');
+        if (!menu || !menu.classList.contains('show')) return;
+        const Collapse = window.bootstrap && window.bootstrap.Collapse;
+        if (Collapse) Collapse.getOrCreateInstance(menu).hide();
+    }
+
+    function addServiceBackButtons() {
+        document.querySelectorAll('.content-section > .container').forEach(container => {
+            if (container.querySelector('.service-back-button')) return;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'service-back-button';
+            button.innerHTML = '<i class="fas fa-arrow-left" aria-hidden="true"></i><span>सभी सेवाएं</span>';
+            button.addEventListener('click', () => showService('home'));
+            container.prepend(button);
+        });
+    }
+
     function setupServiceCards() {
         // Bind service cards — both onclick attribute cards and nav links
         const clickableEls = document.querySelectorAll(
@@ -682,6 +1031,17 @@
                 const serviceName = match[1];
                 // Ensure pointer cursor is visible
                 el.style.cursor = 'pointer';
+                if (el.classList.contains('service-card')) {
+                    el.setAttribute('role', 'button');
+                    el.setAttribute('tabindex', '0');
+                    el.setAttribute('aria-label', `${el.querySelector('.service-title')?.textContent || 'सेवा'} खोलें`);
+                    el.addEventListener('keydown', function (event) {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            showService(serviceName);
+                        }
+                    });
+                }
                 el.onclick = function (e) {
                     e.preventDefault();
                     showService(serviceName);
@@ -700,6 +1060,41 @@
         const raw = document.getElementById('mandiRadiusSelect')?.value || '150';
         const radius = parseInt(raw, 10);
         return Number.isFinite(radius) ? radius : 150;
+    }
+
+    function getMandiScope() {
+        return document.getElementById('mandiRadiusSelect')?.value === 'state'
+            ? 'state'
+            : 'nearby';
+    }
+
+    function filteredMandis() {
+        const query = mandiFilterText.trim().toLocaleLowerCase('en-IN');
+        if (!query) return allMandisCache;
+        return allMandisCache.filter(mandi => [mandi.name, mandi.district, mandi.state]
+            .some(value => String(value || '').toLocaleLowerCase('en-IN').includes(query)));
+    }
+
+    function updateMandiLoadMoreButton(mandis) {
+        const button = document.getElementById('mandiLoadMoreBtn');
+        if (!button) return;
+        const remaining = Math.max(0, mandis.length - mandiDropdownVisibleCount);
+        button.style.display = remaining > 0 ? 'inline-block' : 'none';
+        if (remaining > 0) button.textContent = `और मंडियां (+${remaining})`;
+    }
+
+    function filterMandiOptions(value) {
+        mandiFilterText = String(value || '');
+        mandiDropdownVisibleCount = mandiFilterText.trim() ? 500 : 80;
+        const mandis = filteredMandis();
+        renderMandiOptions(mandis, mandiDropdownVisibleCount);
+        updateMandiLoadMoreButton(mandis);
+        const badge = document.getElementById('mandiRegistryStatus');
+        if (badge && mandiFilterText.trim()) {
+            badge.textContent = mandis.length
+                ? `🔎 ${mandis.length} मंडियां मिलीं`
+                : '⚠️ इस नाम या जिले की मंडी नहीं मिली';
+        }
     }
 
     function renderMandiOptions(mandis, visibleCount) {
@@ -721,7 +1116,7 @@
             items.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.name;
-                const live  = m.live ? '🟢 ' : '';
+                const live  = m.live ? '🟢 ' : m.registered ? '🏛️ ' : '';
                 const dist  = m.distance_km != null ? ` · ${m.distance_km} km` : '';
                 const dist2 = m.district ? ` · ${m.district}` : '';
                 opt.textContent = `${live}${m.name}${dist2}${dist}`;
@@ -741,7 +1136,7 @@
             slice.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.name;
-                const live = m.live ? '🟢 ' : '';
+                const live = m.live ? '🟢 ' : m.registered ? '🏛️ ' : '';
                 const dist = m.distance_km != null ? ` · ${m.distance_km} km` : '';
                 const dist2 = m.district ? ` · ${m.district}` : '';
                 opt.textContent = `${live}${m.name}${dist2}${dist}`;
@@ -753,18 +1148,25 @@
 
     function loadMoreMandis() {
         mandiDropdownVisibleCount += 80;
-        renderMandiOptions(allMandisCache, mandiDropdownVisibleCount);
-        const btn = document.getElementById('mandiLoadMoreBtn');
-        if (btn && mandiDropdownVisibleCount >= allMandisCache.length) {
-            btn.style.display = 'none';
-        }
+        const mandis = filteredMandis();
+        renderMandiOptions(mandis, mandiDropdownVisibleCount);
+        updateMandiLoadMoreButton(mandis);
     }
 
     async function populateMandiDropdown() {
         const sel = document.getElementById('mandiSelector');
-        const badge = document.getElementById('mandiStatusBadge');
+        const badge = document.getElementById('mandiRegistryStatus');
         const loadMoreBtn = document.getElementById('mandiLoadMoreBtn');
         if (!sel) return;
+
+        if (!hasConfirmedLocation()) {
+            sel.innerHTML = '<option value="">-- पहले अपना स्थान चुनें --</option>';
+            sel.disabled = true;
+            if (badge) badge.textContent = 'स्थान की पुष्टि के बाद नज़दीकी मंडियां दिखेंगी';
+            if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+            return;
+        }
+        sel.disabled = false;
 
         sel.innerHTML = '<option value="">-- नज़दीकी मंडियां लोड हो रही हैं... --</option>';
         if (badge) badge.textContent = '⏳ आपकी नज़दीकी मंडियां...';
@@ -774,11 +1176,16 @@
             // Pass GPS + radius so backend returns location-specific mandis only
             const locQ = buildLocationQuery();
             const radiusKm = getMandiRadiusKm();
+            const scope = getMandiScope();
+            const limit = scope === 'state' ? 500 : 50;
             const data = await apiGetJson(
-                `/api/market-prices/mandis/?${locQ}&radius_km=${radiusKm}`
+                `/api/market-prices/mandis/?${locQ}&radius_km=${radiusKm}&scope=${scope}&limit=${limit}`
             );
             allMandisCache = data.mandis || [];
             mandiDropdownVisibleCount = 80;
+            mandiFilterText = '';
+            const searchInput = document.getElementById('mandiSearchInput');
+            if (searchInput) searchInput.value = '';
 
             const stillAvailable = currentMandi
                 ? allMandisCache.some(m => m.name === currentMandi)
@@ -790,11 +1197,7 @@
             renderMandiOptions(allMandisCache, mandiDropdownVisibleCount);
 
             // Show "load more" only if list exceeds visible count
-            if (loadMoreBtn && allMandisCache.length > mandiDropdownVisibleCount) {
-                loadMoreBtn.style.display = 'inline-block';
-                loadMoreBtn.textContent =
-                    `और मंडियां (+${allMandisCache.length - mandiDropdownVisibleCount})`;
-            }
+            updateMandiLoadMoreButton(allMandisCache);
 
             // Status badge — show nearest mandi prominently
             if (badge) {
@@ -808,19 +1211,25 @@
                     const liveHint = data.live_count
                         ? ` · ${data.live_count} live`
                         : '';
+                    const scopeHint = data.scope === 'state'
+                        ? `पूरे ${data.state || currentState || 'राज्य'} में`
+                        : `${radiusKm} km में`;
+                    const registeredHint = data.registered_count
+                        ? ` · ${data.registered_count} Agmarknet-पंजीकृत`
+                        : '';
                     badge.textContent =
-                        `🏪 ${allMandisCache.length} मंडियां (${radiusKm} km)${distHint}${liveHint}`;
+                        `🏪 ${allMandisCache.length} मंडियां ${scopeHint}${distHint}${registeredHint}${liveHint}`;
                 }
             }
 
-            // Auto-select nearest mandi if none is currently selected
-            if (!currentMandi && data.nearest_mandi) {
+            // Highlight the nearest mandi, but do not auto-select it. The
+            // default screen should show current official state rows; choosing
+            // a mandi deliberately switches to exact-market arrivals only.
+            if (!currentMandi && data.nearest_mandi && data.scope !== 'state') {
                 const nearestName = data.nearest_mandi.name;
                 if (nearestName) {
-                    currentMandi = nearestName;
-                    sel.value = nearestName;
                     if (badge) badge.textContent =
-                        `📍 ${nearestName} (${data.nearest_mandi.distance_km || '?'} km) — आपकी नज़दीकी मंडी`;
+                        `📍 नज़दीकी: ${nearestName} (${data.nearest_mandi.distance_km ?? '?'} km) · उसके भाव देखने के लिए चुनें`;
                 }
             }
         } catch (err) {
@@ -833,6 +1242,7 @@
     function refreshNearbyMandis() {
         currentMandi = '';
         allMandisCache = [];
+        mandiFilterText = '';
         const sel = document.getElementById('mandiSelector');
         if (sel) sel.value = '';
         populateMandiDropdown().then(() => loadMarketPrices());
@@ -847,7 +1257,7 @@
         const badge = document.getElementById('mandiStatusBadge');
         if (badge) {
             badge.textContent = mandiName
-                ? `📍 ${mandiName} — live data fetching…`
+                ? `📍 ${mandiName} — आधिकारिक आवक जांची जा रही है…`
                 : `🏪 सभी मंडियों का राज्य-स्तरीय भाव`;
         }
         // Clear refresh timer so mandi change triggers a fresh fetch immediately
@@ -855,9 +1265,48 @@
         loadMarketPrices();
     }
 
+    function updateMandiSelectionStatus(data) {
+        const badge = document.getElementById('mandiStatusBadge');
+        if (!badge || !data) return;
+        const rowCount = (data.top_crops || data.crops || []).length;
+
+        if (currentMandi) {
+            if (data.is_live === true && rowCount > 0) {
+                badge.textContent = `🟢 ${currentMandi} · ${rowCount} सत्यापित आधिकारिक भाव`;
+            } else if (data.mandi_no_live_rows === true) {
+                badge.textContent = `🔴 ${currentMandi} · अभी ताजा आधिकारिक आवक नहीं मिली`;
+            } else {
+                badge.textContent = `⚠️ ${currentMandi} · आधिकारिक भाव अभी उपलब्ध नहीं`;
+            }
+            return;
+        }
+
+        if (data.is_live === true && rowCount > 0) {
+            const stateName = data.state || currentState || 'राज्य';
+            badge.textContent = `🟢 ${stateName} · ${rowCount} नवीनतम आधिकारिक औसत भाव`;
+        } else if ((data.latest_official_rows || []).length > 0) {
+            const stateName = data.state || currentState || 'राज्य';
+            badge.textContent = `📅 ${stateName} · ${data.latest_official_reported_date || ''} का आधिकारिक औसत संदर्भ`;
+        } else {
+            badge.textContent = '🔴 राज्य का आधिकारिक मंडी डेटा अभी उपलब्ध नहीं';
+        }
+    }
+
     function hideCropPriceSuggestions() {
         const el = document.getElementById('cropPriceSuggestions');
         if (el) el.style.display = 'none';
+    }
+
+    function bindAccessibleSuggestion(element, activate) {
+        element.setAttribute('role', 'button');
+        element.setAttribute('tabindex', '0');
+        element.addEventListener('click', activate);
+        element.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                activate();
+            }
+        });
     }
 
     function showCropPriceSuggestions(results) {
@@ -874,12 +1323,12 @@
             const label = escapeHtml(c.label || c.name || '');
             html += `<div class="crop-suggestion" data-crop-id="${id}" data-crop-name="${name}" data-crop-label="${label}">
                 <div class="crop-suggestion-name">${escapeHtml(c.label || c.name)}</div>
-                <div class="crop-suggestion-details">${escapeHtml(c.category || '')}${c.msp ? ' • MSP ₹' + escapeHtml(c.msp) : ''}</div>
+                <div class="crop-suggestion-details">${escapeHtml(c.category || '')}${c.msp ? ' • MSP ' + escapeHtml(c.msp_season || 'current') + ' ₹' + escapeHtml(c.msp) : ' • No central MSP'}</div>
             </div>`;
         });
         container.innerHTML = html;
         container.querySelectorAll('.crop-suggestion').forEach(el => {
-            el.addEventListener('click', () => {
+            bindAccessibleSuggestion(el, () => {
                 selectCropForMarket(
                     el.getAttribute('data-crop-id'),
                     el.getAttribute('data-crop-name'),
@@ -955,7 +1404,7 @@
         });
         container.innerHTML = html;
         container.querySelectorAll('.crop-suggestion').forEach((el) => {
-            el.addEventListener('click', () => {
+            bindAccessibleSuggestion(el, () => {
                 const input = document.getElementById('cropSearchInput');
                 const label = el.getAttribute('data-crop-label');
                 if (input) input.value = label;
@@ -1001,6 +1450,14 @@
         loadCropRecommendations();
     }
 
+    function clearCropRecommendationSearch() {
+        const input = document.getElementById('cropSearchInput');
+        if (input) input.value = '';
+        hideCropSuggestions();
+        showService('crop-recommendations');
+        loadCropRecommendations();
+    }
+
     function hideKrCropSuggestions() {
         const el = document.getElementById('krCropSuggestions');
         if (el) el.style.display = 'none';
@@ -1029,7 +1486,10 @@
             div.appendChild(detailEl);
             const cropId    = c.id    || c.name || '';
             const cropLabel = c.label || c.name || '';
-            div.addEventListener('click', () => selectCropForDiagnostics(cropId, cropLabel));
+            bindAccessibleSuggestion(
+                div,
+                () => selectCropForDiagnostics(cropId, cropLabel),
+            );
             container.appendChild(div);
         });
         container.style.display = 'block';
@@ -1071,37 +1531,55 @@
         const banner = document.getElementById('marketLiveBanner');
         if (!banner) return;
 
-        const showEstimates = document.getElementById('showMspEstimates')?.checked;
         const isLive        = data.is_live === true && data.status !== 'fallback';
         const isPartial     = data.status === 'partial';
         const isFallback    = data.status === 'fallback' || data._auto_estimates;
         const isUnavailable = data.status === 'unavailable';
+        const officialRows = data.top_crops || data.crops || [];
+        const datedOfficialRows = data.latest_official_rows || [];
+        const rowAges = officialRows
+            .map(row => Number(row.data_age_minutes))
+            .filter(age => Number.isFinite(age));
+        const newestAge = rowAges.length ? Math.min(...rowAges) : null;
+        const reportDate = officialRows.find(row => row.reported_date || row.date)?.reported_date
+            || officialRows.find(row => row.reported_date || row.date)?.date
+            || '';
 
         if (isLive) {
-            banner.style.display = 'none';
-            banner.textContent = '';
+            if (newestAge !== null && newestAge > 24 * 60) {
+                banner.style.display = 'block';
+                banner.className = 'market-live-banner market-live-banner--partial';
+                banner.innerHTML = `📅 नवीनतम आधिकारिक रिपोर्ट ${escapeHtml(reportDate || '')} की है; यह इस समय का लाइव टिक नहीं है।`;
+            } else {
+                banner.style.display = 'none';
+                banner.textContent = '';
+            }
             return;
         }
 
         banner.style.display = 'block';
 
-        if (isPartial) {
+        if (data._offline_cache) {
             banner.className = 'market-live-banner market-live-banner--partial';
-            banner.innerHTML = '🟡 Partial live feed — only live rows shown. Some mandis may have delayed data.';
+            banner.innerHTML = `🕒 ऑफलाइन: ${escapeHtml(data.cached_at || '')} का अंतिम सत्यापित मंडी डेटा। बेचने से पहले नया भाव जांचें।`;
+        } else if (isPartial) {
+            banner.className = 'market-live-banner market-live-banner--partial';
+            banner.innerHTML = '🟡 कुछ मंडियों का ताजा डेटा मिला है। केवल सत्यापित भाव दिखाए जा रहे हैं।';
         } else if (isFallback) {
             banner.className = 'market-live-banner market-live-banner--estimate';
-            banner.innerHTML = '📊 MSP seasonal estimates — NOT live mandi trade prices. '
-                + '<a href="https://data.gov.in/user/register" target="_blank">Register free key</a> for live data.';
+            banner.innerHTML = '📊 यह MSP संदर्भ है, आज का मंडी व्यापार भाव नहीं। बेचने से पहले मंडी से पुष्टि करें।';
+        } else if (isUnavailable && data.mandi_no_live_rows === true) {
+            banner.className = 'market-live-banner market-live-banner--warn';
+            banner.innerHTML = `🔴 ${escapeHtml(data.selected_mandi || currentMandi || 'चुनी मंडी')} में अभी ताजा आधिकारिक आवक नहीं मिली। कोई दूसरी मंडी का भाव इसके नाम पर नहीं दिखाया गया है।`;
+        } else if (isUnavailable && datedOfficialRows.length) {
+            banner.className = 'market-live-banner market-live-banner--partial';
+            banner.innerHTML = `📅 आज का सत्यापित भाव उपलब्ध नहीं है। ${escapeHtml(data.latest_official_reported_date || '')} का नवीनतम आधिकारिक औसत संदर्भ नीचे दिया गया है।`;
+        } else if (isUnavailable && data.api_key_registered === false) {
+            banner.className = 'market-live-banner market-live-banner--warn';
+            banner.innerHTML = '🔴 इस स्थान के लिए आधिकारिक मंडी पंक्तियां अभी उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
         } else if (isUnavailable) {
             banner.className = 'market-live-banner market-live-banner--warn';
-            const reg = data.api_key_registered;
-            if (!reg) {
-                banner.innerHTML = '🔴 Live mandi data needs DATA_GOV_IN_API_KEY — '
-                    + '<a href="https://data.gov.in/user/register" target="_blank" style="color:#856404;font-weight:700;">Register free at data.gov.in</a> '
-                    + '(set key in .env → restart server)';
-            } else {
-                banner.innerHTML = `🔴 ${escapeHtml(data.message || 'Live data temporarily unavailable — try again in a moment.')}`;
-            }
+            banner.innerHTML = '🔴 अभी सत्यापित लाइव मंडी भाव उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
         } else {
             banner.className = 'market-live-banner market-live-banner--warn';
             banner.innerHTML = escapeHtml(data.message || 'Market data status unknown');
@@ -1119,46 +1597,50 @@
         // Clear any existing auto-refresh
         if (_mandiRefreshTimer) { clearTimeout(_mandiRefreshTimer); _mandiRefreshTimer = null; }
 
+        if (!hasConfirmedLocation()) {
+            renderLocationRequired(container, 'नज़दीकी मंडी और लाइव भाव');
+            updateMarketLiveBanner({
+                status: 'unavailable',
+                message: 'स्थान चुनने के बाद मंडी भाव लोड होंगे।',
+            });
+            return;
+        }
+
         container.innerHTML = `<div class="loading" style="text-align:center;padding:30px;">
             <i class="fas fa-spinner fa-spin fa-2x" style="color:#4a7c59;"></i>
             <p style="margin-top:12px;color:#2d5016;">${(typeof window.t === 'function' ? window.t('loading') : 'Loading...')} मंडी भाव…</p>
         </div>`;
 
         try {
-            const estimatesChecked = document.getElementById('showMspEstimates')?.checked;
             let data;
+            const typedCrop = document.getElementById('cropPriceSearchInput')?.value?.trim();
+            const requestedCrop = currentCropSearch || typedCrop;
 
             // Use mandi-specific endpoint when a mandi is selected (more accurate)
+            const marketCacheVariant = `${currentMandi || 'nearby'}:${requestedCrop || 'all'}`;
             if (currentMandi && currentMandi.trim()) {
                 let mandiPath = `/api/market-prices/mandi-prices/?${buildLocationQuery()}`;
                 mandiPath += `&mandi=${encodeURIComponent(currentMandi)}`;
-                if (currentCropSearch) mandiPath += `&crop=${encodeURIComponent(currentCropSearch)}`;
-                if (estimatesChecked) mandiPath += '&include_estimates=true';
+                if (requestedCrop) mandiPath += `&crop=${encodeURIComponent(requestedCrop)}`;
                 data = await apiGetJson(mandiPath);
             } else {
                 // Generic state-level prices
                 let marketPath = `/api/market-prices/?${buildLocationQuery()}`;
-                if (currentCropSearch) marketPath += `&crop=${encodeURIComponent(currentCropSearch)}`;
-                if (estimatesChecked) marketPath += '&include_estimates=true';
+                if (requestedCrop) marketPath += `&crop=${encodeURIComponent(requestedCrop)}`;
                 data = await apiGetJson(marketPath);
             }
 
-            // Auto-fetch estimates if no live rows and estimates not yet shown
-            if ((!data.top_crops || data.top_crops.length === 0) &&
-                (data.status === 'unavailable' || data.status === 'partial') && !estimatesChecked) {
-                const ePath = currentMandi
-                    ? `/api/market-prices/mandi-prices/?${buildLocationQuery()}&mandi=${encodeURIComponent(currentMandi)}&include_estimates=true`
-                    : `/api/market-prices/?${buildLocationQuery()}&include_estimates=true${currentCropSearch ? '&crop=' + encodeURIComponent(currentCropSearch) : ''}`;
-                const est = await apiGetJson(ePath);
-                if (est.top_crops?.length) { data = est; data._auto_estimates = true; }
+            if (data.is_live === true) {
+                _saveOfflineResult('mandi', marketCacheVariant, data);
             }
 
             _mandiLastFetchedAt = new Date();
             updateMarketLiveBanner(data);
+            updateMandiSelectionStatus(data);
             _renderMarketPrices(data, container);
 
-            // Schedule auto-refresh (live: 3min, estimates: 10min)
-            const refreshMs = data.is_live ? 180000 : 600000;
+            // Refresh live data every 5 minutes; retry an unavailable feed in 1 minute.
+            const refreshMs = data.is_live ? 300000 : 60000;
             _mandiRefreshTimer = setTimeout(() => {
                 const badge = document.getElementById('mandiStatusBadge');
                 if (badge) badge.textContent += ' (refreshing…)';
@@ -1166,55 +1648,127 @@
             }, refreshMs);
 
         } catch (error) {
-            container.innerHTML = `<div style="padding:20px;text-align:center;color:#dc3545;">
-                <i class="fas fa-exclamation-triangle"></i> बाजार भाव लोड त्रुटि: ${escapeHtml(error.message)}
-                <br><small>Backend चालू है? — <code>python manage.py runserver</code></small>
-            </div>`;
+            const typedCrop = document.getElementById('cropPriceSearchInput')?.value?.trim();
+            const requestedCrop = currentCropSearch || typedCrop;
+            const marketCacheVariant = `${currentMandi || 'nearby'}:${requestedCrop || 'all'}`;
+            const cached = _loadOfflineResult('mandi', marketCacheVariant, 72);
+            if (cached) {
+                updateMarketLiveBanner(cached);
+                _renderMarketPrices(cached, container);
+            } else {
+                container.innerHTML = `<div style="padding:20px;text-align:center;color:#dc3545;">
+                    <i class="fas fa-exclamation-triangle"></i> मंडी भाव अभी लोड नहीं हो पाए। कुछ देर बाद फिर कोशिश करें।
+                </div>`;
+            }
         }
     }
 
     function _renderMarketPrices(data, container) {
         const crops = (data.top_crops || data.crops || []).filter(c => {
-            if (data.is_live && !document.getElementById('showMspEstimates')?.checked) {
+            if (data.is_live) {
                 return c.price_source !== 'msp_seasonal_estimate' && c.price_source !== 'msp_mandi_estimate' && !c.supplemented;
             }
             return true;
         });
 
-        const selectedMandi = data.selected_mandi || data.mandi_filter || currentMandi || data.location || currentLocation;
+        const selectedMandi = data.coverage === 'state'
+            ? `${data.state || currentState || 'State'} Agmarknet average`
+            : data.selected_mandi || data.mandi_filter || currentMandi || data.location || currentLocation;
         const isLive = data.is_live === true && data.status !== 'fallback';
         const isPartial = data.status === 'partial';
         const isEstimatesOnly = data.status === 'fallback' || data._auto_estimates;
+        const nearbyAlternatives = (data.nearby_live_alternatives || []).filter(
+            row => row && row.is_live === true && row.mandi_name
+        );
+        const datedOfficialRows = (data.latest_official_rows || []).filter(
+            row => row && Number(row.modal_price || 0) > 0
+        );
+        const officialDates = crops.map(crop => crop.reported_date || crop.date).filter(Boolean);
+        const latestOfficialDate = officialDates[0] || '';
+        const officialAges = crops
+            .map(crop => Number(crop.data_age_minutes))
+            .filter(age => Number.isFinite(age));
+        const newestOfficialAge = officialAges.length ? Math.min(...officialAges) : null;
+        const isFreshOfficial = newestOfficialAge !== null && newestOfficialAge <= 24 * 60;
 
         // Live status bar
         const ageText = _mandiLastFetchedAt
             ? `अपडेट: ${_mandiLastFetchedAt.toLocaleTimeString('hi-IN')}`
             : '';
-        const liveDot = isLive ? '🟢' : isPartial ? '🟡' : '🔴';
+        const liveDot = isLive ? (isFreshOfficial ? '🟢' : '📅') : isPartial ? '🟡' : '🔴';
         const liveLabel = isLive
-            ? `${liveDot} Live — ${escapeHtml(data.data_source || 'Agmarknet / data.gov.in')}`
+            ? `${liveDot} ${isFreshOfficial ? 'ताजा आधिकारिक भाव' : 'नवीनतम आधिकारिक रिपोर्ट'}${latestOfficialDate ? ' · ' + escapeHtml(latestOfficialDate) : ''} — ${escapeHtml(data.data_source || 'Agmarknet / data.gov.in')}`
             : isEstimatesOnly
-            ? `${liveDot} MSP अनुमान — असली मंडी भाव नहीं (DATA_GOV_IN_API_KEY सेट करें)`
+            ? `${liveDot} MSP संदर्भ — आज का मंडी व्यापार भाव नहीं`
             : `${liveDot} ${escapeHtml(data.message || 'Live data unavailable')}`;
 
         if (!crops.length) {
-            const setupMsg = data.api_key_registered === false
-                ? `<div style="background:#fff3e0;border-radius:10px;padding:18px;margin-top:10px;">
-                    <h6 style="color:#e65100;">📋 Live मंडी भाव कैसे पाएं?</h6>
-                    <ol style="color:#555;font-size:0.88rem;line-height:2;">
-                        <li><a href="https://data.gov.in/user/register" target="_blank">data.gov.in/user/register</a> पर Free registration करें</li>
-                        <li>API Keys section से अपना key copy करें</li>
-                        <li><code>.env</code> में <code>DATA_GOV_IN_API_KEY=your_key</code> set करें</li>
-                        <li>Server restart करें</li>
-                    </ol>
-                    <div style="margin-top:10px;">या <button class="btn btn-sm btn-outline-warning" onclick="document.getElementById('showMspEstimates').checked=true;loadMarketPrices();">MSP अनुमान देखें</button></div>
-                  </div>`
+            const unavailableReason = data.mandi_no_live_rows === true
+                ? `${escapeHtml(data.selected_mandi || currentMandi || 'चुनी मंडी')} में अभी ताजा आधिकारिक आवक दर्ज नहीं मिली। यह डेटा की अनुपलब्धता है, सेवा बंद नहीं है।`
+                : 'इस स्थान के सत्यापित ताजा भाव अभी उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई गई है।';
+            let alternativesHtml = '';
+            if (nearbyAlternatives.length) {
+                alternativesHtml = `<div class="nearby-live-prices" style="margin-top:18px;text-align:left;">
+                    <strong style="display:block;color:#1b5e20;margin-bottom:8px;">पास की मंडियों में नवीनतम सत्यापित आधिकारिक भाव</strong>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;">`;
+                nearbyAlternatives.slice(0, 8).forEach(row => {
+                    const price = Number(row.modal_price || row.current_price || 0);
+                    const distance = Number.isFinite(Number(row.distance_km))
+                        ? `${Number(row.distance_km).toFixed(1)} km`
+                        : '';
+                    const date = row.reported_date || row.date || '';
+                    alternativesHtml += `<button type="button" class="nearby-live-price-option"
+                        data-mandi-name="${escapeHtml(row.mandi_name)}"
+                        style="text-align:left;border:1px solid #a5d6a7;background:#f4fbf5;border-radius:6px;padding:10px;cursor:pointer;">
+                        <span style="display:block;font-weight:700;color:#1b5e20;">${escapeHtml(row.mandi_name)}</span>
+                        <span style="display:block;font-size:0.8rem;color:#4b5563;margin-top:3px;">${escapeHtml(row.crop_name || 'फसल')} · ₹${price > 0 ? price.toLocaleString('hi-IN') : '—'}/क्विंटल</span>
+                        <span style="display:block;font-size:0.72rem;color:#6b7280;margin-top:3px;">${escapeHtml([distance, date].filter(Boolean).join(' · '))}</span>
+                    </button>`;
+                });
+                alternativesHtml += `</div><small style="display:block;color:#5f6b63;margin-top:8px;">ये भाव ऊपर चुनी गई मंडी के नहीं हैं। मंडी बदलने के लिए विकल्प चुनें।</small></div>`;
+            }
+            let datedOfficialHtml = '';
+            if (datedOfficialRows.length) {
+                const scopeLabel = data.latest_official_coverage === 'national'
+                    ? 'अखिल भारतीय औसत'
+                    : `${escapeHtml(data.state || currentState || 'राज्य')} औसत`;
+                datedOfficialHtml = `<div class="dated-official-prices" style="margin-top:18px;text-align:left;border-top:1px solid #e5e7eb;padding-top:14px;">
+                    <strong style="display:block;color:#7c5a00;margin-bottom:4px;">📅 नवीनतम आधिकारिक संदर्भ · ${escapeHtml(data.latest_official_reported_date || '')}</strong>
+                    <small style="display:block;color:#6b7280;margin-bottom:10px;">${scopeLabel}; यह आज का लाइव टिक या चुनी मंडी का सटीक भाव नहीं है। स्रोत: ${escapeHtml(data.latest_official_source || 'Agmarknet')}</small>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">`;
+                datedOfficialRows.slice(0, 12).forEach(row => {
+                    const price = Number(row.modal_price || 0);
+                    const arrival = Number(row.arrival_quantity || row.arrival_tonnes || 0);
+                    datedOfficialHtml += `<div style="border:1px solid #f0d58a;background:#fffaf0;border-radius:6px;padding:10px;">
+                        <span style="display:block;font-weight:700;color:#5f4500;">${escapeHtml(row.crop_name_hindi || row.crop_name || 'फसल')}</span>
+                        <span style="display:block;font-size:1rem;font-weight:700;margin-top:3px;">₹${price.toLocaleString('hi-IN')}/क्विंटल</span>
+                        ${arrival > 0 ? `<span style="display:block;font-size:0.72rem;color:#6b7280;margin-top:2px;">आवक: ${arrival.toLocaleString('hi-IN')} टन</span>` : ''}
+                    </div>`;
+                });
+                datedOfficialHtml += `</div></div>`;
+            }
+            const stateBenchmarkHtml = currentMandi
+                ? `<button type="button" class="show-state-market-prices"
+                    style="margin-top:14px;border:1px solid #2d6a3f;background:#f4fbf5;color:#1b5e20;border-radius:6px;padding:9px 12px;font-weight:700;cursor:pointer;">
+                    राज्य के नवीनतम आधिकारिक औसत भाव देखें
+                </button>
+                <small style="display:block;color:#6b7280;margin-top:6px;">ये चुनी मंडी के भाव नहीं होंगे; राज्य का अलग आधिकारिक सारांश होगा।</small>`
                 : '';
             container.innerHTML = `<div style="padding:20px;text-align:center;">
                 <div style="font-size:0.88rem;color:#888;margin-bottom:10px;">${liveLabel}</div>
-                <p style="color:#856404;">${escapeHtml(data.message || 'कोई मंडी भाव उपलब्ध नहीं')}</p>
-                ${setupMsg}
+                <p style="color:#856404;">${unavailableReason}</p>
+                <small style="color:#666;">बेचने से पहले मंडी कार्यालय या eNAM से भाव की पुष्टि करें।</small>
+                ${datedOfficialHtml}
+                ${alternativesHtml}
+                ${stateBenchmarkHtml}
             </div>`;
+            container.querySelectorAll('.nearby-live-price-option').forEach(button => {
+                button.addEventListener('click', () => selectMandi(button.dataset.mandiName || ''));
+            });
+            const stateBenchmarkButton = container.querySelector('.show-state-market-prices');
+            if (stateBenchmarkButton) {
+                stateBenchmarkButton.addEventListener('click', () => selectMandi(''));
+            }
             return;
         }
 
@@ -1223,7 +1777,7 @@
             <div>
                 <div style="font-size:0.85rem;font-weight:600;">${liveLabel}</div>
                 <div style="font-size:0.75rem;color:#aaa;">${ageText} · ${crops.length} commodities</div>
-                ${data.using_demo_key ? '<div style="font-size:0.72rem;color:#f57f17;">⚠️ Demo key (10 rows max) — register your own DATA_GOV_IN_API_KEY</div>' : ''}
+                ${data.using_demo_key ? '<div style="font-size:0.72rem;color:#f57f17;">⚠️ सीमित आधिकारिक फीड — उपलब्ध सत्यापित पंक्तियां ही दिखाई गई हैं</div>' : ''}
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
                 <span style="font-size:0.85rem;font-weight:700;color:#2d5016;">🏪 ${escapeHtml(selectedMandi)}</span>
@@ -1253,10 +1807,10 @@
 
             html += `<div style="background:white;border-radius:13px;padding:16px;box-shadow:0 3px 12px rgba(0,0,0,0.07);
                         border-top:3px solid ${isEst ? '#ffc107' : '#28a745'};position:relative;overflow:hidden;">
-                <!-- Live/Estimate badge -->
+                <!-- Official/estimate badge -->
                 <div style="position:absolute;top:8px;right:8px;font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:8px;
                     background:${isEst ? '#fff3cd' : '#d4edda'};color:${isEst ? '#856404' : '#155724'};">
-                    ${isEst ? 'MSP est.' : '● Live'}
+                    ${isEst ? 'MSP est.' : (isFreshOfficial ? '● Fresh official' : 'Official report')}
                 </div>
 
                 <div style="font-weight:700;color:#2d5016;font-size:0.95rem;margin-bottom:10px;padding-right:55px;">
@@ -1271,7 +1825,7 @@
 
                 <div style="font-size:0.82rem;line-height:1.9;">
                     <div style="display:flex;justify-content:space-between;">
-                        <span style="color:#666;">MSP 2024-25</span>
+                        <span style="color:#666;">MSP संदर्भ</span>
                         <span style="font-weight:600;color:#555;">₹${msp > 0 ? msp.toLocaleString('hi-IN') : '—'}</span>
                     </div>
                     ${profit !== null ? `<div style="display:flex;justify-content:space-between;">
@@ -1294,7 +1848,7 @@
         if ((isEstimatesOnly || data._auto_estimates) && !hasAnyLive) {
             html += `<div style="margin-top:14px;background:#fff8e1;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#856404;">
                 ℹ️ ये MSP-आधारित अनुमान हैं, असली मंडी भाव नहीं।
-                Live prices के लिए: <a href="https://agmarknet.gov.in" target="_blank">agmarknet.gov.in</a> देखें।
+                नवीनतम आधिकारिक भाव के लिए: <a href="https://agmarknet.gov.in" target="_blank">agmarknet.gov.in</a> देखें।
             </div>`;
         }
 
@@ -1313,9 +1867,23 @@
             const container = document.getElementById('weatherData');
             if (!container) return;
 
+            if (!hasConfirmedLocation()) {
+                renderLocationRequired(container, 'स्थानीय मौसम');
+                const heroWidget = document.getElementById('heroWeatherWidget');
+                if (heroWidget) heroWidget.style.display = 'none';
+                return;
+            }
+
             container.innerHTML = `<div class="loading">${(typeof window.t === 'function' ? window.t('loading') : 'Loading...')}</div>`;
 
-            const data = await apiGetJson(`/api/weather/?${buildLocationQuery()}`);
+            let data;
+            try {
+                data = await apiGetJson(`/api/weather/?${buildLocationQuery()}`);
+                if (data.is_live === true) _saveOfflineResult('weather', 'forecast', data);
+            } catch (networkError) {
+                data = _loadOfflineResult('weather', 'forecast', 48);
+                if (!data) throw networkError;
+            }
             window.lastWeatherData = data;
 
             const weather = data.current_weather || data.current || {};
@@ -1325,7 +1893,7 @@
             const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
 
             const liveBadge = data.is_live === false
-                ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#856404;">⚠️ ${escapeHtml(data.data_source || 'Estimated — all APIs unavailable')}</div>`
+                ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#856404;">${data._offline_cache ? '🕒 Cached/stale' : '⚠️ Unavailable'}: ${escapeHtml(data.data_source || 'No weather values available')}</div>`
                 : `<div style="background:#d4edda;border:1px solid #c3e6cb;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#155724;">✅ Live: ${escapeHtml(data.data_source || 'Open-Meteo (Real-time, Free, 1km)')} · Real-time</div>`;
 
             if (weather && weather.temperature != null) {
@@ -1415,7 +1983,7 @@
                     });
                 }
             } else {
-                container.innerHTML = `${liveBadge}<div style="padding:20px;text-align:center;color:#888;">${escapeHtml(data.message || 'मौसम डेटा उपलब्ध नहीं — Backend चालू करें')}</div>`;
+                container.innerHTML = `${liveBadge}<div style="padding:20px;text-align:center;color:#888;">${escapeHtml(data.message || 'मौसम डेटा अभी उपलब्ध नहीं है। कुछ देर बाद फिर कोशिश करें।')}</div>`;
             }
         } catch (error) {
             const container = document.getElementById('weatherData');
@@ -1442,15 +2010,15 @@
                 let html = schemeBanner + '<div style="display: grid; gap: 20px;">';
 
                 schemes.forEach(scheme => {
-                    const officialUrl = escapeHtml(scheme.official_website || scheme.website || scheme.apply_url || '#');
+                    const officialUrl = escapeHtml(safeUrl(scheme.official_website || scheme.website || scheme.apply_url || '#'));
                     const benefitText = escapeHtml(scheme.benefits_hindi || scheme.benefit_hindi || scheme.benefit || 'विवरण उपलब्ध नहीं');
                     const eligibilityText = escapeHtml(scheme.eligibility_hindi || scheme.eligibility || 'सभी किसान');
                     const descText = escapeHtml(scheme.description_hindi || scheme.description || '');
                     const schemeTitle = escapeHtml(scheme.name_hindi || scheme.name || '');
 
                     html += `
-                    <div style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #4a7c59; cursor: pointer; transition: transform 0.3s;"
-                         onclick="window.open('${officialUrl}', '_blank')"
+                    <a href="${officialUrl}" target="_blank" rel="noopener noreferrer"
+                         style="display:block;text-decoration:none;color:inherit;background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 5px solid #4a7c59; cursor: pointer; transition: transform 0.3s;"
                          onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'"
                          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -1471,7 +2039,7 @@
                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; color: #4a7c59; font-size: 0.9rem; font-weight: 600;">
                             👆 क्लिक करें आधिकारिक वेबसाइट पर जाने के लिए
                         </div>
-                    </div>
+                    </a>
                 `;
                 });
 
@@ -1483,12 +2051,9 @@
             }
         } catch (error) {
             console.error('Schemes error:', error);
-            const hint = error.message.includes('Failed to fetch')
-                ? '<br><small>Backend चालू करें: <code>python manage.py runserver</code> (port 8000) और frontend: <code>npm run dev</code></small>'
-                : '';
             container.innerHTML = `<div style="padding: 20px; text-align: center; color: #dc3545;">
                 <strong>योजनाएं लोड करने में त्रुटि</strong><br>
-                <small>${escapeHtml(error.message)}</small>${hint}
+                <small>कृपया नेटवर्क जांचें और कुछ देर बाद फिर कोशिश करें।</small>
             </div>`;
         }
     }
@@ -1500,6 +2065,10 @@
     async function loadFieldAdvisory(withoutSensor = false) {
         const container = document.getElementById('fieldAdvisoryResults');
         if (!container) return;
+        if (!hasConfirmedLocation()) {
+            renderLocationRequired(container, 'खेत की सलाह');
+            return;
+        }
         const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
         container.innerHTML = `<div class="loading text-center py-5">
             <i class="fas fa-spinner fa-spin fa-2x text-success"></i>
@@ -1512,7 +2081,10 @@
                 longitude: currentLongitude,
                 location: currentLocation,
                 state: currentState || '',
+                location_confirmed: hasConfirmedLocation(),
+                location_source: apiLocationSource(),
                 language: lang,
+                use_saved_sensor: !withoutSensor,
                 irrigation_type: document.getElementById('fa_irrigation')?.value || 'unknown',
                 previous_crop: (document.getElementById('fa_prev_crop')?.value || '').trim(),
             };
@@ -1583,7 +2155,7 @@
                     </div>
                     ${(soil.moisture_layers?.root_3_9cm_pct != null) ? `
                     <div style="margin-top:10px;padding:8px;background:#f0f8ff;border-radius:8px;font-size:0.78rem;color:#444;">
-                        <strong>🛰️ Open-Meteo Satellite Soil Layers:</strong>
+                        <strong>🌐 Open-Meteo Modeled Soil Layers (1 km grid, not a field sensor):</strong>
                         Surface ${soil.moisture_layers.surface_0_1cm_pct??'--'}% ·
                         Root zone ${soil.moisture_layers.root_3_9cm_pct??'--'}% ·
                         Subsoil ${soil.moisture_layers.subsoil_9_27cm_pct??'--'}% ·
@@ -1646,10 +2218,11 @@
                         ${sBar(sc)}
                         <div style="display:flex;flex-wrap:wrap;gap:2px;margin:6px 0 10px;">${npkBadges}</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:0.78rem;margin-bottom:8px;">
-                            <div style="background:#e8f5e9;border-radius:6px;padding:5px;text-align:center;"><div style="font-weight:700;color:#28a745;">₹${(crop.profit_per_hectare||0).toLocaleString()}</div><div style="color:#888;font-size:0.68rem;">लाभ/हे.</div></div>
+                            <div style="background:#e8f5e9;border-radius:6px;padding:5px;text-align:center;"><div style="font-weight:700;color:#28a745;">₹${(crop.profit_per_hectare||0).toLocaleString()}</div><div style="color:#888;font-size:0.68rem;">संकेतात्मक लाभ/हे.</div></div>
                             <div style="background:#e3f2fd;border-radius:6px;padding:5px;text-align:center;"><div style="font-weight:700;color:#1565c0;">${crop.yield_per_hectare||0}q</div><div style="color:#888;font-size:0.68rem;">उत्पादन</div></div>
-                            <div style="background:#fff8e1;border-radius:6px;padding:5px;text-align:center;"><div style="font-weight:700;color:#f57f17;">${crop.msp_per_quintal?'₹'+crop.msp_per_quintal:'No MSP'}</div><div style="color:#888;font-size:0.68rem;">MSP/q</div></div>
+                            <div style="background:#fff8e1;border-radius:6px;padding:5px;text-align:center;"><div style="font-weight:700;color:#f57f17;">${crop.msp_per_quintal?'₹'+crop.msp_per_quintal:'No central MSP'}</div><div style="color:#888;font-size:0.68rem;">${crop.msp_per_quintal ? 'MSP '+escapeHtml(crop.msp_season||'')+'/q' : 'official support'}</div></div>
                         </div>
+                        <div style="font-size:0.68rem;color:#6b7280;margin-bottom:7px;">बाजार गारंटी नहीं: प्रोफाइल उपज, MSP/स्थिर भाव और अनुमानित लागत पर आधारित। स्थानीय लागत और सत्यापित बिक्री भाव जांचें।</div>
                         ${(crop.input_adjustments||[]).length ? `<div style="background:#fff3cd;border-radius:6px;padding:6px 8px;font-size:0.75rem;margin-bottom:6px;">${crop.input_adjustments.slice(0,2).map(a=>'⚠️ '+escapeHtml(a)).join('<br>')}</div>` : ''}
                         <div style="font-size:0.72rem;color:#aaa;">${escapeHtml((crop.scoring_reasons||[]).slice(0,2).join(' · '))}</div>
                     </div>`;
@@ -1695,8 +2268,9 @@
             container.innerHTML = html;
 
         } catch (err) {
+            console.error('Field advisory render failed:', err);
             const container = document.getElementById('fieldAdvisoryResults');
-            if (container) container.innerHTML = `<div style="background:#ffebee;border-radius:10px;padding:20px;color:#c62828;text-align:center;">❌ ${escapeHtml(err.message)}<br><small>Backend: python manage.py runserver</small></div>`;
+            if (container) container.innerHTML = `<div style="background:#ffebee;border-radius:8px;padding:20px;color:#c62828;text-align:center;">❌ खेत की सलाह अभी नहीं मिली। नेटवर्क जांचकर दोबारा कोशिश करें।</div>`;
         }
     }
 
@@ -1731,15 +2305,53 @@
         }
     }
 
+    function buildCropRecommendationQuery() {
+        const params = new URLSearchParams(buildLocationQuery());
+        const requestedCrop = document.getElementById('cropSearchInput')?.value?.trim();
+        if (requestedCrop) params.set('crop', requestedCrop);
+        const fields = {
+            cropRecSeason: 'season', cropRecSoil: 'soil_type',
+            cropRecIrrigation: 'irrigation', cropRecPh: 'ph',
+            cropRecBudget: 'budget_per_hectare', cropRecRisk: 'risk_tolerance',
+            cropRecN: 'nitrogen_kg_ha', cropRecP: 'phosphorus_kg_ha',
+            cropRecK: 'potassium_kg_ha', cropRecEc: 'ec_ds_m',
+            cropRecMoisture: 'moisture_pct', cropRecOc: 'organic_carbon',
+            cropRecFarmSize: 'farm_size_ha', cropRecPrevious: 'previous_crop',
+            cropRecCategory: 'preferred_categories',
+        };
+        Object.entries(fields).forEach(([id, key]) => {
+            const value = document.getElementById(id)?.value?.trim();
+            if (value) params.set(key, value);
+        });
+        return params.toString();
+    }
+
     async function loadCropRecommendations() {
         try {
             const container = document.getElementById('cropsData');
             if (!container) return;
+            if (!hasConfirmedLocation()) {
+                renderLocationRequired(container, 'स्थान-आधारित फसल सुझाव');
+                return;
+            }
             const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
 
             container.innerHTML = `<div class="loading">${(typeof window.t === 'function' ? window.t('loading') : 'Loading...')}</div>`;
 
-            const data = await apiGetJson(`/api/advisories/?${buildLocationQuery()}`);
+            const cropQuery = buildCropRecommendationQuery();
+            let data;
+            try {
+                data = await apiGetJson(`/api/advisories/?${cropQuery}`);
+                if ((data.recommendations || data.top_4_recommendations || []).length) {
+                    _saveOfflineResult('crops', cropQuery, data);
+                }
+            } catch (networkError) {
+                data = _loadOfflineResult('crops', cropQuery, 168);
+                if (!data) throw networkError;
+                data.weather_is_live = false;
+                data.market_is_live = false;
+                data.data_quality_status = 'cached_stale';
+            }
             const recommendations = data.recommendations || data.top_4_recommendations || [];
 
             const getCategoryIcon = (cat) => ({'Cereal':'🌾','Pulse':'🫘','Oilseed':'🌻','Vegetable':'🥦','Fruit':'🍎','Spice':'🌶️','Cash':'💰','Millet':'🌿','Fiber':'🧵','Plantation':'🌴','Medicinal':'🌱'}[cat] || '🌱');
@@ -1750,6 +2362,12 @@
             if (recommendations.length > 0) {
                 // Header banner
                 const liveMkt = data.market_is_live;
+                const marketDate = data.market_reported_date || '';
+                const marketQuality = liveMkt
+                    ? (data.market_freshness === 'fresh_official'
+                        ? `✅ ताजा आधिकारिक भाव${marketDate ? ' · ' + marketDate : ''}`
+                        : `📅 नवीनतम आधिकारिक भाव${marketDate ? ' · ' + marketDate : ''}`)
+                    : '⚠️ सत्यापित मंडी भाव उपलब्ध नहीं';
                 const agro    = data.agro_zone || data.soil_type || '';
                 let html = `<div style="background:linear-gradient(135deg,#2d5016,#4a7c59);color:white;border-radius:15px;padding:20px 25px;margin-bottom:22px;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
@@ -1758,9 +2376,9 @@
                             <div style="opacity:0.88;font-size:0.85rem;">${escapeHtml(agro ? 'Zone: ' + agro : '')}</div>
                         </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <span style="background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:0.78rem;">🌤️ Live Open-Meteo</span>
+                            <span style="background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 12px;font-size:0.78rem;">${data._offline_cache ? '🕒 Cached recommendation' : (data.weather_is_live ? '🌤️ Live weather' : '⚠️ Weather unavailable')}</span>
                             <span style="background:${liveMkt ? 'rgba(40,167,69,0.3)' : 'rgba(255,193,7,0.3)'};border-radius:20px;padding:4px 12px;font-size:0.78rem;">
-                                ${liveMkt ? '✅ Live Mandi' : '⚠️ Mandi: set DATA_GOV_IN_API_KEY'}
+                                ${escapeHtml(marketQuality)}
                             </span>
                         </div>
                     </div>
@@ -1786,6 +2404,15 @@
                     const icon = getCategoryIcon(crop.category);
                     const loc  = crop.crop_name_local || crop.crop_name_hindi || crop.crop_name;
                     const hint = crop.reason_hindi || crop.reason || '';
+                    const hasReturn = crop.profit_per_hectare !== null && crop.profit_per_hectare !== undefined;
+                    const returnText = hasReturn
+                        ? '₹' + Number(crop.profit_per_hectare).toLocaleString()
+                        : 'भाव जरूरी';
+                    const returnLabel = crop.economics_basis === 'official_mandi_modal_price'
+                        ? 'मंडी-आधारित/हे.'
+                        : crop.economics_basis === 'current_msp_reference'
+                            ? 'MSP-आधारित/हे.'
+                            : 'लाभ गणना';
 
                     html += `<div style="background:white;border-radius:15px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid ${scoreColor(sc)};">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
@@ -1801,35 +2428,40 @@
                         ${scoreBar(sc)}
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;font-size:0.82rem;">
                             <div style="background:#f0fff0;border-radius:8px;padding:8px;text-align:center;">
-                                <div style="font-weight:700;color:#28a745;">₹${(crop.profit_per_hectare||0).toLocaleString()}</div>
-                                <div style="color:#888;font-size:0.72rem;">लाभ/हे.</div>
+                                <div style="font-weight:700;color:${hasReturn ? '#28a745' : '#8a6d3b'};">${escapeHtml(returnText)}</div>
+                                <div style="color:#888;font-size:0.72rem;">${escapeHtml(returnLabel)}</div>
                             </div>
                             <div style="background:#f0f8ff;border-radius:8px;padding:8px;text-align:center;">
                                 <div style="font-weight:700;color:#1565c0;">${crop.yield_per_hectare||0} q/ha</div>
                                 <div style="color:#888;font-size:0.72rem;">उत्पादन</div>
                             </div>
                             <div style="background:#fff8e1;border-radius:8px;padding:8px;text-align:center;">
-                                <div style="font-weight:700;color:#f57f17;">${crop.msp_per_quintal ? '₹'+crop.msp_per_quintal : 'No MSP'}</div>
-                                <div style="color:#888;font-size:0.72rem;">MSP/q</div>
+                                <div style="font-weight:700;color:#f57f17;">${crop.msp_per_quintal ? '₹'+crop.msp_per_quintal : 'No central MSP'}</div>
+                                <div style="color:#888;font-size:0.72rem;">${crop.msp_per_quintal ? 'MSP '+escapeHtml(crop.msp_season||'')+'/q' : 'official support'}</div>
                             </div>
                             <div style="background:#fce4ec;border-radius:8px;padding:8px;text-align:center;">
                                 <div style="font-weight:700;color:${waterColor(crop.water_requirement)};text-transform:capitalize;">${crop.water_requirement||'Moderate'}</div>
                                 <div style="color:#888;font-size:0.72rem;">पानी</div>
                             </div>
                         </div>
-                        ${crop.market_price && crop.market_is_live ? `<div style="font-size:0.78rem;color:#2e7d32;margin-bottom:6px;">📊 Live mandi: ₹${crop.market_price}/q</div>` : ''}
+                        ${crop.market_price && crop.market_is_live ? `<div style="font-size:0.78rem;color:#2e7d32;margin-bottom:6px;">📊 आधिकारिक मंडी${crop.market_price_reported_date ? ' ('+escapeHtml(crop.market_price_reported_date)+')' : ''}: ₹${crop.market_price}/q</div>` : ''}
                         ${hint ? `<div style="background:#fff9c4;border-radius:8px;padding:8px 10px;font-size:0.82rem;color:#333;border-left:3px solid #ffc107;">💡 ${escapeHtml(hint)}</div>` : ''}
-                        <div style="margin-top:8px;font-size:0.75rem;color:#aaa;">${escapeHtml(crop.duration_days||120)} days · ${escapeHtml(String(crop.temperature_range||''))}</div>
+                        <div style="margin-top:8px;font-size:0.75rem;color:#777;">${escapeHtml(crop.duration_days||120)} days · ${escapeHtml(String(crop.temperature_range||''))} · profile coverage ${(Number(crop.prediction_data?.data_completeness || 0) * 100).toFixed(0)}%</div>
+                        <div style="margin-top:4px;font-size:0.68rem;color:#999;">लागत/लाभ स्थानीय सत्यापन के लिए संकेतात्मक अनुमान हैं</div>
                     </div>`;
                 });
 
                 html += `</div><div style="margin-top:16px;font-size:0.78rem;color:#888;text-align:center;">
-                    🧬 Engine v3 · 80 crops · ${escapeHtml(data.analysis_method||'multi_factor_scoring_v3')} ·
+                    Engine v5 · ${escapeHtml(String(data.database_size||'200+'))} crops · ${escapeHtml(data.analysis_method||'multi_factor_scoring_v5')} ·
                     ${escapeHtml(data.data_source||'KrishiMitra Agro-Climatic Engine')}
                 </div>`;
                 container.innerHTML = html;
             } else {
-                container.innerHTML = `<div style="padding:20px;text-align:center;color:#888;">फसल सुझाव उपलब्ध नहीं — GPS allow करें</div>`;
+                const requestedCrop = document.getElementById('cropSearchInput')?.value?.trim();
+                const detail = requestedCrop
+                    ? `“${escapeHtml(requestedCrop)}” मौजूदा मौसम और चुने हुए खेत मानकों से मेल नहीं खाती। मौसम/श्रेणी बदलें या खोज साफ करें।`
+                    : 'चुने हुए मौसम और खेत मानकों के लिए कोई सुरक्षित फसल मेल नहीं मिली।';
+                container.innerHTML = `<div style="padding:20px;text-align:center;color:#666;">${detail}</div>`;
             }
         } catch (error) {
             const container = document.getElementById('cropsData');
@@ -1872,38 +2504,53 @@
 
         const crop = (document.getElementById('krCropValue')?.value || cropInput?.value || '').trim();
         if (!crop) {
-            alert('कृपया फसल खोजें और चुनें / Please search and select a crop first');
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = '<div class="farmer-inline-notice warning"><i class="fas fa-seedling"></i><div><strong>पहले फसल चुनें</strong><span>ऊपर फसल का नाम खोजकर सूची से चुनें।</span></div></div>';
+            cropInput?.focus();
             return;
         }
 
         const images = await collectKrishiImages();
         if (Object.keys(images).length === 0) {
-            alert('कृपया कम से कम एक पत्ती/फसल की तस्वीर अपलोड करें\nPlease upload at least one leaf or plant photo.');
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = '<div class="farmer-inline-notice warning"><i class="fas fa-camera"></i><div><strong>कम से कम एक साफ फोटो जोड़ें</strong><span>पत्ती या प्रभावित भाग का नजदीकी फोटो सबसे उपयोगी रहेगा।</span></div></div>';
+            document.getElementById('imgCloseUp')?.focus();
             return;
         }
+
+        const diagnosticSessionId = `diag-${
+            window.crypto && typeof window.crypto.randomUUID === 'function'
+                ? window.crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+        }`;
 
         // Show loading state
         resultsContainer.style.display = 'block';
         resultsContainer.innerHTML = `
             <div class="text-center p-5">
                 <i class="fas fa-spinner fa-spin fa-3x text-success"></i>
-                <h4 class="mt-3">Analyzing ${escapeHtml(crop.charAt(0).toUpperCase() + crop.slice(1))}...</h4>
-                <p>Plant validation • EfficientNet-B3 • Weather check...</p>
+                <h4 class="mt-3">${escapeHtml(crop.charAt(0).toUpperCase() + crop.slice(1))} की फोटो देखी जा रही है...</h4>
+                <p>Photo quality • symptom guidance • weather check...</p>
             </div>
         `;
 
         try {
+            const authHeaders = (window.KM_Auth && KM_Auth.isLoggedIn())
+                ? KM_Auth.getAuthHeaders()
+                : {};
             const response = await fetch(apiFetch('/api/diagnostics/detect/'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
                 body: JSON.stringify({
                     crop: crop,
                     location: currentLocation,
                     latitude: currentLatitude,
                     longitude: currentLongitude,
                     accuracy: currentLocationAccuracy,
+                    location_confirmed: hasConfirmedLocation(),
+                    location_source: apiLocationSource(),
                     images: images,
-                    session_id: sessionId,
+                    session_id: diagnosticSessionId,
                 }),
             });
 
@@ -1912,6 +2559,7 @@
 
             const okStatuses = ['success', 'advisory_fallback', 'low_confidence', 'not_plant', 'photo_required', 'model_unavailable', 'tensorflow_missing'];
             if (okStatuses.includes(data.status)) {
+                lastDiagnosticSessionId = diagnosticSessionId;
                 displayKrishiRakshaResults(data);
             } else {
                 resultsContainer.innerHTML = `
@@ -1929,6 +2577,8 @@
             `;
         }
     }
+
+    let lastDiagnosticSessionId = '';
 
     function displayKrishiRakshaResults(data) {
         const resultsContainer = document.getElementById('krishiRakshaResults');
@@ -1991,10 +2641,10 @@
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between mb-1">
                                     <span style="color: #333;"><strong>Severity:</strong></span>
-                                    <span class="badge" style="background-color: ${severityColor}; color: white;">${d.severity_label} (${d.severity_score}%)</span>
+                                    <span class="badge" style="background-color: ${severityColor}; color: white;">${escapeHtml(d.severity_label)} (${numPct(d.severity_score)}%)</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar" style="width: ${d.severity_score}%; background-color: ${severityColor};"></div>
+                                    <div class="progress-bar" style="width: ${numPct(d.severity_score)}%; background-color: ${severityColor};"></div>
                                 </div>
                             </div>
 
@@ -2018,13 +2668,13 @@
 
                             ${d.verification_note ? `
                                 <div class="alert alert-info py-2 px-3 mt-3 mb-0" style="background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460;">
-                                    <small><i class="fas fa-info-circle"></i> ${d.verification_note}</small>
+                                    <small><i class="fas fa-info-circle"></i> ${escapeHtml(d.verification_note)}</small>
                                 </div>
                             ` : ''}
 
                             ${d.explanation ? `
                                 <div class="alert alert-secondary py-2 px-3 mt-2 mb-0" style="background-color: #e2e3e5; border-color: #d6d8db; color: #383d41;">
-                                    <small><strong>Explanation:</strong> ${d.explanation}</small>
+                                    <small><strong>Explanation:</strong> ${escapeHtml(d.explanation)}</small>
                                 </div>
                             ` : ''}
                         </div>
@@ -2033,39 +2683,53 @@
             `;
         });
 
-        html += `
-            </div>
-
-            <!-- Feedback Section -->
+        html += '</div>';
+        const canSubmitOwnedFeedback = Boolean(
+            window.KM_Auth && KM_Auth.isLoggedIn() && lastDiagnosticSessionId
+        );
+        html += canSubmitOwnedFeedback ? `
             <div class="card mt-4 shadow-sm">
                 <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0"><i class="fas fa-comment-dots"></i> Was this diagnosis helpful?</h5>
+                    <h5 class="mb-0"><i class="fas fa-comment-dots"></i> क्या यह सलाह उपयोगी थी?</h5>
                 </div>
                 <div class="card-body text-center">
                     <button class="btn btn-success me-2" onclick="submitKRFeedback(true)">
-                        <i class="fas fa-thumbs-up"></i> Yes, Accurate
+                        <i class="fas fa-thumbs-up"></i> हाँ, उपयोगी
                     </button>
                     <button class="btn btn-danger" onclick="submitKRFeedback(false)">
-                        <i class="fas fa-thumbs-down"></i> No, Incorrect
+                        <i class="fas fa-thumbs-down"></i> समीक्षा चाहिए
                     </button>
+                    <div class="small text-muted mt-2">Feedback agronomist review के बाद ही knowledge base में जा सकता है।</div>
                 </div>
-            </div>
-        `;
+            </div>` : `
+            <div class="farmer-inline-notice info mt-4">
+                <i class="fas fa-lock"></i>
+                <div><strong>सलाह पर feedback देने के लिए लॉगिन करें</strong><span>फोटो सलाह guest mode में उपलब्ध है; login केवल सुरक्षित ownership के लिए जरूरी है।</span></div>
+            </div>`;
 
         resultsContainer.innerHTML = html;
     }
 
     async function submitKRFeedback(isCorrect) {
+        if (!(window.KM_Auth && KM_Auth.isLoggedIn()) || !lastDiagnosticSessionId) {
+            notifyFarmer('Feedback सुरक्षित रूप से भेजने के लिए पहले लॉगिन करें।', 'warning');
+            if (window.KM_Auth) KM_Auth.openModal('phone');
+            return;
+        }
         try {
-            await fetch(apiFetch('/api/diagnostics/feedback/'), {
+            const response = await fetch(apiFetch('/api/diagnostics/feedback/'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...KM_Auth.getAuthHeaders(),
+                },
                 body: JSON.stringify({
-                    session_id: sessionId,
+                    session_id: lastDiagnosticSessionId,
                     is_correct: isCorrect
                 })
             });
-            alert(isCorrect ? 'धन्यवाद! Feedback recorded.' : 'Thank you. We will improve our model.');
+            if (!response.ok) throw new Error(`Feedback failed: ${response.status}`);
+            notifyFarmer(isCorrect ? 'धन्यवाद — आपका feedback दर्ज हो गया।' : 'धन्यवाद — हम इस सलाह की समीक्षा करेंगे।', 'success');
         } catch (error) {
             console.error('Feedback error:', error);
         }
@@ -2075,21 +2739,119 @@
     // AI CHAT FUNCTIONS
     // ========================================
     let lastQuery = '';
+    let chatRequestInFlight = false;
 
     // ── Conversation history (in-memory + localStorage persistence) ──────────
     // Stores last 10 turns as [{role, content}] — sent to backend on every request
     // so the AI has full multi-turn context.
-    const CHAT_HISTORY_KEY = 'km_chat_history_' + sessionId;
+    const CHAT_HISTORY_SCHEMA_VERSION = 'v4';
+    const GUEST_CHAT_OWNER = `guest:${sessionId}`;
+    function _storedChatOwner() {
+        try {
+            const user = JSON.parse(localStorage.getItem('km_user') || 'null');
+            if (user && user.id != null) return `user:${user.id}`;
+        } catch (e) {}
+        return GUEST_CHAT_OWNER;
+    }
+    function _chatStorageKeys(owner) {
+        const token = String(owner || GUEST_CHAT_OWNER).replace(/[^a-zA-Z0-9:_-]/g, '_');
+        return {
+            history: `km_chat_history_${CHAT_HISTORY_SCHEMA_VERSION}_${token}`,
+            archives: `km_chat_archives_${CHAT_HISTORY_SCHEMA_VERSION}_${token}`,
+        };
+    }
+    let chatOwner = _storedChatOwner();
+    let chatKeys = _chatStorageKeys(chatOwner);
+    let CHAT_HISTORY_KEY = chatKeys.history;
+    let CHAT_ARCHIVE_KEY = chatKeys.archives;
     const MAX_HISTORY_CLIENT = 10;
+    const MAX_CHAT_ARCHIVES = 10;
     let conversationHistory = (() => {
         try {
             const stored = localStorage.getItem(CHAT_HISTORY_KEY);
             return stored ? JSON.parse(stored) : [];
         } catch (e) { return []; }
     })();
+    let archivedConversations = (() => {
+        try {
+            const stored = localStorage.getItem(CHAT_ARCHIVE_KEY);
+            const parsed = stored ? JSON.parse(stored) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) { return []; }
+    })();
+
+    function _readChatArray(key) {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) { return []; }
+    }
+
+    function _switchChatOwner(user, migrateGuest) {
+        const nextOwner = user && user.id != null ? `user:${user.id}` : GUEST_CHAT_OWNER;
+        if (nextOwner === chatOwner) return;
+        const nextKeys = _chatStorageKeys(nextOwner);
+        if (migrateGuest && chatOwner === GUEST_CHAT_OWNER && nextOwner.startsWith('user:')) {
+            if (!localStorage.getItem(nextKeys.history) && conversationHistory.length) {
+                localStorage.setItem(nextKeys.history, JSON.stringify(conversationHistory));
+            }
+            if (!localStorage.getItem(nextKeys.archives) && archivedConversations.length) {
+                localStorage.setItem(nextKeys.archives, JSON.stringify(archivedConversations));
+            }
+            localStorage.removeItem(CHAT_HISTORY_KEY);
+            localStorage.removeItem(CHAT_ARCHIVE_KEY);
+        }
+        chatOwner = nextOwner;
+        chatKeys = nextKeys;
+        CHAT_HISTORY_KEY = nextKeys.history;
+        CHAT_ARCHIVE_KEY = nextKeys.archives;
+        conversationHistory = _readChatArray(CHAT_HISTORY_KEY);
+        archivedConversations = _readChatArray(CHAT_ARCHIVE_KEY);
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) chatMessages.innerHTML = '';
+        _restoreChatHistory();
+        _renderArchivedChats();
+    }
+
+    window.addEventListener('km:auth-changed', event => {
+        const detail = event.detail || {};
+        _switchChatOwner(detail.user || null, detail.guestSessionMigrated === true);
+    });
+
+    function _persistArchivedChats() {
+        try {
+            localStorage.setItem(
+                CHAT_ARCHIVE_KEY,
+                JSON.stringify(archivedConversations.slice(0, MAX_CHAT_ARCHIVES)),
+            );
+        } catch (e) {}
+    }
+
+    function _archiveCurrentConversation() {
+        const userTurns = conversationHistory.filter(message => message.role === 'user');
+        if (!userTurns.length) return;
+        const firstQuestion = (userTurns[0].content || 'कृषि बातचीत').trim();
+        const fingerprint = conversationHistory
+            .map(message => `${message.role}:${message.content}`)
+            .join('|');
+        archivedConversations = archivedConversations.filter(
+            conversation => conversation.fingerprint !== fingerprint
+        );
+        archivedConversations.unshift({
+            id: (window.crypto && typeof window.crypto.randomUUID === 'function')
+                ? window.crypto.randomUUID()
+                : `chat-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            title: firstQuestion.slice(0, 72),
+            created_at: new Date().toISOString(),
+            fingerprint,
+            messages: conversationHistory.map(message => ({ ...message })),
+        });
+        archivedConversations = archivedConversations.slice(0, MAX_CHAT_ARCHIVES);
+        _persistArchivedChats();
+    }
 
     function _pushHistory(role, content, intent) {
-        const entry = { role, content };
+        const entry = { role, content, created_at: new Date().toISOString() };
         if (role === 'assistant' && intent) entry.intent = intent;
         conversationHistory.push(entry);
         // Keep only last MAX_HISTORY_CLIENT turns
@@ -2097,6 +2859,90 @@
             conversationHistory = conversationHistory.slice(-MAX_HISTORY_CLIENT * 2);
         }
         try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(conversationHistory)); } catch (e) {}
+    }
+
+    function _renderArchivedChats() {
+        const list = document.getElementById('chatHistoryList');
+        const clearButton = document.getElementById('chatHistoryClearAllBtn');
+        if (!list) return;
+        list.innerHTML = '';
+        if (!archivedConversations.length) {
+            const empty = document.createElement('div');
+            empty.className = 'chat-history-empty';
+            empty.textContent = 'अभी कोई पुरानी बातचीत सेव नहीं है।';
+            list.appendChild(empty);
+            if (clearButton) clearButton.style.display = 'none';
+            return;
+        }
+        if (clearButton) clearButton.style.display = 'block';
+        archivedConversations.forEach(conversation => {
+            const row = document.createElement('div');
+            row.className = 'chat-history-item-row';
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-history-item';
+            const title = document.createElement('strong');
+            title.textContent = conversation.title || 'कृषि बातचीत';
+            const meta = document.createElement('span');
+            const savedAt = conversation.created_at ? new Date(conversation.created_at) : null;
+            const turns = Array.isArray(conversation.messages)
+                ? conversation.messages.filter(message => message.role === 'user').length
+                : 0;
+            meta.textContent = `${savedAt && !Number.isNaN(savedAt.getTime()) ? savedAt.toLocaleString('hi-IN') : ''} · ${turns} सवाल`;
+            button.appendChild(title);
+            button.appendChild(meta);
+            button.addEventListener('click', () => restoreArchivedChat(conversation.id));
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'chat-history-delete';
+            remove.title = 'बातचीत हटाएं';
+            remove.setAttribute('aria-label', `${conversation.title || 'कृषि बातचीत'} हटाएं`);
+            remove.innerHTML = '<i class="fas fa-trash-alt" aria-hidden="true"></i>';
+            remove.addEventListener('click', () => deleteArchivedChat(conversation.id));
+            row.appendChild(button);
+            row.appendChild(remove);
+            list.appendChild(row);
+        });
+    }
+
+    function openChatHistory() {
+        _renderArchivedChats();
+        const dialog = document.getElementById('chatHistoryDialog');
+        if (!dialog) return;
+        if (typeof dialog.showModal === 'function') dialog.showModal();
+        else dialog.setAttribute('open', '');
+    }
+
+    function closeChatHistory() {
+        const dialog = document.getElementById('chatHistoryDialog');
+        if (!dialog) return;
+        if (typeof dialog.close === 'function') dialog.close();
+        else dialog.removeAttribute('open');
+    }
+
+    function restoreArchivedChat(conversationId) {
+        const selected = archivedConversations.find(item => item.id === conversationId);
+        if (!selected || !Array.isArray(selected.messages)) return;
+        _archiveCurrentConversation();
+        conversationHistory = selected.messages.map(message => ({ ...message }));
+        try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(conversationHistory)); } catch (e) {}
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) chatMessages.innerHTML = '';
+        _restoreChatHistory();
+        closeChatHistory();
+    }
+
+    function clearArchivedChats() {
+        if (!window.confirm('इस डिवाइस से पुरानी बातचीत हटाएं?')) return;
+        archivedConversations = [];
+        try { localStorage.removeItem(CHAT_ARCHIVE_KEY); } catch (e) {}
+        _renderArchivedChats();
+    }
+
+    function deleteArchivedChat(conversationId) {
+        archivedConversations = archivedConversations.filter(item => item.id !== conversationId);
+        _persistArchivedChats();
+        _renderArchivedChats();
     }
 
     function _restoreChatHistory() {
@@ -2122,7 +2968,7 @@
                 avatar.textContent = '🌾';
                 const bubble = document.createElement('div');
                 bubble.className = 'chat-bubble-bot';
-                bubble.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(msg.content) + '</div>';
+                bubble.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + renderChatText(msg.content) + '</div>';
                 row.appendChild(avatar);
                 row.appendChild(bubble);
                 chatMessages.appendChild(row);
@@ -2139,7 +2985,13 @@
         if (!input || !chatMessages) return;
 
         const message = input.value.trim();
-        if (!message) return;
+        if (!message || chatRequestInFlight) return;
+        chatRequestInFlight = true;
+        const sendButton = document.getElementById('chatSendBtn');
+        if (sendButton) {
+            sendButton.disabled = true;
+            sendButton.setAttribute('aria-busy', 'true');
+        }
 
         lastQuery = message;
 
@@ -2189,21 +3041,69 @@
         if (streamDot) streamDot.style.display = 'inline-block';
 
         try {
-            // Push user message into history BEFORE sending (so AI sees it as context for follow-up)
+            // Preserve the prior turns for context; `query` already carries this message.
+            const priorHistory = conversationHistory.slice(-8).map(message => ({
+                role: message.role,
+                content: message.content,
+            }));
             _pushHistory('user', message);
 
-            const data = await apiPostJson('/api/chatbot/query/', {
+            let partialText = '';
+            let partialContent = null;
+            const renderPartial = (_token, fullText) => {
+                partialText = fullText;
+                if (!partialContent) {
+                    skeletonRow.className = 'chat-message-bot';
+                    skeletonRow.innerHTML = '';
+                    const avatar = document.createElement('div');
+                    avatar.className = 'chat-avatar';
+                    avatar.textContent = '🌾';
+                    const bubble = document.createElement('div');
+                    bubble.className = 'chat-bubble-bot';
+                    const heading = document.createElement('strong');
+                    heading.style.color = '#2d5016';
+                    heading.textContent = 'KrishiMitra AI';
+                    partialContent = document.createElement('div');
+                    partialContent.style.cssText = 'margin-top:6px;line-height:1.7;white-space:pre-wrap;';
+                    bubble.appendChild(heading);
+                    bubble.appendChild(partialContent);
+                    skeletonRow.appendChild(avatar);
+                    skeletonRow.appendChild(bubble);
+                }
+                partialContent.textContent = fullText;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
+
+            const requestBody = {
                 query: message,
                 location: currentLocation,
-                latitude: currentLatitude,
-                longitude: currentLongitude,
-                accuracy: currentLocationAccuracy,
-                language: (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : (document.documentElement.lang === 'en' ? 'en' : 'hi')),
+                location_confirmed: hasConfirmedLocation(),
+                location_source: apiLocationSource(),
+                // The chatbot detects the query language/script independently
+                // from the UI language so farmers can naturally switch between
+                // Hindi, Hinglish, English, and regional languages per message.
+                language: 'auto',
                 session_id: sessionId,
-                // Send last 8 turns so backend AI has full multi-turn context
-                history: conversationHistory.slice(-8),
-            });
+                history: priorHistory,
+            };
+            if (Number.isFinite(currentLatitude)) requestBody.latitude = currentLatitude;
+            if (Number.isFinite(currentLongitude)) requestBody.longitude = currentLongitude;
+            if (Number.isFinite(currentLocationAccuracy)) requestBody.accuracy = currentLocationAccuracy;
+            let data;
+            try {
+                data = await apiPostEventStream(
+                    '/api/chatbot/stream/',
+                    requestBody,
+                    renderPartial,
+                );
+            } catch (streamError) {
+                if (partialText || streamError.code !== 'STREAM_UNSUPPORTED') throw streamError;
+                data = await apiPostJson('/api/chatbot/query/', requestBody);
+            }
             const botReply = data.response || data.answer || data.message || 'मुझे समझ नहीं आया, कृपया फिर से पूछें।';
+            if (data.guest_session_token) {
+                try { sessionStorage.setItem(GUEST_SESSION_TOKEN_KEY, data.guest_session_token); } catch (e) {}
+            }
 
             // Persist bot reply to conversation history
             _pushHistory('assistant', botReply, data.intent);
@@ -2232,16 +3132,14 @@
             }
 
             const dataSource = data.data_source || '';
-            const dsLower = dataSource.toLowerCase();
-            let aiSourceBadge = '';
-            if (dsLower.includes('gemini')) {
-                aiSourceBadge = '<span style="display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">✨ Gemini AI</span>';
-            } else if (dsLower.includes('qwen') || dsLower.includes('rag')) {
-                aiSourceBadge = '<span style="display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">🧠 Local LLM + RAG</span>';
-            } else if (dataSource) {
-                aiSourceBadge = '<span style="display:inline-block;background:#f3e5f5;color:#6a1b9a;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;">📚 Advisory Engine</span>';
-            }
-            if (aiSourceBadge) extra += aiSourceBadge;
+            const quality = _chatQualityInfo(data);
+            const qualityPalette = quality.status === 'degraded'
+                ? { bg: '#fff3e0', fg: '#9a3412' }
+                : quality.status === 'cloud_fallback'
+                    ? { bg: '#e8eaf6', fg: '#3949ab' }
+                    : { bg: '#e8f5e9', fg: '#1b5e20' };
+            extra += '<span style="display:inline-block;background:' + qualityPalette.bg + ';color:' + qualityPalette.fg + ';border-radius:999px;padding:3px 10px;font-size:0.72rem;font-weight:700;margin-top:6px;">' +
+                'स्रोत/विश्वसनीयता: ' + escapeHtml(quality.label) + '</span>';
 
             if (data.context && data.context.memory_active) {
                 extra += '<span style="display:inline-block;background:#fff3e0;color:#e65100;border-radius:999px;padding:2px 10px;font-size:0.72rem;font-weight:600;margin-top:6px;margin-left:4px;">💾 Memory Active</span>';
@@ -2258,7 +3156,45 @@
             botAvatar.textContent = '🌾';
             const botDiv = document.createElement('div');
             botDiv.className = 'chat-bubble-bot';
-            botDiv.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(botReply) + '</div>' + extra;
+            botDiv.innerHTML = '<strong style="color:#2d5016;">KrishiMitra AI</strong><div style="margin-top:6px;line-height:1.7;white-space:pre-wrap;">' + renderChatText(botReply) + '</div>' + extra;
+
+            const responseActions = document.createElement('div');
+            responseActions.className = 'chat-response-actions';
+            const copyButton = document.createElement('button');
+            copyButton.type = 'button';
+            copyButton.title = 'उत्तर कॉपी करें';
+            copyButton.setAttribute('aria-label', 'उत्तर कॉपी करें');
+            copyButton.innerHTML = '<i class="far fa-copy"></i>';
+            copyButton.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(botReply);
+                    copyButton.innerHTML = '<i class="fas fa-check"></i>';
+                } catch (copyError) {
+                    notifyFarmer('उत्तर कॉपी नहीं हो पाया।', 'error');
+                }
+            });
+            responseActions.appendChild(copyButton);
+            if (data.feedback_token) {
+                const helpfulButton = document.createElement('button');
+                helpfulButton.type = 'button';
+                helpfulButton.title = 'यह उत्तर मददगार था';
+                helpfulButton.setAttribute('aria-label', 'यह उत्तर मददगार था');
+                helpfulButton.innerHTML = '<i class="far fa-thumbs-up"></i>';
+                helpfulButton.addEventListener('click', () => submitChatFeedback(
+                    data.feedback_token, true, responseActions
+                ));
+                const unhelpfulButton = document.createElement('button');
+                unhelpfulButton.type = 'button';
+                unhelpfulButton.title = 'इस उत्तर में सुधार चाहिए';
+                unhelpfulButton.setAttribute('aria-label', 'इस उत्तर में सुधार चाहिए');
+                unhelpfulButton.innerHTML = '<i class="far fa-thumbs-down"></i>';
+                unhelpfulButton.addEventListener('click', () => submitChatFeedback(
+                    data.feedback_token, false, responseActions
+                ));
+                responseActions.appendChild(helpfulButton);
+                responseActions.appendChild(unhelpfulButton);
+            }
+            botDiv.appendChild(responseActions);
             
             // Bot timestamp
             const botTime = document.createElement('span');
@@ -2270,7 +3206,7 @@
             botRow.appendChild(botDiv);
             chatMessages.appendChild(botRow);
 
-            _updateAIStatusBadge(dataSource);
+            _updateAIStatusBadge(dataSource, quality);
 
         } catch (error) {
             skeletonRow.remove();
@@ -2284,23 +3220,69 @@
             chatMessages.appendChild(errDiv);
         } finally {
             if (streamDot) streamDot.style.display = 'none';
+            chatRequestInFlight = false;
+            if (sendButton) {
+                sendButton.disabled = false;
+                sendButton.removeAttribute('aria-busy');
+            }
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     }
 
-    function _updateAIStatusBadge(dataSource) {
+    async function submitChatFeedback(feedbackToken, isHelpful, actionsElement) {
+        if (!feedbackToken || !actionsElement) return;
+        const buttons = Array.from(actionsElement.querySelectorAll('button'));
+        buttons.forEach(button => { button.disabled = true; });
+        try {
+            await apiPostJson('/api/chatbot/feedback/', {
+                feedback_token: feedbackToken,
+                is_helpful: isHelpful,
+            });
+            const status = document.createElement('span');
+            status.className = 'chat-feedback-status';
+            status.textContent = isHelpful
+                ? 'धन्यवाद, यह गुणवत्ता जांच में जोड़ा गया।'
+                : 'धन्यवाद, हमारी टीम इस उत्तर की समीक्षा करेगी।';
+            actionsElement.appendChild(status);
+        } catch (error) {
+            buttons.forEach(button => { button.disabled = false; });
+            notifyFarmer('Feedback अभी सेव नहीं हो पाया।', 'error');
+        }
+    }
+
+    function _chatQualityInfo(data) {
+        const quality = data.ai_data_quality || {};
+        if (quality.label) return quality;
+        const tier = (data.chatbot_diagnostics || {}).selected_tier || '';
+        const fallback = {
+            instant_rule: { label: 'Instant advisory', status: 'verified_local' },
+            verified_realtime: { label: 'Verified live data', status: 'verified_realtime' },
+            verified_official_data: { label: 'Verified official report', status: 'verified_official' },
+            knowledge_base: { label: 'Verified knowledge answer', status: 'verified_local' },
+            phase1_rag_ollama: { label: 'Knowledge-backed answer', status: 'local_ai' },
+            phase1_rag_ollama_stream: { label: 'Knowledge-backed answer', status: 'local_ai' },
+            phase1_partial_stream: { label: 'Partial knowledge answer', status: 'degraded' },
+            direct_ollama: { label: 'Backup advisory answer', status: 'local_ai' },
+            gemini: { label: 'Backup advisory answer', status: 'cloud_fallback' },
+            local_ai_busy_fallback: { label: 'Busy: safe fallback', status: 'degraded' },
+            rule_based_fallback: { label: 'Safe advisory', status: 'degraded' },
+        };
+        return fallback[tier] || { label: data.data_source || 'Advisory source', status: 'unknown' };
+    }
+
+    function _updateAIStatusBadge(dataSource, quality) {
         let badge = document.getElementById('aiStatusBadge');
         if (!badge) return;
-        const dsL = (dataSource || '').toLowerCase();
-        if (dsL.includes('gemini')) {
-            badge.textContent = '✨ Gemini AI';
+        quality = quality || _chatQualityInfo({ data_source: dataSource });
+        if (quality.status === 'cloud_fallback') {
+            badge.textContent = 'Backup advisory answer';
             badge.style.cssText = 'display:inline-block;background:#e8eaf6;color:#3949ab;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
-        } else if (dsL.includes('qwen') || dsL.includes('rag')) {
-            badge.textContent = '🧠 Local LLM + RAG';
-            badge.style.cssText = 'display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
+        } else if (quality.status === 'degraded' || quality.status === 'unknown') {
+            badge.textContent = quality.label;
+            badge.style.cssText = 'display:inline-block;background:#fff3e0;color:#9a3412;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
         } else {
-            badge.textContent = '📚 Advisory';
-            badge.style.cssText = 'display:inline-block;background:#f3e5f5;color:#4a148c;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
+            badge.textContent = quality.label;
+            badge.style.cssText = 'display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;';
         }
     }
 
@@ -2341,6 +3323,7 @@
     function clearChat() {
         const chatMessages = document.getElementById('chatMessages');
         if (!chatMessages) return;
+        _archiveCurrentConversation();
         chatMessages.innerHTML = '';
         // Clear in-memory + persisted conversation history
         conversationHistory = [];
@@ -2416,6 +3399,7 @@
     window.onMandiSelected = onMandiSelected;
     window.populateMandiDropdown = populateMandiDropdown;
     window.loadMoreMandis = loadMoreMandis;
+    window.filterMandiOptions = filterMandiOptions;
     window.refreshNearbyMandis = refreshNearbyMandis;
     window.onMandiRadiusChanged = onMandiRadiusChanged;
     window.applyManualLocation = applyManualLocation;
@@ -2428,6 +3412,7 @@
     window.searchCrop = searchCrop;
     window.showCropSuggestions = showCropSuggestions;
     window.searchSpecificCrop = searchSpecificCrop;
+    window.clearCropRecommendationSearch = clearCropRecommendationSearch;
     window.searchCropsForDiagnostics = searchCropsForDiagnostics;
     window.selectCropForDiagnostics = selectCropForDiagnostics;
     window.loadWeatherData = loadWeatherData;
@@ -2441,6 +3426,11 @@
     window.prefill = prefill;
     window.retryLastQuery = retryLastQuery;
     window.clearChat = clearChat;
+    window.openChatHistory = openChatHistory;
+    window.closeChatHistory = closeChatHistory;
+    window.restoreArchivedChat = restoreArchivedChat;
+    window.clearArchivedChats = clearArchivedChats;
+    window.submitChatFeedback = submitChatFeedback;
     window._restoreChatHistory = _restoreChatHistory;
     window._getConversationHistory = () => conversationHistory;
     window.loadFieldAdvisory = loadFieldAdvisory;
@@ -2458,20 +3448,32 @@
     });
 
     function reloadAllServices() {
-        populateMandiDropdown().then(() => loadMarketPrices()).catch(err => {
-            console.error('Mandi/market load error:', err);
-        });
-        loadWeatherData();
-        loadGovernmentSchemes();
-        loadCropRecommendations();
-        // Refresh field advisory too if its panel is currently visible
-        const faSection = document.getElementById('field-advisory-content');
-        if (faSection && faSection.style.display !== 'none') {
-            loadFieldAdvisoryWithoutSensor();
+        if (!hasConfirmedLocation()) {
+            renderLocationRequired(document.getElementById('weatherData'), 'स्थानीय मौसम');
+            const heroWidget = document.getElementById('heroWeatherWidget');
+            if (heroWidget) heroWidget.style.display = 'none';
+            return;
         }
+        // Weather powers the compact home widget, so keep it current. Other
+        // services load only when opened to save bandwidth on rural networks.
+        loadWeatherData();
+        const activeSection = Array.from(document.querySelectorAll('.content-section'))
+            .find(section => section.style.display === 'block');
+        if (!activeSection) return;
+        const serviceName = activeSection.id.replace(/-content$/, '');
+        const loaders = {
+            'government-schemes': loadGovernmentSchemes,
+            'crop-recommendations': loadCropRecommendations,
+            'market-prices': () => populateMandiDropdown().then(loadMarketPrices),
+            'field-advisory': loadFieldAdvisoryWithoutSensor,
+        };
+        if (loaders[serviceName]) loaders[serviceName]();
     }
 
     async function bootstrapApp() {
+        addServiceBackButtons();
+        const footerYear = document.getElementById('footerYear');
+        if (footerYear) footerYear.textContent = String(new Date().getFullYear());
         console.log('📊 Page loaded, initializing...');
         setupServiceCards();
         buildChatLanguageSwitcher();
@@ -2499,27 +3501,27 @@
 
         // ── Restore last known location instantly from localStorage ──────
         const saved = _restoreLocationFromStorage();
-        if (saved && saved.lat && saved.lon) {
+        if (saved && saved.name && _isIndiaCoordinate(saved.lat, saved.lon)) {
             console.log(`📦 Restored location from storage: ${saved.name} (±${Math.round(saved.acc || 0)}m)`);
             currentLocation = saved.name;
             currentLatitude  = saved.lat;
             currentLongitude = saved.lon;
             currentState     = saved.state || '';
             currentLocationAccuracy = saved.acc || null;
+            currentLocationSource = saved.source === 'gps' ? 'gps' : 'manual_search';
             const display = document.getElementById('currentLocationDisplay');
             if (display) display.textContent = saved.state && saved.state !== saved.name
                 ? `${saved.name}, ${saved.state}` : saved.name;
             updateAccuracyBadge(saved.acc);
         }
 
-        // Load services with the best available location right away
+        // Never load location-dependent data against an assumed/default city.
         reloadAllServices();
 
         // ── Auto-start continuous GPS (if browser supports it) ────────────
-        if (navigator.geolocation) {
-            // Small delay so initial data loads first, GPS refines afterwards
-            setTimeout(startContinuousLocationWatch, 1500);
-        }
+        // Reuse GPS silently only when the farmer already granted permission.
+        // A new permission prompt is initiated only by the visible GPS button.
+        setTimeout(startLocationIfAlreadyAllowed, 100);
     }
 
     if (document.readyState === 'loading') {

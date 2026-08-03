@@ -19,21 +19,17 @@ if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
 fi
 echo "✅  Ollama running"
 
-# Check model
-MODEL_CHECK=$(curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; d=json.load(sys.stdin); models=[m['name'] for m in d.get('models',[])]; print('krishimitra' if any('krishimitra' in m for m in models) else 'qwen' if any('qwen2.5' in m for m in models) else 'missing')" 2>/dev/null)
+# Prefer the model that currently passes the grounded-answer eval. The custom
+# checkpoint remains opt-in through OLLAMA_MODEL after it passes the same gate.
+REQUESTED_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
+MODEL_CHECK=$(curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; requested=sys.argv[1]; d=json.load(sys.stdin); names=[m['name'] for m in d.get('models',[])]; print('ready' if any(n == requested or n.split(':')[0] == requested.split(':')[0] for n in names) else 'missing')" "$REQUESTED_MODEL" 2>/dev/null)
 if [ "$MODEL_CHECK" = "missing" ]; then
   echo "⚠  No model found."
-  echo "   Preferred: cd custom_llm_trainer && ollama create krishimitra-llm -f Modelfile"
-  echo "   Fallback:  ollama pull qwen2.5:7b"
+  echo "   Run: ollama pull $REQUESTED_MODEL"
   exit 1
-elif [ "$MODEL_CHECK" = "qwen" ]; then
-  echo "⚠  krishimitra-llm not found — using qwen2.5:7b fallback"
-  echo "   To load your fine-tuned model: cd custom_llm_trainer && ollama create krishimitra-llm -f Modelfile"
-  # Update DEFAULT_MODEL env override so Phase1 uses qwen2.5:7b
-  export OLLAMA_MODEL=qwen2.5:7b
 else
-  echo "✅  krishimitra-llm (your custom model) ready"
-  export OLLAMA_MODEL=krishimitra-llm
+  echo "✅  $REQUESTED_MODEL ready"
+  export OLLAMA_MODEL="$REQUESTED_MODEL"
 fi
 
 # Activate venv
@@ -51,13 +47,8 @@ if [ "$KB_COUNT" -lt "5" ]; then
 fi
 echo "✅  Knowledge base: $KB_COUNT files"
 
-# Build vector store if not done
-CHROMA_EXISTS=$([ -d "chroma_db" ] && echo "yes" || echo "no")
-if [ "$CHROMA_EXISTS" = "no" ]; then
-  echo ""
-  echo "🔢  Building vector store (2-5 min)..."
-  python3 rag/ingest.py
-fi
+# Build or refresh the vector store when knowledge source files change.
+python3 rag/ensure_index.py
 echo "✅  Vector store ready"
 
 # Start FastAPI server

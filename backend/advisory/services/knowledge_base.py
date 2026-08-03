@@ -11,10 +11,10 @@ Design:
   - Only hits Gemini API if Qwen is also unavailable
 
 Coverage:
-  - Sowing times (rabi/kharif/zaid) for 80+ crops
+  - Sowing and suitability planning for 200+ crop profiles
   - Fertilizer doses (NPK + micronutrients) for 40+ crops
   - Irrigation schedules for 30+ crops
-  - MSP 2024-25 for all MSP-covered crops
+  - Current official MSP for all covered crops
   - Common pest/disease for 25+ crops
   - Government schemes (7 major schemes)
   - Weather-based advisories
@@ -41,13 +41,13 @@ logger = logging.getLogger(__name__)
 
 # ── KrishiMitra LLM / Ollama config ───────────────────────────────────────────
 _OLLAMA_BASE    = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-_OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "krishimitra-llm")
+_OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
 _OLLAMA_TIMEOUT = (
     float(os.getenv("OLLAMA_CONNECT_TIMEOUT_S", "2")),
     float(os.getenv("OLLAMA_READ_TIMEOUT_S", "12")),
 )  # (connect, read) seconds
 
-from .msp_data import MSP_2024_25
+from .msp_data import MSP_CURRENT, MSP_MARKETING_SEASON, MSP_OFFICIAL_2026_27
 
 # ── Sowing calendar (month ranges for each crop) ──────────────────────────────
 SOWING_CALENDAR = {
@@ -98,7 +98,6 @@ FERTILIZER_GUIDE = {
     "onion":     {"n": 100, "p": 50,  "k": 50,  "notes": "रोपाई: 50P+50K+33N | 30 दिन: 33N | 45 दिन: 34N | सल्फर 20kg"},
     "tomato":    {"n": 150, "p": 75,  "k": 75,  "notes": "रोपाई: 75P+75K+50N | फूल: 50N | फल: 50N | कैल्शियम+बोरॉन"},
     "groundnut": {"n": 25,  "p": 60,  "k": 30,  "notes": "जिप्सम 500kg/ha (फलियाँ भरते समय) | राइजोबियम टीका"},
-    "rice":      {"n": 120, "p": 60,  "k": 60,  "notes": "जिंक सल्फेट 25kg/ha | 3 बार N विभाजन"},
     "turmeric":  {"n": 75,  "p": 50,  "k": 75,  "notes": "जैव उर्वरक + FYM 25t/ha | जिंक+बोरॉन"},
 }
 
@@ -266,6 +265,7 @@ class KnowledgeBase:
         state: Optional[str] = None,
         language: str = "hi",
         weather_context: Optional[Dict[str, Any]] = None,
+        allow_local_llm: bool = True,
     ) -> Dict[str, Any]:
         """
         Try to answer from local KB first, then Qwen, then return None.
@@ -287,16 +287,25 @@ class KnowledgeBase:
                 "used_credits":   False,
             }
 
-        # Try KrishiMitra LLM (local Ollama — free)
-        llm_result = self._ask_local_llm(query, detected_crop, state, language, weather_context)
-        if llm_result:
-            return {
-                "answer":        llm_result,
-                "source":        "krishimitra_llm_local",
-                "confidence":    "medium",
-                "crop_detected": detected_crop,
-                "used_credits":  False,
-            }
+        # Standalone callers may opt into the legacy local-LLM fallback. The
+        # chatbot disables it here because its next tier is Phase 1 RAG and
+        # then direct Ollama; calling Ollama in both tiers doubles latency.
+        if allow_local_llm:
+            llm_result = self._ask_local_llm(
+                query,
+                detected_crop,
+                state,
+                language,
+                weather_context,
+            )
+            if llm_result:
+                return {
+                    "answer":        llm_result,
+                    "source":        "krishimitra_llm_local",
+                    "confidence":    "medium",
+                    "crop_detected": detected_crop,
+                    "used_credits":  False,
+                }
 
         # Signal: escalate to Gemini
         return {
@@ -308,7 +317,7 @@ class KnowledgeBase:
         }
 
     def get_msp(self, crop_id: str) -> Optional[int]:
-        return MSP_2024_25.get(crop_id)
+        return MSP_CURRENT.get(crop_id)
 
     def get_sowing(self, crop_id: str) -> Optional[Dict]:
         return SOWING_CALENDAR.get(crop_id)
@@ -338,18 +347,18 @@ class KnowledgeBase:
 
         # MSP query
         if any(kw in q for kw in _MSP_KW):
-            if crop and crop in MSP_2024_25:
-                msp = MSP_2024_25[crop]
+            if crop and crop in MSP_CURRENT:
+                msp = MSP_CURRENT[crop]
                 crop_hi = _CROP_ALIASES_REVERSE.get(crop, crop)
                 return (
-                    f"💰 **{crop_hi} MSP 2024-25:** ₹{msp:,}/क्विंटल\n\n"
+                    f"💰 **{crop_hi} MSP {MSP_MARKETING_SEASON}:** ₹{msp:,}/क्विंटल\n\n"
                     f"📌 यह केंद्र सरकार द्वारा घोषित न्यूनतम समर्थन मूल्य है।\n"
                     f"📞 नजदीकी मंडी/APMC से बाजार भाव जानें।\n"
                     f"💡 e-NAM (enam.gov.in) पर ऑनलाइन भाव देखें।"
                 )
             # List all MSPs
-            lines = [f"💰 **MSP 2024-25 (₹/क्विंटल):**\n"]
-            for c, m in MSP_2024_25.items():
+            lines = [f"💰 **MSP {MSP_MARKETING_SEASON} (₹/क्विंटल):**\n"]
+            for c, m in MSP_OFFICIAL_2026_27.items():
                 hi = _CROP_ALIASES_REVERSE.get(c, c)
                 lines.append(f"• {hi}: ₹{m:,}")
             lines.append("\n📞 KVK हेल्पलाइन: 1800-180-1551")
@@ -456,8 +465,16 @@ class KnowledgeBase:
 
     @staticmethod
     def _detect_crop(q: str) -> Optional[str]:
+        q_lower = q.lower()
         for alias, crop_id in _CROP_ALIASES.items():
-            if alias.lower() in q:
+            a = alias.lower()
+            if a.isascii():
+                # Word-boundary match so an English alias like "rice" does not
+                # fire inside an unrelated word such as "price".
+                if re.search(r"\b" + re.escape(a) + r"\b", q_lower):
+                    return crop_id
+            elif a in q_lower:
+                # Devanagari aliases have no Latin-substring collisions.
                 return crop_id
         return None
 
@@ -494,8 +511,10 @@ class KnowledgeBase:
         if crop:
             crop_hi = _CROP_ALIASES_REVERSE.get(crop, crop)
             context_parts.append(f"Crop: {crop_hi} ({crop})")
-            if crop in MSP_2024_25:
-                context_parts.append(f"MSP 2024-25: ₹{MSP_2024_25[crop]}/quintal")
+            if crop in MSP_CURRENT:
+                context_parts.append(
+                    f"MSP {MSP_MARKETING_SEASON}: ₹{MSP_CURRENT[crop]}/quintal"
+                )
             if crop in SOWING_CALENDAR:
                 s = SOWING_CALENDAR[crop]
                 context_parts.append(f"Sowing: {s['sow']}")

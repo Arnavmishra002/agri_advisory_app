@@ -7,38 +7,31 @@ from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 
-from ..location_utils import attach_location_metadata, resolve_request_location
+from ..location_utils import (
+    attach_location_metadata,
+    require_confirmed_location,
+    resolve_request_location,
+)
 from ..errors import safe_error_message
-from ...services.comprehensive_crop_recommendations import ComprehensiveCropRecommendations
 from ...services.crop_catalog import crop_catalog
 from ...services.crop_recommendation_engine import crop_recommendation_engine
-
-# Module-level singleton — avoid instantiating on every request
-try:
-    from ...services.ultra_dynamic_government_api import UltraDynamicGovernmentAPI as _UltraDynamicGovernmentAPI
-    _gov_api_singleton = _UltraDynamicGovernmentAPI()
-except Exception as _e:
-    logger.warning("UltraDynamicGovernmentAPI failed to load: %s", _e)
-    _gov_api_singleton = None
-
+from ...services.unified_realtime_service import market_service
+from ..serializers import CropRecommendationQuerySerializer, LocationQuerySerializer
 
 class CropAdvisoryViewSet(viewsets.ViewSet):
     """Crop advisory — multi-factor scoring with live weather + mandi data."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Use module-level singleton instead of per-request instantiation
-        self.gov_api = _gov_api_singleton
-        try:
-            self.crop_service = ComprehensiveCropRecommendations()
-        except Exception as e:
-            logger.warning("Could not load ComprehensiveCropRecommendations: %s", e)
-            self.crop_service = None
-
     def list(self, request):
         try:
+            serializer = CropRecommendationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid crop query", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx = resolve_request_location(request)
-            language = request.query_params.get("language", "hi")
+            location_error = require_confirmed_location(ctx, service="crop_recommendation")
+            if location_error:
+                return location_error
+            language = params.get("language", "hi")
 
             logger.info(
                 "Crop recommendations (intelligent engine) for %s @ %s,%s",
@@ -46,7 +39,9 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
             )
 
             recommendations = crop_recommendation_engine.recommend_from_context(
-                ctx, language=language
+                ctx,
+                language=language,
+                agronomic_inputs=serializer.recommendation_inputs,
             )
 
             return Response(
@@ -65,17 +60,24 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
 class TrendingCropsViewSet(viewsets.ViewSet):
     """Trending Crops Service - Uses Government APIs for Real-Time Accurate Data"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.gov_api = _gov_api_singleton  # use module-level singleton
-
     def list(self, request):
         """Get trending crops using government APIs"""
         try:
+            serializer = CropRecommendationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid trending crop query", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx = resolve_request_location(request)
-            language = request.query_params.get("language", "hi")
+            location_error = require_confirmed_location(ctx, service="trending_crops")
+            if location_error:
+                return location_error
+            language = params.get("language", "hi")
 
-            rec_data = crop_recommendation_engine.recommend_from_context(ctx, language=language)
+            rec_data = crop_recommendation_engine.recommend_from_context(
+                ctx,
+                language=language,
+                agronomic_inputs=serializer.recommendation_inputs,
+            )
             trending = rec_data.get("recommendations", [])[:10]
 
             return Response(attach_location_metadata({
@@ -98,18 +100,15 @@ class TrendingCropsViewSet(viewsets.ViewSet):
 class CropViewSet(viewsets.ViewSet):
     """Crop Service - Uses Government APIs for Real-Time Accurate Crop Data"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.gov_api = _gov_api_singleton  # use module-level singleton
-
     @action(detail=False, methods=["get"])
     def search(self, request):
         """Google-style crop autocomplete (mandi, diagnostics, advisory)."""
-        query = request.query_params.get("q", "").strip()
-        try:
-            limit = min(int(request.query_params.get("limit", 10)), 20)
-        except (ValueError, TypeError):
-            limit = 10
+        serializer = LocationQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response({"error": "Invalid crop search parameters", "errors": serializer.errors}, status=400)
+        params = serializer.validated_data
+        query = params.get("q", "").strip()
+        limit = min(params.get("limit", 10), 20)
         results = crop_catalog.search(query, limit=limit) if query else crop_catalog.popular(limit)
         return Response({
             "query": query,
@@ -121,31 +120,53 @@ class CropViewSet(viewsets.ViewSet):
     def list(self, request):
         """Get crop information using government APIs"""
         try:
-            crop_name = request.query_params.get("crop", "")
+            serializer = CropRecommendationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid crop query", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
+            crop_name = params.get("crop", "")
             ctx = resolve_request_location(request)
-            language = request.query_params.get("language", "hi")
+            location_error = require_confirmed_location(ctx, service="crop_information")
+            if location_error:
+                return location_error
+            language = params.get("language", "hi")
 
-            gov_data = self.gov_api.get_comprehensive_government_data(
-                location=ctx.query_label,
-                latitude=ctx.latitude,
-                longitude=ctx.longitude,
+            recs = crop_recommendation_engine.recommend_from_context(
+                ctx,
+                language=language,
+                agronomic_inputs=serializer.recommendation_inputs,
             )
-
             crop_info = {}
             if crop_name:
-                recs = crop_recommendation_engine.recommend_from_context(ctx, language=language)
+                normalized = crop_catalog.normalize(crop_name)
+                canonical_name = normalized["name"] if normalized else crop_name
                 for crop in recs.get("recommendations", []):
-                    if crop.get("crop_name", "").lower() == crop_name.lower():
+                    if crop.get("crop_name", "").casefold() == canonical_name.casefold():
                         crop_info = crop
                         break
+            else:
+                canonical_name = None
 
-            market_data = gov_data.get("government_data", {}).get("market_prices", {})
+            market_data = market_service.get_prices(
+                ctx.query_label,
+                crop=canonical_name,
+                lat=ctx.latitude,
+                lon=ctx.longitude,
+                state=ctx.state or None,
+                include_estimates=False,
+            )
 
             return Response(attach_location_metadata({
                 "crop": crop_name or "All Crops",
                 "crop_info": crop_info,
-                "market_data": market_data.get("crops", []) if isinstance(market_data, dict) else [],
-                "data_source": "Government APIs + Intelligent Engine",
+                "market_data": market_data.get("top_crops", []),
+                "market_data_quality": {
+                    "is_live": bool(market_data.get("is_live")),
+                    "status": market_data.get("status", "unavailable"),
+                    "source": market_data.get("data_source", "unavailable"),
+                    "fetched_at": market_data.get("fetched_at"),
+                },
+                "data_source": recs.get("data_source", "KrishiMitra crop engine"),
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             }, ctx), status=status.HTTP_200_OK)
 

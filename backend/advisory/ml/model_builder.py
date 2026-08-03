@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from .config import BACKBONE, DROPOUT, FINE_TUNE_AT, IMG_SIZE
+from .config import BACKBONE, DROPOUT, IMG_SIZE
 
 
 ARCHITECTURE_SETTINGS: Dict[str, Dict[str, Any]] = {
@@ -64,30 +64,20 @@ def _build_efficientnetb3(num_classes: int, learning_rate: float) -> keras.Model
     base = keras.applications.EfficientNetB3(
         include_top=False,
         weights="imagenet",
-        input_tensor=inputs,
+        input_shape=(*IMG_SIZE, 3),
         pooling="avg",
     )
     base.trainable = False
 
-    # Fine-tune top blocks
-    for layer in base.layers[FINE_TUNE_AT:]:
-        layer.trainable = True
-
-    x = base.output
+    # Start with a frozen ImageNet backbone. Fine-tuning is enabled only after
+    # the classification head has learned a stable label mapping.
+    x = base(inputs, training=False)
     x = layers.BatchNormalization()(x)
     x = layers.Dropout(DROPOUT)(x)
     outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
 
     model = keras.Model(inputs=inputs, outputs=outputs, name="crop_disease_efficientnetb3")
-
-    model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
-        loss="sparse_categorical_crossentropy",
-        metrics=[
-            "accuracy",
-            keras.metrics.SparseTopKCategoricalAccuracy(k=3, name="top3_accuracy"),
-        ],
-    )
+    compile_model(model, learning_rate)
     return model
 
 
@@ -128,6 +118,44 @@ def _build_plantvillage_cnn(num_classes: int, learning_rate: float) -> keras.Mod
         ],
     )
     return model
+
+
+def _find_backbone(model: keras.Model) -> keras.Model:
+    for layer in model.layers:
+        if isinstance(layer, keras.Model) and layer.name.startswith("efficientnet"):
+            return layer
+    raise ValueError("Disease model does not contain an EfficientNet backbone layer")
+
+
+def configure_fine_tuning(model: keras.Model, trainable_layers: int = 30) -> int:
+    """Unfreeze only the top non-BatchNorm backbone layers."""
+    backbone = _find_backbone(model)
+    backbone.trainable = True
+    for layer in backbone.layers:
+        layer.trainable = False
+
+    candidates = [
+        layer
+        for layer in backbone.layers
+        if not isinstance(layer, (layers.InputLayer, layers.BatchNormalization))
+    ]
+    count = max(0, int(trainable_layers))
+    selected = candidates[-count:] if count else []
+    for layer in selected:
+        layer.trainable = True
+    return len(selected)
+
+
+def compile_model(model: keras.Model, learning_rate: float) -> None:
+    """Compile after every trainability change so Keras updates its graph."""
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
+        loss="sparse_categorical_crossentropy",
+        metrics=[
+            "accuracy",
+            keras.metrics.SparseTopKCategoricalAccuracy(k=3, name="top3_accuracy"),
+        ],
+    )
 
 
 def get_preprocess_fn():

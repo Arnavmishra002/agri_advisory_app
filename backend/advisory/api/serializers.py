@@ -1,5 +1,12 @@
+from collections.abc import Mapping
+import re
+
+from django.utils import timezone
 from rest_framework import serializers
 from ..models import CropAdvisory, Crop, User, ForumPost # Update import for models
+from ..services.language_service import SUPPORTED_LANGUAGES
+
+LOCATION_SOURCE_CHOICES = ("gps", "manual_search", "profile", "unknown", "unconfirmed")
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -87,6 +94,705 @@ class ChatbotSerializer(serializers.Serializer):
     conversation_history = serializers.ListField(required=False, help_text="Previous conversation history")
     location_name = serializers.CharField(required=False, max_length=100, help_text="Location name")
 
+
+class StrictSerializer(serializers.Serializer):
+    """Reject silently ignored client fields on security-sensitive inputs."""
+
+    def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            raise serializers.ValidationError("Request body must be a JSON object.")
+        unknown = set(data) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError(
+                {"non_field_errors": [f"Unexpected field: {field}" for field in sorted(unknown)]}
+            )
+        return super().to_internal_value(data)
+
+
+class TwilioWebhookInputSerializer(StrictSerializer):
+    """Bounded form contract for Twilio SMS and Voice callbacks."""
+
+    From = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    To = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    Body = serializers.CharField(required=False, allow_blank=True, max_length=4000)
+    SpeechResult = serializers.CharField(required=False, allow_blank=True, max_length=4000)
+    Digits = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    CallSid = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    AccountSid = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    CallStatus = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    Direction = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    MessageSid = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    MessageStatus = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    NumMedia = serializers.CharField(required=False, allow_blank=True, max_length=8)
+    MediaUrl0 = serializers.URLField(required=False, allow_blank=True, max_length=2048)
+    MediaContentType0 = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    RecordingUrl = serializers.URLField(required=False, allow_blank=True, max_length=2048)
+    RecordingSid = serializers.CharField(required=False, allow_blank=True, max_length=128)
+    RecordingStatus = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    RecordingDuration = serializers.CharField(required=False, allow_blank=True, max_length=16)
+    Language = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    Confidence = serializers.CharField(required=False, allow_blank=True, max_length=16)
+    ApiVersion = serializers.CharField(required=False, allow_blank=True, max_length=32)
+
+
+class WhatsAppWebhookInputSerializer(StrictSerializer):
+    """Validate the bounded subset of Meta webhook payloads we consume."""
+
+    object = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    entry = serializers.ListField(
+        required=True,
+        child=serializers.DictField(),
+        max_length=10,
+    )
+
+    @staticmethod
+    def _check_dict(value, allowed, path):
+        if not isinstance(value, Mapping):
+            raise serializers.ValidationError({path: "must be an object"})
+        unknown = set(value) - set(allowed)
+        if unknown:
+            raise serializers.ValidationError(
+                {path: [f"Unexpected field: {field}" for field in sorted(unknown)]}
+            )
+
+    def validate(self, attrs):
+        for entry_index, entry in enumerate(attrs.get("entry", [])):
+            self._check_dict(entry, {"id", "changes"}, f"entry[{entry_index}]")
+            changes = entry.get("changes", [])
+            if not isinstance(changes, list) or len(changes) > 10:
+                raise serializers.ValidationError({f"entry[{entry_index}].changes": "must contain at most 10 items"})
+            for change_index, change in enumerate(changes):
+                path = f"entry[{entry_index}].changes[{change_index}]"
+                self._check_dict(change, {"field", "value"}, path)
+                value = change.get("value", {})
+                self._check_dict(
+                    value,
+                    {"messaging_product", "metadata", "contacts", "messages", "statuses"},
+                    f"{path}.value",
+                )
+                messages = value.get("messages", [])
+                if not isinstance(messages, list) or len(messages) > 10:
+                    raise serializers.ValidationError({f"{path}.value.messages": "must contain at most 10 items"})
+                for message_index, message in enumerate(messages):
+                    message_path = f"{path}.value.messages[{message_index}]"
+                    self._check_dict(
+                        message,
+                        {"from", "id", "timestamp", "type", "text", "audio", "image", "caption", "body"},
+                        message_path,
+                    )
+                    for nested_name, nested_allowed in {
+                        "text": {"body"},
+                        "audio": {"id"},
+                        "image": {"id", "caption", "mime_type", "sha256"},
+                    }.items():
+                        if nested_name in message:
+                            self._check_dict(
+                                message[nested_name],
+                                nested_allowed,
+                                f"{message_path}.{nested_name}",
+                            )
+                    for text_field in ("from", "id", "timestamp", "type", "caption", "body"):
+                        if text_field in message and (
+                            not isinstance(message[text_field], str) or len(message[text_field]) > 4000
+                        ):
+                            raise serializers.ValidationError(
+                                {f"{message_path}.{text_field}": "must be a bounded string"}
+                            )
+        return attrs
+
+
+class StrictQuerySerializer(StrictSerializer):
+    """StrictSerializer variant used for query strings as well as JSON bodies."""
+
+
+class EmptyInputSerializer(StrictSerializer):
+    """Schema for endpoints that intentionally accept no request parameters."""
+
+
+class WhatsAppVerificationQuerySerializer(StrictQuerySerializer):
+    """Strict contract for Meta's three webhook verification parameters."""
+
+    mode = serializers.ChoiceField(choices=("subscribe",))
+    verify_token = serializers.CharField(max_length=512)
+    challenge = serializers.CharField(max_length=2048)
+
+    _META_FIELDS = frozenset({"hub.mode", "hub.verify_token", "hub.challenge"})
+
+    def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            raise serializers.ValidationError("Query parameters are required.")
+        unknown = set(data) - self._META_FIELDS
+        if unknown:
+            raise serializers.ValidationError(
+                {"non_field_errors": [f"Unexpected field: {field}" for field in sorted(unknown)]}
+            )
+        if hasattr(data, "getlist"):
+            repeated = {
+                field: "must be provided once"
+                for field in self._META_FIELDS
+                if len(data.getlist(field)) != 1
+            }
+            if repeated:
+                raise serializers.ValidationError(repeated)
+        return super().to_internal_value({
+            "mode": data.get("hub.mode"),
+            "verify_token": data.get("hub.verify_token"),
+            "challenge": data.get("hub.challenge"),
+        })
+
+
+class LocationQuerySerializer(StrictQuerySerializer):
+    """Common, bounded location and pagination query contract."""
+
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    lat = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    lon = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    lng = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    gps_lat = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    gps_lon = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    gps_latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    gps_longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    accuracy_meters = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    gps_accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    location_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    city = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    village = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    district = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    place = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    address = serializers.CharField(required=False, allow_blank=True, max_length=300)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=LOCATION_SOURCE_CHOICES,
+        default="unknown",
+    )
+    language = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    q = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    crop = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    mandi = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=50)
+    radius_km = serializers.FloatField(required=False, min_value=1, max_value=500)
+    include_estimates = serializers.BooleanField(required=False, default=False)
+    category = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    strict = serializers.BooleanField(required=False, default=False)
+    lang = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    field_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    previous_crop = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    nitrogen_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)
+    phosphorus_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    potassium_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)
+    ph = serializers.FloatField(required=False, min_value=0, max_value=14)
+    ec_ds_m = serializers.FloatField(required=False, min_value=0, max_value=100)
+    moisture_pct = serializers.FloatField(required=False, min_value=0, max_value=100)
+    organic_carbon = serializers.FloatField(required=False, min_value=0, max_value=100)
+
+
+class MandiListQuerySerializer(LocationQuerySerializer):
+    """Location query plus bounded state-registry controls for mandi discovery."""
+
+    scope = serializers.ChoiceField(
+        required=False,
+        choices=("nearby", "state"),
+        default="nearby",
+    )
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=500, default=50)
+
+
+class CropRecommendationQuerySerializer(LocationQuerySerializer):
+    """Strict farmer inputs used by the multi-factor crop engine."""
+
+    _INPUT_FIELDS = frozenset({
+        "season",
+        "soil_type",
+        "irrigation",
+        "farm_size_ha",
+        "budget_per_hectare",
+        "risk_tolerance",
+        "preferred_categories",
+        "exclude_crops",
+        "previous_crop",
+        "nitrogen_kg_ha",
+        "phosphorus_kg_ha",
+        "potassium_kg_ha",
+        "ph",
+        "ec_ds_m",
+        "moisture_pct",
+        "organic_carbon",
+    })
+
+    season = serializers.ChoiceField(
+        required=False,
+        choices=("rabi", "kharif", "zaid", "year_round"),
+    )
+    soil_type = serializers.ChoiceField(
+        required=False,
+        choices=(
+            "alluvial",
+            "loamy",
+            "sandy",
+            "sandy_loam",
+            "clay",
+            "clay_loam",
+            "black",
+            "red",
+            "laterite",
+            "saline",
+            "peaty",
+        ),
+    )
+    irrigation = serializers.ChoiceField(
+        required=False,
+        choices=("rainfed", "low", "medium", "high", "drip", "sprinkler", "flood"),
+    )
+    farm_size_ha = serializers.FloatField(required=False, min_value=0.01, max_value=1_000_000)
+    budget_per_hectare = serializers.FloatField(required=False, min_value=0, max_value=1_000_000_000)
+    risk_tolerance = serializers.ChoiceField(
+        required=False,
+        choices=("low", "medium", "high"),
+        default="medium",
+    )
+    preferred_categories = serializers.CharField(required=False, allow_blank=True, max_length=300)
+    exclude_crops = serializers.CharField(required=False, allow_blank=True, max_length=500)
+
+    @staticmethod
+    def _split_csv(value, *, max_items):
+        values = [item.strip() for item in str(value or "").split(",") if item.strip()]
+        if len(values) > max_items:
+            raise serializers.ValidationError(f"At most {max_items} values are allowed.")
+        if any(not re.fullmatch(r"[A-Za-z][A-Za-z0-9 _-]{0,79}", item) for item in values):
+            raise serializers.ValidationError("Use comma-separated crop/category names only.")
+        return values
+
+    def validate_preferred_categories(self, value):
+        allowed = {
+            "aquatic", "aromatic", "cash", "cereal", "fiber", "flower",
+            "fodder", "fruit", "leaf crop", "medicinal", "millet", "nut",
+            "oilseed", "plantation", "pseudo cereal", "pulse", "spice",
+            "vegetable",
+        }
+        values = self._split_csv(value, max_items=12)
+        invalid = sorted({item.lower() for item in values} - allowed)
+        if invalid:
+            raise serializers.ValidationError(f"Unsupported categories: {', '.join(invalid)}")
+        return [item.lower().title() for item in values]
+
+    def validate_exclude_crops(self, value):
+        return [
+            item.lower().replace("-", "_").replace(" ", "_")
+            for item in self._split_csv(value, max_items=30)
+        ]
+
+    @property
+    def recommendation_inputs(self):
+        if not hasattr(self, "validated_data"):
+            raise AssertionError("Call is_valid() before reading recommendation_inputs.")
+        inputs = {
+            key: self.validated_data[key]
+            for key in self._INPUT_FIELDS
+            if key in self.validated_data
+        }
+        requested_crop = self.validated_data.get("crop")
+        if requested_crop:
+            from ..services.crop_catalog import crop_catalog
+
+            match = crop_catalog.normalize(requested_crop)
+            inputs["target_crop"] = (
+                match["id"]
+                if match
+                else requested_crop.lower().replace("-", "_").replace(" ", "_")
+            )
+        return inputs
+
+
+class GovernmentPestInputSerializer(StrictSerializer):
+    crop = serializers.CharField(required=False, allow_blank=True, max_length=120, default="Wheat")
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=LOCATION_SOURCE_CHOICES,
+        default="unknown",
+    )
+    language = serializers.CharField(required=False, allow_blank=True, max_length=20, default="hi")
+
+
+class FarmerEligibilityProfileSerializer(StrictSerializer):
+    state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    district = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    crop = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    age = serializers.IntegerField(required=False, min_value=0, max_value=120)
+    gender = serializers.CharField(required=False, allow_blank=True, max_length=30)
+    category = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    farmer_type = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    land_size = serializers.FloatField(required=False, min_value=0, max_value=1_000_000)
+    land_size_acres = serializers.FloatField(required=False, min_value=0, max_value=1_000_000)
+    land_size_hectare = serializers.FloatField(required=False, min_value=0, max_value=1_000_000)
+    land_hectares = serializers.FloatField(required=False, min_value=0, max_value=1_000_000)
+    annual_income = serializers.FloatField(required=False, min_value=0, max_value=1_000_000_000)
+    pincode = serializers.RegexField(required=False, regex=r"^\d{6}$")
+    has_pm_kisan = serializers.BooleanField(required=False)
+    has_kcc = serializers.BooleanField(required=False)
+    has_pmfby = serializers.BooleanField(required=False)
+
+
+class SchemeEligibilityInputSerializer(StrictSerializer):
+    farmer_profile = FarmerEligibilityProfileSerializer()
+
+
+class LogoutInputSerializer(StrictSerializer):
+    refresh = serializers.CharField(required=False, allow_blank=True, max_length=4096)
+
+
+class RateLimitResetInputSerializer(StrictSerializer):
+    client_id = serializers.RegexField(regex=r"^[A-Za-z0-9:_./@+-]{1,160}$")
+
+
+class DiagnosticMultipartPredictInputSerializer(StrictSerializer):
+    image = serializers.FileField(required=True)
+    crop = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    crop_name = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    commodity = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    language = serializers.ChoiceField(required=False, choices=("hi", "en", "hinglish"), default="hi")
+    session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+
+
+class PestDetectionInputSerializer(StrictSerializer):
+    image = serializers.CharField(required=False, allow_blank=False)
+    image_base64 = serializers.CharField(required=False, allow_blank=False)
+    crop = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    language = serializers.CharField(required=False, allow_blank=True, max_length=20, default="hi")
+
+
+class OTPRequestInputSerializer(StrictSerializer):
+    phone_number = serializers.CharField(min_length=10, max_length=16, trim_whitespace=True)
+
+
+class OTPVerifyInputSerializer(StrictSerializer):
+    phone_number = serializers.CharField(min_length=10, max_length=16, trim_whitespace=True)
+    otp_code = serializers.RegexField(regex=r"^\d{6}$")
+    session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    guest_session_token = serializers.CharField(required=False, allow_blank=True, max_length=4096)
+
+
+class RegistrationInputSerializer(StrictSerializer):
+    username = serializers.RegexField(
+        regex=r"^[A-Za-z0-9_.-]{3,64}$",
+        max_length=64,
+    )
+    password = serializers.CharField(min_length=8, max_length=128, trim_whitespace=False)
+    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=16)
+    name = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    language = serializers.ChoiceField(
+        required=False,
+        choices=tuple(SUPPORTED_LANGUAGES),
+        default="hi",
+    )
+    session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    guest_session_token = serializers.CharField(required=False, allow_blank=True, max_length=4096)
+
+
+class ChatHistoryEntrySerializer(StrictSerializer):
+    role = serializers.ChoiceField(choices=("user", "assistant"), default="user")
+    content = serializers.CharField(max_length=2000, allow_blank=False)
+    intent = serializers.CharField(required=False, allow_blank=True, max_length=80)
+
+
+class ChatSensorContextSerializer(StrictSerializer):
+    """Strict, fresh readings from a real field sensor or IoT gateway."""
+
+    source = serializers.ChoiceField(
+        choices=("esp32", "mqtt", "field_sensor", "verified_hardware")
+    )
+    device_id = serializers.RegexField(
+        regex=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$"
+    )
+    observed_at = serializers.DateTimeField()
+    soil_moisture_pct = serializers.FloatField(required=False, min_value=0, max_value=100)
+    soil_moisture_percentage = serializers.FloatField(required=False, min_value=0, max_value=100)
+    soil_temp_c = serializers.FloatField(required=False, min_value=-20, max_value=80)
+    air_temp_c = serializers.FloatField(required=False, min_value=-60, max_value=80)
+    humidity_pct = serializers.FloatField(required=False, min_value=0, max_value=100)
+    humidity_percentage = serializers.FloatField(required=False, min_value=0, max_value=100)
+    nitrogen_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    nitrogen_lvl = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    phosphorus_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    phosphorus_lvl = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    potassium_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    potassium_lvl = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    soil_ph = serializers.FloatField(required=False, min_value=0, max_value=14)
+    hours_since_last_water = serializers.FloatField(required=False, min_value=0, max_value=8760)
+
+    _ALIASES = {
+        "soil_moisture_percentage": "soil_moisture_pct",
+        "humidity_percentage": "humidity_pct",
+        "nitrogen_lvl": "nitrogen_kg_ha",
+        "phosphorus_lvl": "phosphorus_kg_ha",
+        "potassium_lvl": "potassium_kg_ha",
+    }
+    _MEASUREMENTS = {
+        "soil_moisture_pct",
+        "soil_temp_c",
+        "air_temp_c",
+        "humidity_pct",
+        "nitrogen_kg_ha",
+        "phosphorus_kg_ha",
+        "potassium_kg_ha",
+        "soil_ph",
+    }
+
+    def validate(self, attrs):
+        values = dict(attrs)
+        for alias, canonical in self._ALIASES.items():
+            if canonical not in values and alias in values:
+                values[canonical] = values[alias]
+            values.pop(alias, None)
+
+        if not any(name in values for name in self._MEASUREMENTS):
+            raise serializers.ValidationError(
+                "At least one numeric sensor reading is required."
+            )
+
+        observed_at = values["observed_at"]
+        now = timezone.now()
+        age_seconds = (now - observed_at).total_seconds()
+        if age_seconds > 30 * 60:
+            raise serializers.ValidationError({
+                "observed_at": "Sensor reading is stale; maximum age is 30 minutes."
+            })
+        if age_seconds < -5 * 60:
+            raise serializers.ValidationError({
+                "observed_at": "Sensor timestamp cannot be more than 5 minutes in the future."
+            })
+        values["observed_at"] = observed_at.isoformat()
+        values["sensor_age_seconds"] = max(0, int(age_seconds))
+        return values
+
+
+class ChatbotRequestSerializer(StrictSerializer):
+    query = serializers.CharField(max_length=2000, trim_whitespace=True)
+    language = serializers.ChoiceField(
+        choices=tuple(SUPPORTED_LANGUAGES), default="hi"
+    )
+    session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    fast_mode = serializers.BooleanField(required=False, default=False)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=LOCATION_SOURCE_CHOICES,
+        default="unknown",
+    )
+    history = serializers.ListField(
+        required=False,
+        child=ChatHistoryEntrySerializer(),
+        max_length=20,
+    )
+    phone = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    lat = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    lon = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    lng = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    gps_lat = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    gps_lon = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    accuracy_meters = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    gps_accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    location_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    city = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    village = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    district = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    place = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    address = serializers.CharField(required=False, allow_blank=True, max_length=300)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    sensor_context = ChatSensorContextSerializer(required=False)
+    sensors = ChatSensorContextSerializer(required=False, write_only=True)
+
+    def validate(self, attrs):
+        values = dict(attrs)
+        if "sensor_context" in values and "sensors" in values:
+            raise serializers.ValidationError({
+                "sensor_context": "Send sensor_context or sensors, not both."
+            })
+        if "sensor_context" not in values and "sensors" in values:
+            values["sensor_context"] = values.pop("sensors")
+        return values
+
+
+class ChatbotFeedbackSerializer(StrictSerializer):
+    feedback_token = serializers.CharField(max_length=4096, trim_whitespace=True)
+    is_helpful = serializers.BooleanField()
+    feedback_text = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        trim_whitespace=True,
+    )
+
+
+class FarmerCropHistoryEntrySerializer(StrictSerializer):
+    season = serializers.CharField(max_length=40, allow_blank=True, required=False)
+    crop = serializers.CharField(max_length=100)
+    issue = serializers.CharField(max_length=200, allow_blank=True, required=False)
+    yield_qtl = serializers.FloatField(required=False, min_value=0, max_value=100000)
+
+
+class FarmerProfileInputSerializer(StrictSerializer):
+    # Legacy client fields are accepted but never used for ownership.
+    phone = serializers.CharField(required=False, allow_blank=True, max_length=20, write_only=True)
+    session_id = serializers.CharField(required=False, allow_blank=True, max_length=100, write_only=True)
+    location_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    district = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    farm_size_bigha = serializers.FloatField(required=False, min_value=0, max_value=1_000_000)
+    farm_size_hectare = serializers.FloatField(required=False, min_value=0, max_value=1_000_000)
+    current_crop = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    current_season = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    soil_ph = serializers.FloatField(required=False, min_value=0, max_value=14)
+    soil_type = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    irrigation_type = serializers.ChoiceField(
+        required=False,
+        choices=("", "drip", "sprinkler", "flood", "rainfed"),
+    )
+    preferred_language = serializers.ChoiceField(
+        required=False,
+        choices=("hi", "en", "hinglish"),
+    )
+    has_pm_kisan = serializers.BooleanField(required=False)
+    has_kcc = serializers.BooleanField(required=False)
+    has_pmfby = serializers.BooleanField(required=False)
+    pm_kisan_status = serializers.ChoiceField(
+        required=False,
+        choices=("", "active", "pending", "none"),
+    )
+    whatsapp_opt_in = serializers.BooleanField(required=False)
+
+
+class FarmerCropInputSerializer(StrictSerializer):
+    season = serializers.CharField(required=False, allow_blank=True, max_length=40)
+    crop = serializers.CharField(max_length=100)
+    issue = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    yield_qtl = serializers.FloatField(required=False, min_value=0, max_value=100000)
+
+
+class SensorValuesInputSerializer(StrictSerializer):
+    nitrogen_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)
+    phosphorus_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    potassium_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)
+    ph = serializers.FloatField(required=False, min_value=0, max_value=14)
+    ec_ds_m = serializers.FloatField(required=False, min_value=0, max_value=100)
+    moisture_pct = serializers.FloatField(required=False, min_value=0, max_value=100)
+    soil_temp_c = serializers.FloatField(required=False, min_value=-20, max_value=80)
+    organic_carbon = serializers.FloatField(required=False, min_value=0, max_value=100)
+    bulk_density = serializers.FloatField(required=False, min_value=0, max_value=10)
+
+
+class FieldSensorInputSerializer(StrictSerializer):
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    location_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=LOCATION_SOURCE_CHOICES,
+        default="unknown",
+    )
+    language = serializers.ChoiceField(required=False, choices=("hi", "en", "hinglish"), default="hi")
+    field_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    use_saved_sensor = serializers.BooleanField(required=False, default=True)
+    sensors = SensorValuesInputSerializer(required=False)
+    nitrogen_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)
+    phosphorus_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    potassium_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)
+    ph = serializers.FloatField(required=False, min_value=0, max_value=14)
+    ec_ds_m = serializers.FloatField(required=False, min_value=0, max_value=100)
+    moisture_pct = serializers.FloatField(required=False, min_value=0, max_value=100)
+    soil_temp_c = serializers.FloatField(required=False, min_value=-20, max_value=80)
+    organic_carbon = serializers.FloatField(required=False, min_value=0, max_value=100)
+    bulk_density = serializers.FloatField(required=False, min_value=0, max_value=10)
+    crop_history = serializers.ListField(required=False, child=serializers.CharField(max_length=100), max_length=10)
+    previous_crop = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    irrigation_type = serializers.ChoiceField(
+        required=False, choices=("unknown", "drip", "sprinkler", "flood", "rainfed")
+    )
+    field_area_ha = serializers.FloatField(required=False, min_value=0, max_value=1_000_000)
+
+
+class TextToSpeechInputSerializer(StrictSerializer):
+    text = serializers.CharField(max_length=500, trim_whitespace=True)
+    language = serializers.ChoiceField(
+        required=False,
+        choices=("hi", "en", "mr", "ta", "te", "gu", "pa", "bn", "kn", "ml", "or", "as"),
+        default="hi",
+    )
+
+
+class AdvisoryAudioInputSerializer(StrictSerializer):
+    query = serializers.CharField(max_length=2000, trim_whitespace=True)
+    language = serializers.ChoiceField(
+        required=False,
+        choices=("hi", "en", "mr", "ta", "te", "gu", "pa", "bn", "kn", "ml"),
+        default="hi",
+    )
+    session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+
+
+class DiagnosticDetectInputSerializer(StrictSerializer):
+    crop = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    language = serializers.ChoiceField(required=False, choices=("hi", "en", "hinglish"), default="hi")
+    session_id = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    accuracy = serializers.FloatField(required=False, min_value=0, max_value=100000)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=LOCATION_SOURCE_CHOICES,
+        default="unknown",
+    )
+    images = serializers.DictField(
+        required=False,
+        child=serializers.CharField(allow_blank=False),
+    )
+
+
+class DiagnosticPredictInputSerializer(StrictSerializer):
+    image = serializers.CharField(required=False, allow_blank=False)
+    image_base64 = serializers.CharField(required=False, allow_blank=False)
+    images = serializers.DictField(required=False, child=serializers.CharField(allow_blank=False))
+    crop = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    crop_name = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    commodity = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    language = serializers.ChoiceField(required=False, choices=("hi", "en", "hinglish"), default="hi")
+
+
+class DiagnosticFeedbackInputSerializer(StrictSerializer):
+    session_id = serializers.CharField(max_length=100)
+    is_correct = serializers.BooleanField()
+    correct_diagnosis = serializers.CharField(required=False, allow_blank=True, max_length=200)
+
 class FertilizerRecommendationSerializer(serializers.Serializer):
     crop_type = serializers.CharField(max_length=100, help_text="Type of crop")
     soil_type = serializers.CharField(max_length=100, help_text="Type of soil")
@@ -113,3 +819,27 @@ class FeedbackSerializer(serializers.Serializer):
     feedback_text = serializers.CharField(required=False, max_length=500, help_text="Additional feedback text")
     latitude = serializers.FloatField(required=False, help_text="Latitude coordinate")
     longitude = serializers.FloatField(required=False, help_text="Longitude coordinate")
+
+
+class InputGapsInputSerializer(StrictSerializer):
+    crop = serializers.CharField(required=False, allow_blank=True, max_length=120, default="wheat")
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    location = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    location_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    location_confirmed = serializers.BooleanField(required=False, default=True)
+    location_source = serializers.ChoiceField(
+        required=False,
+        choices=LOCATION_SOURCE_CHOICES,
+        default="unknown",
+    )
+    language = serializers.CharField(required=False, allow_blank=True, max_length=20, default="hi")
+    sensors = SensorValuesInputSerializer(required=False)
+    nitrogen_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)
+    phosphorus_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=2000)
+    potassium_kg_ha = serializers.FloatField(required=False, min_value=0, max_value=5000)
+    ph = serializers.FloatField(required=False, min_value=0, max_value=14)
+    ec_ds_m = serializers.FloatField(required=False, min_value=0, max_value=100)
+    moisture_pct = serializers.FloatField(required=False, min_value=0, max_value=100)
+    organic_carbon = serializers.FloatField(required=False, min_value=0, max_value=100)

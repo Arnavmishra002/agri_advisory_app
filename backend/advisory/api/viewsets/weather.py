@@ -21,10 +21,15 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from ..location_utils import attach_location_metadata, resolve_request_location
+from ..location_utils import (
+    attach_location_metadata,
+    require_confirmed_location,
+    resolve_request_location,
+)
 from ..errors import safe_error_message
 from ...services.language_service import normalise_language_code
 from ...services.unified_realtime_service import weather_service
+from ..serializers import LocationQuerySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +38,15 @@ class WeatherViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
     def _fetch(self, request, force: bool = False):
+        serializer = LocationQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response({"error": "Invalid weather parameters", "errors": serializer.errors}, status=400)
+        params = serializer.validated_data
         ctx  = resolve_request_location(request)
-        lang = normalise_language_code(
-            request.query_params.get("language", "hi")
-        )
+        location_error = require_confirmed_location(ctx, service="weather")
+        if location_error:
+            return location_error
+        lang = normalise_language_code(params.get("language", "hi"))
         data = weather_service.get_weather(
             ctx.query_label, ctx.latitude, ctx.longitude, lang=lang
         )
@@ -91,10 +101,15 @@ class WeatherViewSet(viewsets.ViewSet):
         Use this when the user explicitly pulls to refresh.
         """
         try:
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid weather parameters", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
             ctx  = resolve_request_location(request)
-            lang = normalise_language_code(
-                request.query_params.get("language", "hi")
-            )
+            location_error = require_confirmed_location(ctx, service="weather")
+            if location_error:
+                return location_error
+            lang = normalise_language_code(params.get("language", "hi"))
             # Invalidate the Django weather_cache for this location
             try:
                 from django.core.cache import caches

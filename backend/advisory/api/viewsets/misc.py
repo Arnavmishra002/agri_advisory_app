@@ -5,7 +5,7 @@ KrishiMitra — WhatsApp, SMS/IVR, TTS, User, Forum viewsets
 WhatsApp integration uses Meta Cloud API (free up to 1000 conversations/month).
 Flow: Farmer sends WhatsApp → Meta webhook → /api/sms-ivr/whatsapp/ → chatbot → reply
 
-TTS uses gTTS (no API key needed, built-in) to convert advisory text to speech
+TTS uses Edge TTS (no API key needed) to convert advisory text to speech
 so IVR callers can hear the advice.
 
 Setup (5 min):
@@ -28,8 +28,10 @@ import io
 import json
 import logging
 import os
+import base64
 import urllib.request
 
+from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status, viewsets
@@ -38,17 +40,62 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..errors import safe_error_message
+from ..serializers import (
+    AdvisoryAudioInputSerializer,
+    EmptyInputSerializer,
+    TextToSpeechInputSerializer,
+    TwilioWebhookInputSerializer,
+    WhatsAppVerificationQuerySerializer,
+    WhatsAppWebhookInputSerializer,
+)
 logger = logging.getLogger(__name__)
 
 # ── Environment config ────────────────────────────────────────────────────────
 WHATSAPP_TOKEN        = os.getenv("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_ID     = os.getenv("WHATSAPP_PHONE_ID", "")
-WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "krishimitra-webhook")
+WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
 WHATSAPP_APP_SECRET   = os.getenv("WHATSAPP_APP_SECRET", "")
 TWILIO_SID            = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_TOKEN          = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_FROM           = os.getenv("TWILIO_FROM_NUMBER", "")
 GROQ_API_KEY          = os.getenv("GROQ_API_KEY", "")   # for Whisper STT (free tier)
+
+
+def _owned_advisory_audio_session(request) -> str:
+    """Return a server-owned TTS history key; never trust a client session id."""
+    user = getattr(request, "user", None)
+    if user is not None and getattr(user, "is_authenticated", False):
+        return f"user:{user.pk}"
+    return ""
+
+
+def _twilio_signature_valid(request) -> bool:
+    """Validate Twilio webhooks; only local DEBUG may run without a token."""
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
+    if not auth_token:
+        return bool(settings.DEBUG)
+    signature = request.headers.get("X-Twilio-Signature", "")
+    if not signature:
+        return False
+    params = request.POST or getattr(request, "data", {}) or {}
+    signed = request.build_absolute_uri()
+    for key in sorted(params):
+        values = params.getlist(key) if hasattr(params, "getlist") else [params[key]]
+        signed += key + "".join(str(value) for value in values)
+    expected = base64.b64encode(
+        hmac.new(auth_token.encode(), signed.encode(), hashlib.sha1).digest()
+    ).decode()
+    return hmac.compare_digest(signature, expected)
+
+
+def _reject_invalid_twilio(request):
+    if _twilio_signature_valid(request):
+        return None
+    logger.warning("Rejected unsigned or invalid Twilio webhook")
+    return Response(
+        {"error": "Webhook signature validation failed", "error_code": "INVALID_WEBHOOK_SIGNATURE"},
+        status=status.HTTP_401_UNAUTHORIZED,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -63,6 +110,12 @@ class SMSIVRViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
     def list(self, request):
+        serializer = EmptyInputSerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "This endpoint does not accept query parameters", "error_code": "UNEXPECTED_INPUT"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({
             "service":  "KrishiMitra WhatsApp/SMS Gateway",
             "status":   "active" if WHATSAPP_TOKEN else "needs WHATSAPP_TOKEN in .env",
@@ -80,9 +133,17 @@ class SMSIVRViewSet(viewsets.ViewSet):
 
     def _verify_webhook(self, request):
         """Meta sends a GET with hub.verify_token to confirm the webhook."""
-        mode      = request.query_params.get("hub.mode")
-        token     = request.query_params.get("hub.verify_token")
-        challenge = request.query_params.get("hub.challenge")
+        serializer = WhatsAppVerificationQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "Invalid WhatsApp verification request", "error_code": "INVALID_WEBHOOK_VERIFICATION"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        mode = serializer.validated_data["mode"]
+        token = serializer.validated_data["verify_token"]
+        challenge = serializer.validated_data["challenge"]
+        if not WHATSAPP_VERIFY_TOKEN and not settings.DEBUG:
+            return Response({"error": "WhatsApp verification is not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         if mode == "subscribe" and token == WHATSAPP_VERIFY_TOKEN:
             logger.info("WhatsApp webhook verified successfully")
             from django.http import HttpResponse
@@ -92,6 +153,11 @@ class SMSIVRViewSet(viewsets.ViewSet):
     def _handle_whatsapp_message(self, request):
         """Process incoming WhatsApp messages and reply via the AI chatbot."""
         try:
+            if not WHATSAPP_APP_SECRET and not settings.DEBUG:
+                logger.error("WhatsApp webhook rejected: WHATSAPP_APP_SECRET is not configured")
+                return Response({"error": "WhatsApp webhook is not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            if len(request.body) > 1_048_576:
+                return Response({"error": "Webhook payload is too large"}, status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
             # Optional signature verification
             if WHATSAPP_APP_SECRET:
                 # FIX 2a: guard against None header (some load balancers omit it)
@@ -106,7 +172,13 @@ class SMSIVRViewSet(viewsets.ViewSet):
                     logger.warning("WhatsApp webhook signature mismatch — rejecting")
                     return Response({"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
 
-            body = request.data
+            serializer = WhatsAppWebhookInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(
+                    {"error": "Invalid webhook payload", "error_code": "INVALID_WEBHOOK_PAYLOAD", "errors": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            body = serializer.validated_data
             entry = (body.get("entry") or [{}])[0]
             changes = (entry.get("changes") or [{}])[0]
             value = changes.get("value", {})
@@ -324,7 +396,7 @@ class SMSIVRViewSet(viewsets.ViewSet):
             )
 
     def _build_location_context(self, phone: str):
-        """Build a LocationContext from the farmer's profile, or default Delhi."""
+        """Build a LocationContext from the farmer profile without substitution."""
         try:
             from ...models import FarmerProfile
             from ...services.location_context import LocationContext
@@ -335,14 +407,18 @@ class SMSIVRViewSet(viewsets.ViewSet):
                     longitude=p.longitude,
                     display_name=p.location_name or p.district or p.state or "India",
                     state=p.state or "",
+                    source="farmer_profile",
+                    confidence=1.0,
                 )
         except Exception:
             pass
-        # Default: Delhi
         from ...services.location_context import LocationContext
         return LocationContext(
-            latitude=28.6139, longitude=77.2090,
-            display_name="Delhi", state="Delhi",
+            latitude=None,
+            longitude=None,
+            display_name="",
+            source="unconfirmed",
+            confidence=0.0,
         )
 
     def _send_whatsapp_reply(self, to: str, text: str) -> None:
@@ -378,8 +454,18 @@ class SMSIVRViewSet(viewsets.ViewSet):
         Twilio SMS webhook — POST /api/sms-ivr/sms/
         Twilio sends: From, Body, etc. as form data.
         """
-        from_number = request.data.get("From", "")
-        body        = request.data.get("Body", "").strip()
+        rejected = _reject_invalid_twilio(request)
+        if rejected:
+            return rejected
+        serializer = TwilioWebhookInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+        from_number = data.get("From", "")
+        raw_body    = data.get("Body", "")
+        if not isinstance(from_number, str) or len(from_number) > 32 or not isinstance(raw_body, str):
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        body = raw_body.strip()[:4000]
         if not from_number or not body:
             return Response("<Response/>", content_type="text/xml")
 
@@ -404,9 +490,18 @@ class SMSIVRViewSet(viewsets.ViewSet):
         Twilio Voice webhook — POST /api/sms-ivr/voice/
         Incoming phone call: play welcome greeting and gather speech input.
         """
+        rejected = _reject_invalid_twilio(request)
+        if rejected:
+            return rejected
         from django.http import HttpResponse
         
-        from_number = request.data.get("From", "")
+        serializer = TwilioWebhookInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+        from_number = data.get("From", "")
+        if not isinstance(from_number, str) or len(from_number) > 32:
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
         lang_code = self._get_or_create_profile_language(from_number)
         
         # Map simple language codes to Twilio voice locales
@@ -455,10 +550,20 @@ class SMSIVRViewSet(viewsets.ViewSet):
         """
         Twilio Voice speech gathering callback — POST /api/sms-ivr/voice-callback/
         """
+        rejected = _reject_invalid_twilio(request)
+        if rejected:
+            return rejected
         from django.http import HttpResponse
         
-        from_number   = request.data.get("From", "")
-        speech_result = request.data.get("SpeechResult", "").strip()
+        serializer = TwilioWebhookInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+        from_number   = data.get("From", "")
+        raw_speech    = data.get("SpeechResult", "")
+        if not isinstance(from_number, str) or not isinstance(raw_speech, str) or len(from_number) > 32:
+            return Response("<Response/>", content_type="text/xml", status=status.HTTP_400_BAD_REQUEST)
+        speech_result = raw_speech.strip()[:4000]
         
         lang_code = self._get_or_create_profile_language(from_number)
         
@@ -505,7 +610,7 @@ class SMSIVRViewSet(viewsets.ViewSet):
 # ─────────────────────────────────────────────────────────────────────────────
 class TextToSpeechViewSet(viewsets.ViewSet):
     """
-    Convert advisory text to speech using gTTS (no API key needed).
+    Convert advisory text to speech using Edge TTS (no API key needed).
 
     POST /api/tts/generate/
     Body: {"text": "...", "language": "hi"}
@@ -517,9 +622,15 @@ class TextToSpeechViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
     def list(self, request):
+        serializer = EmptyInputSerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "This endpoint does not accept query parameters", "error_code": "UNEXPECTED_INPUT"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({
             "service":   "KrishiMitra Text-to-Speech",
-            "engine":    "gTTS (Google TTS, no key needed)",
+            "engine":    "Edge TTS (online, no API key needed)",
             "languages": ["hi", "en", "mr", "ta", "te", "gu", "pa", "bn", "kn", "ml"],
             "endpoint":  "POST /api/tts/generate/ — {text, language}",
         })
@@ -528,11 +639,16 @@ class TextToSpeechViewSet(viewsets.ViewSet):
     def generate(self, request):
         """Generate MP3 from text. Safe to call without API keys."""
         if request.method == "GET":
-            text     = request.query_params.get("text", "").strip()
-            language = request.query_params.get("language", "hi")
+            serializer = TextToSpeechInputSerializer(data=request.query_params)
         else:
-            text     = (request.data.get("text") or "").strip()
-            language = request.data.get("language", "hi")
+            serializer = TextToSpeechInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors, "error_code": "INVALID_TTS_REQUEST"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        text = serializer.validated_data["text"]
+        language = serializer.validated_data["language"]
 
         if not text:
             return Response({"error": "text is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -547,9 +663,18 @@ class TextToSpeechViewSet(viewsets.ViewSet):
         Body: {"query": "सरसों में माहू", "language": "hi", "session_id": "sess_..."}
         Returns: audio/mpeg
         """
-        query      = (request.data.get("query") or "").strip()
-        language   = request.data.get("language", "hi")
-        session_id = request.data.get("session_id", "")
+        serializer = AdvisoryAudioInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors, "error_code": "INVALID_ADVISORY_AUDIO_REQUEST"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        query = serializer.validated_data["query"]
+        language = serializer.validated_data["language"]
+        # The request field remains accepted for client compatibility, but it
+        # is never used as a database lookup key. Anonymous audio requests do
+        # not load conversation history; authenticated users use their own key.
+        session_id = _owned_advisory_audio_session(request)
 
         if not query:
             return Response({"error": "query required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -562,8 +687,11 @@ class TextToSpeechViewSet(viewsets.ViewSet):
 
             history = session_memory.load_history(session_id, limit=6) if session_id else []
             ctx = LocationContext(
-                latitude=28.6139, longitude=77.2090,
-                display_name="India",
+                latitude=None,
+                longitude=None,
+                display_name="",
+                source="unconfirmed",
+                confidence=0.0,
             )
             result      = chat_intelligence_service.answer(query, ctx, language=language, history=history)
             advice_text = result.get("response", "")
@@ -576,24 +704,39 @@ class TextToSpeechViewSet(viewsets.ViewSet):
 
     # ── Internal TTS helper ───────────────────────────────────────────────────
     def _render_tts(self, text: str, language: str):
-        """Render `text` as audio/mpeg via gTTS. Returns a FileResponse or error Response."""
+        """Render `text` as audio/mpeg via Edge TTS."""
         try:
-            from gtts import gTTS
+            import edge_tts
         except ImportError:
             return Response(
-                {"error": "gTTS not installed", "fix": "pip install gTTS"},
+                {"error": "Text-to-speech engine is not installed"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         try:
-            lang_map = {
-                "hi": "hi", "en": "en", "mr": "mr", "ta": "ta", "te": "te",
-                "gu": "gu", "pa": "pa", "bn": "bn", "kn": "kn", "ml": "ml",
-                "or": "or", "as": "as",
+            voice_map = {
+                "hi": "hi-IN-SwaraNeural",
+                "en": "en-IN-NeerjaNeural",
+                "mr": "mr-IN-AarohiNeural",
+                "ta": "ta-IN-PallaviNeural",
+                "te": "te-IN-ShrutiNeural",
+                "gu": "gu-IN-DhwaniNeural",
+                "pa": "pa-IN-VaaniNeural",
+                "bn": "bn-IN-TanishaaNeural",
+                "kn": "kn-IN-SapnaNeural",
+                "ml": "ml-IN-SobhanaNeural",
+                "or": "or-IN-SubhasiniNeural",
+                "as": "as-IN-YashicaNeural",
             }
-            gtts_lang = lang_map.get(language, "hi")
-            tts       = gTTS(text=text, lang=gtts_lang, slow=False)
-            buf       = io.BytesIO()
-            tts.write_to_fp(buf)
+            voice = voice_map.get(language, voice_map["hi"])
+            communicate = edge_tts.Communicate(text=text, voice=voice)
+            buf = io.BytesIO()
+            for chunk in communicate.stream_sync():
+                if chunk.get("type") == "audio":
+                    buf.write(chunk.get("data", b""))
+                    if buf.tell() > 5 * 1024 * 1024:
+                        raise ValueError("Generated audio exceeded the 5 MB safety limit")
+            if not buf.tell():
+                raise ValueError("Text-to-speech provider returned no audio")
             buf.seek(0)
             from django.http import FileResponse
             return FileResponse(buf, content_type="audio/mpeg", as_attachment=False, filename="advisory.mp3")
@@ -611,4 +754,10 @@ class TextToSpeechViewSet(viewsets.ViewSet):
 class ForumPostViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
     def list(self, request):
+        serializer = EmptyInputSerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "This endpoint does not accept query parameters", "error_code": "UNEXPECTED_INPUT"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({"message": "Forum service — coming soon"})

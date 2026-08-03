@@ -11,6 +11,7 @@ from ...services.location_context import location_resolver
 from ..location_utils import resolve_request_location
 from ..validation import MAX_LOCATION_QUERY_LENGTH, query_too_long
 from ..errors import safe_error_message
+from ..serializers import LocationQuerySerializer
 
 
 class LocationRecommendationViewSet(viewsets.ViewSet):
@@ -19,7 +20,11 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"])
     def search(self, request):
         try:
-            query = request.query_params.get("q", "").strip()
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid location search parameters", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
+            query = params.get("q", "").strip()
             if not query:
                 return Response(
                     {"error": "Query parameter q is required"},
@@ -30,7 +35,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
                 return too_long
 
             try:
-                limit = min(max(int(request.query_params.get("limit", 12)), 1), 20)
+                limit = min(max(params.get("limit", 12), 1), 20)
             except (TypeError, ValueError):
                 limit = 12
             results = location_resolver.search(query, limit=limit)[:limit]
@@ -50,10 +55,14 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
     def resolve(self, request):
         """Resolve GPS or text into full location context (village/society/city)."""
         try:
+            source = request.query_params if request.method == "GET" else request.data
+            serializer = LocationQuerySerializer(data=source)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid location parameters", "errors": serializer.errors}, status=400)
             ctx = resolve_request_location(request)
             return Response({
                 "status": "success",
-                "location": ctx.to_dict(),
+                "location": {**ctx.to_dict(), "confirmed": ctx.confirmed},
                 "coordinates": {"lat": ctx.latitude, "lon": ctx.longitude},
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             })
@@ -67,8 +76,12 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
     def reverse(self, request):
         """Reverse geocode lat/lon (high zoom for ≤10 m GPS accuracy)."""
         try:
-            lat = request.query_params.get("lat") or request.query_params.get("latitude")
-            lon = request.query_params.get("lon") or request.query_params.get("longitude")
+            serializer = LocationQuerySerializer(data=request.query_params)
+            if not serializer.is_valid():
+                return Response({"error": "Invalid reverse-geocoding parameters", "errors": serializer.errors}, status=400)
+            params = serializer.validated_data
+            lat = params.get("lat") or params.get("latitude")
+            lon = params.get("lon") or params.get("longitude")
             if not lat or not lon:
                 return Response(
                     {"error": "lat and lon parameters are required"},

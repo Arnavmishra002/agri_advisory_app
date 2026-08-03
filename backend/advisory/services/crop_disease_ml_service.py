@@ -24,7 +24,7 @@ class CropDiseaseMLService:
                 import base64
 
                 b64 = image_data.split(",", 1)[1] if "," in image_data else image_data
-                raw = base64.b64decode(b64)
+                raw = base64.b64decode(b64, validate=True)
 
             if raw:
                 blocked = self._validate_or_block(raw)
@@ -67,10 +67,11 @@ class CropDiseaseMLService:
                 "top_predictions": [],
             }
         except Exception as exc:
-            logger.error("ML prediction failed: %s", exc)
+            logger.exception("ML prediction failed")
             return {
                 "status": "error",
-                "message": str(exc),
+                "message": "Image analysis is temporarily unavailable. Please try again.",
+                "error_code": "ML_UNAVAILABLE",
                 "crop_name": None,
                 "disease_name": None,
                 "confidence": 0.0,
@@ -119,6 +120,15 @@ class CropDiseaseMLService:
                     "confidence": 0.0,
                     "top_predictions": [],
                     "validation": metrics,
+                }
+            if not valid and reason == "unreadable":
+                return {
+                    "status": "invalid_image",
+                    "message": "The image could not be read. Please upload a clear JPEG, PNG, or WebP photo.",
+                    "crop_name": None,
+                    "disease_name": None,
+                    "confidence": 0.0,
+                    "top_predictions": [],
                 }
         except Exception as exc:
             logger.debug("Plant validation skipped: %s", exc)

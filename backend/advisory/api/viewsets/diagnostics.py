@@ -1,5 +1,6 @@
 import logging
 import uuid
+import base64
 from datetime import datetime, timezone
 
 from django.db import IntegrityError, OperationalError, ProgrammingError
@@ -12,8 +13,16 @@ from ..errors import safe_error_message
 from ..location_utils import attach_location_metadata, resolve_request_location
 from ..validation import (
     MAX_DIAGNOSTIC_CROP_LENGTH,
+    decode_base64_image,
     read_upload_with_limit,
     query_too_long,
+)
+from ..serializers import (
+    DiagnosticDetectInputSerializer,
+    DiagnosticFeedbackInputSerializer,
+    DiagnosticPredictInputSerializer,
+    DiagnosticMultipartPredictInputSerializer,
+    LocationQuerySerializer,
 )
 from ...models import DiagnosticSession
 from ...services.crop_catalog import crop_catalog
@@ -34,6 +43,28 @@ class DiagnosticViewSet(viewsets.ViewSet):
         self.pest_service = KrishiRakshaPestService()
 
     @staticmethod
+    def _validate_image_map(images):
+        """Validate base64 image maps and return canonical base64 values."""
+        if not isinstance(images, dict):
+            return None, Response(
+                {"status": "error", "message": "images must be an object", "error_code": "INVALID_IMAGES"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        allowed_keys = {"whole", "close_up", "leaf", "imgCloseUp", "imgLeaf", "imgWhole"}
+        if len(images) > 6 or any(key not in allowed_keys for key in images):
+            return None, Response(
+                {"status": "error", "message": "Unsupported image fields", "error_code": "INVALID_IMAGES"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        validated = {}
+        for key, value in images.items():
+            raw, image_error = decode_base64_image(value)
+            if image_error:
+                return None, image_error
+            validated[key] = base64.b64encode(raw).decode("ascii")
+        return validated, None
+
+    @staticmethod
     def _predict_label(result):
         status_code = result.get("status", "error")
         if result.get("disease_name"):
@@ -42,6 +73,7 @@ class DiagnosticViewSet(viewsets.ViewSet):
             "model_unavailable": "AI model not trained",
             "tensorflow_missing": "AI model dependencies missing",
             "not_plant": "Not a crop leaf photo",
+            "invalid_image": "Invalid or unreadable image",
             "low_confidence": "Disease not confidently identified",
             "error": "Diagnosis unavailable",
         }.get(status_code, "Diagnosis unavailable")
@@ -74,6 +106,8 @@ class DiagnosticViewSet(viewsets.ViewSet):
             return "Image received, but ML dependencies are missing. Install backend/requirements-ml.txt on the server."
         if status_code == "not_plant":
             return result.get("message") or "Please upload a clear photo of a crop leaf in daylight."
+        if status_code == "invalid_image":
+            return result.get("message") or "Please upload a clear JPEG, PNG, or WebP leaf photo."
         if status_code == "low_confidence":
             return result.get("message") or "Please upload a clearer close-up of the affected leaf."
         return result.get("message") or "Diagnosis is temporarily unavailable. Please try again with a clear leaf image."
@@ -81,12 +115,16 @@ class DiagnosticViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="crop-search")
     def crop_search(self, request):
         """Crop autocomplete for disease detection (any Indian crop)."""
-        query = request.query_params.get("q", "").strip()
+        serializer = LocationQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response({"error": "Invalid crop search parameters", "errors": serializer.errors}, status=400)
+        params = serializer.validated_data
+        query = params.get("q", "").strip()
         too_long = query_too_long(query, MAX_DIAGNOSTIC_CROP_LENGTH, field="q")
         if too_long:
             return too_long
         try:
-            limit = min(int(request.query_params.get("limit", 10)), 20)
+            limit = min(params.get("limit", 10), 20)
         except (ValueError, TypeError):
             limit = 10
         results = crop_catalog.search(query, limit=limit) if query else crop_catalog.popular(limit)
@@ -110,6 +148,13 @@ class DiagnosticViewSet(viewsets.ViewSet):
         """
         try:
             data = request.data
+            serializer = DiagnosticDetectInputSerializer(data=data)
+            if not serializer.is_valid():
+                return Response(
+                    {"status": "error", "error_code": "INVALID_DIAGNOSTIC_REQUEST", "errors": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            data = serializer.validated_data
             crop_raw = data.get('crop')
             if crop_raw:
                 too_long = query_too_long(str(crop_raw).strip(), MAX_DIAGNOSTIC_CROP_LENGTH, field="crop")
@@ -119,6 +164,10 @@ class DiagnosticViewSet(viewsets.ViewSet):
             crop = norm["id"] if norm else crop_raw
             ctx = resolve_request_location(request)
             images = data.get('images', {})
+            if images:
+                images, image_error = self._validate_image_map(images)
+                if image_error:
+                    return image_error
             session_id = data.get('session_id') # Can be generated if missing
             
             # Start Diagnostic Pipeline
@@ -155,7 +204,7 @@ class DiagnosticViewSet(viewsets.ViewSet):
                 raise   # will be caught by outer except → 500 response
             
             treatment_advice = disease_chat_bridge.format_for_api(
-                result, ctx, language=request.data.get("language", "hi")
+                result, ctx, language=data.get("language", "hi")
             )
             top = (result.get("diagnosis") or [{}])[0]
             response_text = (
@@ -189,7 +238,15 @@ class DiagnosticViewSet(viewsets.ViewSet):
         """
         try:
             upload = request.FILES.get("image")
+            validated_request_data = None
             if upload:
+                multipart_serializer = DiagnosticMultipartPredictInputSerializer(data=request.data)
+                if not multipart_serializer.is_valid():
+                    return Response(
+                        {"status": "error", "error_code": "INVALID_DIAGNOSTIC_REQUEST", "errors": multipart_serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                validated_request_data = multipart_serializer.validated_data
                 image_bytes, size_err = read_upload_with_limit(upload)
                 if size_err:
                     return size_err
@@ -198,12 +255,26 @@ class DiagnosticViewSet(viewsets.ViewSet):
                 )
             else:
                 data = request.data
+                serializer = DiagnosticPredictInputSerializer(data=data)
+                if not serializer.is_valid():
+                    return Response(
+                        {"status": "error", "error_code": "INVALID_DIAGNOSTIC_REQUEST", "errors": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                data = serializer.validated_data
+                validated_request_data = data
                 images = data.get("images", {})
                 if images:
+                    images, image_error = self._validate_image_map(images)
+                    if image_error:
+                        return image_error
                     result = crop_disease_ml_service.predict_from_upload_dict(images)
                 elif data.get("image") or data.get("image_base64"):
                     b64 = data.get("image") or data.get("image_base64")
-                    result = crop_disease_ml_service.predict_image(image_data=b64)
+                    image_bytes, image_error = decode_base64_image(b64)
+                    if image_error:
+                        return image_error
+                    result = crop_disease_ml_service.predict_image(image_bytes=image_bytes)
                 else:
                     return Response(
                         {"status": "error", "message": "Provide image or images.close_up"},
@@ -211,9 +282,9 @@ class DiagnosticViewSet(viewsets.ViewSet):
                     )
 
             requested_crop = (
-                request.data.get("crop")
-                or request.data.get("crop_name")
-                or request.data.get("commodity")
+                validated_request_data.get("crop")
+                or validated_request_data.get("crop_name")
+                or validated_request_data.get("commodity")
             )
             payload = {
                 "status": result.get("status", "error"),
@@ -246,9 +317,15 @@ class DiagnosticViewSet(viewsets.ViewSet):
         Payload: {"session_id": "...", "is_correct": false, "correct_diagnosis": "Late Blight"}
         """
         try:
-            data = request.data
-            session_id = data.get('session_id')
-            is_correct = data.get('is_correct')
+            serializer = DiagnosticFeedbackInputSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(
+                    {'status': 'error', 'error_code': 'INVALID_FEEDBACK', 'errors': serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            data = serializer.validated_data
+            session_id = data['session_id']
+            is_correct = data['is_correct']
             correct_diagnosis = data.get('correct_diagnosis', '')
 
             if not session_id:
@@ -267,7 +344,8 @@ class DiagnosticViewSet(viewsets.ViewSet):
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
 
-            # Persist feedback to ExpertVerification for Active Learning
+            # Farmer feedback creates a pending expert-review item. It must
+            # never verify a diagnosis or become training data automatically.
             try:
                 diagnostic = DiagnosticSession.objects.filter(session_id=session_id).first()
                 if not diagnostic:
@@ -286,14 +364,16 @@ class DiagnosticViewSet(viewsets.ViewSet):
                         status=status.HTTP_403_FORBIDDEN,
                     )
                 from ...models import ExpertVerification
-                from django.utils import timezone
                 ExpertVerification.objects.update_or_create(
                     diagnostic_session=diagnostic,
                     defaults={
-                        'is_verified': True,
+                        'is_verified': False,
                         'expert_diagnosis': correct_diagnosis if not is_correct else diagnostic.final_diagnosis,
-                        'expert_notes': f"User feedback: is_correct={is_correct}",
-                        'verified_at': timezone.now(),
+                        'expert_notes': (
+                            "Farmer feedback pending agronomist review: "
+                            f"is_correct={is_correct}"
+                        ),
+                        'verified_at': None,
                     }
                 )
                 logger.info(
@@ -309,7 +389,9 @@ class DiagnosticViewSet(viewsets.ViewSet):
 
             return Response({
                 'status': 'success',
-                'message': 'Feedback recorded for Active Learning',
+                'message': 'Feedback queued for agronomist review',
+                'review_status': 'pending_agronomist_review',
+                'training_eligible': False,
                 'session_id': session_id,
                 'is_correct': is_correct,
             })

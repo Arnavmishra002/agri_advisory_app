@@ -29,9 +29,11 @@ from typing import Iterator, List, Optional
 logger = logging.getLogger(__name__)
 
 OLLAMA_BASE   = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-DEFAULT_MODEL = "krishimitra-llm"
+DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
 _OLLAMA_CHAT_TIMEOUT_S = int(os.getenv("OLLAMA_CHAT_TIMEOUT_S", "20"))
 _OLLAMA_STREAM_TIMEOUT_S = int(os.getenv("OLLAMA_STREAM_TIMEOUT_S", "60"))
+_OLLAMA_MAX_TOKENS = max(96, int(os.getenv("OLLAMA_MAX_TOKENS", "320")))
+_OLLAMA_STREAM_MAX_TOKENS = max(96, int(os.getenv("OLLAMA_STREAM_MAX_TOKENS", "320")))
 
 # ── Context compression constants (RAG-2) ────────────────────────────────────
 # Approximate tokens in a chunk = chars / 4  (rough but fast).
@@ -47,8 +49,8 @@ and Indian weather patterns.
 
 STRICT RULES:
 1. Use ONLY the information provided in the [KNOWLEDGE BASE] section. Never invent facts.
-2. CRITICAL — cite EXACT numbers from the knowledge base: MSP values, chemical doses,
-   ETL thresholds, NPK rates. If you see "MSP 2024-25: Rs. 2425/quintal" in the knowledge
+2. CRITICAL — cite EXACT numbers from the knowledge base: MSP values, ETL thresholds,
+   and NPK rates. If you see "MSP 2024-25: Rs. 2425/quintal" in the knowledge
    base, quote ₹2,425/q exactly — never round or estimate from memory.
 3. If the knowledge base has no relevant information, say so clearly and suggest:
    "Please call Kisan Helpline 1800-180-1551 (free, 24x7) for expert advice."
@@ -56,13 +58,24 @@ STRICT RULES:
 5. Prefer organic/IPM methods before recommending chemicals.
 6. Respond in the SAME language the farmer used. If Hindi, reply in Hindi.
    If mixed Hindi-English (Hinglish), reply in Hinglish.
-7. Use bullet points for action steps. Bold important numbers (MSP, doses, dates).
+7. Use bullet points for action steps. Bold important numbers (MSP and dates).
 8. End every response with ONE concrete next step the farmer should take today.
 9. SENSOR DATA RULE: Use soil moisture only when [LIVE FIELD SENSOR DATA] contains
    an explicit "Soil Moisture" value from a sensor. Air humidity or weather humidity
    is NOT soil moisture. If field sensor data is not provided, never invent soil
    moisture, NPK, pH, or live field readings.
-10. Never recommend a pesticide dose higher than label-approved amount.
+10. Give a pesticide dose only when the retrieved excerpt includes a named current
+    PPQS/CIB&RC label or package-of-practices document and its attributable URL or
+    document number. Otherwise ask the farmer to confirm the registered label with KVK.
+11. Answer the farmer's exact question in fresh, natural wording. The knowledge
+    base is factual evidence, not a stored response: do not copy a retrieved
+    paragraph verbatim or add unrelated sections.
+12. Start with a direct answer, then give only the useful steps. Ask one short
+    clarifying question only when an essential detail is missing.
+13. Do not begin with thanks, greetings, or a restatement of the question.
+    Prefer a direct answer followed by at most 3-6 short actionable bullets.
+14. Keep the complete answer under 120 words and at most 5 bullets. Stop once
+    the exact question is answered; do not add generic background or filler.
 """
 
 
@@ -113,6 +126,7 @@ def _compress_chunks(chunks: List[str]) -> str:
 def build_farming_prompt(
     question: str,
     rag_chunks: List[str],
+    verified_knowledge: Optional[str] = None,
     weather_summary: Optional[str] = None,
     market_summary: Optional[str] = None,
     sensor_data: Optional[dict] = None,
@@ -127,19 +141,36 @@ def build_farming_prompt(
     """
     parts: List[str] = []
 
-    # 1. Knowledge base (RAG — highest trust, now compressed)
-    kb = _compress_chunks(rag_chunks)
-    if kb:
-        parts.append(f"[KNOWLEDGE BASE — authoritative, cite these facts]\n{kb}")
-    else:
+    # 1. Exact local KB match. This is more precise than broad vector search
+    # and must win if a supplementary RAG chunk is only loosely related.
+    verified_knowledge = (verified_knowledge or "").strip()
+    if verified_knowledge:
         parts.append(
-            "[KNOWLEDGE BASE]\n"
-            "No specific document matched this query. "
-            "Say the knowledge base does not contain enough matched detail. "
-            "Do not provide exact chemical doses, legal eligibility, market prices, or disease certainty "
-            "unless they are present in another supplied live-data section. Give safe general next steps "
-            "and recommend Kisan Helpline 1800-180-1551 for expert confirmation."
+            "[VERIFIED LOCAL KNOWLEDGE — HIGHEST PRIORITY FACTS]\n"
+            "Use these facts to answer the exact question in fresh wording. "
+            "Do not contradict them and do not copy the paragraph verbatim.\n"
+            + verified_knowledge[:3000]
         )
+
+    # 2. Broader RAG is useful only when there is no exact KB match. Including
+    # both duplicates context, slows first-token latency on CPU, and can let a
+    # merely similar crop passage distract from the verified answer.
+    if not verified_knowledge:
+        kb = _compress_chunks(rag_chunks)
+        if kb:
+            parts.append(
+                "[SUPPLEMENTARY RAG KNOWLEDGE]\n"
+                "Use only facts relevant to the farmer's exact question.\n" + kb
+            )
+        else:
+            parts.append(
+                "[KNOWLEDGE BASE]\n"
+                "No specific document matched this query. "
+                "Say the knowledge base does not contain enough matched detail. "
+                "Do not provide exact chemical doses, legal eligibility, market prices, or disease certainty "
+                "unless they are present in another supplied live-data section. Give safe general next steps "
+                "and recommend Kisan Helpline 1800-180-1551 for expert confirmation."
+            )
 
     # 2. Live sensor data
     if sensor_data:
@@ -219,18 +250,13 @@ def chat(
     system: str = AGRI_SYSTEM_PROMPT,
     model: str = DEFAULT_MODEL,
     temperature: float = 0.25,
-    max_tokens: int = 1200,
+    max_tokens: int = _OLLAMA_MAX_TOKENS,
     timeout: int = _OLLAMA_CHAT_TIMEOUT_S,
 ) -> str:
     """Blocking chat — returns the full response as a string."""
     if not _ollama_available():
-        logger.warning("Ollama unavailable — returning offline message")
-        return (
-            "माफ़ करें, AI सेवा अभी ऑफलाइन है। "
-            "कृपया Kisan Helpline 1800-180-1551 पर कॉल करें (Free, 24x7).\n\n"
-            "Sorry, AI service is currently offline. "
-            "Please call Kisan Helpline 1800-180-1551 (Free, 24x7)."
-        )
+        logger.warning("Ollama unavailable — returning empty result for caller fallback")
+        return ""
 
     payload = json.dumps({
         "model": model,
@@ -259,10 +285,10 @@ def chat(
             return data["message"]["content"].strip()
     except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
         logger.error("Ollama request failed: %s", exc)
-        return "AI सेवा में त्रुटि। Kisan Helpline: 1800-180-1551 पर कॉल करें।"
+        return ""
     except Exception as exc:
         logger.error("Unexpected chat error: %s", exc)
-        return "AI सेवा में त्रुटि। Kisan Helpline: 1800-180-1551 पर कॉल करें।"
+        return ""
 
 
 def stream_chat(
@@ -276,7 +302,6 @@ def stream_chat(
     Use with StreamingResponse in FastAPI for real-time UX.
     """
     if not _ollama_available():
-        yield "AI सेवा ऑफलाइन है। Kisan Helpline: 1800-180-1551"
         return
 
     payload = json.dumps({
@@ -285,7 +310,12 @@ def stream_chat(
             {"role": "system", "content": system},
             {"role": "user",   "content": prompt},
         ],
-        "options": {"temperature": temperature, "top_p": 0.9},
+        "options": {
+            "temperature": temperature,
+            "num_predict": _OLLAMA_STREAM_MAX_TOKENS,
+            "top_p": 0.9,
+            "repeat_penalty": 1.1,
+        },
         "stream": True,
     }).encode("utf-8")
 
@@ -311,7 +341,7 @@ def stream_chat(
                     continue
     except Exception as exc:
         logger.error("Stream failed: %s", exc)
-        yield "\n[Stream error — Kisan Helpline: 1800-180-1551]"
+        return
 
 
 def get_model_info() -> dict:

@@ -1,0 +1,2428 @@
+KRISHIMITRA INDIAN CROP PROFILE CATALOG
+Generated from the canonical recommendation database. These are planning profiles, not live observations.
+Do not infer current weather, mandi prices, sensor readings, disease certainty, or chemical doses from this catalog.
+Verify variety, sowing window, nutrient dose, and plant-protection label with the local KVK/state package of practices.
+
+CROP_ID: acid_lime
+CROP: Acid Lime | HINDI: कागजी नींबू
+ALIASES: Acid Lime | acid lime | acid_lime | कागजी नींबू
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Andhra Pradesh, Telangana, Maharashtra, Gujarat, Odisha; agro-climatic zones=peninsular, central, gujarat
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 800 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Acid Lime. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: ajwain
+CROP: Ajwain | HINDI: अजवायन
+ALIASES: Ajwain | ajwain | अजवायन
+CLASSIFICATION: Spice | SEASON: rabi
+REGIONAL FIT: states=Rajasthan, Gujarat, Madhya Pradesh, Uttar Pradesh; agro-climatic zones=thar_desert, northwest, gujarat
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-26 C; rainfall need about 300 mm; water requirement=Low
+CROP CYCLE: about 110 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Ajwain. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: almond
+CROP: Almond | HINDI: बादाम
+ALIASES: Almond | almond | बादाम
+CLASSIFICATION: Nut | SEASON: year_round
+REGIONAL FIT: states=Jammu and Kashmir, Himachal Pradesh, Ladakh, Uttarakhand; agro-climatic zones=himalayan, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 5-32 C; rainfall need about 550 mm; water requirement=Moderate
+CROP CYCLE: about 1825 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Almond. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: aloe_vera
+CROP: Aloe Vera | HINDI: एलोवेरा
+ALIASES: Aloe Vera | aloe vera | aloe_vera | एलोवेरा
+CLASSIFICATION: Medicinal | SEASON: year_round
+REGIONAL FIT: states=Rajasthan, Gujarat, Andhra Pradesh, Maharashtra; agro-climatic zones=thar_desert, peninsular, gujarat
+SOIL FIT: Sandy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-40 C; rainfall need about 300 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Aloe Vera. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: amaranth
+CROP: Amaranth | HINDI: राजगिरा
+ALIASES: Amaranth | amaranth | राजगिरा
+CLASSIFICATION: Cereal | SEASON: kharif
+REGIONAL FIT: states=Uttar Pradesh, Maharashtra, Rajasthan, Gujarat, Uttarakhand; agro-climatic zones=himalayan, peninsular, central
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed, Vegetable
+MARKET LOOKUP NAME: Amaranth. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: amaranth_greens
+CROP: Amaranth Greens | HINDI: चौलाई साग
+ALIASES: Amaranth Greens | amaranth greens | amaranth_greens | चौलाई साग
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Uttar Pradesh, Bihar, West Bengal, Tamil Nadu, Karnataka; agro-climatic zones=indo_gangetic, peninsular, coastal, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 35 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Amaranth Greens. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: amla
+CROP: Amla | HINDI: आँवला
+ALIASES: Amla | amla | आँवला
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Uttar Pradesh, Madhya Pradesh, Rajasthan, Gujarat, Maharashtra; agro-climatic zones=central, indo_gangetic, deccan
+SOIL FIT: Sandy Loam, Loamy, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-40 C; rainfall need about 600 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Amla. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: apple
+CROP: Apple | HINDI: सेब
+ALIASES: Apple | apple | سیب | सेब | ਸੇਬ
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Himachal Pradesh, Jammu and Kashmir, Uttarakhand, Arunachal Pradesh; agro-climatic zones=himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 4-20 C; rainfall need about 1000 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Apple. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: apricot
+CROP: Apricot | HINDI: खुबानी
+ALIASES: Apricot | apricot | खुबानी
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Jammu and Kashmir, Ladakh, Himachal Pradesh, Uttarakhand; agro-climatic zones=himalayan
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 2-22 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Apricot. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: areca_nut
+CROP: Areca Nut | HINDI: सुपारी
+ALIASES: Areca Nut | areca nut | areca_nut | सुपारी
+CLASSIFICATION: Plantation | SEASON: year_round
+REGIONAL FIT: states=Karnataka, Kerala, Assam, West Bengal, Meghalaya; agro-climatic zones=coastal, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1700 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Arecanut(Betelnut/Supari). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: ash_gourd
+CROP: Ash Gourd | HINDI: पेठा
+ALIASES: Ash Gourd | ash gourd | ash_gourd | पेठा
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Uttar Pradesh, Maharashtra, Karnataka, Andhra Pradesh, Bihar; agro-climatic zones=peninsular, indo_gangetic, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 80 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Ash Gourd. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: ashwagandha
+CROP: Ashwagandha | HINDI: अश्वगंधा
+ALIASES: Ashwagandha | ashwagandha | अश्वगंधा
+CLASSIFICATION: Medicinal | SEASON: kharif
+REGIONAL FIT: states=Rajasthan, Madhya Pradesh, Punjab, Gujarat, Haryana; agro-climatic zones=thar_desert, central, peninsular
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 600 mm; water requirement=Low
+CROP CYCLE: about 150 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Ashwagandha. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: avocado
+CROP: Avocado | HINDI: एवोकाडो
+ALIASES: Avocado | avocado | एवोकाडो
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Kerala, Karnataka, Tamil Nadu, Sikkim, Mizoram, Maharashtra; agro-climatic zones=himalayan, coastal, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-30 C; rainfall need about 1000 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Avocado. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: baby_corn
+CROP: Baby Corn | HINDI: बेबी कॉर्न
+ALIASES: Baby Corn | baby corn | baby_corn | बेबी कॉर्न
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Karnataka, Uttar Pradesh, Punjab, Maharashtra, Haryana; agro-climatic zones=indo_gangetic, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-32 C; rainfall need about 550 mm; water requirement=Moderate
+CROP CYCLE: about 60 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Baby Corn. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: bael
+CROP: Bael | HINDI: बेल
+ALIASES: Bael | bael | बेल
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Uttar Pradesh, Bihar, Madhya Pradesh, Rajasthan, Odisha; agro-climatic zones=indo_gangetic, central, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite; pH 5.0-8.0; salinity tolerance=Medium
+CLIMATE FIT: 15-42 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 1460 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Bael. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: bajra
+CROP: Bajra | HINDI: बाजरा
+ALIASES: Bajra | bajra | बाजरा | बाजरी | বাজরা | ਬਾਜਰਾ | બાજરી | ବାଜରା | கம்பு | సజ్జ | ಸಜ್ಜೆ | കമ്പ്
+CLASSIFICATION: Millet | SEASON: kharif
+REGIONAL FIT: states=Rajasthan, Gujarat, Haryana, Uttar Pradesh, Maharashtra; agro-climatic zones=thar_desert, northwest, peninsular
+SOIL FIT: Sandy, Sandy Loam, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 25-40 C; rainfall need about 250 mm; water requirement=Low
+CROP CYCLE: about 80 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Bajra(Pearl Millet/Cumbu). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: bamboo
+CROP: Bamboo | HINDI: बांस
+ALIASES: Bamboo | bamboo | बांस
+CLASSIFICATION: Plantation | SEASON: year_round
+REGIONAL FIT: states=Assam, Maharashtra, Odisha, Karnataka, Madhya Pradesh; agro-climatic zones=northeast, himalayan, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 14-40 C; rainfall need about 800 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Bamboo. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: banana
+CROP: Banana | HINDI: केला
+ALIASES: Banana | banana | केला | केळी | কল | કેળ | କଦଳୀ | வாழைப்பழம் | అరటి | ಬಾಳೆ | പഴം
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Andhra Pradesh, Gujarat, Tamil Nadu, Maharashtra, Karnataka, Madhya Pradesh, Assam; agro-climatic zones=peninsular, coastal, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 1200 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Banana. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: barley
+CROP: Barley | HINDI: जौ
+ALIASES: Barley | barley | जौ | सातू | যব | ਜੌਂ | જવ | ଯବ | வாற்கோதுமை | బార్లీ | ಬಾರ್ಲಿ
+CLASSIFICATION: Cereal | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, Rajasthan, Madhya Pradesh, Haryana; agro-climatic zones=northwest, indo_gangetic, thar_desert
+SOIL FIT: Sandy Loam, Loamy, Alluvial; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 7-20 C; rainfall need about 300 mm; water requirement=Low
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed, Vegetable
+MARKET LOOKUP NAME: Barley. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: barnyard_millet
+CROP: Barnyard Millet | HINDI: सांवा
+ALIASES: Barnyard Millet | barnyard millet | barnyard_millet | सांवा
+CLASSIFICATION: Millet | SEASON: kharif
+REGIONAL FIT: states=Uttarakhand, Uttar Pradesh, Jharkhand, Odisha, West Bengal; agro-climatic zones=himalayan, northeast, central
+SOIL FIT: Sandy Loam, Loamy, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 85 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Barnyard Millet. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: basmati_rice
+CROP: Basmati Rice | HINDI: बासमती
+ALIASES: Basmati Rice | basmati rice | basmati_rice | बासमती
+CLASSIFICATION: Cereal | SEASON: kharif
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Uttarakhand, Himachal Pradesh; agro-climatic zones=indo_gangetic, himalayan
+SOIL FIT: Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1200 mm; water requirement=High
+CROP CYCLE: about 140 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed, Vegetable
+MARKET LOOKUP NAME: Basmati Rice. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: bathua
+CROP: Bathua | HINDI: बथुआ
+ALIASES: Bathua | bathua | बथुआ
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, Punjab, Haryana, Bihar, Delhi; agro-climatic zones=indo_gangetic, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 6.0-8.0; salinity tolerance=Medium
+CLIMATE FIT: 8-24 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 45 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Bathua. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: bay_leaf
+CROP: Bay Leaf | HINDI: तेजपत्ता
+ALIASES: Bay Leaf | bay leaf | bay_leaf | तेजपत्ता
+CLASSIFICATION: Spice | SEASON: year_round
+REGIONAL FIT: states=Uttarakhand, Sikkim, Meghalaya, Arunachal Pradesh; agro-climatic zones=himalayan, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Forest loam; pH 5.5-7.0; salinity tolerance=Low
+CLIMATE FIT: 10-30 C; rainfall need about 1200 mm; water requirement=Moderate
+CROP CYCLE: about 1095 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Bay Leaf. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: beetroot
+CROP: Beetroot | HINDI: चुकंदर
+ALIASES: Beetroot | beetroot | चुकंदर
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Maharashtra, Punjab, Haryana, Gujarat, Uttar Pradesh; agro-climatic zones=himalayan, northwest, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-24 C; rainfall need about 450 mm; water requirement=Moderate
+CROP CYCLE: about 70 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Beetroot. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: ber
+CROP: Ber | HINDI: बेर
+ALIASES: Ber | ber | बेर
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Rajasthan, Gujarat, Haryana, Punjab, Madhya Pradesh; agro-climatic zones=thar_desert, northwest, gujarat, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite, Saline, Alkaline; pH 5.5-8.5; salinity tolerance=High
+CLIMATE FIT: 10-42 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 1095 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Ber. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: berseem
+CROP: Berseem | HINDI: बरसीम
+ALIASES: Berseem | berseem | बरसीम
+CLASSIFICATION: Fodder | SEASON: rabi
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Bihar, Rajasthan; agro-climatic zones=indo_gangetic, northwest, himalayan
+SOIL FIT: Alluvial, Loamy, Clay, Clay Loam, Alluvial; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 5-22 C; rainfall need about 500 mm; water requirement=High
+CROP CYCLE: about 150 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Berseem. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: betel_leaf
+CROP: Betel Leaf | HINDI: पान
+ALIASES: Betel Leaf | betel leaf | betel_leaf | पान
+CLASSIFICATION: Leaf Crop | SEASON: year_round
+REGIONAL FIT: states=West Bengal, Odisha, Assam, Bihar, Tamil Nadu, Karnataka; agro-climatic zones=coastal, indo_gangetic, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 1500 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Betel Leaf. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: bitter_gourd
+CROP: Bitter Gourd | HINDI: करेला
+ALIASES: Bitter Gourd | bitter gourd | bitter_gourd | करेला
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Maharashtra, Karnataka, Andhra Pradesh, West Bengal, Odisha; agro-climatic zones=peninsular, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Bitter Gourd. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: black_pepper
+CROP: Black Pepper | HINDI: काली मिर्च
+ALIASES: Black Pepper | black pepper | black_pepper | काली मिर्च | கருமிளகு | మిరియాలు | ಕರಿಮೆಣಸು | കുരുമുളക്
+CLASSIFICATION: Spice | SEASON: year_round
+REGIONAL FIT: states=Kerala, Karnataka, Tamil Nadu; agro-climatic zones=coastal, peninsular
+SOIL FIT: Laterite, Red, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-32 C; rainfall need about 2000 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Black Pepper. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: bottle_gourd
+CROP: Bottle Gourd | HINDI: लौकी
+ALIASES: Bottle Gourd | bottle gourd | bottle_gourd | लौकी
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Uttar Pradesh, Bihar, West Bengal, Maharashtra; agro-climatic zones=indo_gangetic, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Bottle Gourd. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: brahmi
+CROP: Brahmi | HINDI: ब्राह्मी
+ALIASES: Brahmi | brahmi | ब्राह्मी
+CLASSIFICATION: Medicinal | SEASON: year_round
+REGIONAL FIT: states=Kerala, Karnataka, Andhra Pradesh, Uttar Pradesh, Bihar; agro-climatic zones=coastal, peninsular, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-38 C; rainfall need about 1000 mm; water requirement=High
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Brahmi. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: brinjal
+CROP: Brinjal | HINDI: बैंगन
+ALIASES: Brinjal | brinjal | बैंगन
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=West Bengal, Odisha, Karnataka, Gujarat, Bihar, Andhra Pradesh; agro-climatic zones=peninsular, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Brinjal. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: broad_bean
+CROP: Broad Bean | HINDI: बाकला
+ALIASES: Broad Bean | broad bean | broad_bean | बाकला
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, Punjab, Himachal Pradesh, Uttarakhand; agro-climatic zones=himalayan, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Clay, Clay Loam, Alluvial; pH 6.0-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 110 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Broad Bean. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: broccoli
+CROP: Broccoli | HINDI: ब्रोकोली
+ALIASES: Broccoli | broccoli | ब्रोकोली
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Himachal Pradesh, Uttarakhand, Punjab, Haryana; agro-climatic zones=himalayan, indo_gangetic, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 6.0-7.0; salinity tolerance=Low
+CLIMATE FIT: 12-24 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Broccoli. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: browntop_millet
+CROP: Browntop Millet | HINDI: ब्राउनटॉप मिलेट
+ALIASES: Browntop Millet | browntop millet | browntop_millet | ब्राउनटॉप मिलेट
+CLASSIFICATION: Millet | SEASON: kharif
+REGIONAL FIT: states=Karnataka, Andhra Pradesh, Telangana; agro-climatic zones=peninsular, central
+SOIL FIT: Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 450 mm; water requirement=Low
+CROP CYCLE: about 65 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Browntop Millet. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: buckwheat
+CROP: Buckwheat | HINDI: कुट्टू
+ALIASES: Buckwheat | buckwheat | कुट्टू
+CLASSIFICATION: Pseudo Cereal | SEASON: rabi
+REGIONAL FIT: states=Uttarakhand, Himachal Pradesh, Sikkim, Arunachal Pradesh; agro-climatic zones=himalayan, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 8-24 C; rainfall need about 600 mm; water requirement=Low
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Buckwheat. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cabbage
+CROP: Cabbage | HINDI: पत्तागोभी
+ALIASES: Cabbage | cabbage | पत्तागोभी
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, West Bengal, Odisha, Maharashtra, Assam; agro-climatic zones=himalayan, indo_gangetic, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-22 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Cabbage. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: capsicum
+CROP: Capsicum | HINDI: शिमला मिर्च
+ALIASES: Capsicum | capsicum | शिमला मिर्च
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Himachal Pradesh, Karnataka, Andhra Pradesh, Uttarakhand; agro-climatic zones=himalayan, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-28 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Capsicum. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cardamom
+CROP: Cardamom | HINDI: इलायची
+ALIASES: Cardamom | cardamom | इलायची | ஏலக்காய் | ఏలకులు | ಏಲಕ್ಕಿ | ഏലം
+CLASSIFICATION: Spice | SEASON: year_round
+REGIONAL FIT: states=Kerala, Tamil Nadu, Karnataka, Sikkim, Arunachal Pradesh; agro-climatic zones=coastal, peninsular, himalayan
+SOIL FIT: Loamy, Laterite, Forest Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-25 C; rainfall need about 2500 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Cardamom. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: carrot
+CROP: Carrot | HINDI: गाजर
+ALIASES: Carrot | carrot | गाजर
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Himachal Pradesh, Bihar; agro-climatic zones=himalayan, northwest, indo_gangetic
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 8-22 C; rainfall need about 450 mm; water requirement=Moderate
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Carrot. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cashew
+CROP: Cashew | HINDI: काजू
+ALIASES: Cashew | cashew | काजू
+CLASSIFICATION: Plantation | SEASON: year_round
+REGIONAL FIT: states=Maharashtra, Goa, Kerala, Karnataka, Tamil Nadu, Andhra Pradesh, Odisha; agro-climatic zones=coastal, peninsular
+SOIL FIT: Sandy, Laterite, Red; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 1000 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Cashew. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: castor
+CROP: Castor | HINDI: अरंडी
+ALIASES: Castor | castor | अरंडी | દિવેળ | ఆముదం | ಹರಳು
+CLASSIFICATION: Oilseed | SEASON: kharif
+REGIONAL FIT: states=Gujarat, Rajasthan, Andhra Pradesh, Karnataka, Odisha; agro-climatic zones=gujarat, peninsular, thar_desert
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 150 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Castor. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cauliflower
+CROP: Cauliflower | HINDI: फूलगोभी
+ALIASES: Cauliflower | cauliflower | फूलगोभी
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, Bihar, West Bengal, Haryana, Maharashtra; agro-climatic zones=indo_gangetic, himalayan, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 12-22 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Cauliflower. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: celery
+CROP: Celery | HINDI: अजमोद
+ALIASES: Celery | celery | अजमोद
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Punjab, Haryana, Himachal Pradesh, Uttarakhand; agro-climatic zones=himalayan, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 6.0-7.0; salinity tolerance=Low
+CLIMATE FIT: 12-24 C; rainfall need about 700 mm; water requirement=High
+CROP CYCLE: about 120 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Celery. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: chayote
+CROP: Chayote | HINDI: चाउ-चाउ/इस्कुस
+ALIASES: Chayote | chayote | चाउ-चाउ/इस्कुस
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Sikkim, Meghalaya, Mizoram, Himachal Pradesh, Uttarakhand; agro-climatic zones=himalayan, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Well drained hill soil; pH 5.5-6.8; salinity tolerance=Low
+CLIMATE FIT: 15-28 C; rainfall need about 1200 mm; water requirement=High
+CROP CYCLE: about 150 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Chayote. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cherry
+CROP: Cherry | HINDI: चेरी
+ALIASES: Cherry | cherry | चेरी
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Jammu and Kashmir, Himachal Pradesh, Uttarakhand; agro-climatic zones=himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Well drained hill soil; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 4-26 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 1460 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Cherry. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: chilli
+CROP: Chilli | HINDI: मिर्च
+ALIASES: Chilli | chilli | मिरची | मिर्च | મરચું | ଲଙ୍କା | மிளகாய் | మిరపకాయలు | ಮೆಣಸಿನಕಾಯಿ | മുളക്
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Andhra Pradesh, Telangana, Maharashtra, Karnataka, Odisha, West Bengal, Rajasthan; agro-climatic zones=peninsular, deccan, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Chilli. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: chrysanthemum
+CROP: Chrysanthemum | HINDI: गुलदाउदी
+ALIASES: Chrysanthemum | chrysanthemum | गुलदाउदी
+CLASSIFICATION: Flower | SEASON: rabi
+REGIONAL FIT: states=Karnataka, Tamil Nadu, Maharashtra, Uttar Pradesh, West Bengal; agro-climatic zones=peninsular, indo_gangetic, himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Chrysanthemum. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cinnamon
+CROP: Cinnamon | HINDI: दालचीनी
+ALIASES: Cinnamon | cinnamon | दालचीनी
+CLASSIFICATION: Spice | SEASON: year_round
+REGIONAL FIT: states=Kerala, Karnataka, Tamil Nadu, Assam; agro-climatic zones=coastal, northeast, peninsular
+SOIL FIT: Red, Laterite, Sandy Loam, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-32 C; rainfall need about 1800 mm; water requirement=High
+CROP CYCLE: about 1095 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Cinnamon. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: clove
+CROP: Clove | HINDI: लौंग
+ALIASES: Clove | clove | लौंग
+CLASSIFICATION: Spice | SEASON: year_round
+REGIONAL FIT: states=Kerala, Tamil Nadu, Karnataka; agro-climatic zones=coastal, peninsular
+SOIL FIT: Red, Laterite, Sandy Loam, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-30 C; rainfall need about 1500 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Clove. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cluster_beans
+CROP: Cluster Beans | HINDI: ग्वार
+ALIASES: Cluster Beans | cluster beans | cluster_beans | ग्वार
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Rajasthan, Gujarat, Haryana, Punjab; agro-climatic zones=thar_desert, northwest, gujarat
+SOIL FIT: Sandy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 25-42 C; rainfall need about 250 mm; water requirement=Low
+CROP CYCLE: about 75 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Cluster Beans. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cocoa
+CROP: Cocoa | HINDI: कोको
+ALIASES: Cocoa | cocoa | कोको
+CLASSIFICATION: Plantation | SEASON: year_round
+REGIONAL FIT: states=Kerala, Karnataka, Andhra Pradesh, Tamil Nadu; agro-climatic zones=coastal, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-32 C; rainfall need about 1500 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Cocoa. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: coconut
+CROP: Coconut | HINDI: नारियल
+ALIASES: Coconut | coconut | नारियल | ନଡ଼ିଆ | தேங்காய் | కొబ్బరి | ತೆಂಗು | തേങ്ങ
+CLASSIFICATION: Plantation | SEASON: year_round
+REGIONAL FIT: states=Kerala, Tamil Nadu, Karnataka, Andhra Pradesh, Odisha, West Bengal; agro-climatic zones=coastal, peninsular
+SOIL FIT: Sandy, Sandy Loam, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-35 C; rainfall need about 1500 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Coconut. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: coffee
+CROP: Coffee | HINDI: कॉफी
+ALIASES: Coffee | coffee | कॉफी
+CLASSIFICATION: Plantation | SEASON: year_round
+REGIONAL FIT: states=Karnataka, Kerala, Tamil Nadu; agro-climatic zones=peninsular, himalayan
+SOIL FIT: Laterite, Red, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-28 C; rainfall need about 1500 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Coffee. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: colocasia
+CROP: Colocasia | HINDI: अरबी
+ALIASES: Colocasia | colocasia | अरबी
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=West Bengal, Kerala, Andhra Pradesh, Maharashtra, Odisha; agro-climatic zones=coastal, peninsular, northeast
+SOIL FIT: Clay, Clay Loam, Alluvial, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 900 mm; water requirement=High
+CROP CYCLE: about 180 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Colocasia. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: coriander
+CROP: Coriander | HINDI: धनिया
+ALIASES: Coriander | coriander | धनिया
+CLASSIFICATION: Spice | SEASON: rabi
+REGIONAL FIT: states=Rajasthan, Madhya Pradesh, Gujarat, Andhra Pradesh, Uttar Pradesh; agro-climatic zones=thar_desert, central, indo_gangetic
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 12-26 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Coriander. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cotton
+CROP: Cotton | HINDI: कपास
+ALIASES: Cotton | cotton | कपास | कापूस | ਕਪਾਹ | કપાસ | କପା | பருத்தி | పత్తి | ಹತ್ತಿ | പരുത்തി
+CLASSIFICATION: Fiber | SEASON: kharif
+REGIONAL FIT: states=Maharashtra, Gujarat, Telangana, Andhra Pradesh, Karnataka, Rajasthan, Punjab, Haryana, Madhya Pradesh; agro-climatic zones=deccan, gujarat, peninsular, northwest
+SOIL FIT: Black, Vertisol, Clay Loam, Clay Loam, Alluvial; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 180 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Cotton. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cowpea_fodder
+CROP: Cowpea Fodder | HINDI: लोबिया (चारा)
+ALIASES: Cowpea Fodder | cowpea fodder | cowpea_fodder | लोबिया (चारा)
+CLASSIFICATION: Fodder | SEASON: kharif
+REGIONAL FIT: states=Karnataka, Maharashtra, Andhra Pradesh, Uttar Pradesh, Rajasthan; agro-climatic zones=peninsular, central, indo_gangetic
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 60 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Cowpea Fodder. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cucumber
+CROP: Cucumber | HINDI: खीरा
+ALIASES: Cucumber | cucumber | खीरा
+CLASSIFICATION: Vegetable | SEASON: zaid
+REGIONAL FIT: states=Uttar Pradesh, Karnataka, Madhya Pradesh, Maharashtra; agro-climatic zones=indo_gangetic, peninsular, coastal
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.0; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 70 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Cucumber. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: cumin
+CROP: Cumin | HINDI: जीरा
+ALIASES: Cumin | cumin | जीरा | જીરું | சீரகம் | జీలకర్ర | ಜೀರಿಗೆ | ജീരകം
+CLASSIFICATION: Spice | SEASON: rabi
+REGIONAL FIT: states=Gujarat, Rajasthan; agro-climatic zones=thar_desert, gujarat
+SOIL FIT: Sandy Loam, Loamy, Sandy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 8-22 C; rainfall need about 250 mm; water requirement=Low
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Cumin. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: curry_leaves
+CROP: Curry Leaves | HINDI: करी पत्ता
+ALIASES: Curry Leaves | curry leaves | curry_leaves | करी पत्ता
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Tamil Nadu, Karnataka, Andhra Pradesh, Maharashtra, Kerala; agro-climatic zones=peninsular, coastal, deccan
+SOIL FIT: Red, Laterite, Sandy Loam, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Curry Leaves. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: custard_apple
+CROP: Custard Apple | HINDI: सीताफल
+ALIASES: Custard Apple | custard apple | custard_apple | सीताफल
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Andhra Pradesh, Maharashtra, Karnataka, Gujarat, Madhya Pradesh; agro-climatic zones=deccan, peninsular, central
+SOIL FIT: Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Custard Apple. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: date_palm
+CROP: Date Palm | HINDI: खजूर
+ALIASES: Date Palm | date palm | date_palm | खजूर
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Rajasthan, Gujarat, Punjab, Haryana; agro-climatic zones=thar_desert, gujarat, northwest
+SOIL FIT: Sandy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-48 C; rainfall need about 150 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Date Palm. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: dragon_fruit
+CROP: Dragon Fruit | HINDI: ड्रैगन फ्रूट
+ALIASES: Dragon Fruit | dragon fruit | dragon_fruit | ड्रैगन फ्रूट
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Gujarat, Maharashtra, Karnataka, Telangana, Tamil Nadu; agro-climatic zones=gujarat, deccan, peninsular, coastal
+SOIL FIT: Sandy Loam, Loamy, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 600 mm; water requirement=Low
+CROP CYCLE: about 540 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Dragon Fruit. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: drumstick
+CROP: Drumstick | HINDI: सहजन
+ALIASES: Drumstick | drumstick | सहजन
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Tamil Nadu, Andhra Pradesh, Karnataka, Maharashtra, Kerala; agro-climatic zones=peninsular, deccan, coastal
+SOIL FIT: Sandy Loam, Loamy, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-42 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 180 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Drumstick. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: elephant_foot_yam
+CROP: Elephant Foot Yam | HINDI: जिमीकंद/सूरन
+ALIASES: Elephant Foot Yam | elephant foot yam | elephant_foot_yam | जिमीकंद/सूरन
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Andhra Pradesh, Odisha, West Bengal, Bihar, Kerala; agro-climatic zones=coastal, peninsular, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.0; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1000 mm; water requirement=Moderate
+CROP CYCLE: about 240 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Elephant Foot Yam. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: fennel
+CROP: Fennel | HINDI: सौंफ
+ALIASES: Fennel | fennel | सौंफ
+CLASSIFICATION: Spice | SEASON: rabi
+REGIONAL FIT: states=Gujarat, Rajasthan; agro-climatic zones=thar_desert, gujarat
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-22 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Fennel. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: fenugreek
+CROP: Fenugreek | HINDI: मेथी
+ALIASES: Fenugreek | fenugreek | मेथी
+CLASSIFICATION: Spice | SEASON: rabi
+REGIONAL FIT: states=Rajasthan, Gujarat, Madhya Pradesh, Uttar Pradesh, Haryana; agro-climatic zones=thar_desert, northwest, indo_gangetic
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Fenugreek. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: fenugreek_greens
+CROP: Fenugreek Greens | HINDI: मेथी साग
+ALIASES: Fenugreek Greens | fenugreek greens | fenugreek_greens | मेथी साग
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Rajasthan, Gujarat, Uttar Pradesh, Madhya Pradesh; agro-climatic zones=northwest, indo_gangetic, gujarat
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 6.0-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-27 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 40 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Fenugreek Greens. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: field_pea
+CROP: Field Pea | HINDI: मटर (देसी)
+ALIASES: Field Pea | field pea | field_pea | मटर (देसी)
+CLASSIFICATION: Pulse | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, Madhya Pradesh, Bihar, Uttarakhand, Punjab; agro-climatic zones=indo_gangetic, himalayan, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 7-20 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Field Pea. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: fig
+CROP: Fig | HINDI: अंजीर
+ALIASES: Fig | fig | अंजीर
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Maharashtra, Gujarat, Karnataka, Uttar Pradesh, Rajasthan; agro-climatic zones=peninsular, gujarat, thar_desert
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-38 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Fig. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: foxtail_millet
+CROP: Foxtail Millet | HINDI: कंगनी
+ALIASES: Foxtail Millet | foxtail millet | foxtail_millet | कंगनी
+CLASSIFICATION: Millet | SEASON: kharif
+REGIONAL FIT: states=Andhra Pradesh, Telangana, Rajasthan; agro-climatic zones=peninsular, thar_desert
+SOIL FIT: Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 70 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Foxtail Millet. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: french_bean
+CROP: French Bean | HINDI: फ्रेंच बीन्स
+ALIASES: French Bean | french bean | french_bean | फ्रेंच बीन्स
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Himachal Pradesh, Uttarakhand, Karnataka, Maharashtra; agro-climatic zones=himalayan, indo_gangetic, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-6.8; salinity tolerance=Low
+CLIMATE FIT: 15-27 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 75 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: French Bean. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: garlic
+CROP: Garlic | HINDI: लहसुन
+ALIASES: Garlic | garlic | लसूण | लहसुन | রসুন | ਲਸਣ | લસણ | பூண்டு | వెల్లుల్లి | ಬೆಳ್ಳುಳ್ಳಿ | വെള്ളുള്ളി
+CLASSIFICATION: Spice | SEASON: rabi
+REGIONAL FIT: states=Madhya Pradesh, Gujarat, Rajasthan, Uttar Pradesh, Maharashtra, Andhra Pradesh; agro-climatic zones=central, northwest, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 12-24 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Garlic. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: gerbera
+CROP: Gerbera | HINDI: जर्बेरा
+ALIASES: Gerbera | gerbera | जर्बेरा
+CLASSIFICATION: Flower | SEASON: year_round
+REGIONAL FIT: states=Karnataka, Maharashtra, Himachal Pradesh, West Bengal, Tamil Nadu; agro-climatic zones=himalayan, peninsular, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 12-28 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Gerbera. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: ginger
+CROP: Ginger | HINDI: अदरक
+ALIASES: Ginger | ginger | अदरक | আদা | ଅଦା | இஞ்சி | అల్లం | ಶುಂಠಿ | ഇഞ്ചി
+CLASSIFICATION: Spice | SEASON: kharif
+REGIONAL FIT: states=Kerala, Karnataka, Assam, Meghalaya, Andhra Pradesh, Himachal Pradesh; agro-climatic zones=coastal, peninsular, northeast, himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Red; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-32 C; rainfall need about 1500 mm; water requirement=Moderate
+CROP CYCLE: about 200 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Ginger. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: gram
+CROP: Gram | HINDI: चना
+ALIASES: Gram | gram | چنا | चना | हरभरा | ছোলা | ਛੋਲੇ | ચણા | ଚଣା | கொண்டைக்கடலை | శనగ | ಕಡಲೆ | കടല
+CLASSIFICATION: Pulse | SEASON: rabi
+REGIONAL FIT: states=Madhya Pradesh, Rajasthan, Maharashtra, Uttar Pradesh, Karnataka, Andhra Pradesh; agro-climatic zones=central, indo_gangetic, northwest, deccan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Clay Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-25 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Bengal Gram(Gram)(Whole). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: grapes
+CROP: Grapes | HINDI: अंगूर
+ALIASES: Grapes | grapes | अंगूर
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Maharashtra, Karnataka, Andhra Pradesh, Tamil Nadu, Himachal Pradesh; agro-climatic zones=peninsular, thar_desert, deccan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-32 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Grapes. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: greater_yam
+CROP: Greater Yam | HINDI: रतालू
+ALIASES: Greater Yam | greater yam | greater_yam | रतालू
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Kerala, Odisha, Assam, West Bengal, Tamil Nadu; agro-climatic zones=coastal, peninsular, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.0; salinity tolerance=Low
+CLIMATE FIT: 22-35 C; rainfall need about 1200 mm; water requirement=High
+CROP CYCLE: about 270 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Greater Yam. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: groundnut
+CROP: Groundnut | HINDI: मूंगफली
+ALIASES: Groundnut | groundnut | भुईमूग | मूंगफली | ਮੂੰਗਫਲੀ | મગફળી | ଚିନাବାଦାମ | வேர்க்கடலை | వేరుశనగ | ಕಡಲೆ | കപ്പലണ്ടി
+CLASSIFICATION: Oilseed | SEASON: kharif
+REGIONAL FIT: states=Gujarat, Andhra Pradesh, Tamil Nadu, Karnataka, Rajasthan, Maharashtra; agro-climatic zones=gujarat, peninsular, thar_desert
+SOIL FIT: Sandy Loam, Loamy, Sandy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-32 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Groundnut. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: guava
+CROP: Guava | HINDI: अमरूद
+ALIASES: Guava | guava | अमरूद
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Uttar Pradesh, Maharashtra, Bihar, Karnataka, Andhra Pradesh; agro-climatic zones=peninsular, indo_gangetic, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-38 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Guava. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: hemp
+CROP: Hemp | HINDI: भांग / औद्योगिक हेम्प
+ALIASES: Hemp | hemp | भांग / औद्योगिक हेम्प
+CLASSIFICATION: Fiber | SEASON: rabi
+REGIONAL FIT: states=Uttarakhand, Himachal Pradesh, Jammu and Kashmir; agro-climatic zones=himalayan, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-26 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Hemp. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: henna
+CROP: Henna | HINDI: मेहंदी
+ALIASES: Henna | henna | मेहंदी
+CLASSIFICATION: Medicinal | SEASON: kharif
+REGIONAL FIT: states=Rajasthan, Gujarat, Madhya Pradesh, Haryana; agro-climatic zones=thar_desert, gujarat, northwest
+SOIL FIT: Sandy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-42 C; rainfall need about 450 mm; water requirement=Low
+CROP CYCLE: about 270 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Henna. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: horse_gram
+CROP: Horse Gram | HINDI: कुल्थी
+ALIASES: Horse Gram | horse gram | horse_gram | कुल्थी
+CLASSIFICATION: Pulse | SEASON: kharif
+REGIONAL FIT: states=Karnataka, Andhra Pradesh, Tamil Nadu, Madhya Pradesh, Jharkhand; agro-climatic zones=peninsular, central, himalayan
+SOIL FIT: Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Horse Gram. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: isabgol
+CROP: Isabgol | HINDI: इसबगोल
+ALIASES: Isabgol | isabgol | इसबगोल
+CLASSIFICATION: Medicinal | SEASON: rabi
+REGIONAL FIT: states=Gujarat, Rajasthan, Madhya Pradesh; agro-climatic zones=gujarat, thar_desert, northwest
+SOIL FIT: Sandy Loam, Loamy, Light Black; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-30 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Isabgol. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: ivy_gourd
+CROP: Ivy Gourd | HINDI: कुंदरू
+ALIASES: Ivy Gourd | ivy gourd | ivy_gourd | कुंदरू
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Andhra Pradesh, Tamil Nadu, Karnataka, Maharashtra, Odisha; agro-climatic zones=peninsular, coastal, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Ivy Gourd. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: jackfruit
+CROP: Jackfruit | HINDI: कटहल
+ALIASES: Jackfruit | jackfruit | कटहल
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Kerala, Bihar, West Bengal, Assam, Odisha, Tamil Nadu; agro-climatic zones=coastal, peninsular, northeast
+SOIL FIT: Alluvial, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 1200 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Jackfruit. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: jamun
+CROP: Jamun | HINDI: जामुन
+ALIASES: Jamun | jamun | जामुन
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Uttar Pradesh, Maharashtra, Gujarat, Madhya Pradesh, Karnataka; agro-climatic zones=indo_gangetic, peninsular, central
+SOIL FIT: Alluvial, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-38 C; rainfall need about 700 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Jamun. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: jasmine
+CROP: Jasmine | HINDI: चमेली
+ALIASES: Jasmine | jasmine | चमेली
+CLASSIFICATION: Flower | SEASON: year_round
+REGIONAL FIT: states=Tamil Nadu, Karnataka, Andhra Pradesh, Maharashtra, Kerala; agro-climatic zones=peninsular, coastal, deccan
+SOIL FIT: Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-38 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Jasmine. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: jatropha
+CROP: Jatropha | HINDI: जट्रोफा
+ALIASES: Jatropha | jatropha | जट्रोफा
+CLASSIFICATION: Oilseed | SEASON: year_round
+REGIONAL FIT: states=Rajasthan, Gujarat, Madhya Pradesh, Chhattisgarh, Andhra Pradesh; agro-climatic zones=thar_desert, central, peninsular
+SOIL FIT: Sandy, Sandy Loam, Sandy Loam, Loamy, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-42 C; rainfall need about 300 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Jatropha. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: jowar
+CROP: Jowar | HINDI: ज्वार
+ALIASES: Jowar | jowar | ज्वार | ज्वारी | જુવાર | ଜୁଆର | சோளம் | జొన్న | ಜೋಳ
+CLASSIFICATION: Millet | SEASON: kharif
+REGIONAL FIT: states=Maharashtra, Karnataka, Andhra Pradesh, Telangana, Madhya Pradesh; agro-climatic zones=deccan, peninsular, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Vertisol, Clay Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Jowar(Sorghum). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: jute
+CROP: Jute | HINDI: जूट
+ALIASES: Jute | jute | जूट | পাট | ଜୁଟ
+CLASSIFICATION: Fiber | SEASON: kharif
+REGIONAL FIT: states=West Bengal, Bihar, Assam, Odisha; agro-climatic zones=indo_gangetic, northeast, coastal
+SOIL FIT: Alluvial, Loamy, Clay, Clay Loam, Alluvial; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 1200 mm; water requirement=High
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Jute. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: kale
+CROP: Kale | HINDI: काले
+ALIASES: Kale | kale | काले
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Himachal Pradesh, Maharashtra; agro-climatic zones=himalayan, northwest, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 5-22 C; rainfall need about 450 mm; water requirement=Moderate
+CROP CYCLE: about 60 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Kale. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: kalmegh
+CROP: Kalmegh | HINDI: कालमेघ
+ALIASES: Kalmegh | kalmegh | कालमेघ
+CLASSIFICATION: Medicinal | SEASON: kharif
+REGIONAL FIT: states=West Bengal, Assam, Odisha, Gujarat, Maharashtra; agro-climatic zones=peninsular, coastal, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Kalmegh. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: karanja
+CROP: Karanja | HINDI: करंज
+ALIASES: Karanja | karanja | करंज
+CLASSIFICATION: Oilseed | SEASON: year_round
+REGIONAL FIT: states=Maharashtra, Madhya Pradesh, Rajasthan, Gujarat, Andhra Pradesh; agro-climatic zones=central, peninsular, thar_desert
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-45 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Karanja. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: karonda
+CROP: Karonda | HINDI: करौंदा
+ALIASES: Karonda | karonda | करौंदा
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Madhya Pradesh, Uttar Pradesh, Rajasthan, Maharashtra; agro-climatic zones=central, indo_gangetic, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite; pH 5.0-8.0; salinity tolerance=Medium
+CLIMATE FIT: 18-40 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 900 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Karonda. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: kharif_sorghum
+CROP: Kharif Sorghum | HINDI: खरीफ ज्वार
+ALIASES: Kharif Sorghum | kharif sorghum | kharif_sorghum | खरीफ ज्वार
+CLASSIFICATION: Cereal | SEASON: kharif
+REGIONAL FIT: states=Maharashtra, Karnataka, Madhya Pradesh, Andhra Pradesh, Telangana; agro-climatic zones=peninsular, deccan, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Vertisol, Clay Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-40 C; rainfall need about 450 mm; water requirement=Low
+CROP CYCLE: about 110 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed, Vegetable
+MARKET LOOKUP NAME: Kharif Sorghum. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: kinnow
+CROP: Kinnow | HINDI: किन्नू
+ALIASES: Kinnow | kinnow | किन्नू
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Punjab, Haryana, Rajasthan, Himachal Pradesh; agro-climatic zones=northwest, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-35 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 1095 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Kinnow. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: kiwifruit
+CROP: Kiwifruit | HINDI: कीवी
+ALIASES: Kiwifruit | kiwifruit | कीवी
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Arunachal Pradesh, Himachal Pradesh, Uttarakhand, Sikkim; agro-climatic zones=himalayan, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Well drained hill soil; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 5-28 C; rainfall need about 900 mm; water requirement=Moderate
+CROP CYCLE: about 1095 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Kiwifruit. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: knol_khol
+CROP: Knol Khol | HINDI: गांठ गोभी
+ALIASES: Knol Khol | knol khol | knol_khol | गांठ गोभी
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Jammu and Kashmir, Himachal Pradesh, Uttar Pradesh, West Bengal; agro-climatic zones=himalayan, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-6.8; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 65 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Knol Khol. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: kodo_millet
+CROP: Kodo Millet | HINDI: कोदो
+ALIASES: Kodo Millet | kodo millet | kodo_millet | कोदो
+CLASSIFICATION: Millet | SEASON: kharif
+REGIONAL FIT: states=Madhya Pradesh, Chhattisgarh, Odisha, Maharashtra, Karnataka; agro-climatic zones=central, peninsular
+SOIL FIT: Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Kodo Millet. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: kokum
+CROP: Kokum | HINDI: कोकम
+ALIASES: Kokum | kokum | कोकम
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Maharashtra, Goa, Karnataka, Kerala; agro-climatic zones=coastal
+SOIL FIT: Red, Laterite, Sandy Loam, Lateritic coastal soil; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-34 C; rainfall need about 1800 mm; water requirement=Moderate
+CROP CYCLE: about 1825 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Kokum. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: large_cardamom
+CROP: Large Cardamom | HINDI: बड़ी इलायची
+ALIASES: Large Cardamom | large cardamom | large_cardamom | बड़ी इलायची
+CLASSIFICATION: Spice | SEASON: year_round
+REGIONAL FIT: states=Sikkim, Arunachal Pradesh, Nagaland, West Bengal; agro-climatic zones=northeast, himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Forest loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-28 C; rainfall need about 1800 mm; water requirement=High
+CROP CYCLE: about 1095 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Large Cardamom. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: lavender
+CROP: Lavender | HINDI: लैवेंडर
+ALIASES: Lavender | lavender | लैवेंडर
+CLASSIFICATION: Aromatic | SEASON: rabi
+REGIONAL FIT: states=Jammu and Kashmir, Himachal Pradesh, Uttarakhand; agro-climatic zones=himalayan, northwest
+SOIL FIT: Sandy Loam, Loamy, Well drained hill soil; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 5-30 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 240 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Lavender. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: lemon
+CROP: Lemon | HINDI: नींबू
+ALIASES: Lemon | lemon | नींबू
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Andhra Pradesh, Maharashtra, Gujarat, Madhya Pradesh, Assam; agro-climatic zones=peninsular, indo_gangetic, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 750 mm; water requirement=Moderate
+CROP CYCLE: about 900 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Lemon. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: lemongrass
+CROP: Lemongrass | HINDI: नींबू घास
+ALIASES: Lemongrass | lemongrass | नींबू घास
+CLASSIFICATION: Medicinal | SEASON: year_round
+REGIONAL FIT: states=Assam, Kerala, Karnataka, Tamil Nadu, Maharashtra; agro-climatic zones=peninsular, northeast, coastal
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 800 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Lemongrass. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: lettuce
+CROP: Lettuce | HINDI: सलाद पत्ता
+ALIASES: Lettuce | lettuce | सलाद पत्ता
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Himachal Pradesh, Uttarakhand, Haryana, Maharashtra; agro-climatic zones=himalayan, northwest, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 6.0-7.0; salinity tolerance=Low
+CLIMATE FIT: 10-24 C; rainfall need about 450 mm; water requirement=Moderate
+CROP CYCLE: about 55 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Lettuce. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: linseed
+CROP: Linseed | HINDI: अलसी
+ALIASES: Linseed | linseed | अलसी
+CLASSIFICATION: Oilseed | SEASON: rabi
+REGIONAL FIT: states=Madhya Pradesh, Uttar Pradesh, Bihar, Odisha, Maharashtra; agro-climatic zones=central, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Clay, Clay Loam, Alluvial; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-22 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Linseed. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: litchi
+CROP: Litchi | HINDI: लीची
+ALIASES: Litchi | litchi | लीची
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Bihar, Jharkhand, West Bengal, Uttar Pradesh, Assam; agro-climatic zones=indo_gangetic, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-30 C; rainfall need about 1200 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Litchi. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: little_millet
+CROP: Little Millet | HINDI: कुटकी
+ALIASES: Little Millet | little millet | little_millet | कुटकी
+CLASSIFICATION: Millet | SEASON: kharif
+REGIONAL FIT: states=Madhya Pradesh, Chhattisgarh, Odisha, Gujarat, Tamil Nadu; agro-climatic zones=central, peninsular
+SOIL FIT: Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Little Millet. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: lobia
+CROP: Lobia | HINDI: लोबिया
+ALIASES: Lobia | lobia | लोबिया
+CLASSIFICATION: Pulse | SEASON: kharif
+REGIONAL FIT: states=Karnataka, Andhra Pradesh, Tamil Nadu, Maharashtra; agro-climatic zones=indo_gangetic, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-32 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Lobia. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: lotus_stem
+CROP: Lotus Stem | HINDI: कमल ककड़ी
+ALIASES: Lotus Stem | lotus stem | lotus_stem | कमल ककड़ी
+CLASSIFICATION: Aquatic | SEASON: kharif
+REGIONAL FIT: states=Jammu and Kashmir, Uttar Pradesh, Bihar, West Bengal; agro-climatic zones=indo_gangetic, coastal
+SOIL FIT: Clay, Clay Loam, Alluvial; pH 6.0-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1200 mm; water requirement=Very High
+CROP CYCLE: about 180 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Lotus Stem. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: lucerne
+CROP: Lucerne | HINDI: लूसर्न
+ALIASES: Lucerne | lucerne | लूसर्न
+CLASSIFICATION: Fodder | SEASON: year_round
+REGIONAL FIT: states=Punjab, Haryana, Rajasthan, Gujarat, Maharashtra; agro-climatic zones=northwest, indo_gangetic, deccan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-28 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Lucerne. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: maize
+CROP: Maize | HINDI: मक्का
+ALIASES: Maize | maize | मका | मक्का | ভুট্টা | ਮੱਕੀ | મકાઈ | ମକା | சோளம் | మొక్కజొన్న | ಮೆಕ್ಕೆ | ചോളം
+CLASSIFICATION: Cereal | SEASON: kharif
+REGIONAL FIT: states=Karnataka, Andhra Pradesh, Telangana, Bihar, Uttar Pradesh, Maharashtra, Rajasthan; agro-climatic zones=indo_gangetic, peninsular, central, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-32 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed, Vegetable
+MARKET LOOKUP NAME: Maize. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: makhana
+CROP: Makhana | HINDI: मखाना
+ALIASES: Makhana | makhana | मखाना
+CLASSIFICATION: Aquatic | SEASON: kharif
+REGIONAL FIT: states=Bihar, West Bengal, Assam, Manipur; agro-climatic zones=indo_gangetic
+SOIL FIT: Clay, Clay Loam, Alluvial, Pond silt; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1000 mm; water requirement=Very High
+CROP CYCLE: about 240 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Makhana. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: mandarin
+CROP: Mandarin | HINDI: मंदारिन संतरा
+ALIASES: Mandarin | mandarin | मंदारिन संतरा
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Nagaland, Assam, Sikkim, Madhya Pradesh, Maharashtra; agro-climatic zones=northeast, himalayan, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.0-7.0; salinity tolerance=Low
+CLIMATE FIT: 10-32 C; rainfall need about 1000 mm; water requirement=Moderate
+CROP CYCLE: about 1095 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Mandarin. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: mango
+CROP: Mango | HINDI: आम
+ALIASES: Mango | mango | आंबा | आम | আম | ਅੰਬ | કેરી | ଆମ୍ବ | மாம்பழம் | మామిడి | ಮಾವು | മാങ്ങ
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Uttar Pradesh, Andhra Pradesh, Karnataka, Maharashtra, Bihar, West Bengal, Gujarat, Tamil Nadu; agro-climatic zones=indo_gangetic, peninsular, coastal
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-38 C; rainfall need about 750 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Mango. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: mangosteen
+CROP: Mangosteen | HINDI: मैंगोस्टीन
+ALIASES: Mangosteen | mangosteen | मैंगोस्टीन
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Kerala, Tamil Nadu, Karnataka; agro-climatic zones=coastal
+SOIL FIT: Red, Laterite, Sandy Loam, Alluvial, Loamy, Sandy Loam; pH 5.0-6.5; salinity tolerance=Low
+CLIMATE FIT: 22-32 C; rainfall need about 2000 mm; water requirement=Very High
+CROP CYCLE: about 2190 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Mangosteen. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: marigold
+CROP: Marigold | HINDI: गेंदा
+ALIASES: Marigold | marigold | गेंदा
+CLASSIFICATION: Flower | SEASON: year_round
+REGIONAL FIT: states=Karnataka, Tamil Nadu, Andhra Pradesh, Maharashtra, Uttar Pradesh; agro-climatic zones=indo_gangetic, peninsular, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-35 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 75 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Marigold. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: masoor
+CROP: Masoor | HINDI: मसूर
+ALIASES: Masoor | masoor | मसूर | মসুর | મસૂર | ମସୁର | முசுர் | మసూరి | ಮಸೂರ
+CLASSIFICATION: Pulse | SEASON: rabi
+REGIONAL FIT: states=Madhya Pradesh, Uttar Pradesh, Bihar, West Bengal; agro-climatic zones=indo_gangetic, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Lentil(Masur)(Whole). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: matar
+CROP: Matar | HINDI: मटर
+ALIASES: Matar | matar | मटर | वाटाणा | মটর | ਮਟਰ | વટાણા | பட்டாணி | బఠానీ | ಬಟಾಣಿ
+CLASSIFICATION: Pulse | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, Madhya Pradesh, Punjab, Himachal Pradesh, Uttarakhand; agro-climatic zones=himalayan, indo_gangetic, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-20 C; rainfall need about 400 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Matar. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: moong
+CROP: Moong | HINDI: मूंग
+ALIASES: Moong | moong | मूंग | मूग | মুগ | ਮੂੰਗੀ | મગ | ମୁଗ | பயறு | పెసలు | ಹೆಸರು | ചെറുപയർ
+CLASSIFICATION: Pulse | SEASON: kharif
+REGIONAL FIT: states=Rajasthan, Maharashtra, Andhra Pradesh, Karnataka, Bihar; agro-climatic zones=indo_gangetic, central, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-32 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 80 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Green Gram(Moong)(Whole). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: moringa
+CROP: Moringa | HINDI: सहजन
+ALIASES: Moringa | moringa | सहजन
+CLASSIFICATION: Medicinal | SEASON: year_round
+REGIONAL FIT: states=Tamil Nadu, Andhra Pradesh, Karnataka, Gujarat, Maharashtra; agro-climatic zones=peninsular, central, thar_desert
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-40 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Moringa. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: moth_bean
+CROP: Moth Bean | HINDI: मोठ
+ALIASES: Moth Bean | moth bean | moth_bean | मोठ
+CLASSIFICATION: Pulse | SEASON: kharif
+REGIONAL FIT: states=Rajasthan, Gujarat, Haryana, Uttar Pradesh; agro-climatic zones=thar_desert, northwest
+SOIL FIT: Sandy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 24-42 C; rainfall need about 200 mm; water requirement=Low
+CROP CYCLE: about 75 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Moth Bean. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: mulberry
+CROP: Mulberry | HINDI: शहतूत
+ALIASES: Mulberry | mulberry | शहतूत
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Karnataka, West Bengal, Jammu and Kashmir, Uttarakhand, Andhra Pradesh; agro-climatic zones=peninsular, himalayan, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 13-38 C; rainfall need about 800 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Mulberry. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: mushroom
+CROP: Mushroom | HINDI: मशरूम
+ALIASES: Mushroom | mushroom | मशरूम
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Himachal Pradesh, Uttarakhand, Haryana, Punjab, Maharashtra, Karnataka; agro-climatic zones=himalayan, indo_gangetic, peninsular
+SOIL FIT: Organic Compost; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 14-28 C; rainfall need about 0 mm; water requirement=High
+CROP CYCLE: about 45 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Mushroom. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: muskmelon
+CROP: Muskmelon | HINDI: खरबूजा
+ALIASES: Muskmelon | muskmelon | खरबूजा
+CLASSIFICATION: Fruit | SEASON: zaid
+REGIONAL FIT: states=Uttar Pradesh, Rajasthan, Andhra Pradesh, Punjab; agro-climatic zones=thar_desert, peninsular
+SOIL FIT: Sandy Loam, Loamy, Sandy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 24-40 C; rainfall need about 400 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Muskmelon. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: mustard
+CROP: Mustard | HINDI: सरसों
+ALIASES: Mustard | mustard | मोहरी | सरसों | সরিষা | ਸਰ੍ਹੋਂ | સરસવ | ସୋରିଷ | கடுகு | ఆవాలు | ಸಾಸಿವೆ | കടുക്
+CLASSIFICATION: Oilseed | SEASON: rabi
+REGIONAL FIT: states=Rajasthan, Uttar Pradesh, Haryana, Madhya Pradesh, West Bengal, Gujarat; agro-climatic zones=northwest, indo_gangetic, thar_desert
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Mustard. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: mustard_greens
+CROP: Mustard Greens | HINDI: सरसों का साग
+ALIASES: Mustard Greens | mustard greens | mustard_greens | सरसों का साग
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Rajasthan; agro-climatic zones=northwest, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.8-7.5; salinity tolerance=Medium
+CLIMATE FIT: 8-24 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 50 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Mustard Greens. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: napier_grass
+CROP: Napier Grass | HINDI: नेपियर घास
+ALIASES: Napier Grass | napier grass | napier_grass | नेपियर घास
+CLASSIFICATION: Fodder | SEASON: year_round
+REGIONAL FIT: states=Karnataka, Tamil Nadu, Andhra Pradesh, Maharashtra, Kerala; agro-climatic zones=peninsular, coastal, central, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-40 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Napier Grass. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: neem_commercial
+CROP: Neem Commercial | HINDI: नीम (व्यावसायिक)
+ALIASES: Neem Commercial | neem commercial | neem_commercial | नीम (व्यावसायिक)
+CLASSIFICATION: Medicinal | SEASON: year_round
+REGIONAL FIT: states=Rajasthan, Uttar Pradesh, Madhya Pradesh, Gujarat, Maharashtra; agro-climatic zones=thar_desert, central, peninsular, deccan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-44 C; rainfall need about 300 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Neem Commercial. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: niger
+CROP: Niger | HINDI: रामतिल
+ALIASES: Niger | niger | रामतिल
+CLASSIFICATION: Oilseed | SEASON: kharif
+REGIONAL FIT: states=Madhya Pradesh, Chhattisgarh, Odisha, Gujarat, Maharashtra; agro-climatic zones=central, peninsular
+SOIL FIT: Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 700 mm; water requirement=Low
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Niger. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: nutmeg
+CROP: Nutmeg | HINDI: जायफल
+ALIASES: Nutmeg | nutmeg | जायफल
+CLASSIFICATION: Spice | SEASON: year_round
+REGIONAL FIT: states=Kerala, Tamil Nadu, Goa; agro-climatic zones=coastal, peninsular
+SOIL FIT: Red, Laterite, Sandy Loam, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1500 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Nutmeg. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: oat
+CROP: Oat | HINDI: जई
+ALIASES: Oat | oat | जई
+CLASSIFICATION: Cereal | SEASON: rabi
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Uttarakhand; agro-climatic zones=northwest, indo_gangetic, himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 5-20 C; rainfall need about 400 mm; water requirement=Moderate
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed, Vegetable
+MARKET LOOKUP NAME: Oat. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: oil_palm
+CROP: Oil Palm | HINDI: तेल पाम
+ALIASES: Oil Palm | oil palm | oil_palm | तेल पाम
+CLASSIFICATION: Plantation | SEASON: year_round
+REGIONAL FIT: states=Andhra Pradesh, Telangana, Karnataka, Tamil Nadu, Odisha, Mizoram; agro-climatic zones=coastal, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Clay, Clay Loam, Alluvial; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 24-35 C; rainfall need about 2000 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Oil Palm. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: okra
+CROP: Okra | HINDI: भिंडी
+ALIASES: Okra | okra | भिंडी
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Gujarat, West Bengal, Uttar Pradesh, Andhra Pradesh, Bihar; agro-climatic zones=peninsular, indo_gangetic, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Okra. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: onion
+CROP: Onion | HINDI: प्याज
+ALIASES: Onion | onion | कांदा | प्याज | পেঁয়াজ | ਪਿਆਜ਼ | ડુંગળી | ପିଆଜ | வெங்காயம் | ఉల్లి | ಈರುಳ್ಳಿ | സവോള
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Maharashtra, Madhya Pradesh, Karnataka, Gujarat, Rajasthan, Andhra Pradesh, Uttar Pradesh; agro-climatic zones=deccan, peninsular, central
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 12-28 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Onion. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: orange
+CROP: Orange | HINDI: संतरा
+ALIASES: Orange | orange | संतरा
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Maharashtra, Madhya Pradesh, Rajasthan, Punjab, Karnataka, Andhra Pradesh; agro-climatic zones=deccan, himalayan, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 14-30 C; rainfall need about 750 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Orange. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: papaya
+CROP: Papaya | HINDI: पपीता
+ALIASES: Papaya | papaya | पपीता
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Andhra Pradesh, Karnataka, Gujarat, West Bengal, Madhya Pradesh; agro-climatic zones=peninsular, indo_gangetic, coastal
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 800 mm; water requirement=Moderate
+CROP CYCLE: about 300 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Papaya. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: passion_fruit
+CROP: Passion Fruit | HINDI: पैशन फ्रूट
+ALIASES: Passion Fruit | passion fruit | passion_fruit | पैशन फ्रूट
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Manipur, Mizoram, Nagaland, Sikkim, Kerala; agro-climatic zones=northeast, himalayan, coastal
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Well drained hill soil; pH 5.5-6.5; salinity tolerance=Low
+CLIMATE FIT: 15-30 C; rainfall need about 1200 mm; water requirement=High
+CROP CYCLE: about 540 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Passion Fruit. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: pear
+CROP: Pear | HINDI: नाशपाती
+ALIASES: Pear | pear | नाशपाती
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Jammu and Kashmir, Himachal Pradesh, Uttarakhand, Punjab; agro-climatic zones=himalayan, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Well drained hill soil; pH 6.0-7.5; salinity tolerance=Low
+CLIMATE FIT: 3-28 C; rainfall need about 900 mm; water requirement=Moderate
+CROP CYCLE: about 1460 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Pear. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: peas
+CROP: Peas | HINDI: मटर
+ALIASES: Peas | peas | मटर
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, Madhya Pradesh, Punjab, Himachal Pradesh, Bihar; agro-climatic zones=himalayan, northwest, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 8-20 C; rainfall need about 450 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Peas. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: persimmon
+CROP: Persimmon | HINDI: तेंदू / जापानी फल
+ALIASES: Persimmon | persimmon | तेंदू / जापानी फल
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Himachal Pradesh, Jammu and Kashmir, Uttarakhand; agro-climatic zones=himalayan, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 5-25 C; rainfall need about 800 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Persimmon. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: phalsa
+CROP: Phalsa | HINDI: फालसा
+ALIASES: Phalsa | phalsa | फालसा
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Rajasthan; agro-climatic zones=northwest, indo_gangetic, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 6.0-8.0; salinity tolerance=Low
+CLIMATE FIT: 18-40 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 730 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Phalsa. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: pineapple
+CROP: Pineapple | HINDI: अनानास
+ALIASES: Pineapple | pineapple | अनानास
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Assam, Meghalaya, Manipur, West Bengal, Kerala, Karnataka; agro-climatic zones=northeast, coastal, peninsular
+SOIL FIT: Laterite, Sandy Loam, Red; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-35 C; rainfall need about 1500 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Pineapple. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: plum
+CROP: Plum | HINDI: बेर (आलूबुखारा)
+ALIASES: Plum | plum | बेर (आलूबुखारा)
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Himachal Pradesh, Jammu and Kashmir, Uttarakhand, Punjab; agro-climatic zones=himalayan, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 5-25 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Plum. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: pointed_gourd
+CROP: Pointed Gourd | HINDI: परवल
+ALIASES: Pointed Gourd | pointed gourd | pointed_gourd | परवल
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Uttar Pradesh, Bihar, West Bengal, Odisha, Madhya Pradesh; agro-climatic zones=indo_gangetic, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Pointed Gourd. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: pomegranate
+CROP: Pomegranate | HINDI: अनार
+ALIASES: Pomegranate | pomegranate | अनार
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Maharashtra, Gujarat, Rajasthan, Karnataka, Andhra Pradesh; agro-climatic zones=thar_desert, deccan, peninsular
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 12-38 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Pomegranate. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: potato
+CROP: Potato | HINDI: आलू
+ALIASES: Potato | potato | आलू | बटाटा | আলু | ਆਲੂ | બટાટા | ଆଳୁ | உருளைக்கிழங்கு | బంగాళాదుంప | ಆಲೂಗಡ್ಡೆ | ഉരുളക്കിഴങ്ങ്
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, West Bengal, Bihar, Gujarat, Punjab, Madhya Pradesh, Assam; agro-climatic zones=indo_gangetic, himalayan, northwest
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Potato. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: proso_millet
+CROP: Proso Millet | HINDI: चेना
+ALIASES: Proso Millet | proso millet | proso_millet | चेना
+CLASSIFICATION: Millet | SEASON: kharif
+REGIONAL FIT: states=Rajasthan, Gujarat, Madhya Pradesh, Maharashtra, Karnataka; agro-climatic zones=central, thar_desert, peninsular
+SOIL FIT: Sandy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 300 mm; water requirement=Low
+CROP CYCLE: about 75 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Proso Millet. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: pumpkin
+CROP: Pumpkin | HINDI: कद्दू
+ALIASES: Pumpkin | pumpkin | कद्दू
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Uttar Pradesh, Madhya Pradesh, Bihar, West Bengal, Odisha; agro-climatic zones=indo_gangetic, peninsular, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-35 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 80 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Pumpkin. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: quinoa
+CROP: Quinoa | HINDI: क्विनोआ
+ALIASES: Quinoa | quinoa | क्विनोआ
+CLASSIFICATION: Pseudo Cereal | SEASON: rabi
+REGIONAL FIT: states=Rajasthan, Madhya Pradesh, Uttarakhand, Karnataka; agro-climatic zones=northwest, central, deccan, himalayan
+SOIL FIT: Sandy Loam, Loamy, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 8-30 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Quinoa. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: radish
+CROP: Radish | HINDI: मूली
+ALIASES: Radish | radish | मूली
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Uttar Pradesh, Bihar, Haryana, Punjab, West Bengal; agro-climatic zones=himalayan, northwest, indo_gangetic
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-22 C; rainfall need about 400 mm; water requirement=Moderate
+CROP CYCLE: about 60 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Radish. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: ragi
+CROP: Ragi | HINDI: रागी
+ALIASES: Ragi | ragi | रागी | ମଣ୍ଡିଆ | கேழ்வரகு | రాగి | ರಾಗಿ | കുതിര
+CLASSIFICATION: Millet | SEASON: kharif
+REGIONAL FIT: states=Karnataka, Andhra Pradesh, Telangana, Tamil Nadu, Uttarakhand, Odisha; agro-climatic zones=peninsular, deccan, himalayan
+SOIL FIT: Red, Laterite, Sandy Loam, Sandy Loam, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-32 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Ragi(Finger Millet). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: rajma
+CROP: Rajma | HINDI: राजमा
+ALIASES: Rajma | rajma | राजमा
+CLASSIFICATION: Pulse | SEASON: rabi
+REGIONAL FIT: states=Uttarakhand, Himachal Pradesh, Jammu and Kashmir, Uttar Pradesh; agro-climatic zones=himalayan, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 8-22 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Rajma. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: rambutan
+CROP: Rambutan | HINDI: रामबूटान
+ALIASES: Rambutan | rambutan | रामबूटान
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Kerala, Karnataka, Tamil Nadu, Assam; agro-climatic zones=coastal, northeast
+SOIL FIT: Red, Laterite, Sandy Loam, Alluvial, Loamy, Sandy Loam; pH 5.0-6.5; salinity tolerance=Low
+CLIMATE FIT: 22-32 C; rainfall need about 1800 mm; water requirement=High
+CROP CYCLE: about 1460 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Rambutan. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: ramie
+CROP: Ramie | HINDI: रेमी
+ALIASES: Ramie | ramie | रेमी
+CLASSIFICATION: Fiber | SEASON: year_round
+REGIONAL FIT: states=Assam, West Bengal, Meghalaya, Odisha; agro-climatic zones=northeast, coastal
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1200 mm; water requirement=High
+CROP CYCLE: about 180 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Ramie. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: rice
+CROP: Rice | HINDI: धान
+ALIASES: Rice | rice | چاول | धान | भात | ধান | ਝੋਨਾ | ડાંગર | ଧାନ | நெல் | వరి | ಭತ್ತ | നെല്ല്
+CLASSIFICATION: Cereal | SEASON: kharif
+REGIONAL FIT: states=West Bengal, Uttar Pradesh, Punjab, Andhra Pradesh, Tamil Nadu, Odisha, Assam, Bihar; agro-climatic zones=indo_gangetic, coastal, northeast, peninsular
+SOIL FIT: Clay, Clay Loam, Alluvial, Alluvial; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1200 mm; water requirement=High
+CROP CYCLE: about 150 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed, Vegetable
+MARKET LOOKUP NAME: Paddy(Common). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: ridge_gourd
+CROP: Ridge Gourd | HINDI: तोरई
+ALIASES: Ridge Gourd | ridge gourd | ridge_gourd | तोरई
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Maharashtra, Gujarat, Andhra Pradesh, Karnataka, Uttar Pradesh; agro-climatic zones=peninsular, indo_gangetic, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 65 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Ridge Gourd. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: rose
+CROP: Rose | HINDI: गुलाब
+ALIASES: Rose | rose | गुलाब
+CLASSIFICATION: Flower | SEASON: year_round
+REGIONAL FIT: states=Karnataka, Tamil Nadu, Punjab, Haryana, Maharashtra, Rajasthan; agro-climatic zones=peninsular, northwest, himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 12-30 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Rose. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: rubber
+CROP: Rubber | HINDI: रबर
+ALIASES: Rubber | rubber | रबर
+CLASSIFICATION: Plantation | SEASON: year_round
+REGIONAL FIT: states=Kerala, Karnataka, Tamil Nadu, Andhra Pradesh, Assam; agro-climatic zones=coastal, peninsular
+SOIL FIT: Laterite, Red, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-34 C; rainfall need about 2000 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Rubber. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: safed_musli
+CROP: Safed Musli | HINDI: सफेद मूसली
+ALIASES: Safed Musli | safed musli | safed_musli | सफेद मूसली
+CLASSIFICATION: Medicinal | SEASON: kharif
+REGIONAL FIT: states=Madhya Pradesh, Rajasthan, Gujarat, Chhattisgarh, Maharashtra; agro-climatic zones=central, peninsular, gujarat
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 150 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Safed Musli. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: safflower
+CROP: Safflower | HINDI: कुसुम
+ALIASES: Safflower | safflower | कुसुम
+CLASSIFICATION: Oilseed | SEASON: rabi
+REGIONAL FIT: states=Maharashtra, Karnataka, Andhra Pradesh, Madhya Pradesh, Telangana; agro-climatic zones=deccan, central, peninsular
+SOIL FIT: Black, Vertisol, Clay Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-28 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 150 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Safflower. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: saffron
+CROP: Saffron | HINDI: केसर
+ALIASES: Saffron | saffron | केसर
+CLASSIFICATION: Spice | SEASON: rabi
+REGIONAL FIT: states=Jammu and Kashmir, Himachal Pradesh; agro-climatic zones=himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Calcareous well drained soil; pH 6.0-8.0; salinity tolerance=Low
+CLIMATE FIT: -5-25 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 240 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Saffron. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sapota
+CROP: Sapota | HINDI: चीकू
+ALIASES: Sapota | sapota | चीकू
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Gujarat, Maharashtra, Karnataka, Tamil Nadu, Andhra Pradesh; agro-climatic zones=gujarat, peninsular, coastal
+SOIL FIT: Sandy Loam, Loamy, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 800 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Sapota. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: senna
+CROP: Senna | HINDI: सनाय
+ALIASES: Senna | senna | सनाय
+CLASSIFICATION: Medicinal | SEASON: kharif
+REGIONAL FIT: states=Rajasthan, Tamil Nadu, Gujarat, Karnataka; agro-climatic zones=thar_desert, peninsular, gujarat
+SOIL FIT: Sandy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 150 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Senna. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sesame
+CROP: Sesame | HINDI: तिल
+ALIASES: Sesame | sesame | तिल | तीळ | તલ | ତିଳ | எள் | నువ్వులు | ಎಳ್ಳು | എള്ള്
+CLASSIFICATION: Oilseed | SEASON: kharif
+REGIONAL FIT: states=Gujarat, Rajasthan, West Bengal, Madhya Pradesh, Tamil Nadu, Uttar Pradesh; agro-climatic zones=peninsular, central, coastal
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Sesame. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: shatavari
+CROP: Shatavari | HINDI: शतावरी
+ALIASES: Shatavari | shatavari | शतावरी
+CLASSIFICATION: Medicinal | SEASON: year_round
+REGIONAL FIT: states=Rajasthan, Madhya Pradesh, Gujarat, Maharashtra, Uttar Pradesh; agro-climatic zones=central, peninsular, thar_desert
+SOIL FIT: Sandy Loam, Loamy, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-40 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 540 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Shatavari. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sisal
+CROP: Sisal | HINDI: सिसल
+ALIASES: Sisal | sisal | सिसल
+CLASSIFICATION: Fiber | SEASON: year_round
+REGIONAL FIT: states=Gujarat, Rajasthan, Tamil Nadu, Karnataka; agro-climatic zones=thar_desert, peninsular, deccan
+SOIL FIT: Sandy, Sandy Loam, Red, Laterite, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Sisal. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: snake_gourd
+CROP: Snake Gourd | HINDI: चिचिन्डा
+ALIASES: Snake Gourd | snake gourd | snake_gourd | चिचिन्डा
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Kerala, Karnataka, Tamil Nadu, Andhra Pradesh, West Bengal; agro-climatic zones=peninsular, coastal, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 22-38 C; rainfall need about 650 mm; water requirement=Moderate
+CROP CYCLE: about 70 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Snake Gourd. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sorghum
+CROP: Sorghum | HINDI: शर्बत ज्वार
+ALIASES: Sorghum | sorghum | शर्बत ज्वार
+CLASSIFICATION: Millet | SEASON: rabi
+REGIONAL FIT: states=Maharashtra, Karnataka, Madhya Pradesh; agro-climatic zones=deccan, peninsular, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Vertisol, Clay Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-35 C; rainfall need about 400 mm; water requirement=Low
+CROP CYCLE: about 110 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed
+MARKET LOOKUP NAME: Sorghum. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sorghum_sudan
+CROP: Sorghum Sudan | HINDI: सुडान घास
+ALIASES: Sorghum Sudan | sorghum sudan | sorghum_sudan | सुडान घास
+CLASSIFICATION: Fodder | SEASON: kharif
+REGIONAL FIT: states=Rajasthan, Madhya Pradesh, Maharashtra, Gujarat, Haryana; agro-climatic zones=thar_desert, central, deccan
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-40 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 75 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Sorghum Sudan. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: soybean
+CROP: Soybean | HINDI: सोयाबीन
+ALIASES: Soybean | soybean | सोयाबीन | સોયાબીન | ସୋୟାବିନ | సోయాబీన్ | ಸೋಯಾಬೀನ್
+CLASSIFICATION: Oilseed | SEASON: kharif
+REGIONAL FIT: states=Madhya Pradesh, Maharashtra, Rajasthan, Chhattisgarh, Karnataka; agro-climatic zones=central, deccan
+SOIL FIT: Black, Vertisol, Clay Loam, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-30 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Soybean. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: spinach
+CROP: Spinach | HINDI: पालक
+ALIASES: Spinach | spinach | पालक
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Uttar Pradesh, Punjab, Haryana, Maharashtra, Gujarat; agro-climatic zones=indo_gangetic, himalayan, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 30 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Spinach. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sponge_gourd
+CROP: Sponge Gourd | HINDI: तरोई
+ALIASES: Sponge Gourd | sponge gourd | sponge_gourd | तरोई
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Maharashtra, Bihar, West Bengal, Uttar Pradesh, Odisha; agro-climatic zones=peninsular, indo_gangetic, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-38 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 65 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Sponge Gourd. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: spring_onion
+CROP: Spring Onion | HINDI: हरा प्याज
+ALIASES: Spring Onion | spring onion | spring_onion | हरा प्याज
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Maharashtra, Karnataka, Himachal Pradesh, Uttar Pradesh; agro-climatic zones=himalayan, indo_gangetic, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 6.0-7.0; salinity tolerance=Low
+CLIMATE FIT: 12-28 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 65 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Spring Onion. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: star_anise
+CROP: Star Anise | HINDI: चक्र फूल
+ALIASES: Star Anise | star anise | star_anise | चक्र फूल
+CLASSIFICATION: Spice | SEASON: year_round
+REGIONAL FIT: states=Arunachal Pradesh, Manipur, Sikkim; agro-climatic zones=northeast, himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-30 C; rainfall need about 1200 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Star Anise. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: stevia
+CROP: Stevia | HINDI: स्टीविया
+ALIASES: Stevia | stevia | स्टीविया
+CLASSIFICATION: Medicinal | SEASON: year_round
+REGIONAL FIT: states=Uttarakhand, Karnataka, Andhra Pradesh, Maharashtra; agro-climatic zones=peninsular, himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-30 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Stevia. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: strawberry
+CROP: Strawberry | HINDI: स्ट्रॉबेरी
+ALIASES: Strawberry | strawberry | स्ट्रॉबेरी
+CLASSIFICATION: Fruit | SEASON: rabi
+REGIONAL FIT: states=Himachal Pradesh, Uttarakhand, Maharashtra, Karnataka; agro-climatic zones=himalayan, peninsular
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 6-22 C; rainfall need about 800 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Strawberry. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sugarcane
+CROP: Sugarcane | HINDI: गन्ना
+ALIASES: Sugarcane | sugarcane | گنا | ऊस | गन्ना | আখ | ਗੰਨਾ | શેરડી | ଆଖୁ | கரும்பு | చెరకు | ಕಬ್ಬು | കരിമ്പ്
+CLASSIFICATION: Cash | SEASON: year_round
+REGIONAL FIT: states=Uttar Pradesh, Maharashtra, Karnataka, Tamil Nadu, Gujarat, Andhra Pradesh, Haryana, Punjab; agro-climatic zones=indo_gangetic, peninsular, coastal
+SOIL FIT: Alluvial, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 25-38 C; rainfall need about 1500 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Sugarcane. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sunflower
+CROP: Sunflower | HINDI: सूरजमुखी
+ALIASES: Sunflower | sunflower | सूरजमुखी | सूर्यफूल | சூரியகாந்தி | పొద్దుతిరుగుడు | ಸೂರ್ಯಕಾಂತಿ
+CLASSIFICATION: Oilseed | SEASON: rabi
+REGIONAL FIT: states=Karnataka, Andhra Pradesh, Maharashtra, Uttar Pradesh, Haryana, Tamil Nadu; agro-climatic zones=peninsular, deccan, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-28 C; rainfall need about 500 mm; water requirement=Moderate
+CROP CYCLE: about 100 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Sunflower. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sweet_corn
+CROP: Sweet Corn | HINDI: स्वीट कॉर्न
+ALIASES: Sweet Corn | sweet corn | sweet_corn | स्वीट कॉर्न
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Karnataka, Maharashtra, Uttar Pradesh, Punjab, Haryana; agro-climatic zones=indo_gangetic, peninsular, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-32 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 75 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Sweet Corn. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sweet_lime
+CROP: Sweet Lime | HINDI: मौसंबी
+ALIASES: Sweet Lime | sweet lime | sweet_lime | मौसंबी
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Maharashtra, Telangana, Andhra Pradesh, Madhya Pradesh; agro-climatic zones=deccan, central, peninsular
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Vertisol, Clay Loam; pH 6.0-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-36 C; rainfall need about 700 mm; water requirement=Moderate
+CROP CYCLE: about 1095 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Sweet Lime. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: sweet_potato
+CROP: Sweet Potato | HINDI: शकरकंद
+ALIASES: Sweet Potato | sweet potato | sweet_potato | शकरकंद
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Odisha, West Bengal, Uttar Pradesh, Andhra Pradesh, Maharashtra; agro-climatic zones=indo_gangetic, peninsular, northeast
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-32 C; rainfall need about 800 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Sweet Potato. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: tamarind
+CROP: Tamarind | HINDI: इमली
+ALIASES: Tamarind | tamarind | इमली
+CLASSIFICATION: Fruit | SEASON: year_round
+REGIONAL FIT: states=Tamil Nadu, Karnataka, Andhra Pradesh, Telangana, Madhya Pradesh; agro-climatic zones=deccan, central, peninsular, coastal
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Black, Red, Laterite; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-40 C; rainfall need about 600 mm; water requirement=Low
+CROP CYCLE: about 1825 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Tamarind. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: tapioca
+CROP: Tapioca | HINDI: कसावा/टैपिओका
+ALIASES: Tapioca | tapioca | कसावा/टैपिओका
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Kerala, Tamil Nadu, Andhra Pradesh, Karnataka; agro-climatic zones=coastal, peninsular
+SOIL FIT: Red, Laterite, Sandy Loam, Laterite, Well drained loam; pH 5.5-7.0; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1000 mm; water requirement=Moderate
+CROP CYCLE: about 300 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Tapioca. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: tea
+CROP: Tea | HINDI: चाय
+ALIASES: Tea | tea | चाय
+CLASSIFICATION: Plantation | SEASON: year_round
+REGIONAL FIT: states=Assam, West Bengal, Kerala, Tamil Nadu, Karnataka; agro-climatic zones=northeast, himalayan
+SOIL FIT: Acidic, Laterite, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 15-28 C; rainfall need about 2000 mm; water requirement=High
+CROP CYCLE: about 365 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Tea. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: tinda
+CROP: Tinda | HINDI: टिंडा
+ALIASES: Tinda | tinda | टिंडा
+CLASSIFICATION: Vegetable | SEASON: kharif
+REGIONAL FIT: states=Punjab, Haryana, Rajasthan, Uttar Pradesh, Delhi; agro-climatic zones=northwest, thar_desert, indo_gangetic
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 25-42 C; rainfall need about 400 mm; water requirement=Moderate
+CROP CYCLE: about 60 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Tinda. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: tobacco
+CROP: Tobacco | HINDI: तंबाकू
+ALIASES: Tobacco | tobacco | तंबाकू
+CLASSIFICATION: Cash | SEASON: kharif
+REGIONAL FIT: states=Andhra Pradesh, Karnataka, Gujarat, Uttar Pradesh, West Bengal, Bihar; agro-climatic zones=peninsular, coastal
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-32 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Tobacco. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: tomato
+CROP: Tomato | HINDI: टमाटर
+ALIASES: Tomato | tomato | टमाटर | टोमॅटो | টমেটো | ਟਮਾਟਰ | ટામેટા | ଟମାଟୋ | தக்காளி | టమాటా | ಟೊಮೆಟೊ | തക്കാളി
+CLASSIFICATION: Vegetable | SEASON: year_round
+REGIONAL FIT: states=Andhra Pradesh, Karnataka, Maharashtra, Odisha, Tamil Nadu, Uttar Pradesh, Gujarat; agro-climatic zones=peninsular, indo_gangetic, himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 18-32 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Tomato. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: triticale
+CROP: Triticale | HINDI: ट्रिटिकेल
+ALIASES: Triticale | triticale | ट्रिटिकेल
+CLASSIFICATION: Cereal | SEASON: rabi
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Himachal Pradesh; agro-climatic zones=himalayan, northwest, indo_gangetic
+SOIL FIT: Sandy Loam, Loamy, Alluvial, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 5-22 C; rainfall need about 350 mm; water requirement=Low
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed, Vegetable
+MARKET LOOKUP NAME: Triticale. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: tuberose
+CROP: Tuberose | HINDI: रजनीगंधा
+ALIASES: Tuberose | tuberose | रजनीगंधा
+CLASSIFICATION: Flower | SEASON: year_round
+REGIONAL FIT: states=West Bengal, Karnataka, Tamil Nadu, Andhra Pradesh, Maharashtra; agro-climatic zones=peninsular, coastal, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Tuberose. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: tulsi
+CROP: Tulsi | HINDI: तुलसी
+ALIASES: Tulsi | tulsi | तुलसी
+CLASSIFICATION: Medicinal | SEASON: kharif
+REGIONAL FIT: states=Uttar Pradesh, Madhya Pradesh, Rajasthan, Maharashtra, Gujarat; agro-climatic zones=indo_gangetic, peninsular, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-40 C; rainfall need about 500 mm; water requirement=Low
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Tulsi. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: tur
+CROP: Tur | HINDI: अरहर/तुअर
+ALIASES: Tur | tur | अरहर/तुअर | तूर | તુવેર | ହରଡ | தொகுப்பு | కంది | ತೊಗರಿ | തുവര
+CLASSIFICATION: Pulse | SEASON: kharif
+REGIONAL FIT: states=Maharashtra, Karnataka, Uttar Pradesh, Madhya Pradesh, Andhra Pradesh, Gujarat; agro-climatic zones=peninsular, deccan, central, indo_gangetic
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Red, Laterite, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-30 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 150 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Red Gram/Arhar/Tur(Whole). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: turmeric
+CROP: Turmeric | HINDI: हल्दी
+ALIASES: Turmeric | turmeric | हल्दी | हळद | হলুদ | হালধি | ହଳଦି | மஞ்சள் | పసుపు | ಅರಿಶಿನ | മഞ്ഞൾ
+CLASSIFICATION: Spice | SEASON: kharif
+REGIONAL FIT: states=Andhra Pradesh, Telangana, Karnataka, Tamil Nadu, Odisha, Maharashtra, West Bengal; agro-climatic zones=peninsular, deccan, coastal, northeast
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 1200 mm; water requirement=Moderate
+CROP CYCLE: about 200 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Turmeric. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: turnip
+CROP: Turnip | HINDI: शलजम
+ALIASES: Turnip | turnip | शलजम
+CLASSIFICATION: Vegetable | SEASON: rabi
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Himachal Pradesh; agro-climatic zones=himalayan, indo_gangetic, northwest
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Sandy Loam, Loamy; pH 5.5-6.8; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 450 mm; water requirement=Moderate
+CROP CYCLE: about 60 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal, Green Manure
+MARKET LOOKUP NAME: Turnip. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: urad
+CROP: Urad | HINDI: उड़द
+ALIASES: Urad | urad | उड़द | उडीद | মসুর | ਮਾਂਹ | અળદ | ବିରି | உளுந்து | మినుములు | ಉದ್ದು | ഉഴുന്ന്
+CLASSIFICATION: Pulse | SEASON: kharif
+REGIONAL FIT: states=Uttar Pradesh, Madhya Pradesh, Andhra Pradesh, Tamil Nadu, Rajasthan; agro-climatic zones=indo_gangetic, peninsular, central
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Clay, Clay Loam, Alluvial; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-35 C; rainfall need about 600 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Cereal, Millet, Vegetable
+MARKET LOOKUP NAME: Black Gram(Urd Beans)(Whole). Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: vanilla
+CROP: Vanilla | HINDI: वनीला
+ALIASES: Vanilla | vanilla | वनीला
+CLASSIFICATION: Spice | SEASON: year_round
+REGIONAL FIT: states=Kerala, Karnataka, Tamil Nadu; agro-climatic zones=coastal, peninsular
+SOIL FIT: Red, Laterite, Sandy Loam, Alluvial, Loamy, Sandy Loam; pH 5.5-7.0; salinity tolerance=Low
+CLIMATE FIT: 20-32 C; rainfall need about 1800 mm; water requirement=High
+CROP CYCLE: about 1095 days; nutrient demand=High; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Vanilla. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: walnut
+CROP: Walnut | HINDI: अखरोट
+ALIASES: Walnut | walnut | अखरोट
+CLASSIFICATION: Nut | SEASON: year_round
+REGIONAL FIT: states=Jammu and Kashmir, Himachal Pradesh, Uttarakhand, Arunachal Pradesh; agro-climatic zones=himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Deep hill soil; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 2-28 C; rainfall need about 800 mm; water requirement=Moderate
+CROP CYCLE: about 2190 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Walnut. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: water_chestnut
+CROP: Water Chestnut | HINDI: सिंघाड़ा
+ALIASES: Water Chestnut | water chestnut | water_chestnut | सिंघाड़ा
+CLASSIFICATION: Aquatic | SEASON: kharif
+REGIONAL FIT: states=Uttar Pradesh, Bihar, Madhya Pradesh, West Bengal; agro-climatic zones=indo_gangetic, central
+SOIL FIT: Clay, Clay Loam, Alluvial; pH 6.0-7.5; salinity tolerance=Low
+CLIMATE FIT: 20-34 C; rainfall need about 1200 mm; water requirement=Very High
+CROP CYCLE: about 180 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Water Chestnut. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: watermelon
+CROP: Watermelon | HINDI: तरबूज
+ALIASES: Watermelon | watermelon | तरबूज
+CLASSIFICATION: Fruit | SEASON: zaid
+REGIONAL FIT: states=Andhra Pradesh, Karnataka, Tamil Nadu, Rajasthan, Uttar Pradesh, Madhya Pradesh; agro-climatic zones=thar_desert, peninsular, indo_gangetic
+SOIL FIT: Sandy Loam, Loamy, Sandy, Sandy Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 24-40 C; rainfall need about 400 mm; water requirement=Moderate
+CROP CYCLE: about 90 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Cereal
+MARKET LOOKUP NAME: Watermelon. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.
+
+CROP_ID: wheat
+CROP: Wheat | HINDI: गेहूँ
+ALIASES: Wheat | wheat | گندم | गहू | गेहूँ | গম | ঘেঁহু | ਕਣਕ | ઘઉં | ଗହମ | கோதுமை | గోధుమ | ಗೋಧಿ | ഗോതമ്പ്
+CLASSIFICATION: Cereal | SEASON: rabi
+REGIONAL FIT: states=Punjab, Haryana, Uttar Pradesh, Madhya Pradesh, Rajasthan, Bihar; agro-climatic zones=indo_gangetic, northwest, central, himalayan
+SOIL FIT: Alluvial, Loamy, Sandy Loam, Clay Loam; pH 5.5-7.5; salinity tolerance=Low
+CLIMATE FIT: 10-25 C; rainfall need about 450 mm; water requirement=Moderate
+CROP CYCLE: about 120 days; nutrient demand=Medium; preferred previous crop categories=Pulse, Oilseed, Vegetable
+MARKET LOOKUP NAME: Wheat. Price policy: fresh official row only; never estimate a live price.
+PROFILE SOURCE: ICAR/NHB/state package of practices. Profile version: 2026.07-beta1.
+SAFETY: This profile supports crop selection and follow-up questions. Confirm field-specific practice with the local KVK.

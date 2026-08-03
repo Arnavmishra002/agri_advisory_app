@@ -18,8 +18,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.conf import settings
-from django.conf.urls.static import static
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .auth_views import StrictTokenObtainPairView, StrictTokenRefreshView
 from . import views
 # from .schema_views import CachedSpectacularAPIView, OptimizedSpectacularSwaggerView
 # from .fast_docs import FastAPIDocsView, FastAPIDocsHTMLView
@@ -28,8 +27,8 @@ urlpatterns = [
     path('', views.api_root, name='api_root'),
     path('admin/', admin.site.urls),
     path('api/', include('advisory.api.urls')),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/', StrictTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', StrictTokenRefreshView.as_view(), name='token_refresh'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
@@ -43,5 +42,3 @@ if getattr(settings, 'SERVE_FRONTEND', False):
             re_path(r'^(?!api/|admin/|static/|media/).*$',
                     views.serve_frontend_index, name='frontend_spa'),
         ]
-
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

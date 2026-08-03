@@ -36,6 +36,11 @@ except ImportError:
     def get_msp(crop_id, fallback=0):
         return MSP_2024_25.get(crop_id, fallback)
 
+try:
+    from .comprehensive_crop_database import ALL_CROP_DATA
+except ImportError:
+    ALL_CROP_DATA = {}
+
 
 @dataclass
 class CropEntry:
@@ -71,6 +76,7 @@ class CropEntry:
             "season":   self.season,
             "msp":      self.msp,
             "has_msp":  self.msp > 0,
+            "aliases":  list(self.aliases),
             "label":    f"{self.name} ({self.name_hindi})" if self.name_hindi else self.name,
             "search_term": self.name,
             "commodity_filter": self.name,
@@ -134,6 +140,11 @@ _RAW_CROPS: List[Dict[str, Any]] = [
     {"id": "fenugreek",  "name": "Fenugreek",   "aliases": ["methi","मेथी"],                          "cat": "spice",     "season": "rabi"},
 ]
 
+_LEGACY_CANONICAL_IDS = {
+    "arhar": "tur",
+    "lentil": "masoor",
+}
+
 
 def _tokenise(text: str) -> List[str]:
     return re.findall(r"[a-zA-Z\u0900-\u097F]+", text.lower())
@@ -150,22 +161,60 @@ class CropRegistry:
         self._by_token: Dict[str, str]       = {}   # token → crop_id
         self._popular_ids = [
             "wheat","rice","maize","mustard","tomato","onion","potato",
-            "cotton","soybean","groundnut","gram","arhar","sugarcane",
+            "cotton","soybean","groundnut","gram","tur","sugarcane",
         ]
         self._build()
 
     def _build(self) -> None:
+        raw_by_id: Dict[str, Dict[str, Any]] = {}
         for row in _RAW_CROPS:
-            crop_id   = row["id"]
-            hindi     = CROP_HINDI.get(crop_id, "")
-            msp_value = get_msp(crop_id, fallback=MSP_2024_25.get(crop_id, 0))
+            canonical_id = _LEGACY_CANONICAL_IDS.get(row["id"], row["id"])
+            merged = dict(row)
+            merged["id"] = canonical_id
+            aliases = list(merged.get("aliases", []))
+            if row["id"] != canonical_id:
+                aliases.append(row["id"])
+            merged["aliases"] = aliases
+            raw_by_id[canonical_id] = merged
+
+        source_rows: List[Dict[str, Any]] = []
+        if ALL_CROP_DATA:
+            for crop_id, profile in ALL_CROP_DATA.items():
+                raw = raw_by_id.get(crop_id, {})
+                aliases = list(profile.get("aliases") or [])
+                aliases.extend(raw.get("aliases") or [])
+                aliases.extend(
+                    str(value)
+                    for value in (profile.get("name_local") or {}).values()
+                    if value
+                )
+                source_rows.append({
+                    "id": crop_id,
+                    "name": raw.get("name") or crop_id.replace("_", " ").title(),
+                    "hindi": profile.get("name_hindi") or CROP_HINDI.get(crop_id, ""),
+                    "aliases": sorted({value.strip() for value in aliases if str(value).strip()}),
+                    "cat": str(profile.get("category") or raw.get("cat") or "other").lower(),
+                    "season": profile.get("season") or raw.get("season", ""),
+                    "msp": profile.get("msp_per_quintal") or 0,
+                })
+        else:
+            source_rows = list(raw_by_id.values())
+
+        for row in source_rows:
+            crop_id = row["id"]
+            hindi = row.get("hindi") or CROP_HINDI.get(crop_id, "")
+            msp_value = int(
+                row.get("msp")
+                or get_msp(crop_id, fallback=MSP_2024_25.get(crop_id, 0))
+                or 0
+            )
 
             entry = CropEntry(
                 id=crop_id,
                 name=row["name"],
                 name_hindi=hindi,
                 aliases=row.get("aliases", []),
-                category=row["cat"],
+                category=row.get("cat", "other"),
                 season=row.get("season", ""),
                 msp=msp_value,
             )
@@ -181,7 +230,8 @@ class CropRegistry:
 
     def get(self, crop_id: str) -> Optional[CropEntry]:
         """Get a CropEntry by canonical id. Returns None if not found."""
-        return self._by_id.get(crop_id)
+        normalized = _LEGACY_CANONICAL_IDS.get(str(crop_id or "").strip().lower(), str(crop_id or "").strip().lower())
+        return self._by_id.get(normalized)
 
     def normalize(self, query: str) -> Optional[Dict[str, Any]]:
         """
@@ -191,6 +241,7 @@ class CropRegistry:
         if not query:
             return None
         q = query.lower().strip()
+        q = _LEGACY_CANONICAL_IDS.get(q, q)
         # Direct id match
         if q in self._by_id:
             return self._by_id[q].to_dict()

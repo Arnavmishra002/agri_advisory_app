@@ -14,7 +14,6 @@ import subprocess
 import time
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-os.environ.setdefault("SECRET_KEY", "local-check-key-krishimitra")
 os.environ.setdefault("DEBUG", "True")
 os.environ.setdefault("DATABASE_URL", "sqlite:///check_db.sqlite3")
 os.environ.setdefault("GOOGLE_AI_API_KEY", "")
@@ -72,6 +71,17 @@ results.append(check("All schemes have helpline numbers",
     lambda: [(_ for _ in ()).throw(AssertionError(f"No helpline in {s['id']}"))
              for s in GOVERNMENT_SCHEMES if not s.get('helpline')]))
 
+results.append(check(
+    "202-crop Phase 1 knowledge snapshot is current",
+    lambda: subprocess.run(
+        [sys.executable, os.path.join(REPO_ROOT, "scripts/generate_crop_knowledge.py"), "--check"],
+        check=True,
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    ),
+))
+
 # ─── 2. Chatbot rule-based responses ─────────────────────────────
 header("2/4 Chatbot Rule-Based Responses")
 
@@ -124,9 +134,10 @@ results.append(check("Farming calendar present",
     lambda: (_ for _ in ()).throw(AssertionError("Missing farming calendar"))
     if "farming-calendar" not in html and "Kharif" not in html else None))
 
-results.append(check("MSP quick stats present (₹2,425)",
+current_wheat_msp = str(MSP_2024_25["wheat"])
+results.append(check(f"MSP quick stats present (₹{current_wheat_msp})",
     lambda: (_ for _ in ()).throw(AssertionError("Missing MSP stats"))
-    if "2,425" not in html else None))
+    if f"{MSP_2024_25['wheat']:,}" not in html else None))
 
 results.append(check("8+ suggested questions present",
     lambda: (_ for _ in ()).throw(AssertionError("Missing suggested questions"))

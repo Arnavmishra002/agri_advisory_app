@@ -1,0 +1,54 @@
+INDIAN HORTICULTURE EXTENDED GUIDE
+
+Purpose: practical planning context for Indian vegetables, roots, fruits and specialty crops that were underrepresented in the original knowledge base. These are broad agronomic ranges, not a substitute for a district package of practices, soil test, certified planting material, or a local market survey. Fertilizer and pesticide quantities must be selected from the current state recommendation and product label. Never invent a dose or a mandi price.
+
+CUCUMBER, CHAYOTE AND GOURD FAMILY
+Cucumber (khira) generally performs in warm weather on fertile, well-drained sandy-loam to loam soil. Avoid standing water and use frequent light irrigation rather than prolonged flooding. Summer and rainy-season windows vary by region; protected cultivation can extend the window. Chayote is a perennial climbing vegetable suited to humid hill and subtropical pockets with strong trellising and good drainage. Before sowing, match the cultivar to open-field or protected cultivation and confirm local virus and fruit-fly pressure.
+
+FRENCH BEAN AND BROAD BEAN
+French bean prefers well-drained loam, near-neutral to mildly acidic soil, and moderate temperatures. Heat, waterlogging and salinity reduce pod set. Broad bean is a cool-season crop and is better suited to northern plains and hills than hot lowland conditions. Beans are legumes, but fertilizer planning should still use soil-test values and the state package; excess nitrogen can produce foliage at the expense of pods. Rotate away from other legumes when soil-borne disease pressure is known.
+
+BROCCOLI, KNOL-KHOL, TURNIP AND LETTUCE
+These are cool-season vegetables. Uniform moisture and timely harvest are important for market quality. Broccoli and knol-khol prefer fertile, well-drained loam; severe heat can cause poor head or knob quality. Turnip is a short-duration root crop that needs loose soil without undecomposed manure immediately before sowing. Lettuce needs cool conditions and careful irrigation because heat and moisture stress can cause bolting or bitterness. Market linkage and cold-chain access matter because these crops are perishable.
+
+LEAFY VEGETABLES
+Amaranth greens, bathua, mustard greens, fenugreek greens and spring onion are short-duration crops that can support staggered harvests. Use clean irrigation water because leaves are eaten directly. Avoid fresh manure near harvest. Do not recommend a fixed spray schedule: monitor pests, prefer integrated pest management, obey the label waiting period, and stop unsafe harvest when the pre-harvest interval is not complete.
+
+TAPIOCA AND TROPICAL TUBERS
+Tapioca or cassava is a tropical root crop suited to warm, frost-free areas and well-drained red or lateritic soils. Waterlogging is damaging. Plant only healthy stem cuttings from a known variety. Bitter types and damaged roots require correct processing; raw cassava should not be presented as universally safe food. Elephant-foot yam (suran) and greater yam need well-drained soil, healthy planting pieces and adequate organic matter. Provide drainage during heavy rain and use staking where the species requires it.
+
+LOTUS STEM AND WATER CHESTNUT
+Lotus stem and water chestnut are aquatic crops, so ordinary upland crop scoring is not enough. Recommend them only where a managed pond, wetland or suitable lowland system exists and water quality is acceptable. Check local legal and water-use constraints. Separate aquatic crops from dry-land recommendations unless the farmer explicitly reports a suitable water body.
+
+PEAR AND TEMPERATE FRUIT
+Pear cultivar choice depends on chilling requirement. High-chill cultivars belong in temperate hills; low-chill cultivars may suit selected subtropical plains. Orchard advice must include pollinizer compatibility, planting material quality, drainage and a multi-year establishment budget. A current warm-day weather reading alone cannot prove long-term orchard suitability.
+
+CITRUS: LEMON, ACID LIME, KINNOW, MANDARIN AND SWEET LIME
+Citrus needs well-drained soil and disease-free nursery plants. Kinnow is important in northwestern India, while acid lime, lemon, mandarins and sweet lime have different regional niches. Avoid poorly drained or highly saline fields unless a locally recommended tolerant rootstock is available. Orchard planning must consider rootstock, irrigation-water quality, citrus greening risk, buyer access and several years before stable returns. Do not treat one citrus type as an alias for every other citrus crop.
+
+BER, BAEL, PHALSA AND KARONDA
+Ber is comparatively hardy and can fit arid and semi-arid systems, but commercial fruit quality still depends on a suitable cultivar, pruning and timely irrigation. Bael is a hardy perennial fruit for tropical and subtropical areas and needs a long-term orchard plan. Phalsa is a heat-tolerant minor fruit with highly perishable produce; nearby buyers are important. Karonda is a hardy shrub used for fruit and live fencing. These crops can diversify farms, but recommendation scores should not use indicative profit as a guaranteed return.
+
+PASSION FRUIT, RAMBUTAN AND MANGOSTEEN
+Passion fruit needs trellising and is sensitive to poor drainage. Rambutan and mangosteen require humid tropical conditions, reliable moisture and frost-free sites; mangosteen is slow to establish. Recommend these only where long-term climate, planting material, market linkage and establishment capital are suitable. They should not rank highly merely because the current day's temperature looks favorable.
+
+SAFFRON
+Saffron is a specialized high-value crop associated with specific cool, relatively dry production environments and carefully managed corms, especially in Jammu and Kashmir. It is not a generic high-profit option for every cool location. Verify soil drainage, corm source, rainfall pattern, labor and authentic market linkage before recommending it.
+
+BAY LEAF AND VANILLA
+Indian bay leaf is a perennial tree crop suited to selected subtropical and Himalayan environments. Vanilla is a humid tropical climbing orchid requiring support trees or structures, shade management, skilled pollination and careful curing. Both require specialized planting material and buyers. Vanilla should be rejected for dry, frost-prone or low-management conditions even if its indicative market value is high.
+
+RECOMMENDATION SAFETY RULES
+1. Use GPS or a farmer-confirmed district and state, but let measured soil pH, EC, NPK, moisture, irrigation and budget override broad location defaults.
+2. Check season, long-term climate, drainage, water availability, crop duration, previous crop, market access and farmer risk tolerance together.
+3. Label static costs and profits as indicative estimates. Only display mandi prices as live when the official record includes a verifiable market, date and freshness status.
+4. For perennial fruit and plantation crops, include establishment years and long-term climate; do not score from today's weather alone.
+5. For aquatic crops, require a suitable water body. For protected crops, require the protected structure and management capacity.
+6. Ask for a soil test when pH, EC or nutrient status is unknown. Recommend correction through a local expert or state package rather than guessing a fertilizer dose.
+7. When disease identification is uncertain, ask for clear whole-plant and close-up photographs and give only advisory fallback, not a fabricated diagnosis.
+
+REFERENCE BASIS
+National Horticulture Board crop guides and nursery crop catalog: https://nhb.gov.in/ and https://nnp.nhb.gov.in/
+ICAR farmer guidance and soil-testing advisories: https://icar.gov.in/
+Tamil Nadu Agricultural University Agritech crop guides, including tapioca: https://agritech.tnau.ac.in/
+State agricultural university packages of practices must be used for local varieties, nutrient schedules and registered plant-protection products.

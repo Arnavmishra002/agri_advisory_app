@@ -198,10 +198,18 @@ class _ChatScreenState extends State<ChatScreen>
     HapticFeedback.lightImpact();
 
     final loc     = _loc.current;
-    final history = _msgs
-        .where((m) => m.isUser)
-        .take(8)
-        .map((m) => <String, String>{'role': 'user', 'content': m.content})
+    // Send the LAST ~8 turns of real dialogue (both user and assistant),
+    // excluding the just-added current message. Previously this took the
+    // FIRST 8 user turns only and dropped every assistant reply, so follow-up
+    // context was frozen after 8 questions and the model lost the thread.
+    final prior   = _msgs.sublist(0, _msgs.length - 1); // drop current user msg
+    final recent  = prior.length > 8 ? prior.sublist(prior.length - 8) : prior;
+    final history = recent
+        .where((m) => m.content.trim().isNotEmpty)
+        .map((m) => <String, String>{
+              'role': m.isUser ? 'user' : 'assistant',
+              'content': m.content,
+            })
         .toList();
 
     // Optimistically add a streaming bot message placeholder
@@ -245,10 +253,14 @@ class _ChatScreenState extends State<ChatScreen>
             _scrollBottom();
           }
           if (frame['done'] == true) {
+            final rawQuality = frame['ai_data_quality'];
             _finalizeStream(
               botId, _streamBuf,
               dataSource: frame['data_source'] as String?,
               intent:     frame['intent']      as String?,
+              aiDataQuality: rawQuality is Map
+                  ? Map<String, dynamic>.from(rawQuality)
+                  : null,
               voiceMode:  voiceMode,
             );
           }
@@ -280,7 +292,10 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _finalizeStream(
     String botId, String content, {
-    String? dataSource, String? intent, required bool voiceMode,
+    String? dataSource,
+    String? intent,
+    Map<String, dynamic>? aiDataQuality,
+    required bool voiceMode,
   }) {
     if (!mounted) {
       return;
@@ -296,6 +311,8 @@ class _ChatScreenState extends State<ChatScreen>
           : content,
       timestamp: DateTime.now(),
       dataSource: dataSource, intent: intent,
+      aiQualityLabel: aiDataQuality?['label'] as String?,
+      aiQualityStatus: aiDataQuality?['status'] as String?,
     );
     setState(() {
       if (idx != -1) {
@@ -554,6 +571,32 @@ class _ChatScreenState extends State<ChatScreen>
                           fontSize: 14, height: 1.55,
                         ),
                       ),
+                      if (!isUser && m.aiQualityLabel != null) ...[
+                        const SizedBox(height: 7),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: m.aiQualityStatus == 'degraded'
+                                ? const Color(0xFFFFF3E0)
+                                : m.aiQualityStatus == 'cloud_fallback'
+                                    ? const Color(0xFFE8EAF6)
+                                    : const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'AI/Data Quality: ${m.aiQualityLabel}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: m.aiQualityStatus == 'degraded'
+                                  ? const Color(0xFF9A3412)
+                                  : m.aiQualityStatus == 'cloud_fallback'
+                                      ? const Color(0xFF3949AB)
+                                      : const Color(0xFF1B5E20),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                         if (!isUser && m.dataSource != null &&

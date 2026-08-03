@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.core.cache import cache
+from django.conf import settings
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
@@ -34,10 +35,10 @@ class AuthOtpSecurityTests(TestCase):
         )
         self.assertNotIn("123456", logged)
 
-    def test_otp_verify_rate_limits_repeated_wrong_codes(self):
+    def test_otp_verify_locks_after_three_wrong_codes(self):
         cache.set(f"otp:{self.phone}", "123456", timeout=600)
 
-        for _ in range(5):
+        for _ in range(3):
             response = self.client.post(
                 "/api/users/otp/verify/",
                 {"phone_number": self.phone_raw, "otp_code": "000000"},
@@ -54,3 +55,15 @@ class AuthOtpSecurityTests(TestCase):
 
         self.assertEqual(blocked.status_code, 429)
         self.assertEqual(blocked.json()["error_code"], "OTP_VERIFY_RATE_LIMITED")
+
+    def test_production_default_allows_only_three_verification_attempts(self):
+        self.assertEqual(settings.OTP_VERIFY_CAPACITY, 3)
+        self.assertEqual(settings.AUTH_BACKOFF_THRESHOLD, 3)
+
+    def test_otp_limiters_use_configured_settings(self):
+        from advisory.api.viewsets.auth_viewset import otp_rate_limiter, otp_verify_rate_limiter
+
+        self.assertEqual(otp_rate_limiter.capacity, settings.OTP_REQUEST_CAPACITY)
+        self.assertEqual(otp_rate_limiter.window_seconds, settings.OTP_REQUEST_WINDOW_SECONDS)
+        self.assertEqual(otp_verify_rate_limiter.capacity, settings.OTP_VERIFY_CAPACITY)
+        self.assertEqual(otp_verify_rate_limiter.window_seconds, settings.OTP_VERIFY_WINDOW_SECONDS)

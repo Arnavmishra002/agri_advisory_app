@@ -83,7 +83,7 @@ def main() -> int:
     ok2 = r2.get("status") == "not_plant" and not any("Rice Blast" in n for n in names2)
     print("PASS" if ok2 else "FAIL")
 
-    print("\n--- 3) Rice + synthetic green leaf (expect model_unavailable OR success if trained) ---")
+    print("\n--- 3) Rice + synthetic green leaf (expect advisory fallback unless classification is enabled) ---")
     leaf = _jpeg_b64(_green_leaf)
     r3 = detect("rice", leaf)
     print(f"status: {r3.get('status')}")
@@ -93,14 +93,21 @@ def main() -> int:
     names3 = [d.get("name", "") for d in r3.get("diagnosis", [])]
     print(f"diagnosis names: {names3[:2]}")
     ok3 = r3.get("status") in (
+        "advisory_fallback",
         "model_unavailable",
         "tensorflow_missing",
         "success",
         "low_confidence",
     ) and not any("Rice Blast" in n and r3.get("status") == "success" for n in names3)
-    # Without trained model we expect model_unavailable/tensorflow_missing, never fake Rice Blast
-    if r3.get("status") in ("model_unavailable", "tensorflow_missing"):
+    # Advisory-only or unavailable-model modes must never emit a fake disease.
+    if r3.get("status") in (
+        "advisory_fallback",
+        "model_unavailable",
+        "tensorflow_missing",
+    ):
         ok3 = ok3 and not any("Rice Blast" in n for n in names3)
+    if mp.get("status") == "classification_disabled":
+        ok3 = ok3 and r3.get("status") == "advisory_fallback"
     print("PASS" if ok3 else "FAIL")
 
     all_ok = ok1 and ok2 and ok3

@@ -10,6 +10,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from .unified_realtime_service import CROP_HINDI, MSP_2024_25
+from .msp_data import MSP_MARKETING_SEASON
 
 # id, English name, Hindi, aliases, category
 _CROP_ROWS: List[Dict[str, Any]] = [
@@ -27,10 +28,10 @@ _CROP_ROWS: List[Dict[str, Any]] = [
     {"id": "cotton", "name": "Cotton", "hindi": "कपास", "aliases": ["kapas"], "category": "fiber"},
     {"id": "sugarcane", "name": "Sugarcane", "hindi": "गन्ना", "aliases": ["ganna"], "category": "cash"},
     {"id": "gram", "name": "Gram", "hindi": "चना", "aliases": ["chickpea", "chana"], "category": "pulse"},
-    {"id": "lentil", "name": "Lentil", "hindi": "मसूर / दाल", "aliases": ["masoor", "dal"], "category": "pulse"},
+    {"id": "masoor", "name": "Lentil", "hindi": "मसूर / दाल", "aliases": ["masoor", "dal"], "category": "pulse"},
     {"id": "moong", "name": "Moong", "hindi": "मूंग", "aliases": ["green gram", "mung"], "category": "pulse"},
     {"id": "urad", "name": "Urad", "hindi": "उड़द", "aliases": ["black gram"], "category": "pulse"},
-    {"id": "arhar", "name": "Arhar", "hindi": "अरहर / तुअर", "aliases": ["tur", "pigeon pea", "toor"], "category": "pulse"},
+    {"id": "tur", "name": "Arhar", "hindi": "अरहर / तुअर", "aliases": ["arhar", "pigeon pea", "toor", "tuvar"], "category": "pulse"},
     {"id": "tomato", "name": "Tomato", "hindi": "टमाटर", "aliases": ["tamatar"], "category": "vegetable"},
     {"id": "potato", "name": "Potato", "hindi": "आलू", "aliases": ["aloo"], "category": "vegetable"},
     {"id": "onion", "name": "Onion", "hindi": "प्याज", "aliases": ["pyaz"], "category": "vegetable"},
@@ -40,8 +41,8 @@ _CROP_ROWS: List[Dict[str, Any]] = [
     {"id": "cabbage", "name": "Cabbage", "hindi": "पत्ता गोभी", "aliases": ["patta gobhi"], "category": "vegetable"},
     {"id": "cauliflower", "name": "Cauliflower", "hindi": "फूल गोभी", "aliases": ["gobi", "phool gobhi"], "category": "vegetable"},
     {"id": "okra", "name": "Okra", "hindi": "भिंडी", "aliases": ["ladyfinger", "bhindi"], "category": "vegetable"},
-    {"id": "bottle gourd", "name": "Bottle Gourd", "hindi": "लौकी", "aliases": ["lauki", "ghiya"], "category": "vegetable"},
-    {"id": "bitter gourd", "name": "Bitter Gourd", "hindi": "करेला", "aliases": ["karela"], "category": "vegetable"},
+    {"id": "bottle_gourd", "name": "Bottle Gourd", "hindi": "लौकी", "aliases": ["lauki", "ghiya", "bottle gourd"], "category": "vegetable"},
+    {"id": "bitter_gourd", "name": "Bitter Gourd", "hindi": "करेला", "aliases": ["karela", "bitter gourd"], "category": "vegetable"},
     {"id": "cucumber", "name": "Cucumber", "hindi": "खीरा", "aliases": ["kheera"], "category": "vegetable"},
     {"id": "pumpkin", "name": "Pumpkin", "hindi": "कद्दू", "aliases": ["kaddu"], "category": "vegetable"},
     {"id": "spinach", "name": "Spinach", "hindi": "पालक", "aliases": ["palak"], "category": "vegetable"},
@@ -49,7 +50,7 @@ _CROP_ROWS: List[Dict[str, Any]] = [
     {"id": "beetroot", "name": "Beetroot", "hindi": "चुकंदर", "aliases": ["chukandar"], "category": "vegetable"},
     {"id": "capsicum", "name": "Capsicum", "hindi": "शिमला मिर्च", "aliases": ["shimla mirch", "bell pepper"], "category": "vegetable"},
     {"id": "peas", "name": "Peas", "hindi": "मटर", "aliases": ["matar", "green pea"], "category": "vegetable"},
-    {"id": "beans", "name": "Beans", "hindi": "बीन्स / सेम", "aliases": ["sem", "french beans"], "category": "vegetable"},
+    {"id": "french_bean", "name": "French Bean", "hindi": "फ्रेंच बीन्स / सेम", "aliases": ["beans", "sem", "french beans", "french bean"], "category": "vegetable"},
     {"id": "turmeric", "name": "Turmeric", "hindi": "हल्दी", "aliases": ["haldi"], "category": "spice"},
     {"id": "ginger", "name": "Ginger", "hindi": "अदरक", "aliases": ["adrak"], "category": "spice"},
     {"id": "coriander", "name": "Coriander", "hindi": "धनिया", "aliases": ["dhania", "cilantro"], "category": "spice"},
@@ -66,7 +67,7 @@ _CROP_ROWS: List[Dict[str, Any]] = [
     {"id": "guava", "name": "Guava", "hindi": "अमरूद", "aliases": ["amrud"], "category": "fruit"},
     {"id": "litchi", "name": "Litchi", "hindi": "लीची", "aliases": ["lychee"], "category": "fruit"},
     {"id": "coconut", "name": "Coconut", "hindi": "नारियल", "aliases": ["nariyal"], "category": "plantation"},
-    {"id": "arecanut", "name": "Arecanut", "hindi": "सुपारी", "aliases": ["supari"], "category": "plantation"},
+    {"id": "areca_nut", "name": "Arecanut", "hindi": "सुपारी", "aliases": ["arecanut", "supari"], "category": "plantation"},
     {"id": "tea", "name": "Tea", "hindi": "चाय", "aliases": ["chai"], "category": "plantation"},
     {"id": "coffee", "name": "Coffee", "hindi": "कॉफी", "aliases": [], "category": "plantation"},
     {"id": "rubber", "name": "Rubber", "hindi": "रबड़", "aliases": [], "category": "plantation"},
@@ -112,6 +113,11 @@ class CropCatalog:
                 "category": row.get("category", "general"),
                 "msp": row.get("msp", MSP_2024_25.get(row["id"])),
                 "has_msp": bool(row.get("msp")) or row["id"] in MSP_2024_25,
+                "msp_season": (
+                    MSP_MARKETING_SEASON
+                    if bool(row.get("msp")) or row["id"] in MSP_2024_25
+                    else ""
+                ),
             }
             self._crops.append(entry)
             self._by_id[row["id"]] = entry
@@ -154,7 +160,7 @@ class CropCatalog:
     def get(self, crop_id: str) -> Optional[Dict[str, Any]]:
         return self._by_id.get((crop_id or "").lower().strip())
 
-    def normalize(self, query: str) -> Optional[Dict[str, Any]]:
+    def normalize(self, query: str, *, allow_fuzzy: bool = True) -> Optional[Dict[str, Any]]:
         """Resolve free text to a catalog crop — strict matching only, no fuzzy partial."""
         if not query or not str(query).strip():
             return None
@@ -168,6 +174,8 @@ class CropCatalog:
                 return crop
             if any(q == a.lower() for a in crop["aliases"]):
                 return crop
+        if not allow_fuzzy:
+            return None
         # Minimum length guard + common Hindi/English stopwords → no partial match
         _STOPWORDS = {
             "में", "और", "लिए", "क्या", "बारे", "सब", "को", "से", "की", "के", "का",
@@ -247,6 +255,7 @@ class CropCatalog:
                 "hindi": crop["hindi"],
                 "category": crop["category"],
                 "msp": crop["msp"],
+                "msp_season": crop["msp_season"],
                 "label": f"{crop['name']} ({crop['hindi']})" if crop["hindi"] else crop["name"],
                 "search_term": crop["name"],
                 "commodity_filter": crop["name"],
@@ -266,6 +275,7 @@ class CropCatalog:
                 "hindi": c["hindi"],
                 "category": c["category"],
                 "msp": c["msp"],
+                "msp_season": c["msp_season"],
                 "label": f"{c['name']} ({c['hindi']})" if c["hindi"] else c["name"],
                 "search_term": c["name"],
                 "commodity_filter": c["name"],
