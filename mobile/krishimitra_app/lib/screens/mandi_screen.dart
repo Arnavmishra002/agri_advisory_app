@@ -54,7 +54,7 @@ class _MandiScreenState extends State<MandiScreen>
     if (offline) {
       final cached = _cache.get(cacheKey, CacheService.mandiTtl);
       if (cached != null) {
-        _applyMandiCache(cached, cacheKey);
+        await _applyMandiCache(cached, cacheKey);
         return;
       }
       setState(() { _loadingMandis = false; _err = 'offline'; });
@@ -91,20 +91,28 @@ class _MandiScreenState extends State<MandiScreen>
     } catch (_) {
       final cached = _cache.get(cacheKey, const Duration(hours: 12));
       if (cached != null) {
-        _applyMandiCache(cached, cacheKey);
+        await _applyMandiCache(cached, cacheKey);
       } else {
         setState(() { _loadingMandis = false; _err = 'network'; });
       }
     }
   }
 
-  void _applyMandiCache(dynamic cached, String cacheKey) {
+  Future<void> _applyMandiCache(dynamic cached, String cacheKey) async {
     try {
       final data = Map<String, dynamic>.from(cached as Map);
       final list = (data['mandis'] as List? ?? [])
           .map((m) => MandiInfo.fromJson(m as Map<String, dynamic>))
           .toList();
-      final sel = list.isNotEmpty ? list.first : null;
+      // Restore the farmer's saved mandi (same as the online path) instead of
+      // always defaulting to the first entry, so offline prices match the
+      // mandi they actually chose.
+      final saved = await _store.getSelectedMandi();
+      MandiInfo? sel;
+      if (saved != null) {
+        try { sel = list.firstWhere((m) => m.name == saved); } catch (_) {}
+      }
+      sel ??= list.isNotEmpty ? list.first : null;
       setState(() {
         _mandis    = list; _sel = sel;
         _fromCache = true; _cacheAge = _cache.ageHours(cacheKey);

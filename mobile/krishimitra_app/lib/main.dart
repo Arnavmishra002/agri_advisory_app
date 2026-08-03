@@ -116,11 +116,16 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     if (!_ready) return _splash();
 
+    // Key the data screens on location + language so changing either recreates
+    // them (fresh initState → refetch for the NEW location). Without this the
+    // app bar showed the new village while prices/weather stayed for the old
+    // one until a manual refresh. Chat/More keep their identity and state.
+    final dataKey = '${_loc.lat},${_loc.lon}|${_loc.name}|$_lang';
     final screens = [
       ChatScreen(lang: _lang, sessId: _sessId),
-      MandiScreen(lang: _lang),
-      WeatherScreen(lang: _lang),
-      CropRecScreen(lang: _lang),
+      MandiScreen(key: ValueKey('mandi|$dataKey'), lang: _lang),
+      WeatherScreen(key: ValueKey('weather|$dataKey'), lang: _lang),
+      CropRecScreen(key: ValueKey('crop|$dataKey'), lang: _lang),
       MoreScreen(lang: _lang, onLangChange: (l) async {
         await StorageService().setLanguage(l);
         setState(() => _lang = l);

@@ -73,11 +73,16 @@
             ? KM_Auth.getAuthHeaders()
             : {};
         const controller = new AbortController();
-        const totalTimer = setTimeout(() => controller.abort('total_timeout'), 60000);
+        // Track WHY we aborted. Calling abort('string') makes fetch reject with
+        // that string (not a DOMException named "AbortError"), so the timeout
+        // branch below was unreachable and users saw a generic "undefined"
+        // network error. Abort with no arg + a flag instead.
+        let timedOut = false;
+        const totalTimer = setTimeout(() => { timedOut = true; controller.abort(); }, 60000);
         let idleTimer = null;
         const resetIdleTimer = () => {
             clearTimeout(idleTimer);
-            idleTimer = setTimeout(() => controller.abort('idle_timeout'), 20000);
+            idleTimer = setTimeout(() => { timedOut = true; controller.abort(); }, 20000);
         };
         resetIdleTimer();
 
@@ -156,7 +161,7 @@
                 answer,
             };
         } catch (error) {
-            if (error && error.name === 'AbortError') {
+            if (timedOut || (error && (error.name === 'AbortError' || error === 'total_timeout' || error === 'idle_timeout'))) {
                 throw new Error('AI response timed out. Please try again.');
             }
             throw error;
@@ -265,6 +270,17 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+
+    // Only allow http(s) links — blocks javascript:/data: URLs from API fields.
+    const safeUrl = (u) => {
+        const s = String(u || '').trim();
+        return /^https?:\/\//i.test(s) ? s : '#';
+    };
+    // Clamp a value to a safe 0–100 number for use inside style width/percentages.
+    const numPct = (n) => {
+        const v = Number(n);
+        return isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
+    };
 
     const renderChatText = (value) => escapeHtml(value)
         .replace(/`([^`\n]+)`/g, '<code>$1</code>')
@@ -1213,7 +1229,7 @@
                 const nearestName = data.nearest_mandi.name;
                 if (nearestName) {
                     if (badge) badge.textContent =
-                        `📍 नज़दीकी: ${nearestName} (${data.nearest_mandi.distance_km || '?'} km) · उसके भाव देखने के लिए चुनें`;
+                        `📍 नज़दीकी: ${nearestName} (${data.nearest_mandi.distance_km ?? '?'} km) · उसके भाव देखने के लिए चुनें`;
                 }
             }
         } catch (err) {
@@ -1268,6 +1284,9 @@
         if (data.is_live === true && rowCount > 0) {
             const stateName = data.state || currentState || 'राज्य';
             badge.textContent = `🟢 ${stateName} · ${rowCount} नवीनतम आधिकारिक औसत भाव`;
+        } else if ((data.latest_official_rows || []).length > 0) {
+            const stateName = data.state || currentState || 'राज्य';
+            badge.textContent = `📅 ${stateName} · ${data.latest_official_reported_date || ''} का आधिकारिक औसत संदर्भ`;
         } else {
             badge.textContent = '🔴 राज्य का आधिकारिक मंडी डेटा अभी उपलब्ध नहीं';
         }
@@ -1517,6 +1536,7 @@
         const isFallback    = data.status === 'fallback' || data._auto_estimates;
         const isUnavailable = data.status === 'unavailable';
         const officialRows = data.top_crops || data.crops || [];
+        const datedOfficialRows = data.latest_official_rows || [];
         const rowAges = officialRows
             .map(row => Number(row.data_age_minutes))
             .filter(age => Number.isFinite(age));
@@ -1551,6 +1571,9 @@
         } else if (isUnavailable && data.mandi_no_live_rows === true) {
             banner.className = 'market-live-banner market-live-banner--warn';
             banner.innerHTML = `🔴 ${escapeHtml(data.selected_mandi || currentMandi || 'चुनी मंडी')} में अभी ताजा आधिकारिक आवक नहीं मिली। कोई दूसरी मंडी का भाव इसके नाम पर नहीं दिखाया गया है।`;
+        } else if (isUnavailable && datedOfficialRows.length) {
+            banner.className = 'market-live-banner market-live-banner--partial';
+            banner.innerHTML = `📅 आज का सत्यापित भाव उपलब्ध नहीं है। ${escapeHtml(data.latest_official_reported_date || '')} का नवीनतम आधिकारिक औसत संदर्भ नीचे दिया गया है।`;
         } else if (isUnavailable && data.api_key_registered === false) {
             banner.className = 'market-live-banner market-live-banner--warn';
             banner.innerHTML = '🔴 इस स्थान के लिए आधिकारिक मंडी पंक्तियां अभी उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
@@ -1657,6 +1680,9 @@
         const nearbyAlternatives = (data.nearby_live_alternatives || []).filter(
             row => row && row.is_live === true && row.mandi_name
         );
+        const datedOfficialRows = (data.latest_official_rows || []).filter(
+            row => row && Number(row.modal_price || 0) > 0
+        );
         const officialDates = crops.map(crop => crop.reported_date || crop.date).filter(Boolean);
         const latestOfficialDate = officialDates[0] || '';
         const officialAges = crops
@@ -1701,6 +1727,26 @@
                 });
                 alternativesHtml += `</div><small style="display:block;color:#5f6b63;margin-top:8px;">ये भाव ऊपर चुनी गई मंडी के नहीं हैं। मंडी बदलने के लिए विकल्प चुनें।</small></div>`;
             }
+            let datedOfficialHtml = '';
+            if (datedOfficialRows.length) {
+                const scopeLabel = data.latest_official_coverage === 'national'
+                    ? 'अखिल भारतीय औसत'
+                    : `${escapeHtml(data.state || currentState || 'राज्य')} औसत`;
+                datedOfficialHtml = `<div class="dated-official-prices" style="margin-top:18px;text-align:left;border-top:1px solid #e5e7eb;padding-top:14px;">
+                    <strong style="display:block;color:#7c5a00;margin-bottom:4px;">📅 नवीनतम आधिकारिक संदर्भ · ${escapeHtml(data.latest_official_reported_date || '')}</strong>
+                    <small style="display:block;color:#6b7280;margin-bottom:10px;">${scopeLabel}; यह आज का लाइव टिक या चुनी मंडी का सटीक भाव नहीं है। स्रोत: ${escapeHtml(data.latest_official_source || 'Agmarknet')}</small>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">`;
+                datedOfficialRows.slice(0, 12).forEach(row => {
+                    const price = Number(row.modal_price || 0);
+                    const arrival = Number(row.arrival_quantity || row.arrival_tonnes || 0);
+                    datedOfficialHtml += `<div style="border:1px solid #f0d58a;background:#fffaf0;border-radius:6px;padding:10px;">
+                        <span style="display:block;font-weight:700;color:#5f4500;">${escapeHtml(row.crop_name_hindi || row.crop_name || 'फसल')}</span>
+                        <span style="display:block;font-size:1rem;font-weight:700;margin-top:3px;">₹${price.toLocaleString('hi-IN')}/क्विंटल</span>
+                        ${arrival > 0 ? `<span style="display:block;font-size:0.72rem;color:#6b7280;margin-top:2px;">आवक: ${arrival.toLocaleString('hi-IN')} टन</span>` : ''}
+                    </div>`;
+                });
+                datedOfficialHtml += `</div></div>`;
+            }
             const stateBenchmarkHtml = currentMandi
                 ? `<button type="button" class="show-state-market-prices"
                     style="margin-top:14px;border:1px solid #2d6a3f;background:#f4fbf5;color:#1b5e20;border-radius:6px;padding:9px 12px;font-weight:700;cursor:pointer;">
@@ -1712,6 +1758,7 @@
                 <div style="font-size:0.88rem;color:#888;margin-bottom:10px;">${liveLabel}</div>
                 <p style="color:#856404;">${unavailableReason}</p>
                 <small style="color:#666;">बेचने से पहले मंडी कार्यालय या eNAM से भाव की पुष्टि करें।</small>
+                ${datedOfficialHtml}
                 ${alternativesHtml}
                 ${stateBenchmarkHtml}
             </div>`;
@@ -1963,7 +2010,7 @@
                 let html = schemeBanner + '<div style="display: grid; gap: 20px;">';
 
                 schemes.forEach(scheme => {
-                    const officialUrl = escapeHtml(scheme.official_website || scheme.website || scheme.apply_url || '#');
+                    const officialUrl = escapeHtml(safeUrl(scheme.official_website || scheme.website || scheme.apply_url || '#'));
                     const benefitText = escapeHtml(scheme.benefits_hindi || scheme.benefit_hindi || scheme.benefit || 'विवरण उपलब्ध नहीं');
                     const eligibilityText = escapeHtml(scheme.eligibility_hindi || scheme.eligibility || 'सभी किसान');
                     const descText = escapeHtml(scheme.description_hindi || scheme.description || '');
@@ -2108,7 +2155,7 @@
                     </div>
                     ${(soil.moisture_layers?.root_3_9cm_pct != null) ? `
                     <div style="margin-top:10px;padding:8px;background:#f0f8ff;border-radius:8px;font-size:0.78rem;color:#444;">
-                        <strong>🛰️ Open-Meteo Satellite Soil Layers:</strong>
+                        <strong>🌐 Open-Meteo Modeled Soil Layers (1 km grid, not a field sensor):</strong>
                         Surface ${soil.moisture_layers.surface_0_1cm_pct??'--'}% ·
                         Root zone ${soil.moisture_layers.root_3_9cm_pct??'--'}% ·
                         Subsoil ${soil.moisture_layers.subsoil_9_27cm_pct??'--'}% ·
@@ -2171,10 +2218,11 @@
                         ${sBar(sc)}
                         <div style="display:flex;flex-wrap:wrap;gap:2px;margin:6px 0 10px;">${npkBadges}</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:0.78rem;margin-bottom:8px;">
-                            <div style="background:#e8f5e9;border-radius:6px;padding:5px;text-align:center;"><div style="font-weight:700;color:#28a745;">₹${(crop.profit_per_hectare||0).toLocaleString()}</div><div style="color:#888;font-size:0.68rem;">लाभ/हे.</div></div>
+                            <div style="background:#e8f5e9;border-radius:6px;padding:5px;text-align:center;"><div style="font-weight:700;color:#28a745;">₹${(crop.profit_per_hectare||0).toLocaleString()}</div><div style="color:#888;font-size:0.68rem;">संकेतात्मक लाभ/हे.</div></div>
                             <div style="background:#e3f2fd;border-radius:6px;padding:5px;text-align:center;"><div style="font-weight:700;color:#1565c0;">${crop.yield_per_hectare||0}q</div><div style="color:#888;font-size:0.68rem;">उत्पादन</div></div>
                             <div style="background:#fff8e1;border-radius:6px;padding:5px;text-align:center;"><div style="font-weight:700;color:#f57f17;">${crop.msp_per_quintal?'₹'+crop.msp_per_quintal:'No central MSP'}</div><div style="color:#888;font-size:0.68rem;">${crop.msp_per_quintal ? 'MSP '+escapeHtml(crop.msp_season||'')+'/q' : 'official support'}</div></div>
                         </div>
+                        <div style="font-size:0.68rem;color:#6b7280;margin-bottom:7px;">बाजार गारंटी नहीं: प्रोफाइल उपज, MSP/स्थिर भाव और अनुमानित लागत पर आधारित। स्थानीय लागत और सत्यापित बिक्री भाव जांचें।</div>
                         ${(crop.input_adjustments||[]).length ? `<div style="background:#fff3cd;border-radius:6px;padding:6px 8px;font-size:0.75rem;margin-bottom:6px;">${crop.input_adjustments.slice(0,2).map(a=>'⚠️ '+escapeHtml(a)).join('<br>')}</div>` : ''}
                         <div style="font-size:0.72rem;color:#aaa;">${escapeHtml((crop.scoring_reasons||[]).slice(0,2).join(' · '))}</div>
                     </div>`;
@@ -2220,6 +2268,7 @@
             container.innerHTML = html;
 
         } catch (err) {
+            console.error('Field advisory render failed:', err);
             const container = document.getElementById('fieldAdvisoryResults');
             if (container) container.innerHTML = `<div style="background:#ffebee;border-radius:8px;padding:20px;color:#c62828;text-align:center;">❌ खेत की सलाह अभी नहीं मिली। नेटवर्क जांचकर दोबारा कोशिश करें।</div>`;
         }
@@ -2592,10 +2641,10 @@
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between mb-1">
                                     <span style="color: #333;"><strong>Severity:</strong></span>
-                                    <span class="badge" style="background-color: ${severityColor}; color: white;">${d.severity_label} (${d.severity_score}%)</span>
+                                    <span class="badge" style="background-color: ${severityColor}; color: white;">${escapeHtml(d.severity_label)} (${numPct(d.severity_score)}%)</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar" style="width: ${d.severity_score}%; background-color: ${severityColor};"></div>
+                                    <div class="progress-bar" style="width: ${numPct(d.severity_score)}%; background-color: ${severityColor};"></div>
                                 </div>
                             </div>
 
@@ -2619,13 +2668,13 @@
 
                             ${d.verification_note ? `
                                 <div class="alert alert-info py-2 px-3 mt-3 mb-0" style="background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460;">
-                                    <small><i class="fas fa-info-circle"></i> ${d.verification_note}</small>
+                                    <small><i class="fas fa-info-circle"></i> ${escapeHtml(d.verification_note)}</small>
                                 </div>
                             ` : ''}
 
                             ${d.explanation ? `
                                 <div class="alert alert-secondary py-2 px-3 mt-2 mb-0" style="background-color: #e2e3e5; border-color: #d6d8db; color: #383d41;">
-                                    <small><strong>Explanation:</strong> ${d.explanation}</small>
+                                    <small><strong>Explanation:</strong> ${escapeHtml(d.explanation)}</small>
                                 </div>
                             ` : ''}
                         </div>

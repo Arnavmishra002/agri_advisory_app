@@ -31,6 +31,7 @@ import os
 import base64
 import urllib.request
 
+from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status, viewsets
@@ -72,7 +73,6 @@ def _twilio_signature_valid(request) -> bool:
     """Validate Twilio webhooks; only local DEBUG may run without a token."""
     auth_token = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
     if not auth_token:
-        from django.conf import settings
         return bool(settings.DEBUG)
     signature = request.headers.get("X-Twilio-Signature", "")
     if not signature:

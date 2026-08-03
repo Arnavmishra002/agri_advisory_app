@@ -98,7 +98,6 @@ FERTILIZER_GUIDE = {
     "onion":     {"n": 100, "p": 50,  "k": 50,  "notes": "रोपाई: 50P+50K+33N | 30 दिन: 33N | 45 दिन: 34N | सल्फर 20kg"},
     "tomato":    {"n": 150, "p": 75,  "k": 75,  "notes": "रोपाई: 75P+75K+50N | फूल: 50N | फल: 50N | कैल्शियम+बोरॉन"},
     "groundnut": {"n": 25,  "p": 60,  "k": 30,  "notes": "जिप्सम 500kg/ha (फलियाँ भरते समय) | राइजोबियम टीका"},
-    "rice":      {"n": 120, "p": 60,  "k": 60,  "notes": "जिंक सल्फेट 25kg/ha | 3 बार N विभाजन"},
     "turmeric":  {"n": 75,  "p": 50,  "k": 75,  "notes": "जैव उर्वरक + FYM 25t/ha | जिंक+बोरॉन"},
 }
 
@@ -466,8 +465,16 @@ class KnowledgeBase:
 
     @staticmethod
     def _detect_crop(q: str) -> Optional[str]:
+        q_lower = q.lower()
         for alias, crop_id in _CROP_ALIASES.items():
-            if alias.lower() in q:
+            a = alias.lower()
+            if a.isascii():
+                # Word-boundary match so an English alias like "rice" does not
+                # fire inside an unrelated word such as "price".
+                if re.search(r"\b" + re.escape(a) + r"\b", q_lower):
+                    return crop_id
+            elif a in q_lower:
+                # Devanagari aliases have no Latin-substring collisions.
                 return crop_id
         return None
 

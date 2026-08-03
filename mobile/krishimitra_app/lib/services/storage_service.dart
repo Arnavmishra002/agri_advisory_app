@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_models.dart';
 
@@ -18,11 +19,23 @@ class StorageService {
   Future<void> setLanguage(String code) async =>
       (await SharedPreferences.getInstance()).setString(_lang, code);
 
+  // A timestamp-based id (sess_<digits>) is guessable/enumerable, letting one
+  // user's chat memory be addressed by another. Use a cryptographically random
+  // id instead, and migrate any legacy timestamp id on next launch.
+  static final _legacySession = RegExp(r'^sess_\d+$');
+
+  String _randomSessionId() {
+    final rand = Random.secure();
+    final bytes = List<int>.generate(16, (_) => rand.nextInt(256));
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return 'sess_$hex';
+  }
+
   Future<String> getOrCreateSession() async {
     final p = await SharedPreferences.getInstance();
     var id = p.getString(_session);
-    if (id == null || id.isEmpty) {
-      id = 'sess_${DateTime.now().millisecondsSinceEpoch}';
+    if (id == null || id.isEmpty || _legacySession.hasMatch(id)) {
+      id = _randomSessionId();
       await p.setString(_session, id);
     }
     return id;

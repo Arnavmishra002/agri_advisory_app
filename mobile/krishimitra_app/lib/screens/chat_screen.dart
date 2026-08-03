@@ -198,10 +198,18 @@ class _ChatScreenState extends State<ChatScreen>
     HapticFeedback.lightImpact();
 
     final loc     = _loc.current;
-    final history = _msgs
-        .where((m) => m.isUser)
-        .take(8)
-        .map((m) => <String, String>{'role': 'user', 'content': m.content})
+    // Send the LAST ~8 turns of real dialogue (both user and assistant),
+    // excluding the just-added current message. Previously this took the
+    // FIRST 8 user turns only and dropped every assistant reply, so follow-up
+    // context was frozen after 8 questions and the model lost the thread.
+    final prior   = _msgs.sublist(0, _msgs.length - 1); // drop current user msg
+    final recent  = prior.length > 8 ? prior.sublist(prior.length - 8) : prior;
+    final history = recent
+        .where((m) => m.content.trim().isNotEmpty)
+        .map((m) => <String, String>{
+              'role': m.isUser ? 'user' : 'assistant',
+              'content': m.content,
+            })
         .toList();
 
     // Optimistically add a streaming bot message placeholder

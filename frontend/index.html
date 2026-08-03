@@ -226,7 +226,7 @@
                             🌾 PM-Kisan — <strong>₹6,000/वर्ष</strong><br>
                             🛡️ PMFBY — <strong>2% प्रीमियम</strong> पर बीमा<br>
                             💳 KCC — <strong>₹3L @4% ब्याज</strong><br>
-                            ☀️ PM-KUSUM — <strong>90% सब्सिडी</strong>
+                            ☀️ PM-KUSUM — <strong>केंद्र + राज्य सहायता</strong>
                         </div>
                     </div>
                     <span class="service-button">योजनाएं देखें <i class="fas fa-arrow-right"></i></span>
@@ -1125,7 +1125,14 @@ window.showToast = function (message, type, duration) {
         'transform:translateX(40px) scale(0.9)',
         'transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1)'
     ].join(';');
-    toast.innerHTML = '<span>' + c.icon + '</span><span>' + message + '</span>';
+    // Build with textContent so a message containing HTML (e.g. a user's name
+    // like "<img onerror=...>") is shown as text, never executed (XSS-safe).
+    var iconSpan = document.createElement('span');
+    iconSpan.textContent = c.icon;
+    var msgSpan = document.createElement('span');
+    msgSpan.textContent = message;
+    toast.appendChild(iconSpan);
+    toast.appendChild(msgSpan);
     toast.onclick = function () { toast.remove(); };
     var container = document.getElementById('toastContainer');
     if (!container) return;

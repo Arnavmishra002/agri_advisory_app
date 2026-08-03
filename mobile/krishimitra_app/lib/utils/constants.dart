@@ -16,7 +16,7 @@ class AppConfig {
       // Android emulator maps 10.0.2.2 to host machine localhost
       return 'http://10.0.2.2:8000';
     }
-    return 'https://agri-advisory-app.onrender.com';
+    return 'https://agri-advisory-web.onrender.com';
   }
 
   static String get apiV1 => '$baseUrl/api';

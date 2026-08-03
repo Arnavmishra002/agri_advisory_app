@@ -66,6 +66,20 @@ otp_verify_rate_limiter = AtomicWindowRateLimiter(
 )
 otp_backoff = ExponentialBackoff("otp_verify")
 
+# Per-IP and global OTP send ceilings. The per-phone limiter above does not stop
+# an attacker rotating phone numbers to SMS-bomb arbitrary numbers / burn Twilio
+# credit, so cap sends per source IP and across the whole service per window.
+otp_ip_rate_limiter = AtomicWindowRateLimiter(
+    key_prefix="otp_ip",
+    capacity=getattr(settings, "OTP_IP_CAPACITY", 10),
+    window_seconds=getattr(settings, "OTP_IP_WINDOW_SECONDS", 3600),
+)
+otp_global_rate_limiter = AtomicWindowRateLimiter(
+    key_prefix="otp_global",
+    capacity=getattr(settings, "OTP_GLOBAL_CAPACITY", 500),
+    window_seconds=getattr(settings, "OTP_GLOBAL_WINDOW_SECONDS", 3600),
+)
+
 # Indian mobile number: optional +, optional 91, then 6-9 followed by 9 digits
 _PHONE_RE = re.compile(r"^\+?91?[6-9]\d{9}$")
 
@@ -197,8 +211,15 @@ class AuthViewSet(viewsets.ViewSet):
                 status=400,
             )
 
-        # Rate limiting: configured per-phone window
-        if not otp_rate_limiter.is_allowed(phone):
+        # Rate limiting: per-phone, per-IP, and global ceilings. All three must
+        # pass before an SMS is sent so a rotating-phone attacker cannot bomb SMS
+        # or exhaust the Twilio budget from a single network or across the fleet.
+        client_ip = client_ip_from_request(request)
+        if (
+            not otp_rate_limiter.is_allowed(phone)
+            or not otp_ip_rate_limiter.is_allowed(client_ip)
+            or not otp_global_rate_limiter.is_allowed("_all")
+        ):
             return Response(
                 {
                     "error": "Too many OTP requests. Please wait 1 hour before trying again.",
@@ -391,6 +412,23 @@ class AuthViewSet(viewsets.ViewSet):
                 status=400,
             )
 
+        # Enforce Django's configured password validators (length, common
+        # passwords, all-numeric, similarity). The serializer only checks a
+        # minimum length, so without this a password like "12345678" would pass.
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            validate_password(password)
+        except DjangoValidationError as pw_exc:
+            return Response(
+                {
+                    "error": " ".join(pw_exc.messages),
+                    "error_code": "WEAK_PASSWORD",
+                    "error_hi": "पासवर्ड बहुत कमज़ोर है। कृपया अधिक मज़बूत पासवर्ड चुनें।",
+                },
+                status=400,
+            )
+
         # Parse name into first/last
         name_parts = name.split(" ", 1) if name else ["", ""]
         first_name = name_parts[0]
@@ -466,13 +504,15 @@ class AuthViewSet(viewsets.ViewSet):
 
         try:
             from ...models import FarmerProfile
+            from .farmer_profile import FarmerProfileViewSet
             # Resolve only through the authenticated user's phone/username. A
             # client-supplied session_id must never select another farmer's PII.
-            profile = (
-                FarmerProfile.objects.filter(session_id=f"user:{user.id}").first()
-                or FarmerProfile.objects.filter(phone_number=f"+91{user.username}").first()
-                or FarmerProfile.objects.filter(phone_number=user.username).first()
-            )
+            # Reuse the canonical owned-profile filter so phone normalisation
+            # (e.g. username "919876543210" -> "+919876543210") stays consistent
+            # and OTP users don't get an empty profile from a double "+91".
+            profile = FarmerProfile.objects.filter(
+                FarmerProfileViewSet._owned_filter(user)
+            ).first()
             if profile:
                 profile_data = {
                     "location_name":    profile.location_name,

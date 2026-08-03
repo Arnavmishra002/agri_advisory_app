@@ -1324,181 +1324,22 @@ class UltraDynamicGovernmentAPI:
         return self.get_market_prices_v2(location, mandi=mandi_name)
         
     def get_market_prices_v2(self, location: str = "Delhi", mandi: str = None, page: int = 1, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
-        """
-        Get real-time market prices with V2 consistent key structure (name, profit_margin).
-        Robust fallback to enhanced simulation for ANY error or missing data.
-        """
-        try:
-            # 0. Determine Mandi Identity First (For Strict Filtering)
-            target_mandi_name = mandi
-            if not target_mandi_name:
-                 # If lat/lon avail, find nearest Real Mandi to use as filter
-                 if latitude and longitude:
-                      # Directly call the internal method, assuming it doesn't have bad imports
-                      mandi_info = self._get_nearest_mandi_real(latitude, longitude, location)
-                      target_mandi_name = mandi_info['name']
-            
-            # 1. First Priority: Try to fetch real-time data from government APIs using SPECIFIC MANDI
-            # This ensures we get data for "Pune APMC" not just generic "Pune"
-            real_data = self._fetch_market_prices(location, mandi_filter=target_mandi_name)
-            
-            if real_data and real_data.get('status') == 'success' and real_data.get('data'):
-                # Normalize the real data to match the V2 structure
-                market_data = real_data.get('data', {})
-                crops = []
-                for name, info in market_data.items():
-                    crops.append({
-                        'name': name, # Added for JS compatibility
-                        'crop_name': name,
-                        'crop_name_hindi': name, # Simplified mapping needed or use translation service
-                        'current_price': info.get('current_price'),
-                        'msp': info.get('msp'),
-                        'trend': 'Stable', # Real API might not give trend
-                        'profit_margin': info.get('current_price', 0) - info.get('msp', 0), # Added for JS compatibility
-                        'profit': info.get('current_price', 0) - info.get('msp', 0),
-                        'profit_percentage': "N/A",
-                        'demand': 'Medium',
-                        'supply': 'Medium',
-                        'mandi': target_mandi_name or f"{location} Market" # Ensure mandi name is passed back
-                    })
-                
-                return {
-                    'status': 'success',
-                    'location': location,
-                    'mandi': target_mandi_name or f"{location} Market",
-                    'market_prices': {
-                        'crops': crops,
-                        'nearby_mandis': [] # Can define nearby later if needed
-                    },
-    
-                    'timestamp': datetime.now().isoformat()
-                }
-            
-            # 2. Fallback: Generate comprehensive simulated data
-            # (If Real API fails)
-            import random
-
-            final_mandi_name = mandi or f"{location} Mandi"
-
-            # Seed random for consistent market prices per location+mandi per day
-            # Including mandi in seed ensures each mandi gets different (but stable) prices
-            mandi_seed = (mandi or final_mandi_name or '').lower().strip()
-            seed_string = f"{location.lower().strip()}_{mandi_seed}_{datetime.now().strftime('%Y-%m-%d')}"
-            random.seed(seed_string)
-            
-            # Determine Real Nearest Mandi if lat/lon available
-            real_mandi_info = {'name': f"{location} Mandi", 'distance': 'Local', 'status': 'Open'}
-            if latitude and longitude:
-                 real_mandi_info = self._get_nearest_mandi_real(latitude, longitude, location)
-            elif location:
-                 # Try to look up coords
-                 coords = self._get_location_coordinates(location)
-                 if coords:
-                     real_mandi_info = self._get_nearest_mandi_real(coords['lat'], coords['lon'], location)
-
-            final_mandi_name = mandi or real_mandi_info['name']
-            
-            # Define crop database with realistic prices
-            crop_database = [
-                {'name': 'Wheat', 'name_hindi': 'गेहूं', 'base_price': 2500, 'msp': 2125, 'trend': 'बढ़ रहा'},
-                {'name': 'Rice', 'name_hindi': 'चावल', 'base_price': 3000, 'msp': 2040, 'trend': 'स्थिर'},
-                {'name': 'Bajra', 'name_hindi': 'बाजरा', 'base_price': 2250, 'msp': 2350, 'trend': 'गिर रहा'},
-                {'name': 'Maize', 'name_hindi': 'मक्का', 'base_price': 1900, 'msp': 1962, 'trend': 'बढ़ रहा'},
-                {'name': 'Mustard', 'name_hindi': 'सरसों', 'base_price': 5450, 'msp': 5050, 'trend': 'बढ़ रहा'},
-                {'name': 'Cotton', 'name_hindi': 'कपास', 'base_price': 6200, 'msp': 6080, 'trend': 'बढ़ रहा'},
-                {'name': 'Onion', 'name_hindi': 'प्याज', 'base_price': 2800, 'msp': 0, 'trend': 'गिर रहा'},
-                {'name': 'Potato', 'name_hindi': 'आलू', 'base_price': 1200, 'msp': 0, 'trend': 'स्थिर'},
-                {'name': 'Tomato', 'name_hindi': 'टमाटर', 'base_price': 3500, 'msp': 0, 'trend': 'बढ़ रहा'},
-            ]
-            
-            # Select crops based on region if possible (Simple Logic)
-            num_crops = 10
-            selected_crops = random.sample(crop_database, min(num_crops, len(crop_database)))
-            
-            crops = []
-            for crop_data in selected_crops:
-                # Add price variation (+/- 8%) — different per mandi due to unique seed
-                price_variation = random.uniform(0.92, 1.08)
-                current_price = int(crop_data['base_price'] * price_variation)
-                # min/max prices for display (simulated bid-ask range)
-                min_price = int(current_price * random.uniform(0.94, 0.98))
-                max_price = int(current_price * random.uniform(1.02, 1.06))
-                msp = crop_data['msp']
-                profit = current_price - msp
-                profit_pct = round((profit / msp) * 100, 1) if msp > 0 else 0
-                
-                crops.append({
-                    'name': crop_data['name'],
-                    'crop_name': crop_data['name'],
-                    'crop_name_hindi': crop_data['name_hindi'],
-                    # Both field names for compatibility
-                    'current_price': current_price,
-                    'modal_price': current_price,
-                    'min_price': min_price,
-                    'max_price': max_price,
-                    'msp': msp,
-                    'trend': crop_data['trend'],
-                    'profit_vs_msp': profit_pct,
-                    'profit_margin': profit,
-                    'profit': profit,
-                    'profit_percentage': f"{profit_pct}%",
-                    'profit_indicator': '\U0001f4c8' if profit >= 0 else '\U0001f4c9',
-                    'demand': random.choice(['High', 'Medium', 'Low']),
-                    'supply': random.choice(['High', 'Medium', 'Low']),
-                    'mandi_name': final_mandi_name,
-                    'mandi': final_mandi_name,
-                    'season_note': 'Rabi' if datetime.now().month in [10,11,12,1,2,3] else 'Kharif',
-                    'date': datetime.now().strftime('%d/%m/%Y')
-                })
-            
-            # Generate Real Nearby Mandis (Mocking 'Nearby' by varying the closest one)
-            nearby_mandis = [
-                {
-                    'name': final_mandi_name,
-                    'distance': real_mandi_info.get('distance', '0 km'),
-                    'status': 'Open',
-                    'specialty': 'Grains & Veg'
-                },
-                 {
-                    'name': f"{location} District Market",
-                    'distance': '15 km',
-                    'status': 'Open',
-                    'specialty': 'Vegetables'
-                }
-            ]
-            
-            return {
-                'status': 'fallback',
-                'location': location,
-                'mandi': final_mandi_name,
-                'mandi_filter': final_mandi_name,
-                # top_crops is what the frontend reads
-                'top_crops': crops,
-                'market_prices': {
-                    'crops': crops,
-                    'top_crops': crops,
-                    'nearby_mandis': nearby_mandis
-                },
-                'crops': crops,
-                'nearby_mandis': nearby_mandis,
-                'nearest_mandis_data': nearby_mandis,
-                'data_source': f'MSP-based estimate for {final_mandi_name} (Agmarknet live data: data.gov.in)',
-                'timestamp': datetime.now().isoformat(),
-                'total_records': len(crops)
-            }
-                
-        except Exception as e:
-            logger.error(f"Error in get_market_prices_v2: {e}")
-            return {
-                'status': 'success',
-                'location': location,
-                'mandi': f"{location} Mandi",
-                'market_prices': {'crops': [], 'nearby_mandis': []},
-                'crops': [],
-                'data_source': 'System Error Fallback'
-            }
-
-
+        """Deprecated. Previously generated market prices with random.uniform/
+        random.choice and labelled them with live government sources. Random
+        fabrication removed so no invented price can be shown as real. Live
+        mandi prices come from MarketPricesService (data.gov.in / Agmarknet 2.0)
+        via the market API; this returns an honest 'unavailable' response."""
+        return {
+            'status': 'unavailable',
+            'location': location,
+            'mandi': mandi or '',
+            'is_live': False,
+            'market_prices': {'crops': [], 'nearby_mandis': []},
+            'crops': [],
+            'data_source': 'unavailable',
+            'message': 'Live market prices unavailable from this source (no fabricated data).',
+            'timestamp': datetime.now().isoformat(),
+        }
 
     def _get_fallback_schemes_data(self, location: str) -> Dict[str, Any]:
         """Fallback schemes data"""

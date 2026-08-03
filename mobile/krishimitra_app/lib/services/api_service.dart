@@ -154,15 +154,20 @@ class ApiService {
         return;
       }
 
-      // SSE frames are: "data: {...}\n\n"
-      // We accumulate bytes into lines and parse each complete frame.
+      // SSE frames are: "data: {...}\n\n". Accumulate bytes, normalise CRLF,
+      // and parse each complete frame. A 25s idle-gap guard (Stream.timeout)
+      // prevents a stalled connection from locking the chat forever — without
+      // it a dead stream never ends and the input stays disabled.
       final buffer = StringBuffer();
-      await for (final chunk in streamed.stream.transform(utf8.decoder)) {
-        buffer.write(chunk);
+      final decoded = streamed.stream
+          .timeout(const Duration(seconds: 25))
+          .transform(utf8.decoder);
+      await for (final chunk in decoded) {
+        // Normalise CRLF / bare-CR so proxies that rewrite line endings still
+        // split into frames correctly.
+        buffer.write(chunk.replaceAll('\r\n', '\n').replaceAll('\r', '\n'));
         final raw = buffer.toString();
-        // Split on double-newline (SSE frame separator)
         final frames = raw.split('\n\n');
-        // Keep any incomplete trailing frame in the buffer
         buffer.clear();
         if (!raw.endsWith('\n\n') && frames.isNotEmpty) {
           buffer.write(frames.removeLast());
@@ -172,10 +177,10 @@ class ApiService {
           if (trimmed.isEmpty) {
             continue;
           }
-          // Each line inside a frame: "data: {...}"
           for (final line in trimmed.split('\n')) {
-            if (line.startsWith('data: ')) {
-              final jsonStr = line.substring(6).trim();
+            // Accept "data: {...}" and "data:{...}" (with or without a space).
+            if (line.startsWith('data:')) {
+              final jsonStr = line.substring(5).trim();
               if (jsonStr.isEmpty) {
                 continue;
               }

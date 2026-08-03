@@ -116,6 +116,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'advisory.middleware.security_headers.SecurityHeadersMiddleware',  # emits CSP_HEADERS
     'whitenoise.middleware.WhiteNoiseMiddleware',  # ✅ Added by antigravity fix
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware', # Add CorsMiddleware
@@ -339,8 +340,7 @@ AUTH_USER_MODEL = 'advisory.User'
 
 # ── Celery Configuration ──────────────────────────────────────────────────
 # Uses Redis if REDIS_URL is set; falls back silently to sync mode otherwise.
-import os as _os
-_REDIS_URL = _os.getenv('REDIS_URL', '')
+_REDIS_URL = os.getenv('REDIS_URL', '')
 if _REDIS_URL:
     CELERY_BROKER_URL = _REDIS_URL
     CELERY_RESULT_BACKEND = _REDIS_URL
@@ -418,7 +418,6 @@ else:
         'rate_limit':    _locmem_cache('ratelimit', 86400, 5000),
     }
 
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all in dev only
 _cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [
     o.strip() for o in _cors_origins.split(',') if o.strip()
@@ -455,7 +454,10 @@ RATE_LIMIT_FAIL_OPEN = os.environ.get(
     'RATE_LIMIT_FAIL_OPEN', 'true' if DEBUG else 'false'
 ).lower() == 'true'
 STRICT_PRODUCTION_CONFIG = os.environ.get(
-    'STRICT_PRODUCTION_CONFIG', 'false'
+    # Default ON in production so a missing shared cache fails fast instead of
+    # silently degrading rate limiting to per-worker LocMem counters. Dev stays
+    # off. Deployments can still override explicitly.
+    'STRICT_PRODUCTION_CONFIG', 'false' if DEBUG else 'true'
 ).lower() == 'true'
 
 if STRICT_PRODUCTION_CONFIG and not DEBUG and RATE_LIMIT_ENABLED and not _REDIS_URL:

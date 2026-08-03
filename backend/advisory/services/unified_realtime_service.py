@@ -12,6 +12,7 @@ Fixed bugs:
 """
 
 import os
+import re
 import json
 import logging
 import threading
@@ -308,8 +309,12 @@ class WeatherService:
             "lucknow": (26.8467, 80.9462), "jaipur": (26.9124, 75.7873),
             "greater noida": (28.4745, 77.5040), "noida": (28.5355, 77.3910),
         }
+        # Only use the fast-path when the known city IS the location (or the
+        # leading "city, state" token) — a bare substring test wrongly maps
+        # "Pune Road, Nashik" to Pune. Anything else falls through to Nominatim.
+        primary = key_norm.split(",")[0].strip()
         for key, coords in known.items():
-            if key in key_norm:
+            if key_norm == key or primary == key:
                 self._write_geocode_cache(key_norm, coords, cache_key)
                 return coords
 
@@ -449,7 +454,7 @@ class WeatherService:
             resp = self.session.get(
                 self.OWM_URL,
                 params={"lat": lat, "lon": lon, "appid": OPENWEATHER_KEY,
-                        "units": "metric", "lang": "hi", "cnt": 40},
+                        "units": "metric", "lang": (lang or "hi"), "cnt": 40},
                 timeout=8
             )
             if resp.status_code != 200:
@@ -670,6 +675,10 @@ class MarketPricesService:
         self._MAX_CACHE_ENTRIES = 200
         self._cache: OrderedDict = OrderedDict()
         self._cache_ts: Dict[str, datetime] = {}
+        # get_prices() runs concurrently on the module-level ThreadPoolExecutor,
+        # so all _cache / _cache_ts mutations must be guarded to avoid a KeyError
+        # race between the membership check and the timestamp read.
+        self._cache_lock = threading.Lock()
         # Agmarknet updates once daily (~9 AM IST). A 3-min TTL causes unnecessary
         # hammering — each expiry fires a real network call for no new data.
         self.CACHE_TTL = 3600
@@ -717,13 +726,38 @@ class MarketPricesService:
             _cache_token(crop),
             "live_only",
         ])
-        if cache_key in self._cache:
-            age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
-            cached = self._cache[cache_key]
-            if age < self.CACHE_TTL:
-                return cached
+        with self._cache_lock:
+            if cache_key in self._cache:
+                ts = self._cache_ts.get(cache_key)
+                cached = self._cache[cache_key]
+                if ts is not None and (datetime.now(tz=timezone.utc) - ts).total_seconds() < self.CACHE_TTL:
+                    self._cache.move_to_end(cache_key)  # mark as recently used (real LRU)
+                    return cached
 
         data = None
+        dated_official = None
+
+        def remember_dated_official(candidate: Optional[Dict[str, Any]]) -> None:
+            nonlocal dated_official
+            if dated_official or not candidate:
+                return
+            from .market_data_quality import build_dated_official_reference
+
+            rows, age_minutes, reported_date = build_dated_official_reference(
+                candidate.get("top_crops") or [],
+                response_date=candidate.get("reported_date"),
+            )
+            if not rows:
+                return
+            dated_official = {
+                "rows": rows,
+                "reported_date": reported_date,
+                "data_age_minutes": age_minutes,
+                "data_source": candidate.get(
+                    "data_source", "Agmarknet/data.gov.in official feed"
+                ),
+                "coverage": candidate.get("coverage", "state"),
+            }
 
         # Priority 0: data.gov.in official API; national Agmarknet dashboard is
         # used only when no state scope was requested.
@@ -734,6 +768,7 @@ class MarketPricesService:
                 commodity=crop or None,
                 state=state or None,
             )
+            remember_dated_official(direct_data)
             direct_data = self._validated_live_data(direct_data)
             if direct_data and direct_data.get("top_crops"):
                 # If a specific crop is requested, filter to that crop first
@@ -756,10 +791,19 @@ class MarketPricesService:
                 p1_data = agmarknet_client.get_market_prices(
                     location, mandi, crop, state=resolved_state or state
                 )
+                remember_dated_official(p1_data)
                 p1_data = self._validated_live_data(p1_data)
                 if p1_data and p1_data.get("top_crops"):
                     logger.info("Market prices from Agmarknet API for %s", location)
                     data = p1_data
+                elif mandi and dated_official is None:
+                    # An exact APMC report can be empty while the state summary
+                    # has a recently published official benchmark. Keep it
+                    # separate and never substitute it for the selected mandi.
+                    state_summary = agmarknet_client.get_market_prices(
+                        location, None, crop, state=resolved_state or state
+                    )
+                    remember_dated_official(state_summary)
             except Exception as exc:
                 logger.warning("Agmarknet client error: %s", exc)
 
@@ -771,6 +815,7 @@ class MarketPricesService:
                     data = self._fetch_data_gov(
                         location, mandi, crop, resource_key, api_key, state=state
                     )
+                    remember_dated_official(data)
                     data = self._validated_live_data(data)
                     if data:
                         break
@@ -779,6 +824,13 @@ class MarketPricesService:
             data = self._unavailable_market_response(
                 location, mandi, crop, state=state or self._infer_state(location, state=state)
             )
+            if dated_official:
+                data["latest_official_rows"] = dated_official["rows"]
+                data["latest_official_reported_date"] = dated_official["reported_date"]
+                data["latest_official_age_minutes"] = dated_official["data_age_minutes"]
+                data["latest_official_source"] = dated_official["data_source"]
+                data["latest_official_coverage"] = dated_official["coverage"]
+                data["has_dated_official_reference"] = True
 
         if crop and data and data.get("top_crops"):
             data = self._apply_crop_filter(data, crop)
@@ -793,14 +845,14 @@ class MarketPricesService:
 
         data = self._finalize_market_response(data)
 
-        # BUG 4 FIX: evict oldest entry when at capacity
-        if len(self._cache) >= self._MAX_CACHE_ENTRIES:
-            oldest = next(iter(self._cache))
-            self._cache.pop(oldest, None)
-            self._cache_ts.pop(oldest, None)
-        self._cache[cache_key] = data
-        self._cache[cache_key]  # move to end (mark as recently used)
-        self._cache_ts[cache_key] = datetime.now(tz=timezone.utc)
+        # Bounded LRU cache — evict least-recently-used entry when at capacity.
+        with self._cache_lock:
+            if cache_key not in self._cache and len(self._cache) >= self._MAX_CACHE_ENTRIES:
+                oldest, _ = self._cache.popitem(last=False)  # evict LRU (front)
+                self._cache_ts.pop(oldest, None)
+            self._cache[cache_key] = data
+            self._cache.move_to_end(cache_key)  # mark as most-recently-used
+            self._cache_ts[cache_key] = datetime.now(tz=timezone.utc)
         return data
 
     # Core MSP crops always present for advisory UI and tests (demo API returns random 10 rows)
@@ -879,7 +931,8 @@ class MarketPricesService:
         msg = (
             "Current official mandi prices are unavailable. Configure a valid "
             "DATA_GOV_IN_API_KEY for state and mandi coverage, then try again. "
-            "No estimated or historical fallback price is being shown."
+            "No estimated price is being shown. Any older official rows are "
+            "displayed separately with their reported date and coverage."
         )
         if crop:
             msg = (
@@ -1975,6 +2028,24 @@ class MarketPricesService:
 # ─────────────────────────────────────────────────────────────────────────────
 #  GEMINI AI SERVICE  (BUG-05 FIXED: correct model + proper fallback chain)
 # ─────────────────────────────────────────────────────────────────────────────
+def _kw_match(text: str, words) -> bool:
+    """Keyword match that respects word boundaries for ASCII keywords.
+
+    Plain ``w in text`` mis-fires on substrings — e.g. "rice" inside "price",
+    "gram" inside "program/telegram", "dhan" inside "dhaniya" (coriander).
+    ASCII keywords are matched on word boundaries; Devanagari/other-script
+    keywords (which have no Latin-substring collisions) fall back to ``in``.
+    """
+    for w in words:
+        wl = w.lower()
+        if wl.isascii():
+            if re.search(r"\b" + re.escape(wl) + r"\b", text):
+                return True
+        elif wl in text:
+            return True
+    return False
+
+
 class GeminiService:
     """Google Gemini Pro integration with proper fallback chain"""
 
@@ -2126,7 +2197,7 @@ class GeminiService:
         p = prompt.lower()
 
         # ── WHEAT ─────────────────────────────────────────────────
-        if any(w in p for w in ["wheat", "गेहूँ", "gehu", "gehun"]):
+        if _kw_match(p, ["wheat", "गेहूँ", "gehu", "gehun"]):
             return (
                 "🌾 **गेहूँ की खेती (Wheat Farming)**\n\n"
                 f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['wheat']}/क्विंटल\n"
@@ -2142,7 +2213,7 @@ class GeminiService:
             )
 
         # ── RICE / PADDY ─────────────────────────────────────────
-        if any(w in p for w in ["rice", "धान", "paddy", "dhan", "kharif"]):
+        if _kw_match(p, ["rice", "धान", "paddy", "dhan"]):
             return (
                 "🌾 **धान की खेती (Rice/Paddy Farming)**\n\n"
                 f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['rice']}/क्विंटल\n"
@@ -2159,7 +2230,7 @@ class GeminiService:
             )
 
         # ── MUSTARD ──────────────────────────────────────────────
-        if any(w in p for w in ["mustard", "सरसों", "sarson", "sarso"]):
+        if _kw_match(p, ["mustard", "सरसों", "sarson", "sarso"]):
             return (
                 "🌼 **सरसों की खेती (Mustard Farming)**\n\n"
                 f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['mustard']}/क्विंटल\n"
@@ -2175,7 +2246,7 @@ class GeminiService:
             )
 
         # ── GRAM / CHICKPEA ──────────────────────────────────────
-        if any(w in p for w in ["gram", "चना", "chana", "chickpea", "chick"]):
+        if _kw_match(p, ["gram", "चना", "chana", "chickpea", "chick"]):
             return (
                 "🫘 **चना की खेती (Gram/Chickpea Farming)**\n\n"
                 f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['gram']}/क्विंटल\n"
@@ -2190,7 +2261,7 @@ class GeminiService:
             )
 
         # ── COTTON ───────────────────────────────────────────────
-        if any(w in p for w in ["cotton", "कपास", "kapas"]):
+        if _kw_match(p, ["cotton", "कपास", "kapas"]):
             return (
                 "🌿 **कपास की खेती (Cotton Farming)**\n\n"
                 f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['cotton']}/क्विंटल\n"
@@ -2205,7 +2276,7 @@ class GeminiService:
             )
 
         # ── SOYBEAN ──────────────────────────────────────────────
-        if any(w in p for w in ["soybean", "सोयाबीन", "soya"]):
+        if _kw_match(p, ["soybean", "सोयाबीन", "soya"]):
             return (
                 "🌱 **सोयाबीन की खेती (Soybean Farming)**\n\n"
                 f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['soybean']}/क्विंटल\n"
@@ -2219,7 +2290,7 @@ class GeminiService:
             )
 
         # ── MAIZE ────────────────────────────────────────────────
-        if any(w in p for w in ["maize", "मक्का", "makka", "corn"]):
+        if _kw_match(p, ["maize", "मक्का", "makka", "corn"]):
             return (
                 "🌽 **मक्का की खेती (Maize/Corn Farming)**\n\n"
                 f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['maize']}/क्विंटल\n"
@@ -2233,7 +2304,7 @@ class GeminiService:
             )
 
         # ── TOMATO ───────────────────────────────────────────────
-        if any(w in p for w in ["tomato", "टमाटर", "tamatar"]):
+        if _kw_match(p, ["tomato", "टमाटर", "tamatar"]):
             return (
                 "🍅 **टमाटर की खेती (Tomato Farming)**\n\n"
                 "• **नर्सरी:** 25-30 दिन पहले तैयार करें\n"
@@ -2244,11 +2315,11 @@ class GeminiService:
                 "• **रोग:** Late Blight — Metalaxyl + Mancozeb\n"
                 "• **कीट:** Fruitborer — Spinosad 45SC @ 1.5 ml/L\n"
                 "• **उपज:** 300-400 क्विंटल/हेक्टेयर\n"
-                "💡 PM-KUSUM सोलर पंप से सिंचाई लागत 90% कम करें"
+                "💡 PM-KUSUM सहायता और किसान अंश राज्य के अनुसार जांचें"
             )
 
         # ── POTATO ───────────────────────────────────────────────
-        if any(w in p for w in ["potato", "आलू", "aloo", "alu"]):
+        if _kw_match(p, ["potato", "आलू", "aloo", "alu"]):
             return (
                 "🥔 **आलू की खेती (Potato Farming)**\n\n"
                 "• **बुवाई:** अक्टूबर-नवंबर\n"
@@ -2263,7 +2334,7 @@ class GeminiService:
             )
 
         # ── PEST CONTROL ──────────────────────────────────────────
-        if any(w in p for w in ["pest", "कीट", "keet", "insect", "disease", "रोग",
+        if _kw_match(p, ["pest", "कीट", "keet", "insect", "disease", "रोग",
                                  "blast", "blight", "wilt", "aphid", "borer",
                                  "fungicide", "pesticide", "spray"]):
             return (
@@ -2286,7 +2357,7 @@ class GeminiService:
             )
 
         # ── FERTILIZER ────────────────────────────────────────────
-        if any(w in p for w in ["fertilizer", "urea", "dap", "npk", "खाद", "उर्वरक", "khad"]):
+        if _kw_match(p, ["fertilizer", "urea", "dap", "npk", "खाद", "उर्वरक", "khad"]):
             return (
                 "🌱 **उर्वरक प्रबंधन (Fertilizer Management)**\n\n"
                 "**मुख्य उर्वरक एवं दरें:**\n"
@@ -2303,15 +2374,17 @@ class GeminiService:
             )
 
         # ── IRRIGATION ────────────────────────────────────────────
-        if any(w in p for w in ["irrigation", "सिंचाई", "sinchai", "drip", "water", "पानी"]):
+        if _kw_match(p, ["irrigation", "सिंचाई", "sinchai", "drip", "water", "पानी"]):
             return (
                 "💧 **सिंचाई प्रबंधन (Irrigation Management)**\n\n"
                 "**सिंचाई विधियाँ:**\n"
-                "• **ड्रिप इरिगेशन:** 40-50% पानी बचाव | सब्सिडी: 90% (छोटे किसान)\n"
+                "• **ड्रिप इरिगेशन:** 40-50% पानी बचाव | सब्सिडी राज्य/श्रेणी के अनुसार\n"
                 "• **स्प्रिंकलर:** 30-35% बचाव | समतल खेत के लिए उपयुक्त\n"
                 "• **SRI (धान):** पानी 25% कम + उपज 20% अधिक\n\n"
                 "**PM-KUSUM योजना:**\n"
-                "• सोलर पंप पर 90% सब्सिडी (30% केंद्र + 30% राज्य + 30% बैंक ऋण)\n"
+                "• सामान्य राज्यों में 30% केंद्रीय CFA + कम-से-कम 30% राज्य सहायता; "
+                "शेष किसान अंश में बैंक ऋण मिल सकता है\n"
+                "• किसान का शुरुआती भुगतान आम तौर पर 10% हो सकता है; अंतिम हिस्सा राज्य/घटक पर निर्भर है\n"
                 "• आवेदन: pmkusum.mnre.gov.in\n"
                 "• हेल्पलाइन: 1800-180-3333\n\n"
                 "**सिंचाई का सही समय:**\n"
@@ -2321,7 +2394,7 @@ class GeminiService:
             )
 
         # ── SOIL HEALTH ───────────────────────────────────────────
-        if any(w in p for w in ["soil", "मिट्टी", "mitti", "ph", "organic", "health card",
+        if _kw_match(p, ["soil", "मिट्टी", "mitti", "ph", "organic", "health card",
                                  "mrida", "मृदा"]):
             return (
                 "🧪 **मृदा स्वास्थ्य (Soil Health)**\n\n"
@@ -2339,7 +2412,7 @@ class GeminiService:
             )
 
         # ── PM-KISAN ──────────────────────────────────────────────
-        if any(w in p for w in ["pm kisan", "pm-kisan", "pmkisan", "6000", "₹6000",
+        if _kw_match(p, ["pm kisan", "pm-kisan", "pmkisan", "6000", "₹6000",
                                  "किसान सम्मान", "kisan samman"]):
             return (
                 "🏛️ **PM-Kisan Samman Nidhi**\n\n"
@@ -2353,7 +2426,7 @@ class GeminiService:
             )
 
         # ── FASAL BIMA ────────────────────────────────────────────
-        if any(w in p for w in ["fasal bima", "bima", "insurance", "pmfby", "crop insurance",
+        if _kw_match(p, ["fasal bima", "bima", "insurance", "pmfby", "crop insurance",
                                  "फसल बीमा"]):
             return (
                 "🏛️ **PM Fasal Bima Yojana (PMFBY)**\n\n"
@@ -2367,7 +2440,7 @@ class GeminiService:
             )
 
         # ── KCC ───────────────────────────────────────────────────
-        if any(w in p for w in ["kcc", "kisan credit", "किसान क्रेडिट", "loan", "rin", "ऋण"]):
+        if _kw_match(p, ["kcc", "kisan credit", "किसान क्रेडिट", "loan", "rin", "ऋण"]):
             return (
                 "💳 **Kisan Credit Card (KCC)**\n\n"
                 "• **ऋण सीमा:** ₹3 लाख तक\n"
@@ -2380,7 +2453,7 @@ class GeminiService:
             )
 
         # ── MARKET / MANDI ────────────────────────────────────────
-        if any(w in p for w in ["mandi", "market", "price", "भाव", "msp", "बाजार", "sell", "बेचना"]):
+        if _kw_match(p, ["mandi", "market", "price", "भाव", "msp", "बाजार", "sell", "बेचना"]):
             msp_info = "\n".join([
                 f"  • {k.capitalize()}: ₹{v}/क्विंटल"
                 for k, v in list(MSP_CURRENT.items())[:8]
@@ -2398,7 +2471,7 @@ class GeminiService:
             )
 
         # ── WEATHER ───────────────────────────────────────────────
-        if any(w in p for w in ["weather", "मौसम", "mausam", "rain", "बारिश", "temperature",
+        if _kw_match(p, ["weather", "मौसम", "mausam", "rain", "बारिश", "temperature",
                                   "तापमान", "forecast"]):
             return (
                 "🌤️ **मौसम एवं कृषि सलाह (Weather Advisory)**\n\n"
@@ -2415,7 +2488,7 @@ class GeminiService:
             )
 
         # ── ORGANIC FARMING ───────────────────────────────────────
-        if any(w in p for w in ["organic", "जैविक", "jaivik", "natural", "compost", "vermi"]):
+        if _kw_match(p, ["organic", "जैविक", "jaivik", "natural", "compost", "vermi"]):
             return (
                 "🌿 **जैविक खेती (Organic Farming)**\n\n"
                 "**जैविक इनपुट:**\n"
@@ -2430,14 +2503,14 @@ class GeminiService:
             )
 
         # ── GOVERNMENT SCHEMES (GENERAL) ─────────────────────────
-        if any(w in p for w in ["scheme", "योजना", "yojana", "subsidy", "सब्सिडी",
+        if _kw_match(p, ["scheme", "योजना", "yojana", "subsidy", "सब्सिडी",
                                   "government", "सरकार", "benefit", "लाभ"]):
             return (
                 "🏛️ **प्रमुख सरकारी योजनाएं (Government Schemes)**\n\n"
                 "**1. PM-Kisan:** ₹6,000/वर्ष → pmkisan.gov.in\n"
                 "**2. PM Fasal Bima (PMFBY):** 2% प्रीमियम पर फसल बीमा → pmfby.gov.in\n"
                 "**3. KCC (Kisan Credit Card):** ₹3L ऋण @ 4% ब्याज\n"
-                "**4. PM-KUSUM:** 90% सब्सिडी पर सोलर पंप → pmkusum.mnre.gov.in\n"
+                "**4. PM-KUSUM:** केंद्र/राज्य सहायता + वैकल्पिक बैंक ऋण; राज्य का हिस्सा जांचें → pmkusum.mnre.gov.in\n"
                 "**5. Soil Health Card:** निःशुल्क मिट्टी जांच → soilhealth.dac.gov.in\n"
                 "**6. eNAM:** ऑनलाइन मंडी → enam.gov.in\n"
                 "**7. Kisan Samridhi Kendra:** बीज/खाद/बीमा → एक ही छत के नीचे\n\n"
@@ -2446,7 +2519,7 @@ class GeminiService:
             )
 
         # ── CROP ROTATION ─────────────────────────────────────────
-        if any(w in p for w in ["rotation", "फसल चक्र", "fasal chakra", "succession"]):
+        if _kw_match(p, ["rotation", "फसल चक्र", "fasal chakra", "succession"]):
             return (
                 "🔄 **फसल चक्र (Crop Rotation)**\n\n"
                 "**उत्तर भारत (UP/Punjab/Haryana):**\n"
@@ -2464,7 +2537,7 @@ class GeminiService:
             )
 
         # ── STORAGE ───────────────────────────────────────────────
-        if any(w in p for w in ["storage", "warehouse", "भंडारण", "bhandaran", "cold", "silo"]):
+        if _kw_match(p, ["storage", "warehouse", "भंडारण", "bhandaran", "cold", "silo"]):
             return (
                 "🏪 **फसल भंडारण (Crop Storage)**\n\n"
                 "**सरकारी सुविधाएं:**\n"
@@ -2479,7 +2552,7 @@ class GeminiService:
             )
 
         # ── FPO / COOPERATIVE ─────────────────────────────────────
-        if any(w in p for w in ["fpo", "cooperative", "farmer producer", "किसान उत्पादक", "10000"]):
+        if _kw_match(p, ["fpo", "cooperative", "farmer producer", "किसान उत्पादक", "10000"]):
             return (
                 "🤝 **FPO (Farmer Producer Organisation)**\n\n"
                 "• **सरकारी लक्ष्य:** 10,000 FPO गठन (₹6,865 करोड़ बजट)\n"
@@ -2575,8 +2648,14 @@ GOVERNMENT_SCHEMES = [
         "id": "pm-kusum",
         "name": "PM-KUSUM Solar Pump Scheme",
         "name_hindi": "पीएम-कुसुम सोलर पंप योजना",
-        "benefit": "90% subsidy on solar pumps (30% central + 30% state + 30% bank loan)",
-        "benefit_hindi": "सोलर पंप पर 90% सब्सिडी",
+        "benefit": (
+            "Typically 30% central CFA plus at least 30% state subsidy; bank finance "
+            "may cover up to 30%, subject to component and state rules"
+        ),
+        "benefit_hindi": (
+            "आमतौर पर 30% केंद्रीय CFA + कम-से-कम 30% राज्य सहायता; "
+            "30% तक बैंक ऋण संभव, घटक/राज्य नियम लागू"
+        ),
         "eligibility": "Individual farmers, Panchayats, Cooperatives",
         "documents": ["Aadhaar", "Land records", "Bank account"],
         "website": "https://pmkusum.mnre.gov.in",

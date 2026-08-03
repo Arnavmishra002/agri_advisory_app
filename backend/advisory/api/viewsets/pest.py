@@ -7,7 +7,6 @@ from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 
-from ...services.enhanced_pest_detection import pest_detection_service
 from ..location_utils import (
     attach_location_metadata,
     require_confirmed_location,
@@ -31,7 +30,6 @@ class PestDetectionViewSet(viewsets.ViewSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.gov_api = _gov_api_singleton  # use module-level singleton
-        self.pest_service = pest_detection_service
 
     parser_classes = [JSONParser, MultiPartParser, FormParser]
     
