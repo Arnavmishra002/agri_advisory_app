@@ -13,10 +13,12 @@ from advisory.services.chat_intelligence_service import (
     INTENT_MARKET_PRICE,
     INTENT_PEST_DISEASE,
     INTENT_SOWING,
+    INTENT_STORAGE,
     INTENT_WEATHER,
     ChatIntelligenceService,
     SensorContext,
     WeatherConstraints,
+    _has_unverified_market_claim,
     farmer_location_label,
 )
 from advisory.services.location_context import LocationContext
@@ -55,6 +57,38 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
 
         self.assertEqual(intent, INTENT_WEATHER)
         self.assertEqual(crops, [])
+
+    def test_storage_question_wins_over_generic_harvest_wording(self):
+        query = "How can I store wheat safely after harvest?"
+        intent, crops = self.service.classify_query(query)
+
+        self.assertEqual(intent, INTENT_STORAGE)
+        self.assertEqual([crop["id"] for crop in crops], ["wheat"])
+
+        result = self.service.answer(query, self.ctx, language="en", fast_mode=True)
+
+        self.assertEqual(result["intent"], INTENT_STORAGE)
+        self.assertIn("store wheat safely", result["response"].lower())
+        self.assertIn("12-14%", result["response"])
+        self.assertNotIn("Harvest window", result["response"])
+        self.assertNotIn("Current weather", result["response"])
+        self.assertNotIn("3g/quintal", result["response"])
+
+        detailed = self.service.answer(
+            "I have 2 bigha of wheat and no metal bin. How should I store it after harvest?",
+            self.ctx,
+            language="en",
+            fast_mode=True,
+        )
+        self.assertIn("2 bigha", detailed["response"])
+        self.assertIn("do not have a metal bin", detailed["response"])
+
+        chunks = list(self.service.answer_stream(query, self.ctx, language="en"))
+        streamed = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+        self.assertEqual(chunks[-1]["intent"], INTENT_STORAGE)
+        self.assertIn("store wheat safely", streamed.lower())
+        self.assertNotIn("Harvest window", streamed)
+        self.assertNotIn("Agmarknet", chunks[-1].get("sources", []))
 
     def test_generic_mandi_question_does_not_invent_an_apmc_name(self):
         self.assertIsNone(
@@ -131,6 +165,36 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertIn("Yellow Rust", text)
         self.assertNotIn("Karnal Bunt", text)
         self.assertNotIn("Crop recommendations", text)
+        phase1_post.assert_not_called()
+        qwen.assert_not_called()
+
+    @patch("advisory.services.chat_intelligence_service.requests.post")
+    @patch("advisory.services.chat_intelligence_service.ChatIntelligenceService._qwen_rag_answer")
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_hinglish_black_spot_common_word_forms_use_safe_symptom_advisory(
+        self, weather, qwen, phase1_post
+    ):
+        weather.return_value = {
+            "status": "success",
+            "is_live": True,
+            "current": {"temperature": 28},
+            "forecast_7day": [],
+        }
+
+        started = time.monotonic()
+        result = self.service.answer(
+            "tamatar ke patte pe kaale daag hain, kya karun?",
+            self.ctx,
+            language="auto",
+        )
+        elapsed_ms = (time.monotonic() - started) * 1000
+
+        self.assertEqual(result["intent"], INTENT_PEST_DISEASE)
+        self.assertLess(elapsed_ms, 3000)
+        self.assertIn("black or dark spots", result["response"])
+        self.assertIn("Disease classification abhi disabled hai", result["response"])
+        self.assertNotIn("Fruitborer", result["response"])
+        self.assertNotRegex(result["response"], r"\d+(?:\.\d+)?\s*(?:ml|g)/L")
         phase1_post.assert_not_called()
         qwen.assert_not_called()
 
@@ -647,6 +711,39 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(result["ai_data_quality"]["tier"], "verified_realtime")
 
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
+    def test_weather_question_directly_answers_irrigation_decision(self, weather):
+        tomorrow = (datetime.now(tz=timezone.utc) + timedelta(days=1)).date().isoformat()
+        weather.return_value = {
+            "status": "success",
+            "is_live": True,
+            "data_source": "Open-Meteo",
+            "current": {
+                "temperature": 32,
+                "humidity": 70,
+                "wind_speed": 9,
+                "rainfall_mm": 0,
+                "condition": "Cloudy",
+            },
+            "forecast_7day": [{
+                "date": tomorrow,
+                "max_temp": 30,
+                "rainfall_mm": 5,
+                "rain_probability": 88,
+            }],
+            "farming_alerts": [],
+        }
+
+        result = self.service.answer(
+            "What will tomorrow's weather be, and should I irrigate wheat today?",
+            self.ctx,
+            language="en",
+        )
+
+        self.assertIn("88%", result["response"])
+        self.assertIn("Postpone routine irrigation today", result["response"])
+        self.assertNotIn("Weather alone is not enough", result["response"])
+
+    @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
     def test_disease_fallback_never_claims_classification_or_unsourced_dose(self, weather):
         weather.return_value = {
             "status": "fallback",
@@ -709,6 +806,20 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
         self.assertEqual(
             result["chatbot_diagnostics"]["fallback_reason"],
             "unattributed_pesticide_dose_rejected",
+        )
+
+    def test_unverified_generated_market_claim_is_rejected_without_live_feed(self):
+        generated = "Dry the wheat below 14%. The current market rate is Rs 150 per kg."
+
+        self.assertTrue(
+            _has_unverified_market_claim(generated, INTENT_STORAGE, {"is_live": False})
+        )
+        self.assertFalse(
+            _has_unverified_market_claim(
+                "The verified mandi row reports Rs 2,300 per quintal.",
+                INTENT_MARKET_PRICE,
+                {"is_live": True},
+            )
         )
 
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")

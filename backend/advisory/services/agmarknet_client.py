@@ -7,6 +7,7 @@ Used for live mandi prices when data.gov.in is slow or unavailable.
 from __future__ import annotations
 
 import logging
+import os
 import re
 import time
 from datetime import date, datetime, timedelta
@@ -19,7 +20,10 @@ from urllib3.util.retry import Retry
 logger = logging.getLogger(__name__)
 
 AGMARKNET_BASE = "https://api.agmarknet.gov.in/v1"
-DEFAULT_TIMEOUT = (5, 30)  # connect, read seconds
+DEFAULT_TIMEOUT = (
+    max(0.5, float(os.getenv("MANDI_HTTP_CONNECT_TIMEOUT_S", "2"))),
+    max(1.0, float(os.getenv("MANDI_HTTP_READ_TIMEOUT_S", "8"))),
+)  # connect, read seconds; fail fast rather than block advice
 DASHBOARD_NAME = "marketwise_price_arrival"
 MARKET_PRICE_DASHBOARD = "cumm_data_sp"
 

@@ -633,6 +633,7 @@ class FieldSensorService:
                 "soil_suitability":  self._soil_suitability_text(crop_key, soil),
                 "yield_per_hectare": crop.get("yield_per_hectare", 0),
                 "profit_per_hectare": crop.get("profit_per_hectare", 0),
+                "economics_status": "indicative_profile_estimate",
                 "msp_per_quintal":   crop.get("msp_per_quintal", 0),
                 "duration_days":     crop.get("duration_days", 120),
                 "water_requirement": crop.get("water_requirement", "Moderate"),
@@ -1064,7 +1065,7 @@ class FieldSensorService:
     def _list_data_sources(self, sensor_data, govt_soil, om_data) -> List[str]:
         sources = []
         if om_data.get("is_live"):
-            sources.append("Open-Meteo (real-time soil moisture + weather, 1km grid)")
+            sources.append("Open-Meteo (modeled soil moisture + current weather, 1km grid)")
         else:
             sources.append("Open-Meteo unavailable (no weather values substituted)")
         if govt_soil.get("is_live"):
@@ -1080,7 +1081,7 @@ class FieldSensorService:
         sensors = (sensor_data or {}).get("sensors", sensor_data or {})
         if not sensors:
             return {"quality": "None", "completeness_pct": 0,
-                    "message": "No sensor data — using government + satellite sources"}
+                    "message": "No sensor data — using government data and modeled weather-grid values"}
         sensor_meta = sensor_data.get("_sensor_meta", {})
         fields = ["nitrogen_kg_ha","phosphorus_kg_ha","potassium_kg_ha",
                   "ph","ec_ds_m","moisture_pct","organic_carbon","soil_temp_c"]

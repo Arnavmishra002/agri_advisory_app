@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -189,9 +189,25 @@ class AgmarknetDirectClient:
     def _fetch_live(self) -> Optional[List[Dict[str, Any]]]:
         """Try the live API. Returns records list or None on any failure."""
         try:
+            # These are Agmarknet's documented "All" selector IDs. Sending the
+            # complete dashboard contract mirrors the official web request and
+            # avoids relying on implicit backend defaults.
+            payload = {
+                "dashboard": DASHBOARD,
+                "date": date.today().isoformat(),
+                "group": [100000],
+                "commodity": [100001],
+                "state": 100006,
+                "district": [100007],
+                "market": [100009],
+                "variety": 100021,
+                "grades": [4],
+                "format": "json",
+                "limit": 100,
+            }
             resp = self.session.post(
                 AGMARKNET_API_URL,
-                json={"dashboard": DASHBOARD, "limit": 50},
+                json=payload,
                 timeout=REQUEST_TIMEOUT,
             )
             resp.raise_for_status()
