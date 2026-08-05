@@ -67,7 +67,18 @@ def _make_chat_feedback_token(session_id: str, query: str, response: str) -> str
 
 # ── Celery availability flag ──────────────────────────────────
 # Checked once at import time; avoids per-request os.getenv overhead.
-_USE_CELERY = bool(os.getenv("CELERY_BROKER_URL") or os.getenv("REDIS_URL"))
+#
+# IMPORTANT: async dispatch requires a running Celery WORKER to consume the
+# task — otherwise the post-response DB writes (chat memory + interaction log)
+# are enqueued and never executed. We therefore require an EXPLICIT opt-in
+# (CHAT_ASYNC_WRITES=true) instead of inferring "Celery is usable" from the mere
+# presence of REDIS_URL — which is also set purely for the Django cache. Without
+# this gate, prod set REDIS_URL for caching, _USE_CELERY became True, and
+# `.delay()` tried to reach Celery's DEFAULT broker (amqp://localhost, which
+# does not exist) → Connection refused → unhandled 500 on every chat request.
+# Regardless of this flag, _dispatch_writes falls back to synchronous writes if
+# a dispatch ever fails, so a mis-set flag or a down broker can never 500.
+_USE_CELERY = os.getenv("CHAT_ASYNC_WRITES", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _ai_tier_label(data_source: str) -> str:
@@ -107,56 +118,30 @@ def _dispatch_writes(
     process AFTER the HTTP response has already been returned to the farmer,
     shaving 15–90 ms off every chatbot response.
 
-    When Redis is absent (local dev / CI) the writes happen synchronously so
-    the dev experience is unchanged.
+    When Celery is not enabled (the default) the writes happen synchronously so
+    the dev experience is unchanged. If async dispatch is enabled but the broker
+    or worker is unreachable, we fall back to the synchronous path rather than
+    letting the exception bubble up and 500 the whole chat response.
     """
-    if _USE_CELERY:
-        from ...tasks import persist_turn, log_interaction
+
+    def _write_sync():
+        # Synchronous inline path — always safe, never raises out of here.
         if session_id:
-            persist_turn.delay(
-                session_id=session_id,
-                user_id=user_id,
-                user_query=user_query,
-                ai_response=ai_response,
-                intent=intent,
-                language=language,
-                data_source=data_source,
-                latitude=latitude,
-                longitude=longitude,
-                context_update=context_update,
-            )
-        log_interaction.delay(
-            session_id=session_id or "anon",
-            phone_number=phone_number,
-            location_name=location_name,
-            state=state,
-            latitude=latitude,
-            longitude=longitude,
-            query=user_query,
-            response=ai_response,
-            intent=intent,
-            language=language,
-            crops_detected=crops_detected,
-            ai_tier=ai_tier,
-            data_source=data_source,
-            season=season,
-            response_time_ms=response_time_ms,
-        )
-    else:
-        # Synchronous inline path — identical to original behaviour
-        if session_id:
-            session_memory.save_turn(
-                session_id=session_id,
-                user_id=user_id,
-                user_query=user_query,
-                ai_response=ai_response,
-                intent=intent,
-                language=language,
-                data_source=data_source,
-                latitude=latitude,
-                longitude=longitude,
-            )
-            session_memory.update_session_context(session_id, context_update)
+            try:
+                session_memory.save_turn(
+                    session_id=session_id,
+                    user_id=user_id,
+                    user_query=user_query,
+                    ai_response=ai_response,
+                    intent=intent,
+                    language=language,
+                    data_source=data_source,
+                    latitude=latitude,
+                    longitude=longitude,
+                )
+                session_memory.update_session_context(session_id, context_update)
+            except Exception as mem_exc:
+                logger.warning("Session memory write failed (non-fatal): %s", mem_exc)
         try:
             from ...models import FarmerInteractionLog
             FarmerInteractionLog.objects.create(
@@ -178,6 +163,51 @@ def _dispatch_writes(
             )
         except Exception as log_exc:
             logger.debug("Interaction log write failed (non-fatal): %s", log_exc)
+
+    if _USE_CELERY:
+        try:
+            from ...tasks import persist_turn, log_interaction
+            if session_id:
+                persist_turn.delay(
+                    session_id=session_id,
+                    user_id=user_id,
+                    user_query=user_query,
+                    ai_response=ai_response,
+                    intent=intent,
+                    language=language,
+                    data_source=data_source,
+                    latitude=latitude,
+                    longitude=longitude,
+                    context_update=context_update,
+                )
+            log_interaction.delay(
+                session_id=session_id or "anon",
+                phone_number=phone_number,
+                location_name=location_name,
+                state=state,
+                latitude=latitude,
+                longitude=longitude,
+                query=user_query,
+                response=ai_response,
+                intent=intent,
+                language=language,
+                crops_detected=crops_detected,
+                ai_tier=ai_tier,
+                data_source=data_source,
+                season=season,
+                response_time_ms=response_time_ms,
+            )
+        except Exception as dispatch_exc:
+            # Broker/worker unreachable (e.g. Connection refused). Never let a
+            # background-write dispatch failure break the farmer's response —
+            # persist synchronously instead.
+            logger.warning(
+                "Async write dispatch failed (%s); writing synchronously instead.",
+                dispatch_exc,
+            )
+            _write_sync()
+    else:
+        _write_sync()
 
 
 # ── Shared request-parsing helper ────────────────────────────

@@ -210,6 +210,11 @@ class WeatherService:
     """Real-time weather from Open-Meteo (FREE, no key) + OpenWeatherMap fallback"""
 
     OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+    # MET Norway — keyless, highly reliable, DIFFERENT egress infra than
+    # Open-Meteo. Used as an automatic fallback when Open-Meteo is unreachable
+    # or rate-limits our host (Render's shared egress IPs are frequently
+    # throttled by Open-Meteo, which caused "weather unavailable" in prod).
+    MET_NO_URL = "https://api.met.no/weatherapi/locationforecast/2.0/compact"
     OWM_URL = "https://api.openweathermap.org/data/2.5/forecast"
     GEOCODING_URL = "https://nominatim.openstreetmap.org/search"
 
@@ -256,6 +261,12 @@ class WeatherService:
 
             # Try Open-Meteo first (FREE, highly reliable)
             data = self._fetch_open_meteo(lat, lon, location, lang=lang)
+            if data:
+                return data
+
+            # Fallback: MET Norway (keyless, different infra — covers the case
+            # where Open-Meteo throttles our shared egress IP)
+            data = self._fetch_met_no(lat, lon, location, lang=lang)
             if data:
                 return data
 
@@ -447,6 +458,152 @@ class WeatherService:
             logger.error(f"Open-Meteo error: {e}")
             return None
 
+    def _fetch_met_no(self, lat: float, lon: float, location: str,
+                      lang: str = "hi") -> Optional[Dict]:
+        """MET Norway locationforecast — keyless, reliable 7-day fallback.
+
+        Mirrors the Open-Meteo output shape so callers/frontend are unchanged.
+        Requires a descriptive User-Agent (already set on the session).
+        """
+        try:
+            resp = self.session.get(
+                self.MET_NO_URL,
+                params={"lat": round(float(lat), 4), "lon": round(float(lon), 4)},
+                timeout=8,
+            )
+            if resp.status_code != 200:
+                return None
+
+            series = (
+                (resp.json().get("properties") or {}).get("timeseries") or []
+            )
+            if not series:
+                return None
+
+            # ── current (first timeseries entry) ──────────────────────────
+            first = series[0]
+            inst = ((first.get("data") or {}).get("instant") or {}).get("details") or {}
+            n1 = ((first.get("data") or {}).get("next_1_hours") or {})
+            n6 = ((first.get("data") or {}).get("next_6_hours") or {})
+            symbol = (
+                (n1.get("summary") or {}).get("symbol_code")
+                or (n6.get("summary") or {}).get("symbol_code")
+                or ""
+            )
+            wcode = _met_symbol_to_wmo(symbol)
+            cur_rain = (n1.get("details") or {}).get("precipitation_amount")
+            if cur_rain is None:
+                cur_rain = (n6.get("details") or {}).get("precipitation_amount", 0)
+            wind_ms = inst.get("wind_speed")
+            current_data = {
+                "temperature": inst.get("air_temperature"),
+                "feels_like": inst.get("air_temperature"),
+                "humidity": inst.get("relative_humidity"),
+                "rainfall_mm": cur_rain or 0,
+                "wind_speed": round(wind_ms * 3.6, 1) if wind_ms is not None else None,
+                "wind_direction": inst.get("wind_from_direction"),
+                "uv_index": inst.get("ultraviolet_index_clear_sky"),
+                "pressure": inst.get("air_pressure_at_sea_level"),
+                "condition": _wmo_to_condition(wcode),
+                "condition_local": _wmo_to_condition_local(wcode, lang),
+            }
+
+            # ── aggregate a 7-day forecast (group by IST calendar date) ───
+            days: Dict[str, Dict[str, Any]] = {}
+            order: List[str] = []
+            for entry in series:
+                t = entry.get("time")
+                if not t:
+                    continue
+                try:
+                    dt_utc = datetime.fromisoformat(t.replace("Z", "+00:00"))
+                except Exception:
+                    continue
+                dt_ist = dt_utc + timedelta(hours=5, minutes=30)
+                dkey = dt_ist.date().isoformat()
+                data = entry.get("data") or {}
+                det = (data.get("instant") or {}).get("details") or {}
+                temp = det.get("air_temperature")
+                wind = det.get("wind_speed")
+                _n1 = data.get("next_1_hours") or {}
+                _n6 = data.get("next_6_hours") or {}
+                rain = (_n1.get("details") or {}).get("precipitation_amount")
+                if rain is None:
+                    rain = (_n6.get("details") or {}).get("precipitation_amount")
+                sym = (
+                    (_n1.get("summary") or {}).get("symbol_code")
+                    or (_n6.get("summary") or {}).get("symbol_code")
+                )
+                if dkey not in days:
+                    days[dkey] = {
+                        "max": None, "min": None, "rain": 0.0,
+                        "wind": None, "noon_sym": None, "any_sym": None,
+                    }
+                    order.append(dkey)
+                d = days[dkey]
+                if temp is not None:
+                    d["max"] = temp if d["max"] is None else max(d["max"], temp)
+                    d["min"] = temp if d["min"] is None else min(d["min"], temp)
+                if wind is not None:
+                    w_kmh = round(wind * 3.6, 1)
+                    d["wind"] = w_kmh if d["wind"] is None else max(d["wind"], w_kmh)
+                if rain:
+                    d["rain"] += rain
+                if sym:
+                    d["any_sym"] = d["any_sym"] or sym
+                    if 9 <= dt_ist.hour <= 15:   # prefer a daytime symbol
+                        d["noon_sym"] = sym
+
+            forecast: List[Dict[str, Any]] = []
+            for dkey in order[:7]:
+                d = days[dkey]
+                code = _met_symbol_to_wmo(d["noon_sym"] or d["any_sym"] or "")
+                forecast.append({
+                    "date": dkey,
+                    "max_temp": d["max"],
+                    "min_temp": d["min"],
+                    "rainfall_mm": round(d["rain"], 1),
+                    "rain_probability": None,   # not provided by compact endpoint
+                    "wind_speed": d["wind"],
+                    "uv_index": None,
+                    "condition": _wmo_to_condition(code),
+                    "condition_local": _wmo_to_condition_local(code, lang),
+                    "farming_advice": translate_farming_advice(
+                        d["max"], None, d["rain"], code, lang
+                    ),
+                })
+
+            farming_advice = translate_farming_advice(
+                current_data["temperature"],
+                current_data["humidity"],
+                current_data["rainfall_mm"],
+                wcode,
+                lang,
+            )
+            return {
+                "status": "success",
+                "is_live": True,
+                "location": location,
+                "latitude": lat,
+                "longitude": lon,
+                "data_source": "MET Norway (Real-time, Free)",
+                "provider": "met-norway",
+                "observation_time": first.get("time"),
+                "freshness": "live",
+                "is_stale": False,
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                "language": lang,
+                "current": current_data,
+                "current_weather": current_data,
+                "forecast_7day": forecast,
+                "forecast_7_days": forecast,
+                "farming_advice": farming_advice,
+                "farming_alerts": _generate_farming_alerts(forecast, lang=lang),
+            }
+        except Exception as e:
+            logger.error(f"MET Norway error: {e}")
+            return None
+
     def _fetch_owm(self, lat: float, lon: float, location: str,
                    lang: str = "hi") -> Optional[Dict]:
         """OpenWeatherMap fallback"""
@@ -576,6 +733,41 @@ def _wmo_to_condition_local(code: int, lang: str = "hi") -> str:
 def _wmo_to_condition_hindi(code: int) -> str:
     """Legacy Hindi alias — kept for backward compatibility."""
     return _wmo_to_condition_local(code, "hi")
+
+
+def _met_symbol_to_wmo(symbol: str) -> int:
+    """Map a MET Norway symbol_code (e.g. 'heavyrain_day') to a WMO code so the
+    existing condition/translation helpers can be reused unchanged."""
+    s = (symbol or "").split("_")[0].lower()
+    if not s:
+        return 3
+    if "thunder" in s:
+        return 96 if "heavy" in s else 95
+    if "sleet" in s:
+        return 65 if "heavy" in s else 63
+    if "snow" in s:
+        if "heavy" in s:
+            return 75
+        if "light" in s:
+            return 71
+        return 73
+    if "rain" in s or "drizzle" in s:
+        if "heavy" in s:
+            return 65
+        if "light" in s:
+            return 61
+        return 63
+    if s == "fog":
+        return 45
+    if s == "cloudy":
+        return 3
+    if s == "partlycloudy":
+        return 2
+    if s == "fair":
+        return 1
+    if s == "clearsky":
+        return 0
+    return 3
 
 def _get_farming_advice(weather_code: int, rainfall: float, max_temp: float) -> str:
     if weather_code in [95, 96, 99]:
