@@ -1704,6 +1704,33 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 query, intent, crops_mentioned, ctx, context_block, lang, history,
                 sc=sc, wc=wc,
             )
+            # ── Narration layer ────────────────────────────────────────────
+            # The structured engine computes the FACTS (crop scores from live
+            # weather/soil/land, sowing windows, storage rules).  Emitting its
+            # template verbatim reads like canned output and often does not
+            # answer what the farmer actually asked.  When a model is
+            # configured we therefore keep the computed facts and let the model
+            # phrase the reply to the specific question.  The structured text
+            # is the ONLY factual source given to it, so no number can be
+            # invented, and any failure falls straight back to the template.
+            # Sowing, storage and fast_mode have a deliberate deterministic
+            # fast path: a fixed calendar/seed-rate answer returned in under a
+            # second with no model and no network call.  Narration would add
+            # latency and variance to answers that are meant to be identical
+            # every time, so those intents keep the structured text verbatim.
+            _deterministic_only = (
+                fast_mode
+                or intent == INTENT_SOWING
+                or intent == INTENT_STORAGE
+            )
+            narrated = "" if _deterministic_only else self._narrate_structured_answer(
+                query=query, structured=response_text, intent=intent,
+                ctx=ctx, sc=sc, wc=wc, lang=lang, season=season,
+                market_price_str=market_str, history_block=history_block,
+                prices_data=prices_data,
+            )
+            if narrated:
+                response_text = narrated
             if intent == INTENT_MARKET_PRICE and prices_data.get("is_live"):
                 data_source = "Verified realtime mandi data + KrishiMitra rules"
             elif intent == INTENT_WEATHER and weather_data.get("is_live"):
@@ -3425,6 +3452,77 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         return "\n".join(lines), list(dict.fromkeys(sources))
 
     # ── Intelligent rule-based response (no Gemini needed) ───────
+
+    def _narrate_structured_answer(
+        self, *, query, structured, intent, ctx, sc, wc, lang, season,
+        market_price_str, history_block, prices_data,
+    ):
+        """Let a model phrase the structured advisory as an answer to THIS question.
+
+        Returns "" when no model is configured or anything goes wrong, so the
+        caller keeps the deterministic structured text unchanged.
+
+        The model receives the computed advisory as its only factual source.
+        It is told to reuse those numbers verbatim and invent nothing, so the
+        reply gains conversational shape without gaining new claims.
+        """
+        if not structured or not str(structured).strip():
+            return ""
+
+        system = (
+            "You are KrishiMitra, an agricultural advisor for Indian farmers. "
+            "You are given a VERIFIED ADVISORY produced by a deterministic engine "
+            "from live weather, soil and market data, plus the farmer's question.\n"
+            "Rewrite it as a direct answer to the question actually asked.\n"
+            "Rules you must follow:\n"
+            "1. Every number, crop name, price, temperature, date and dose must be "
+            "copied exactly from the verified advisory. Never invent or adjust one.\n"
+            "2. If the advisory does not contain something the farmer asked about, "
+            "say plainly that it is not available. Never fill the gap from memory.\n"
+            "3. Lead with the direct answer, then the reasoning. Do not restate the "
+            "question back at them.\n"
+            "4. Keep any warning about unavailable or dated data.\n"
+            "5. Write in the same language and script as the question.\n"
+            "6. Be specific and practical. Avoid generic filler and avoid repeating "
+            "the advisory's layout as a list if prose answers the question better."
+        )
+        prompt = (
+            f"FARMER'S QUESTION:\n{query}\n\n"
+            f"VERIFIED ADVISORY (your only source of facts):\n{structured}\n\n"
+            f"LIVE CONTEXT: season={season}; location={getattr(ctx, 'display_name', '')}, "
+            f"{getattr(ctx, 'district', '')}, {getattr(ctx, 'state', '')}\n"
+            f"MARKET: {market_price_str or 'not available'}\n"
+            f"{history_block or ''}\n\n"
+            "Answer the farmer's question now, using only the facts above."
+        )
+
+        for svc, keychk, label in (
+            (claude_service, _is_valid_anthropic_key, "claude_narrated"),
+            (gemini_service, _is_valid_gemini_key, "gemini_narrated"),
+            (open_llm_service, _is_valid_open_llm_key, "open_llm_narrated"),
+        ):
+            try:
+                if svc is None or not keychk(getattr(svc, "api_key", "")):
+                    continue
+                out = _safe_model_text(
+                    svc.generate(prompt=prompt, system_prompt=system,
+                                 max_tokens=1200, user_query=query, temperature=0.25),
+                    intent, lang,
+                )
+                if not out or not out.strip():
+                    continue
+                # Same truthfulness guard as every other tier.
+                if _has_unverified_market_claim(out, intent, prices_data):
+                    logger.warning("%s narration made an unverified market claim; "
+                                   "keeping structured text", label)
+                    continue
+                _set_chat_meta(selected_tier=label, fallback_reason="")
+                return out.strip()
+            except Exception as exc:
+                logger.warning("Narration via %s failed: %s", label, exc)
+                continue
+        return ""
+
 
     def _smart_rule_response(
         self,

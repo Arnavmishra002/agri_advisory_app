@@ -54,9 +54,13 @@ DATA_GOV_DEMO_KEY = "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b"
 _GEOCODE_CACHE_TTL = 60 * 60 * 24 * 7   # 7 days — location→coords is stable
 DATA_GOV_TIMEOUT  = (5, 25)  # connect, read seconds
 OPENWEATHER_KEY   = os.getenv("OPENWEATHER_API_KEY", "")
-GEMINI_MODEL      = os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
-GEMINI_FLASH      = os.getenv("GEMINI_FLASH_MODEL", "gemini-1.5-flash")
-GEMINI_MODELS_CHAIN = [GEMINI_MODEL, GEMINI_FLASH, "gemini-pro"]  # Fallback chain
+# The gemini-1.5-* names were retired and now return 404 on the v1beta
+# endpoint, which made every Gemini call fail silently and fall through to the
+# rule engine.  The "-latest" aliases track whatever Google currently serves,
+# so they do not go stale the same way.
+GEMINI_MODEL      = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+GEMINI_FLASH      = os.getenv("GEMINI_FLASH_MODEL", "gemini-2.0-flash")
+GEMINI_MODELS_CHAIN = [GEMINI_MODEL, GEMINI_FLASH, "gemini-pro-latest"]
 IOT_DEMO_ENV      = "KRISHIMITRA_ENABLE_IOT_DEMO"
 
 
@@ -1120,12 +1124,26 @@ class MarketPricesService:
         state: Optional[str] = None,
     ) -> Dict[str, Any]:
         registered = self._has_registered_data_gov_key()
-        msg = (
-            "Current official mandi prices are unavailable. Configure a valid "
-            "DATA_GOV_IN_API_KEY for state and mandi coverage, then try again. "
-            "No estimated price is being shown. Any older official rows are "
-            "displayed separately with their reported date and coverage."
-        )
+        # Be accurate about WHY nothing live is available.  Agmarknet reaches us
+        # without any key, so blaming a missing DATA_GOV_IN_API_KEY when the
+        # real cause is simply that the source has not published a newer row
+        # sends the operator chasing the wrong problem.
+        if registered:
+            msg = (
+                "No mandi row inside the current freshness window. The official "
+                "source has not published a newer figure yet. No estimated price "
+                "is being shown. Any older official rows are displayed separately "
+                "with their reported date and coverage."
+            )
+        else:
+            msg = (
+                "No mandi row inside the current freshness window. Agmarknet is "
+                "queried without a key, so this usually means the source has not "
+                "published newer data yet; adding a DATA_GOV_IN_API_KEY widens "
+                "state and mandi coverage. No estimated price is being shown. Any "
+                "older official rows are displayed separately with their reported "
+                "date and coverage."
+            )
         if crop:
             msg = (
                 f"No live mandi row for '{crop}' in this state today. "
@@ -2287,7 +2305,11 @@ class GeminiService:
         max_tokens: int,
         temperature: float = 0.7,
     ) -> Optional[str]:
-        url = f"{self.BASE_URL}/models/{model}:generateContent?key={self.api_key}"
+        # Pass the key in the X-goog-api-key header rather than the ?key= query
+        # parameter.  Both are accepted for classic AIza... keys, but the newer
+        # AQ.* credentials Google now issues only authenticate via the header,
+        # and a key in the query string is also more likely to end up in logs.
+        url = f"{self.BASE_URL}/models/{model}:generateContent"
 
         # Truncate prompt to avoid token-limit rejections (~30k char ≈ ~7k tokens)
         _MAX_PROMPT_CHARS = 30_000
@@ -2322,7 +2344,11 @@ class GeminiService:
                 "parts": [{"text": system_prompt}]
             }
 
-        resp = self.session.post(url, json=payload, timeout=30)
+        resp = self.session.post(
+            url, json=payload, timeout=30,
+            headers={"X-goog-api-key": self.api_key,
+                     "Content-Type": "application/json"},
+        )
         if resp.status_code == 200:
             data = resp.json()
 

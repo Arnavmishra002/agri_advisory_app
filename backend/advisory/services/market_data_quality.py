@@ -16,6 +16,9 @@ def max_market_age_hours() -> float:
     try:
         # Agmarknet is a daily feed.  A row older than one calendar day is a
         # dated reference, not a current price, even when it is official.
+        # NOTE: the source itself often lags 1-2 days, so on many days there is
+        # legitimately no "live" row.  That is surfaced as a dated official
+        # reference carrying its published date, never relabelled as current.
         return max(1.0, float(os.getenv("MANDI_MAX_DATA_AGE_HOURS", "24")))
     except (TypeError, ValueError):
         return 24.0
