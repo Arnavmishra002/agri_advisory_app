@@ -344,7 +344,8 @@ class DiagnosticViewSet(viewsets.ViewSet):
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
 
-            # Persist feedback to ExpertVerification for Active Learning
+            # Farmer feedback creates a pending expert-review item. It must
+            # never verify a diagnosis or become training data automatically.
             try:
                 diagnostic = DiagnosticSession.objects.filter(session_id=session_id).first()
                 if not diagnostic:
@@ -363,14 +364,16 @@ class DiagnosticViewSet(viewsets.ViewSet):
                         status=status.HTTP_403_FORBIDDEN,
                     )
                 from ...models import ExpertVerification
-                from django.utils import timezone
                 ExpertVerification.objects.update_or_create(
                     diagnostic_session=diagnostic,
                     defaults={
-                        'is_verified': True,
+                        'is_verified': False,
                         'expert_diagnosis': correct_diagnosis if not is_correct else diagnostic.final_diagnosis,
-                        'expert_notes': f"User feedback: is_correct={is_correct}",
-                        'verified_at': timezone.now(),
+                        'expert_notes': (
+                            "Farmer feedback pending agronomist review: "
+                            f"is_correct={is_correct}"
+                        ),
+                        'verified_at': None,
                     }
                 )
                 logger.info(
@@ -386,7 +389,9 @@ class DiagnosticViewSet(viewsets.ViewSet):
 
             return Response({
                 'status': 'success',
-                'message': 'Feedback recorded for Active Learning',
+                'message': 'Feedback queued for agronomist review',
+                'review_status': 'pending_agronomist_review',
+                'training_eligible': False,
                 'session_id': session_id,
                 'is_correct': is_correct,
             })

@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
-import tensorflow as tf
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -26,7 +25,6 @@ from sklearn.metrics import (
     recall_score,
 )
 
-from .augmentation import decode_and_resize, preprocess_val
 from .config import (
     DEFAULT_DATA_DIR,
     DEFAULT_MODEL_DIR,
@@ -34,9 +32,10 @@ from .config import (
     METRICS_FILENAME,
     MODEL_FILENAME,
     SEED,
+    UNKNOWN_LABEL,
 )
-from .dataset_loader import build_splits
 from .labels import load_labels
+from .model_metadata import load_model_metadata
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -104,7 +103,45 @@ def _limit_test_samples(
     return [path for _, path, _ in selected], [label for _, _, label in selected]
 
 
+def _align_test_labels(dataset, model_class_names, allow_partial: bool = False):
+    """Map dataset label indices to the model's persisted label order."""
+    model_index = {name: index for index, name in enumerate(model_class_names)}
+    test_label_names = {
+        dataset.class_names[int(label)] for label in dataset.test.labels
+    }
+    missing_from_dataset = sorted(set(model_class_names) - test_label_names)
+    unsupported_by_model = sorted(test_label_names - set(model_class_names))
+    if not allow_partial and (missing_from_dataset or unsupported_by_model):
+        details = []
+        if missing_from_dataset:
+            details.append("model labels without test samples: " + ", ".join(missing_from_dataset))
+        if unsupported_by_model:
+            details.append("dataset labels absent from model: " + ", ".join(unsupported_by_model))
+        raise ValueError("Evaluation label contract mismatch; " + "; ".join(details))
+
+    paths, labels = [], []
+    for path, dataset_label in zip(dataset.test.paths, dataset.test.labels):
+        label_name = dataset.class_names[int(dataset_label)]
+        if label_name in model_index:
+            paths.append(str(path))
+            labels.append(model_index[label_name])
+    return paths, labels, missing_from_dataset, unsupported_by_model
+
+
+def _top_k_accuracy(all_true, probabilities, k: int = 3) -> float:
+    if not all_true:
+        return 0.0
+    probs = np.asarray(probabilities)
+    top_k = np.argsort(probs, axis=1)[:, -min(k, probs.shape[1]) :]
+    true = np.asarray(all_true).reshape(-1, 1)
+    return float(np.mean(np.any(top_k == true, axis=1)))
+
+
 def _load_test_batch(paths, labels, batch_size=32):
+    import tensorflow as tf
+
+    from .augmentation import preprocess_val
+
     images, ys = [], []
     for path, y in zip(paths, labels):
         img_bytes = tf.io.read_file(path)
@@ -121,7 +158,13 @@ def evaluate(
     model_dir: Path,
     data_dir: Path,
     max_test_samples: Optional[int] = None,
+    allow_partial_labels: bool = False,
 ) -> dict:
+    import tensorflow as tf
+
+    from .augmentation import preprocess_val
+    from .dataset_loader import build_splits
+
     model_path = model_dir / MODEL_FILENAME
     if not model_path.exists():
         model_path = model_dir / "checkpoints" / "best.keras"
@@ -134,9 +177,19 @@ def evaluate(
         dataset = build_splits(data_dir)
         class_names = dataset.class_names
 
+    if model.output_shape[-1] != len(class_names):
+        raise ValueError(
+            f"Model output count ({model.output_shape[-1]}) does not match "
+            f"class_labels.json ({len(class_names)})."
+        )
+
     dataset = build_splits(data_dir)
-    test_paths = [str(p) for p in dataset.test.paths]
-    test_labels = dataset.test.labels
+    (
+        test_paths,
+        test_labels,
+        missing_from_dataset,
+        unsupported_by_model,
+    ) = _align_test_labels(dataset, class_names, allow_partial=allow_partial_labels)
     available_test_samples = len(test_paths)
     test_paths, test_labels = _limit_test_samples(
         test_paths,
@@ -146,7 +199,13 @@ def evaluate(
 
     all_preds = []
     all_true = []
+    all_probs = []
     batch_size = 32
+    metadata = load_model_metadata(model_dir, class_names)
+    input_shape = model.input_shape[0] if isinstance(model.input_shape, list) else model.input_shape
+    image_height = int(input_shape[1] or 224)
+    image_width = int(input_shape[2] or 224)
+    preprocess_mode = metadata.get("preprocess") or "efficientnet"
 
     for i in range(0, len(test_paths), batch_size):
         batch_p = test_paths[i : i + batch_size]
@@ -155,13 +214,14 @@ def evaluate(
         for path in batch_p:
             img_bytes = tf.io.read_file(path)
             img = tf.io.decode_image(img_bytes, channels=3, expand_animations=False)
-            img = tf.image.resize(img, [224, 224])
+            img = tf.image.resize(img, [image_height, image_width])
             img = tf.cast(img, tf.float32)
-            img, _ = preprocess_val(img, 0)
+            img, _ = preprocess_val(img, 0, preprocess_mode=preprocess_mode)
             imgs.append(img.numpy())
         X = np.stack(imgs, axis=0)
         probs = model.predict(X, verbose=0)
         preds = np.argmax(probs, axis=1)
+        all_probs.extend(probs.tolist())
         all_preds.extend(preds.tolist())
         all_true.extend(batch_y)
 
@@ -169,6 +229,7 @@ def evaluate(
     prec = precision_score(all_true, all_preds, average="weighted", zero_division=0)
     rec = recall_score(all_true, all_preds, average="weighted", zero_division=0)
     f1 = f1_score(all_true, all_preds, average="weighted", zero_division=0)
+    top3 = _top_k_accuracy(all_true, all_probs, k=3)
     n_classes = len(class_names)
     label_ids = list(range(n_classes))
     cm = confusion_matrix(all_true, all_preds, labels=label_ids).tolist()
@@ -181,9 +242,17 @@ def evaluate(
         output_dict=True,
     )
     per_class = _per_class_metrics(all_true, all_preds, class_names)
+    non_plant_test_samples = int(
+        per_class.get(UNKNOWN_LABEL, {}).get("support", 0)
+    )
+    all_classes_evaluated = all(
+        item.get("support", 0) > 0 for item in per_class.values()
+    )
 
     metrics = {
         "accuracy": float(acc),
+        "evaluation_accuracy": float(acc),
+        "evaluation_top3_accuracy": top3,
         "precision_weighted": float(prec),
         "recall_weighted": float(rec),
         "f1_weighted": float(f1),
@@ -200,6 +269,10 @@ def evaluate(
         "evaluation_limited": bool(
             max_test_samples and len(all_true) < available_test_samples
         ),
+        "all_classes_evaluated": all_classes_evaluated,
+        "non_plant_test_samples": non_plant_test_samples,
+        "missing_model_labels_in_test": missing_from_dataset,
+        "unsupported_dataset_labels": unsupported_by_model,
     }
 
     metrics_path = model_dir / METRICS_FILENAME
@@ -250,8 +323,18 @@ def main():
         default=None,
         help="Evaluate a deterministic subset for quick local/CI smoke checks.",
     )
+    parser.add_argument(
+        "--allow-partial-labels",
+        action="store_true",
+        help="Debug only: evaluate overlapping labels instead of failing on label drift.",
+    )
     args = parser.parse_args()
-    evaluate(args.model_dir, args.data_dir, max_test_samples=args.max_test_samples)
+    evaluate(
+        args.model_dir,
+        args.data_dir,
+        max_test_samples=args.max_test_samples,
+        allow_partial_labels=args.allow_partial_labels,
+    )
 
 
 if __name__ == "__main__":

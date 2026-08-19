@@ -27,7 +27,13 @@ class DiseaseDiagnosisSafetyTests(TestCase):
             state="Uttar Pradesh",
         )
 
-    @patch.dict("os.environ", {"ML_ALLOW_UNVERIFIED_MODEL": "false"})
+    @patch.dict(
+        "os.environ",
+        {
+            "DISEASE_CLASSIFICATION_ENABLED": "true",
+            "ML_ALLOW_UNVERIFIED_MODEL": "false",
+        },
+    )
     def test_unverified_model_is_blocked_before_prediction(self):
         predictor = CropDiseasePredictor.__new__(CropDiseasePredictor)
         predictor.model = object()
@@ -45,6 +51,19 @@ class DiseaseDiagnosisSafetyTests(TestCase):
         self.assertEqual(result["confidence"], 0.0)
         self.assertEqual(result["top_predictions"], [])
         self.assertEqual(result["model_quality"], "needs_retraining")
+
+    @patch.dict("os.environ", {"DISEASE_CLASSIFICATION_ENABLED": "false"})
+    def test_feature_flag_blocks_even_a_production_candidate(self):
+        predictor = CropDiseasePredictor.__new__(CropDiseasePredictor)
+        predictor.model = object()
+        predictor.class_names = ["wheat__rust"]
+        predictor.metadata = {"quality": "production_candidate"}
+
+        result = predictor.predict(b"not-a-real-image", skip_validation=True)
+
+        self.assertEqual(result["status"], "classification_disabled")
+        self.assertEqual(result["confidence"], 0.0)
+        self.assertEqual(result["top_predictions"], [])
 
     def test_missing_model_fallback_does_not_expose_fake_disease_or_confidence(self):
         result = self._diagnose_with_ml_status("model_unavailable")
@@ -71,5 +90,12 @@ class DiseaseDiagnosisSafetyTests(TestCase):
 
         self.assertEqual(result["status"], "advisory_fallback")
         self.assertEqual(result["diagnosis"][0]["name"], "Disease model unavailable")
+        self.assertEqual(result["diagnosis"][0]["confidence"], 0.0)
+        self.assertEqual(result["diagnosis"][0]["source"], "safety")
+
+    def test_disabled_classifier_uses_honest_advisory_fallback(self):
+        result = self._diagnose_with_ml_status("classification_disabled")
+
+        self.assertEqual(result["status"], "advisory_fallback")
         self.assertEqual(result["diagnosis"][0]["confidence"], 0.0)
         self.assertEqual(result["diagnosis"][0]["source"], "safety")

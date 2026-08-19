@@ -396,7 +396,7 @@ class SMSIVRViewSet(viewsets.ViewSet):
             )
 
     def _build_location_context(self, phone: str):
-        """Build a LocationContext from the farmer's profile, or default Delhi."""
+        """Build a LocationContext from the farmer profile without substitution."""
         try:
             from ...models import FarmerProfile
             from ...services.location_context import LocationContext
@@ -407,14 +407,18 @@ class SMSIVRViewSet(viewsets.ViewSet):
                     longitude=p.longitude,
                     display_name=p.location_name or p.district or p.state or "India",
                     state=p.state or "",
+                    source="farmer_profile",
+                    confidence=1.0,
                 )
         except Exception:
             pass
-        # Default: Delhi
         from ...services.location_context import LocationContext
         return LocationContext(
-            latitude=28.6139, longitude=77.2090,
-            display_name="Delhi", state="Delhi",
+            latitude=None,
+            longitude=None,
+            display_name="",
+            source="unconfirmed",
+            confidence=0.0,
         )
 
     def _send_whatsapp_reply(self, to: str, text: str) -> None:
@@ -683,8 +687,11 @@ class TextToSpeechViewSet(viewsets.ViewSet):
 
             history = session_memory.load_history(session_id, limit=6) if session_id else []
             ctx = LocationContext(
-                latitude=28.6139, longitude=77.2090,
-                display_name="India",
+                latitude=None,
+                longitude=None,
+                display_name="",
+                source="unconfirmed",
+                confidence=0.0,
             )
             result      = chat_intelligence_service.answer(query, ctx, language=language, history=history)
             advice_text = result.get("response", "")

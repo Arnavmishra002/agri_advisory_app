@@ -112,3 +112,24 @@ class FieldAdvisorySensorFreshnessTests(TestCase):
         self.assertEqual(merged["sensor_timestamp"], "2026-07-04T10:00:00+05:30")
         self.assertEqual(merged["sensor_freshness"]["status"], "fresh_saved")
         self.assertIn("fresh saved reading, 12 min old", merged["data_sources"][-1])
+
+    def test_request_payload_sensor_values_are_labeled_farmer_entered(self):
+        sensor_data = {
+            "sensors": {"nitrogen_kg_ha": 120, "moisture_pct": 35},
+            "_sensor_meta": {
+                "status": "farmer_entered",
+                "source": "request_payload",
+                "recorded_at": "2026-07-19T10:00:00+05:30",
+                "age_minutes": 0,
+            },
+        }
+
+        merged = field_sensor_service._merge_soil_data(
+            om_data={"soil_layers": {}},
+            govt_soil={},
+            sensor_data=sensor_data,
+        )
+
+        self.assertEqual(merged["sensor_freshness"]["status"], "farmer_entered")
+        self.assertIn("Farmer-entered soil/sensor values", merged["data_sources"][-1])
+        self.assertNotIn("live request", merged["data_sources"][-1].lower())

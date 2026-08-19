@@ -60,13 +60,13 @@ class _FakeInterruptedStreamingResponse(_FakeStreamingResponse):
         raise requests.Timeout("stream interrupted")
 
 
-class _FakeGeminiChunk:
-    text = "cloud answer"
-
-
-class _FakeGeminiModel:
-    def generate_content(self, *args, **kwargs):
-        return [_FakeGeminiChunk()]
+class _FakeWrongLanguageStreamingResponse(_FakeStreamingResponse):
+    def iter_lines(self, **kwargs):
+        self.iter_lines_kwargs = kwargs
+        return iter([
+            json.dumps({"token": "यह उत्तर गलत भाषा में है।"}).encode("utf-8") + b"\n",
+            json.dumps({"done": True}).encode("utf-8") + b"\n",
+        ])
 
 
 class ChatStreamSourceOrderTests(SimpleTestCase):
@@ -118,7 +118,7 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
 
         chunks = list(
             self.service.answer_stream(
-                "rice blast control",
+                "rice crop management advice",
                 self.ctx,
                 language="en",
                 farmer_profile={"current_crop": "rice"},
@@ -152,7 +152,7 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
     ):
         kb_answer.return_value = {"answer": "verified rice facts", "source": "knowledge_base"}
 
-        chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
+        chunks = list(self.service.answer_stream("rice crop management advice", self.ctx, language="en"))
 
         text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
         self.assertIn("grounded start", text)
@@ -179,7 +179,7 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         gemini_service.api_key = ""
         self.assertTrue(chat_module._acquire_local_ai_slot())
         try:
-            chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
+            chunks = list(self.service.answer_stream("rice crop management advice", self.ctx, language="en"))
         finally:
             chat_module._release_local_ai_slot()
 
@@ -243,7 +243,6 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         kb_answer.assert_not_called()
         requests_post.assert_not_called()
 
-    @patch("google.generativeai.GenerativeModel", return_value=_FakeGeminiModel())
     @patch("advisory.services.chat_intelligence_service._is_valid_gemini_key", return_value=True)
     @patch("advisory.services.chat_intelligence_service.requests.post", side_effect=requests.Timeout("phase1 stalled"))
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
@@ -252,7 +251,6 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         kb_answer,
         requests_post,
         gemini_key_check,
-        gemini_model,
     ):
         kb_answer.return_value = {
             "answer": None,
@@ -269,13 +267,12 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         }
 
         with patch.object(self.service, "answer", return_value=canonical) as answer:
-            chunks = list(self.service.answer_stream("rice blast control", self.ctx, language="en"))
+            chunks = list(self.service.answer_stream("rice crop management advice", self.ctx, language="en"))
 
         text = "".join(c for c in chunks if isinstance(c, str))
         self.assertEqual(text, canonical["response"])
         answer.assert_called_once()
         self.assertTrue(answer.call_args.kwargs["fast_mode"])
-        gemini_model.assert_not_called()
 
     @patch(
         "advisory.services.chat_intelligence_service.requests.post",
@@ -306,6 +303,41 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         self.assertEqual(text, canonical["response"])
         self.assertNotIn("ऑफलाइन", text)
 
+    @patch(
+        "advisory.services.chat_intelligence_service.requests.post",
+        return_value=_FakeWrongLanguageStreamingResponse(),
+    )
+    @patch("advisory.services.knowledge_base.knowledge_base.answer")
+    def test_wrong_language_stream_is_rejected_before_farmer_sees_it(
+        self,
+        kb_answer,
+        requests_post,
+    ):
+        kb_answer.return_value = {"answer": "verified soil facts", "source": "knowledge_base"}
+        canonical = {
+            "response": "Use the verified soil-management fallback.",
+            "intent": "soil",
+            "language": "en",
+            "data_source": "KrishiMitra Advisory Engine",
+            "crops_detected": ["Rice"],
+            "chatbot_diagnostics": {"selected_tier": "rule_based_fallback"},
+        }
+
+        with patch.object(self.service, "answer", return_value=canonical):
+            chunks = list(self.service.answer_stream(
+                "How can I improve soil after rice?",
+                self.ctx,
+                language="en",
+            ))
+
+        text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
+        self.assertEqual(text, canonical["response"])
+        self.assertNotRegex(text, r"[\u0900-\u097F]")
+        self.assertEqual(
+            chunks[-1]["chatbot_diagnostics"]["fallback_reason"],
+            "phase1_stream_ValueError",
+        )
+
 
 class ChatLocalLLMTimeoutTests(SimpleTestCase):
     def setUp(self):
@@ -328,8 +360,29 @@ class ChatLocalLLMTimeoutTests(SimpleTestCase):
 
         self.assertEqual(quality["status"], "degraded")
         self.assertTrue(quality["is_degraded"])
-        self.assertEqual(quality["label"], "Safe advisory fallback")
+        self.assertEqual(quality["label"], "Safe advisory")
         self.assertTrue(quality["meets_latency_target"])
+
+    def test_phase1_json_language_mismatch_falls_through_to_direct_ollama(self):
+        with patch("advisory.services.chat_intelligence_service._cb_is_open", return_value=False), patch(
+            "advisory.services.chat_intelligence_service.requests.post",
+            side_effect=[
+                _FakeJSONResponse({"response": "यह गलत भाषा का उत्तर है", "rag_chunks": 2}),
+                _FakeJSONResponse({"message": {"content": "Use compost and retain residue."}}),
+            ],
+        ) as requests_post:
+            answer = self.service._qwen_rag_answer(
+                "How should I retain rice residue?",
+                self.ctx,
+                "en",
+                history=[],
+                sc=SensorContext(),
+                wc=WeatherConstraints(),
+                market_str="",
+            )
+
+        self.assertEqual(answer, "Use compost and retain residue.")
+        self.assertEqual(requests_post.call_count, 2)
 
     @patch("advisory.services.chat_intelligence_service._cb_reset")
     @patch("advisory.services.chat_intelligence_service._cb_is_open", return_value=False)
@@ -444,4 +497,8 @@ class ChatLocalLLMTimeoutTests(SimpleTestCase):
 
         result = self.service.answer("wheat mandi price", self.ctx, language="en", fast_mode=True)
 
-        self.assertIn("Agmarknet fallback estimate (not live)", result["sources"])
+        self.assertIn(
+            "Agmarknet official feed checked - no current official row",
+            result["sources"],
+        )
+        self.assertNotIn("Agmarknet fallback estimate (not live)", result["sources"])

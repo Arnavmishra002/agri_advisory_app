@@ -2,7 +2,7 @@ name: KrishiMitra CI
 
 on:
   push:
-    branches: [main, master, develop, staging, feature/premium-ui, 'improve/**', 'fix/**']
+    branches: [main, master, develop, staging, feature/premium-ui, 'improve/**', 'fix/**', 'codex/**']
   pull_request:
     branches: [main, master, develop]
   workflow_dispatch:
@@ -55,6 +55,14 @@ jobs:
 
       - name: Migrations apply cleanly
         run: python manage.py migrate --noinput
+
+      - name: Compilation, migration drift, and full backend tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 -m compileall -q backend phase1 scripts custom_llm_trainer
+          cd backend
+          python manage.py makemigrations --check --dry-run
+          python manage.py test advisory.tests --verbosity 1
 
       - name: Migration 0011 (IoTSensorReading composite index) present
         run: |
@@ -135,6 +143,10 @@ jobs:
           print(f'✅ Languages:{len(SUPPORTED_LANGUAGES)} Crops:{len(ALL_CROP_DATA)} Districts:{len(DISTRICT_PROFILES)}')
           print('✅ All services + new modules imported successfully')
           "
+
+      - name: Canonical crop knowledge snapshot
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/generate_crop_knowledge.py --check
 
       - name: Phase 1 RAG static regression
         working-directory: ${{ github.workspace }}
@@ -515,7 +527,7 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: frontend/package.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install and build
         working-directory: frontend
@@ -525,6 +537,25 @@ jobs:
           node --check public/js/app.js
           npm run test:ui
           npm run build
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Farmer browser journeys
+        working-directory: frontend
+        run: npm run test:e2e
+
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-evidence-${{ github.run_id }}
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Verify dist output
         run: |
@@ -611,6 +642,33 @@ jobs:
         run: |
           docker compose config --quiet
           docker compose config | grep -q "PHASE1_CORS_ALLOWED_ORIGINS"
+          POSTGRES_PASSWORD=ci-postgres-password \
+          DATA_GOV_IN_API_KEY=ci-data-gov-key \
+          SENTRY_DSN=https://public@example.invalid/1 \
+          TWILIO_ACCOUNT_SID=AC-ci \
+          TWILIO_AUTH_TOKEN=ci-twilio-token \
+          TWILIO_FROM_NUMBER=+911234567890 \
+          PHASE1_SERVICE_TOKEN=ci-phase1-token \
+          ALLOWED_HOSTS=api.example.invalid \
+          CORS_ALLOWED_ORIGINS=https://app.example.invalid \
+          CSRF_TRUSTED_ORIGINS=https://app.example.invalid \
+            docker compose -f docker-compose.yml -f docker-compose.production.yml \
+              --profile all config --quiet
+          if POSTGRES_PASSWORD=ci-postgres-password \
+             DATA_GOV_IN_API_KEY=ci-data-gov-key \
+             SENTRY_DSN=https://public@example.invalid/1 \
+             TWILIO_ACCOUNT_SID=AC-ci \
+             TWILIO_AUTH_TOKEN=ci-twilio-token \
+             TWILIO_FROM_NUMBER=+911234567890 \
+             PHASE1_SERVICE_TOKEN=ci-phase1-token \
+             ALLOWED_HOSTS=api.example.invalid \
+             CORS_ALLOWED_ORIGINS=https://app.example.invalid \
+             CSRF_TRUSTED_ORIGINS=https://app.example.invalid \
+               docker compose -f docker-compose.yml -f docker-compose.production.yml \
+                 --profile all config | grep -q "runserver"; then
+            echo "Production Compose must not start Django runserver"
+            exit 1
+          fi
           echo "Docker Compose contract passed"
 
       - name: Build and start API plus Phase 1
@@ -657,7 +715,7 @@ jobs:
           launch = json.loads(Path('/tmp/launch-readiness.json').read_text())
           phase1 = json.loads(Path('/tmp/phase1-health.json').read_text())
           chat = json.loads(Path('/tmp/chat.json').read_text())
-          assert readiness['status'] in {'ready', 'not_ready'}, readiness
+          assert readiness['status'] in {'ready', 'degraded', 'not_ready'}, readiness
           assert launch['status'] in {'ready', 'degraded', 'blocked_for_launch'}, launch
           assert phase1.get('status') in {'healthy', 'degraded'}, phase1
           assert chat.get('status') == 'success', chat
@@ -677,17 +735,22 @@ jobs:
         if: always()
         run: docker compose --profile ai down -v --remove-orphans
 
-  # Optional strict gate for a deployed environment. Enable repository variable
-  # LAUNCH_CHECK=true and set LAUNCH_READINESS_URL to the deployed API base URL.
+  # Always runs so the latest workflow has a visible launch-gate result. It
+  # becomes a strict deployed-environment gate when LAUNCH_CHECK=true.
   launch-gate:
     name: Farmer launch gate
     runs-on: ubuntu-latest
-    if: vars.LAUNCH_CHECK == 'true'
     steps:
       - name: Require deployed services to be launch-ready
         env:
+          LAUNCH_CHECK: ${{ vars.LAUNCH_CHECK }}
           LAUNCH_READINESS_URL: ${{ vars.LAUNCH_READINESS_URL }}
         run: |
+          if [ "$LAUNCH_CHECK" != "true" ]; then
+            echo "Launch check is in development mode; Docker readiness is enforced by the Docker job."
+            echo "Set LAUNCH_CHECK=true and LAUNCH_READINESS_URL before public beta."
+            exit 0
+          fi
           test -n "$LAUNCH_READINESS_URL"
           curl -fsS "${LAUNCH_READINESS_URL%/}/api/health/launch-readiness/?strict=true"
 
@@ -759,7 +822,7 @@ jobs:
   # ── CI Gate ──────────────────────────────────────────────────
   ci-complete:
     name: ✅ CI Complete
-    needs: [backend, frontend, mobile, docker, lint]
+    needs: [backend, frontend, mobile, docker, launch-gate, lint]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -769,11 +832,13 @@ jobs:
           echo "Frontend: ${{ needs.frontend.result }}"
           echo "Mobile:   ${{ needs.mobile.result }}"
           echo "Docker:   ${{ needs.docker.result }}"
+          echo "Launch:   ${{ needs.launch-gate.result }}"
           echo "Lint:     ${{ needs.lint.result }}"
           if [ "${{ needs.backend.result }}"  != "success" ] || \
              [ "${{ needs.frontend.result }}" != "success" ] || \
              [ "${{ needs.mobile.result }}"   != "success" ] || \
-             [ "${{ needs.docker.result }}"   != "success" ]; then
+             [ "${{ needs.docker.result }}"   != "success" ] || \
+             [ "${{ needs.launch-gate.result }}" != "success" ]; then
             echo "❌ CI failed"
             exit 1
           fi

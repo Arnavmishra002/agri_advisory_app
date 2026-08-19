@@ -95,15 +95,6 @@ class CropRecommendationEngine:
       4. Generic India defaults
     """
 
-    def __init__(self):
-        # Defer import to avoid circular imports; reuse shared singleton if available
-        try:
-            from .ultra_dynamic_government_api import _gov_api_singleton
-            self.gov_api = _gov_api_singleton
-        except (ImportError, AttributeError):
-            from .ultra_dynamic_government_api import UltraDynamicGovernmentAPI
-            self.gov_api = UltraDynamicGovernmentAPI()
-
     # ── Public API ─────────────────────────────────────────────────────
 
     def recommend(
@@ -141,16 +132,22 @@ class CropRecommendationEngine:
             forecast,
             market_price_map,
             inputs,
+            weather_is_live=bool(weather.get("is_live")),
         )
 
         # 5. Localise and format
         recommendations = self._format_recommendations(
-            scored[:12], language, market_price_map, profile, inputs
+            scored[:12], language, market_price_map, profile, inputs,
+            weather_is_live=bool(weather.get("is_live")),
         )
 
         weather_is_live = bool(weather.get("is_live"))
         market_is_live = bool(live_market.get("is_live"))
+        market_freshness = self._market_freshness_summary(live_market)
         data_quality = self._data_quality_summary(weather, live_market, realtime_status)
+        missing_confidence_inputs = self._missing_confidence_inputs(
+            inputs, weather_is_live, market_is_live
+        )
         self._record_data_source_health(
             location,
             state or profile.get("state", ""),
@@ -180,13 +177,18 @@ class CropRecommendationEngine:
             "market_status": live_market.get("status"),
             "market_data_source": live_market.get("data_source_short") or live_market.get("data_source", ""),
             "market_fetched_at": live_market.get("fetched_at") or live_market.get("timestamp"),
+            "market_reported_date": market_freshness["reported_date"],
+            "market_data_age_minutes": market_freshness["data_age_minutes"],
+            "market_freshness": market_freshness["status"],
             "market_snapshot": (live_market.get("top_crops") or [])[:5],
             "realtime_status": realtime_status,
             "data_quality_status": data_quality["status"],
             "data_quality": data_quality,
             "data_source": self._data_source_label(weather, live_market),
-            "analysis_method": "multi_factor_scoring_v4",
+            "analysis_method": "multi_factor_scoring_v5",
             "database_size": len(ALL_CROP_DATA),
+            "crop_profile_version": "2026.07-beta1",
+            "confidence_inputs_missing": missing_confidence_inputs,
             "input_parameters": inputs,
             "factors_analyzed": self._factors_analyzed(
                 profile,
@@ -201,6 +203,20 @@ class CropRecommendationEngine:
         }
 
     @staticmethod
+    def _missing_confidence_inputs(
+        inputs: Dict[str, Any], weather_is_live: bool, market_is_live: bool
+    ) -> List[str]:
+        missing = [
+            key for key in ("soil_type", "irrigation", "previous_crop")
+            if inputs.get(key) in (None, "")
+        ]
+        if not weather_is_live:
+            missing.append("live_weather")
+        if not market_is_live:
+            missing.append("verified_market_price")
+        return missing
+
+    @staticmethod
     def _normalise_agronomic_inputs(values: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """Keep only bounded farmer inputs understood by the scoring model."""
         if not values:
@@ -210,7 +226,7 @@ class CropRecommendationEngine:
             "budget_per_hectare", "risk_tolerance", "preferred_categories",
             "exclude_crops", "previous_crop", "nitrogen_kg_ha",
             "phosphorus_kg_ha", "potassium_kg_ha", "ph", "ec_ds_m",
-            "moisture_pct", "organic_carbon",
+            "moisture_pct", "organic_carbon", "target_crop",
         }
         inputs = {key: values[key] for key in allowed if values.get(key) not in (None, "")}
 
@@ -244,6 +260,8 @@ class CropRecommendationEngine:
 
         if inputs.get("previous_crop"):
             inputs["previous_crop"] = canonical_crop(inputs["previous_crop"])
+        if inputs.get("target_crop"):
+            inputs["target_crop"] = canonical_crop(inputs["target_crop"])
         if inputs.get("exclude_crops"):
             inputs["exclude_crops"] = [canonical_crop(item) for item in inputs["exclude_crops"][:30]]
         return inputs
@@ -266,13 +284,19 @@ class CropRecommendationEngine:
         return profile
 
     def _data_source_label(self, weather: Dict[str, Any], market: Dict[str, Any]) -> str:
-        sources = ["KrishiMitra Agro-Climatic Engine v4"]
+        sources = ["KrishiMitra Agro-Climatic Engine v5"]
         if weather.get("is_live"):
             sources.append(weather.get("data_source_short") or "live weather")
         else:
             sources.append(f"weather {weather.get('status') or 'unavailable'}")
         if market.get("is_live"):
-            sources.append(market.get("data_source_short") or "live mandi")
+            freshness = self._market_freshness_summary(market)
+            reported = freshness.get("reported_date")
+            sources.append(
+                f"Agmarknet official report dated {reported}"
+                if reported
+                else market.get("data_source_short") or "verified official mandi row"
+            )
         else:
             sources.append(f"mandi {market.get('status') or 'unavailable'}")
         return " + ".join(str(s) for s in sources if s)
@@ -290,10 +314,13 @@ class CropRecommendationEngine:
             if weather.get("is_live")
             else f"Weather unavailable/degraded ({weather.get('status') or 'unavailable'})"
         )
+        market_freshness = self._market_freshness_summary(market)
         market_factor = (
-            "Live mandi modal prices vs MSP"
+            f"Verified official mandi rows reported {market_freshness['reported_date']}"
+            if market.get("is_live") and market_freshness["reported_date"]
+            else "Verified official mandi rows available"
             if market.get("is_live")
-            else "Mandi prices unavailable; MSP/static economics only"
+            else "Mandi prices unavailable; current MSP references only"
         )
         factors = [
                 f"Season: {_season_label(season_key)}",
@@ -769,6 +796,7 @@ class CropRecommendationEngine:
         forecast: List[Dict],
         market_price_map: Dict[str, Dict],
         agronomic_inputs: Optional[Dict[str, Any]] = None,
+        weather_is_live: bool = False,
     ) -> List[Tuple[float, str, Dict[str, Any], List[str], Dict[str, Any]]]:
         """Score every crop in the database and return sorted list."""
 
@@ -786,13 +814,25 @@ class CropRecommendationEngine:
 
         # Derive weather risk from forecast
         weather_risk = self._assess_weather_risk(forecast, current_weather)
-        curr_temp    = current_weather.get("temperature") or 28
+        raw_temp = current_weather.get("temperature") if weather_is_live else None
+        try:
+            curr_temp = float(raw_temp) if raw_temp is not None else None
+        except (TypeError, ValueError):
+            curr_temp = None
+        if not weather_is_live:
+            weather_risk = {"risk": "Unavailable", "description": "Live forecast unavailable"}
         inputs = agronomic_inputs or {}
         excluded = set(inputs.get("exclude_crops") or [])
+        target_crop = inputs.get("target_crop")
+        preferred_categories = set(inputs.get("preferred_categories") or [])
 
         results = []
         for crop_key, crop in ALL_CROP_DATA.items():
             if crop_key in excluded:
+                continue
+            if target_crop and crop_key != target_crop:
+                continue
+            if preferred_categories and crop.get("category") not in preferred_categories:
                 continue
             score, reasons, breakdown = self._score_single_crop(
                 crop_key, crop, season_key, soil, rainfall_band, irrigation,
@@ -902,7 +942,9 @@ class CropRecommendationEngine:
         # 5. Current temperature.
         t_min = crop.get("temperature_min", 10)
         t_max = crop.get("temperature_max", 38)
-        if t_min <= curr_temp <= t_max:
+        if curr_temp is None:
+            factor("temperature", 0, 10, "unavailable", "Live temperature unavailable; no points awarded")
+        elif t_min <= curr_temp <= t_max:
             factor("temperature", 10, 10, "ideal", f"{curr_temp} C within crop range")
             reasons.append(f"Temp optimal ({curr_temp}°C)")
         elif curr_temp < t_min:
@@ -968,7 +1010,9 @@ class CropRecommendationEngine:
         risk = weather_risk.get("risk", "None")
         crop_water = crop.get("water_requirement", "Moderate")
 
-        if risk == "None":
+        if risk == "Unavailable":
+            factor("weather", 0, 10, "unavailable", "Live 7-day forecast unavailable; no points awarded")
+        elif risk == "None":
             factor("weather", 10, 10, "good", "No severe 7-day risk")
             reasons.append("✅ Favorable weather outlook")
         elif risk == "High Rainfall":
@@ -1120,7 +1164,7 @@ class CropRecommendationEngine:
     def _assess_weather_risk(self, forecast: List[Dict], current: Dict) -> Dict[str, Any]:
         """Assess 7-day weather risk for crop scoring."""
         if not forecast:
-            return {"risk": "None", "description": "No forecast data"}
+            return {"risk": "Unavailable", "description": "No live forecast data"}
 
         total_rain = sum(d.get("rainfall_mm", 0) or 0 for d in forecast[:7])
         max_temps  = [d.get("max_temp") for d in forecast[:7] if d.get("max_temp")]
@@ -1166,12 +1210,48 @@ class CropRecommendationEngine:
                     "status":      row.get("status") or "live",
                     "source":      row.get("source") or market_data.get("data_source_short") or market_data.get("data_source"),
                     "fetched_at":  row.get("fetched_at") or market_data.get("fetched_at") or market_data.get("timestamp"),
+                    "reported_date": row.get("reported_date") or row.get("date"),
+                    "data_age_minutes": row.get("data_age_minutes"),
+                    "freshness": row.get("freshness") or "official",
                 }
                 # Also store under common aliases
                 for alias in self._get_crop_aliases(name):
                     if alias not in price_map:
                         price_map[alias] = price_map[name]
         return price_map
+
+    @staticmethod
+    def _market_freshness_summary(market_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Describe official report freshness without calling dated rows live."""
+        rows = market_data.get("top_crops") or []
+        candidates = []
+        for row in rows:
+            age = row.get("data_age_minutes")
+            try:
+                age_value = int(age)
+            except (TypeError, ValueError):
+                age_value = None
+            candidates.append(
+                {
+                    "reported_date": row.get("reported_date") or row.get("date"),
+                    "data_age_minutes": age_value,
+                }
+            )
+        dated = [item for item in candidates if item["data_age_minutes"] is not None]
+        latest = min(dated, key=lambda item: item["data_age_minutes"]) if dated else (candidates[0] if candidates else {})
+        age = latest.get("data_age_minutes")
+        status = (
+            "fresh_official"
+            if age is not None and age <= 24 * 60
+            else "dated_official"
+            if market_data.get("is_live")
+            else "unavailable"
+        )
+        return {
+            "status": status,
+            "reported_date": latest.get("reported_date"),
+            "data_age_minutes": age,
+        }
 
     @staticmethod
     def _get_crop_aliases(name: str) -> List[str]:
@@ -1198,6 +1278,7 @@ class CropRecommendationEngine:
         market_price_map: Dict,
         profile: Dict,
         agronomic_inputs: Optional[Dict[str, Any]] = None,
+        weather_is_live: bool = False,
     ) -> List[Dict[str, Any]]:
         try:
             from .language_service import normalise_language_code, get_crop_name
@@ -1210,11 +1291,14 @@ class CropRecommendationEngine:
 
         inputs = agronomic_inputs or {}
         season_key = inputs.get("season") or _current_season()
+        missing_farmer_inputs = [
+            key for key in ("soil_type", "irrigation", "previous_crop")
+            if inputs.get(key) in (None, "")
+        ]
         out = []
         for score, crop_key, crop, reasons, breakdown in scored:
             msp     = crop.get("msp_per_quintal", 0)
             yield_q = crop.get("yield_per_hectare", 0)
-            profit  = crop.get("profit_per_hectare", 0)
             input_c = crop.get("input_cost_per_hectare", 0)
 
             # Use live market price if available
@@ -1226,21 +1310,49 @@ class CropRecommendationEngine:
             market_fetched_at = mkt.get("fetched_at")
             market_price_text = f"₹{market_price}/q" if market_price else "Unavailable"
 
+            profit = None
+            economics_basis = "verified_price_required"
+            if yield_q and input_c and market_price:
+                profit = round((yield_q * market_price) - input_c)
+                economics_basis = "official_mandi_modal_price"
+            elif yield_q and input_c and msp:
+                profit = round((yield_q * msp) - input_c)
+                economics_basis = "current_msp_reference"
+            economics_note = (
+                "Indicative return uses the dated official mandi modal price; "
+                "verify local costs and today's buyer price before sowing."
+                if economics_basis == "official_mandi_modal_price"
+                else "Indicative return uses current MSP and profile yield/cost; verify local costs before sowing."
+                if economics_basis == "current_msp_reference"
+                else "A verified sale price is required before estimating return for this crop."
+            )
+
             # Localised crop name
             display_name = crop_key.replace("_", " ").title()
             crop_name_local = get_crop_name(crop_key, lang) if lang != "en" else display_name
             crop_name_hindi = crop.get("name_hindi", display_name)
 
             # Build suitability reason in the right language
-            reason_local = self._localise_reason(reasons, lang, crop_key)
+            priority_reasons = self._prioritise_reasons(reasons)
+            reason_local = self._localise_reason(priority_reasons, lang, crop_key)
 
             factor_rows = [value for key, value in breakdown.items() if key != "summary"]
             supported_rows = [
                 value for value in factor_rows
-                if value.get("status") not in {"uncertain", "neutral"}
+                if value.get("status") not in {"uncertain", "neutral", "unavailable"}
             ]
             data_completeness = round(
                 len(supported_rows) / max(len(factor_rows), 1), 2
+            )
+
+            input_quality = max(0.55, 1.0 - (0.1 * len(missing_farmer_inputs)))
+            if not weather_is_live:
+                input_quality = max(0.45, input_quality - 0.12)
+            if not mkt.get("is_live", False):
+                input_quality = max(0.5, input_quality - 0.08)
+            confidence = min(
+                (score / 100.0) * (0.7 + 0.3 * data_completeness) * input_quality,
+                0.98,
             )
 
             out.append({
@@ -1252,8 +1364,11 @@ class CropRecommendationEngine:
                 "season": _season_label(crop.get("season", season_key)),
                 "season_key": crop.get("season", season_key),
                 "suitability_score": int(min(score, 99)),
-                "confidence": round(min((score / 100.0) * (0.7 + 0.3 * data_completeness), 0.98), 2),
-                "reason": " | ".join(reasons[:3]),
+                "confidence": round(confidence, 2),
+                "confidence_inputs_missing": missing_farmer_inputs
+                + ([] if weather_is_live else ["live_weather"])
+                + ([] if mkt.get("is_live", False) else ["verified_market_price"]),
+                "reason": " | ".join(priority_reasons[:3]),
                 "reason_hindi": reason_local,
                 "factors": reasons,
                 "soil_type": ", ".join(crop.get("soil_preference", [])[:3]),
@@ -1264,28 +1379,39 @@ class CropRecommendationEngine:
                 "profit_per_hectare": profit,
                 "input_cost_per_hectare": input_c,
                 "msp_per_quintal": msp,
+                "msp_season": crop.get("msp_season", ""),
+                "msp_source": crop.get("msp_source", ""),
                 "market_price": market_price,
                 "market_price_status": market_status,
                 "market_price_source": market_source,
                 "market_price_fetched_at": market_fetched_at,
+                "market_price_reported_date": mkt.get("reported_date"),
+                "market_price_data_age_minutes": mkt.get("data_age_minutes"),
+                "market_price_freshness": mkt.get("freshness"),
                 "market_is_live": mkt.get("is_live", False),
                 "export_potential": crop.get("export_potential", "Low"),
                 "market_demand": crop.get("market_demand", "Medium"),
                 "volatility": crop.get("volatility", "Medium"),
-                "government_support": crop.get("government_support", "MSP"),
+                "government_support": crop.get("government_support", "No central MSP"),
                 "states_primary": crop.get("states_primary", [])[:4],
+                "district_suitability": crop.get("district_suitability", {}),
+                "rotation": crop.get("rotation", {}),
+                "market_mapping": crop.get("market_mapping", {}),
                 "agronomy_source": crop.get("agronomy_source", "ICAR/NHB/state package of practices"),
-                "economics_status": "indicative_estimate",
-                "economics_note": "Planning estimate only; verify local input costs and buyer prices before sowing.",
+                "economics_status": (
+                    "indicative_estimate" if profit is not None else "price_required"
+                ),
+                "economics_basis": economics_basis,
+                "economics_note": economics_note,
                 "financials": {
                     "yield": f"{yield_q} q/ha",
-                    "profit_potential": f"₹{profit:,}/ha",
-                    "msp": f"₹{msp}/q" if msp else "No MSP",
+                    "profit_potential": f"₹{profit:,}/ha" if profit is not None else "Verified price required",
+                    "msp": f"₹{msp}/q ({crop.get('msp_season')})" if msp else "No central MSP",
                     "market_price": market_price_text,
                     "input_cost": f"₹{input_c:,}/ha",
                 },
                 "prediction_data": {
-                    "method": "multi_factor_scoring_v4",
+                    "method": "multi_factor_scoring_v5",
                     "score_breakdown": breakdown,
                     "data_completeness": data_completeness,
                     "farmer_inputs_used": sorted(inputs),
@@ -1294,11 +1420,31 @@ class CropRecommendationEngine:
             })
         return out
 
+    @staticmethod
+    def _prioritise_reasons(reasons: List[str]) -> List[str]:
+        warning_prefixes = (
+            "too hot",
+            "too cold",
+            "soil ph",
+            "salinity",
+            "high establishment cost",
+            "avoid repeating",
+            "heavy rain",
+            "dry spell",
+            "heatwave",
+            "cold conditions",
+        )
+        warnings = [
+            reason for reason in reasons
+            if str(reason).lower().startswith(warning_prefixes)
+        ]
+        return warnings + [reason for reason in reasons if reason not in warnings]
+
     def _localise_reason(self, reasons: List[str], lang: str, crop_key: str) -> str:
         """Return a localised summary reason for the top factors."""
         REASON_MAP = {
             "Perfect season match": {
-                "hi": "मौसम के लिए एकदम उपयुक्त",
+                "hi": "चुने हुए बुवाई सीजन से अच्छी तरह मेल खाती है",
                 "ta": "பருவத்திற்கு மிகவும் பொருத்தமானது",
                 "te": "సీజన్‌కు అనువైనది",
                 "mr": "हंगामासाठी योग्य",
@@ -1350,6 +1496,18 @@ class CropRecommendationEngine:
                 "as": "বজাৰত প্ৰচুৰ চাহিদা",
             },
         }
+        if reasons:
+            first = reasons[0]
+            hot = re.search(r"Too hot \(([\d.]+)°C > ([\d.]+)°C max\)", first, re.IGNORECASE)
+            if hot and lang == "hi":
+                return f"अभी तापमान {hot.group(1)}°C है, जबकि पसंदीदा अधिकतम {hot.group(2)}°C है"
+            if hot:
+                return first
+            cold = re.search(r"Too cold \(([\d.]+)°C < ([\d.]+)°C min\)", first, re.IGNORECASE)
+            if cold and lang == "hi":
+                return f"अभी तापमान {cold.group(1)}°C है, जबकि पसंदीदा न्यूनतम {cold.group(2)}°C है"
+            if cold:
+                return first
         # Find first matching reason key
         for key, translations in REASON_MAP.items():
             for reason in reasons:

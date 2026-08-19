@@ -3,10 +3,40 @@ import unittest
 from pathlib import Path
 
 from .ingest import CHUNK_SIZE, chunk_text
+from .crop_profile_snapshot import load_crop_terms
 from .kb_fingerprint import knowledge_fingerprint
 
 
 class ChunkTextTests(unittest.TestCase):
+    def test_generated_crop_profile_snapshot_covers_full_catalog(self):
+        snapshot = (
+            Path(__file__).resolve().parents[1]
+            / "knowledge_base"
+            / "crops"
+            / "indian_crop_profiles_202.txt"
+        )
+        self.assertTrue(snapshot.exists())
+        text = snapshot.read_text(encoding="utf-8")
+        self.assertEqual(text.count("CROP_ID:"), 202)
+        self.assertIn("CROP_ID: rambutan", text)
+        self.assertIn("CROP_ID: saffron", text)
+
+        chunks = chunk_text(text, snapshot.name, "crops")
+        tagged_crops = {
+            crop
+            for chunk in chunks
+            for crop in chunk["crops"].split("|")
+            if crop != "general"
+        }
+        self.assertTrue(set(load_crop_terms()).issubset(tagged_crops))
+        self.assertTrue(
+            all(
+                chunk["text"].startswith("CROP_ID:")
+                for chunk in chunks
+                if chunk["crops"] != "general"
+            )
+        )
+
     def test_long_sections_are_split_with_metadata(self):
         text = (
             "SHORT INTRO\nSmall wheat note.\n\n"
@@ -39,6 +69,15 @@ class ChunkTextTests(unittest.TestCase):
         self.assertIn("mustard", chunks[0]["crops"])
         self.assertIn("pest", chunks[0]["topics"])
         self.assertIn("irrigation", chunks[0]["topics"])
+
+    def test_crop_tags_do_not_match_inside_unrelated_words(self):
+        chunks = chunk_text(
+            "Only fresh official prices may be shown to farmers. Estimates are prohibited.",
+            "market_policy.txt",
+            "schemes",
+        )
+
+        self.assertEqual(chunks[0]["crops"], "general")
 
 
 class KnowledgeFingerprintTests(unittest.TestCase):

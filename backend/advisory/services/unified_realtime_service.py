@@ -16,6 +16,8 @@ import json
 import logging
 import threading
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 
@@ -186,7 +188,10 @@ CROP_HINDI = {
     "banana": "केला", "apple": "सेब",
 }
 
-from .msp_data import MSP_2024_25
+from .msp_data import MSP_CURRENT, MSP_MARKETING_SEASON
+
+# Kept as a module-level alias because older services import this symbol.
+MSP_2024_25 = MSP_CURRENT
 
 # ── DB-backed MSP lookup (falls back to dict above) ─────────────────────────
 # Run `python manage.py seed_msp` once to populate the Crop table.
@@ -194,18 +199,8 @@ from .msp_data import MSP_2024_25
 # no code deploy needed for annual CACP price announcements.
 
 def get_msp(crop_id: str, fallback: int = 0) -> int:
-    """
-    Return MSP ₹/quintal for a crop. Tries DB first, then in-memory dict.
-    Safe to call at any time — never raises.
-    """
-    try:
-        from advisory.models import Crop
-        crop = Crop.objects.filter(name=crop_id).only("msp_per_quintal").first()
-        if crop and crop.msp_per_quintal:
-            return crop.msp_per_quintal
-    except Exception:
-        pass
-    return MSP_2024_25.get(crop_id, fallback)
+    """Return only the current official MSP for a crop ID or alias."""
+    return MSP_CURRENT.get((crop_id or "").strip().lower(), fallback)
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  WEATHER SERVICE
@@ -218,19 +213,45 @@ class WeatherService:
     GEOCODING_URL = "https://nominatim.openstreetmap.org/search"
 
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "KrishiMitra-AI/3.0 (contact@krishimitra.in)",
-            "Accept": "application/json"
-        })
+        self._local = threading.local()
         self._coord_cache: Dict[str, Tuple[float, float]] = {}
+
+    @property
+    def session(self) -> requests.Session:
+        """Per-thread weather client with bounded transient retries."""
+        if not hasattr(self._local, "session"):
+            session = requests.Session()
+            session.headers.update({
+                "User-Agent": "KrishiMitra-AI/3.0 (contact@krishimitra.in)",
+                "Accept": "application/json",
+            })
+            retry = Retry(
+                total=1,
+                connect=1,
+                read=1,
+                status=1,
+                backoff_factor=0.2,
+                status_forcelist=(429, 500, 502, 503, 504),
+                allowed_methods=frozenset({"GET"}),
+                raise_on_status=False,
+            )
+            session.mount("https://", HTTPAdapter(max_retries=retry))
+            self._local.session = session
+        return self._local.session
 
     def get_weather(self, location: str, lat: float = None, lon: float = None,
                     lang: str = "hi") -> Dict[str, Any]:
         """Get complete weather data with 7-day forecast in the requested language."""
         try:
             if lat is None or lon is None:
-                lat, lon = self._geocode(location)
+                coordinates = self._geocode(location)
+                if coordinates is None:
+                    return self._static_fallback(
+                        location,
+                        lang=lang,
+                        reason="location_not_resolved",
+                    )
+                lat, lon = coordinates
 
             # Try Open-Meteo first (FREE, highly reliable)
             data = self._fetch_open_meteo(lat, lon, location, lang=lang)
@@ -249,7 +270,7 @@ class WeatherService:
             logger.error(f"Weather error for {location}: {e}")
             return self._static_fallback(location, lang=lang)
 
-    def _geocode(self, location: str) -> Tuple[float, float]:
+    def _geocode(self, location: str) -> Optional[Tuple[float, float]]:
         """Convert location name to coordinates.
 
         Bug 4 fix: replaced unbounded in-process dict with a two-tier cache:
@@ -260,8 +281,8 @@ class WeatherService:
         The old code cached forever in the process — yesterday's geocode for a
         misspelled village survived until a dyno restart.
         """
-        key_norm  = location.lower().strip()
-        cache_key = f"geocode:{key_norm}"
+        key_norm = location.lower().strip()
+        cache_key = f"geocode:{_cache_token(key_norm)}"
 
         # L1: in-process dict (fast path)
         if key_norm in self._coord_cache:
@@ -307,10 +328,8 @@ class WeatherService:
         except Exception as exc:
             logger.warning("Nominatim geocoding failed for %r: %s", location, exc)
 
-        # Default: New Delhi
-        default = (28.6139, 77.2090)
-        logger.warning("Geocoding failed for %r — defaulting to New Delhi", location)
-        return default
+        logger.warning("Geocoding failed for %r; no coordinates substituted", location)
+        return None
 
     def _write_geocode_cache(
         self, key_norm: str, coords: Tuple[float, float], cache_key: str
@@ -406,6 +425,10 @@ class WeatherService:
                 "latitude": lat,
                 "longitude": lon,
                 "data_source": "Open-Meteo (Real-time, Free)",
+                "provider": "open-meteo",
+                "observation_time": curr.get("time"),
+                "freshness": "live",
+                "is_stale": False,
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "language": lang,
                 "current": current_data,
@@ -453,6 +476,10 @@ class WeatherService:
                 "is_live": True,
                 "location": location,
                 "data_source": "OpenWeatherMap",
+                "provider": "openweathermap",
+                "observation_time": current_item.get("dt_txt"),
+                "freshness": "live",
+                "is_stale": False,
                 "language": lang,
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "current": current_data,
@@ -466,13 +493,23 @@ class WeatherService:
             logger.error(f"OWM error: {e}")
             return None
 
-    def _static_fallback(self, location: str, lang: str = "hi") -> Dict:
+    def _static_fallback(
+        self,
+        location: str,
+        lang: str = "hi",
+        reason: str = "providers_unavailable",
+    ) -> Dict:
         """Last-resort fallback with honest labeling."""
         return {
-            "status": "fallback",
+            "status": "unavailable",
             "is_live": False,
             "location": location,
-            "data_source": "Estimated (all APIs unavailable)",
+            "data_source": "Unavailable (no weather values substituted)",
+            "provider": "unavailable",
+            "observation_time": None,
+            "freshness": "unavailable",
+            "is_stale": True,
+            "unavailable_reason": reason,
             "language": lang,
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "current": {
@@ -964,6 +1001,7 @@ class MarketPricesService:
         state: str = None,
         radius_km: float = 150,     # NEW: only return mandis within this radius when GPS available
         max_results: int = 50,       # NEW: cap the list for frontend usability
+        include_all: bool = False,
     ) -> Dict[str, Any]:
         """
         Nearby mandi list, sorted by distance from user's GPS.
@@ -974,7 +1012,10 @@ class MarketPricesService:
 
         Falls back to state-wide list when no GPS is available.
         """
-        cache_key = f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:{location}:{state}:{radius_km}"
+        cache_key = (
+            f"mandis:{round(lat or 0, 3)}:{round(lon or 0, 3)}:"
+            f"{location}:{state}:{radius_km}:{include_all}:{max_results}"
+        )
         if cache_key in self._cache:
             age = (datetime.now(tz=timezone.utc) - self._cache_ts[cache_key]).total_seconds()
             # Mandi list is stable — 60-min TTL is sufficient and avoids hammering
@@ -993,7 +1034,7 @@ class MarketPricesService:
             from .agmarknet_client import agmarknet_client
 
             for m in agmarknet_client.list_markets_for_location(location, state=resolved_state):
-                self._upsert_mandi(mandis_map, m, live=True)
+                self._upsert_mandi(mandis_map, m, live=bool(m.get("live")))
         except Exception as exc:
             logger.warning("Agmarknet mandi list error: %s", exc)
 
@@ -1040,43 +1081,33 @@ class MarketPricesService:
                         )
 
         live_count = sum(1 for m in mandis_map.values() if m.get("live"))
+        registered_count = sum(1 for m in mandis_map.values() if m.get("registered"))
 
-        # 3) Reference mandis — fill gaps (demo key / few live rows / GPS nearby)
+        # 3) Reference mandis — fill nearby-mode gaps only. State discovery must
+        # remain an official registry, otherwise static reference entries inflate
+        # the count and look indistinguishable from Agmarknet-registered markets.
         ref_before = len(mandis_map)
-        # Always merge reference DB so users see full state/nearby coverage, not a sparse live-only list
-        self._merge_reference_mandis(
-            mandis_map, location, resolved_state, lat, lon, fill_gaps=True
-        )
+        if not include_all or not registered_count:
+            self._merge_reference_mandis(
+                mandis_map, location, resolved_state, lat, lon, fill_gaps=True
+            )
         ref_count = len(mandis_map) - ref_before
 
         mandis = self._enrich_and_sort_mandis(list(mandis_map.values()), lat, lon)
 
         # ── GPS-based nearby filtering ─────────────────────────────────────
         # When the user has GPS, trim to the nearest mandis within radius_km.
-        # Key insight: reference DB mandis with no coordinate data are EXCLUDED
-        # when GPS is available — we only show mandis we can confirm are nearby.
-        # The fallback to unknown_dist only kicks in when we have < 3 confirmed
-        # nearby mandis (e.g. very rural area with sparse coordinate coverage).
+        # Entries without coordinates must never be presented as "nearby". A
+        # sparse verified list is safer than padding it with unrelated state
+        # markets whose distance from the farmer is unknown.
         has_gps = lat is not None and lon is not None
-        if has_gps:
+        if has_gps and not include_all:
             # Mandis with known distance within radius
             nearby = [
                 m for m in mandis
                 if m.get("distance_km") is not None and m["distance_km"] <= radius_km
             ]
-            # Mandis with no coordinate data — only use as fallback if list is tiny
-            unknown_dist = [m for m in mandis if m.get("distance_km") is None]
-
-            if len(nearby) >= 3:
-                # Good coverage — drop all unknown-distance mandis entirely
-                mandis = nearby[:max_results]
-            elif len(nearby) > 0:
-                # Sparse coverage — add a few unknown-distance to pad to 10
-                mandis = (nearby + unknown_dist[:max(0, 10 - len(nearby))])[:max_results]
-            else:
-                # No known-distance mandis at all — show limited unknown-dist ones
-                # This happens in very rural areas with no coordinate data
-                mandis = unknown_dist[:min(20, max_results)]
+            mandis = nearby[:max_results]
 
             # Tag each mandi with a human-readable proximity label
             for m in mandis:
@@ -1091,13 +1122,17 @@ class MarketPricesService:
                     else:
                         m["proximity"] = "regional"
                         m["proximity_label"] = f"~{d:.0f} km (क्षेत्रीय)"
-                else:
-                    m["proximity"] = "unknown"
-                    m["proximity_label"] = "दूरी अज्ञात"
         else:
             mandis = mandis[:max_results]
 
-        if registered_key and not using_demo:
+        if include_all and registered_count:
+            coverage = "official_registry"
+            data_source = "Agmarknet official market registry"
+            message = (
+                f"{len(mandis)} Agmarknet-registered mandis for "
+                f"{resolved_state or location}. Current price rows are verified after selection."
+            )
+        elif registered_key and not using_demo:
             coverage = "full"
             data_source = "Agmarknet + data.gov.in (live)"
             if has_gps:
@@ -1153,6 +1188,7 @@ class MarketPricesService:
             "mandis": mandis,
             "total": len(mandis),
             "live_count": live_count,
+            "registered_count": registered_count,
             "reference_count": ref_count,
             "coverage": coverage,
             "api_key_registered": registered_key,
@@ -1163,6 +1199,7 @@ class MarketPricesService:
             "nearest_mandi": nearest_mandi,
             "radius_km": radius_km if has_gps else None,
             "has_gps": has_gps,
+            "scope": "state" if include_all else "nearby",
         }
         self._cache[cache_key] = result
         self._cache_ts[cache_key] = datetime.now(tz=timezone.utc)
@@ -1195,6 +1232,8 @@ class MarketPricesService:
             if entry.get("distance_km") is not None:
                 existing["distance_km"] = entry["distance_km"]
                 existing["distance"] = entry.get("distance", existing.get("distance", ""))
+            if entry.get("registered"):
+                existing["registered"] = True
             return
         mandis_map[key] = {
             "name": name,
@@ -1202,6 +1241,7 @@ class MarketPricesService:
             "state": entry.get("state", ""),
             "source": entry.get("source", ""),
             "live": bool(live or entry.get("live")),
+            "registered": bool(entry.get("registered")),
             "commodity_count": int(entry.get("commodity_count", 0)),
             "distance_km": entry.get("distance_km"),
             "distance": entry.get("distance", ""),
@@ -1444,7 +1484,25 @@ class MarketPricesService:
             return False
         mn = str(mandi_name).lower().strip()
         mq = mandi_query_lower.strip()
-        return mq in mn or mn in mq
+        if mq in mn or mn in mq:
+            return True
+
+        # The official registry uses APMC while the farmer-facing nearby list
+        # commonly uses Mandi/Market for the same place. Strip only standard
+        # market suffixes; retain qualifiers such as "grain" so distinct yards
+        # are not merged accidentally.
+        suffixes = {"apmc", "mandi", "market", "yard", "committee"}
+
+        def core(value: str) -> str:
+            tokens = (
+                value.replace("-", " ")
+                .replace("(", " ")
+                .replace(")", " ")
+                .split()
+            )
+            return " ".join(token for token in tokens if token not in suffixes)
+
+        return bool(core(mn) and core(mn) == core(mq))
 
     def _apply_mandi_pricing(
         self,
@@ -1466,7 +1524,7 @@ class MarketPricesService:
 
         if live_matches:
             for row in live_matches:
-                row["mandi_name"] = mandi
+                row.setdefault("mandi_name", mandi)
                 row["price_source"] = "live_mandi"
                 row["is_live"] = True
             data["top_crops"] = live_matches
@@ -1907,7 +1965,10 @@ class MarketPricesService:
                 "ℹ️ Live mandi feed unavailable. Register a free key at "
                 "https://data.gov.in/user/register and set DATA_GOV_IN_API_KEY in .env"
             ),
-            "msp_source": "Cabinet approval 2024-25 — Ministry of Agriculture & Farmers Welfare",
+            "msp_source": (
+                f"Cabinet-approved MSP {MSP_MARKETING_SEASON} — "
+                "Ministry of Agriculture & Farmers Welfare"
+            ),
         }
 
 
@@ -2068,7 +2129,7 @@ class GeminiService:
         if any(w in p for w in ["wheat", "गेहूँ", "gehu", "gehun"]):
             return (
                 "🌾 **गेहूँ की खेती (Wheat Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['wheat']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['wheat']}/क्विंटल\n"
                 "• **बुवाई का समय:** नवंबर पहला-दूसरा सप्ताह\n"
                 "• **मिट्टी:** दोमट या भारी दोमट (pH 6.0-7.5)\n"
                 "• **बीज दर:** 100-125 kg/हेक्टेयर\n"
@@ -2084,7 +2145,7 @@ class GeminiService:
         if any(w in p for w in ["rice", "धान", "paddy", "dhan", "kharif"]):
             return (
                 "🌾 **धान की खेती (Rice/Paddy Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['rice']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['rice']}/क्विंटल\n"
                 "• **रोपाई का समय:** जून-जुलाई\n"
                 "• **नर्सरी:** बुवाई से 25-30 दिन बाद रोपाई करें\n"
                 "• **मिट्टी:** चिकनी मिट्टी / जलभराव वाली\n"
@@ -2101,7 +2162,7 @@ class GeminiService:
         if any(w in p for w in ["mustard", "सरसों", "sarson", "sarso"]):
             return (
                 "🌼 **सरसों की खेती (Mustard Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['mustard']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['mustard']}/क्विंटल\n"
                 "• **बुवाई:** अक्टूबर 15 – नवंबर 15\n"
                 "• **मिट्टी:** हल्की से मध्यम दोमट (pH 6.0-7.5)\n"
                 "• **बीज दर:** 4-5 kg/हेक्टेयर\n"
@@ -2117,7 +2178,7 @@ class GeminiService:
         if any(w in p for w in ["gram", "चना", "chana", "chickpea", "chick"]):
             return (
                 "🫘 **चना की खेती (Gram/Chickpea Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['gram']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['gram']}/क्विंटल\n"
                 "• **बुवाई:** अक्टूबर अंत – नवंबर मध्य\n"
                 "• **मिट्टी:** हल्की से मध्यम दोमट\n"
                 "• **बीज:** 80-100 kg/हेक्टेयर\n"
@@ -2132,7 +2193,7 @@ class GeminiService:
         if any(w in p for w in ["cotton", "कपास", "kapas"]):
             return (
                 "🌿 **कपास की खेती (Cotton Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['cotton']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['cotton']}/क्विंटल\n"
                 "• **बुवाई:** मई-जून (वर्षा शुरू होते ही)\n"
                 "• **मिट्टी:** काली मिट्टी (pH 6.0-8.0)\n"
                 "• **Bt Cotton:** Pink Bollworm से सुरक्षा\n"
@@ -2147,7 +2208,7 @@ class GeminiService:
         if any(w in p for w in ["soybean", "सोयाबीन", "soya"]):
             return (
                 "🌱 **सोयाबीन की खेती (Soybean Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['soybean']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['soybean']}/क्विंटल\n"
                 "• **बुवाई:** जून अंत – जुलाई (मानसून के साथ)\n"
                 "• **मिट्टी:** मध्यम काली / दोमट\n"
                 "• **बीज:** 70-80 kg/हेक्टेयर\n"
@@ -2161,7 +2222,7 @@ class GeminiService:
         if any(w in p for w in ["maize", "मक्का", "makka", "corn"]):
             return (
                 "🌽 **मक्का की खेती (Maize/Corn Farming)**\n\n"
-                f"• **MSP 2024-25:** ₹{MSP_2024_25['maize']}/क्विंटल\n"
+                f"• **MSP {MSP_MARKETING_SEASON}:** ₹{MSP_CURRENT['maize']}/क्विंटल\n"
                 "• **बुवाई:** खरीफ: जून-जुलाई | रबी: अक्टूबर-नवंबर\n"
                 "• **मिट्टी:** बलुई दोमट (pH 5.5-7.0)\n"
                 "• **बीज दर:** 20-25 kg/हेक्टेयर\n"
@@ -2322,11 +2383,11 @@ class GeminiService:
         if any(w in p for w in ["mandi", "market", "price", "भाव", "msp", "बाजार", "sell", "बेचना"]):
             msp_info = "\n".join([
                 f"  • {k.capitalize()}: ₹{v}/क्विंटल"
-                for k, v in list(MSP_2024_25.items())[:8]
+                for k, v in list(MSP_CURRENT.items())[:8]
             ])
             return (
                 "💰 **बाजार भाव एवं MSP (Market Prices & MSP)**\n\n"
-                f"**MSP 2024-25 (प्रमुख फसलें):**\n{msp_info}\n\n"
+                f"**MSP {MSP_MARKETING_SEASON} (प्रमुख फसलें):**\n{msp_info}\n\n"
                 "**eNAM (ऑनलाइन मंडी):**\n"
                 "• पूरे भारत में सबसे अच्छे भाव पर फसल बेचें\n"
                 "• पंजीकरण: enam.gov.in | हेल्पलाइन: 1800-270-0224\n\n"
@@ -2574,7 +2635,7 @@ class GovernmentSchemesService:
                 "Official MoAFW / DAC&FW scheme catalog (reference; not live enrollment status)"
             ),
             "source": "Ministry of Agriculture & Farmers Welfare",
-            "last_updated": "2024-25 Season",
+            "last_updated": f"{MSP_MARKETING_SEASON} season",
             "message": (
                 "Curated government scheme summaries from published MoAFW documentation — "
                 "verify eligibility on the official portal before applying."
@@ -2582,13 +2643,28 @@ class GovernmentSchemesService:
         }
 
     def check_eligibility(self, farmer_profile: Dict) -> Dict:
-        """Simple eligibility checker"""
-        eligible = []
+        """Return potentially relevant schemes without claiming enrollment eligibility."""
+        candidates = []
         for scheme in GOVERNMENT_SCHEMES:
             scheme_copy = scheme.copy()
-            scheme_copy["eligible"] = True  # Simplified — all farmers eligible for most
-            eligible.append(scheme_copy)
-        return {"status": "success", "eligible_schemes": eligible, "farmer_profile": farmer_profile}
+            scheme_copy["eligible"] = None
+            scheme_copy["eligibility_status"] = "needs_official_verification"
+            scheme_copy["eligibility_message"] = (
+                "Profile details are not sufficient to confirm eligibility. "
+                "Verify current rules on the scheme's official portal or at the local agriculture office."
+            )
+            candidates.append(scheme_copy)
+        return {
+            "status": "success",
+            "eligibility_confirmed": False,
+            "eligible_schemes": candidates,
+            "candidate_schemes": candidates,
+            "farmer_profile": farmer_profile,
+            "message": (
+                "These are possible schemes, not confirmed eligibility results. "
+                "Current state, land, crop, category, and enrollment rules must be checked officially."
+            ),
+        }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

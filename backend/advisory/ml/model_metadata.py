@@ -37,13 +37,31 @@ def _best_float(values: Any) -> Optional[float]:
 def quality_label(
     best_val_accuracy: Optional[float],
     best_val_top3_accuracy: Optional[float],
+    *,
+    evaluation_accuracy: Optional[float] = None,
+    evaluation_top3_accuracy: Optional[float] = None,
+    manifest_approved: bool = False,
+    non_plant_test_samples: int = 0,
+    evaluation_limited: bool = True,
+    all_classes_evaluated: bool = False,
 ) -> str:
-    """Return a simple farmer-safety quality label for the installed model."""
+    """Return a farmer-safety quality label backed by held-out evidence."""
     if best_val_accuracy is None and best_val_top3_accuracy is None:
         return "unknown"
     val_ok = (best_val_accuracy or 0.0) >= PRODUCTION_VAL_ACCURACY
     top3_ok = (best_val_top3_accuracy or 0.0) >= PRODUCTION_TOP3_ACCURACY
-    return "production_candidate" if val_ok and top3_ok else "needs_retraining"
+    if not val_ok or not top3_ok:
+        return "needs_retraining"
+
+    evaluation_ok = (
+        (evaluation_accuracy or 0.0) >= PRODUCTION_VAL_ACCURACY
+        and (evaluation_top3_accuracy or 0.0) >= PRODUCTION_TOP3_ACCURACY
+        and not evaluation_limited
+        and all_classes_evaluated
+    )
+    if not evaluation_ok or not manifest_approved or non_plant_test_samples <= 0:
+        return "needs_validation"
+    return "production_candidate"
 
 
 def load_model_metadata(
@@ -72,11 +90,31 @@ def load_model_metadata(
     if class_count is None and class_names is not None:
         class_count = len(class_names)
 
-    label = quality_label(best_val_accuracy, best_val_top3_accuracy)
-    out: Dict[str, Any] = {
+    dataset_manifest = metrics.get("dataset_manifest") or {}
+    evaluation_accuracy = metrics.get("evaluation_accuracy")
+    if evaluation_accuracy is None:
+        evaluation_accuracy = metrics.get("accuracy")
+    evaluation_top3_accuracy = metrics.get("evaluation_top3_accuracy")
+    label = quality_label(
+        best_val_accuracy,
+        best_val_top3_accuracy,
+        evaluation_accuracy=evaluation_accuracy,
+        evaluation_top3_accuracy=evaluation_top3_accuracy,
+        manifest_approved=dataset_manifest.get("usage_approved") is True,
+        non_plant_test_samples=int(metrics.get("non_plant_test_samples") or 0),
+        evaluation_limited=metrics.get("evaluation_limited") is not False,
+        all_classes_evaluated=metrics.get("all_classes_evaluated") is True,
+    )
+    # Persisted metrics are evidence, not authority. Always write the derived
+    # fields last so a stale or manually edited `quality` value cannot promote
+    # a model that does not satisfy the current safety policy.
+    out: Dict[str, Any] = dict(metrics)
+    out.update({
         "quality": label,
         "best_val_accuracy": best_val_accuracy,
         "best_val_top3_accuracy": best_val_top3_accuracy,
+        "evaluation_accuracy": evaluation_accuracy,
+        "evaluation_top3_accuracy": evaluation_top3_accuracy,
         "epochs_trained": epochs_trained,
         "class_count": class_count,
         "model": metrics.get("model") or "EfficientNet-B3",
@@ -87,8 +125,7 @@ def load_model_metadata(
             "val_accuracy": PRODUCTION_VAL_ACCURACY,
             "val_top3_accuracy": PRODUCTION_TOP3_ACCURACY,
         },
-    }
-    out.update(metrics)
+    })
     return out
 
 
@@ -114,5 +151,7 @@ def readiness_summary(metadata: Dict[str, Any]) -> str:
         parts.append("metrics missing")
     elif quality == "needs_retraining":
         parts.append("retrain before farmer production")
+    elif quality == "needs_validation":
+        parts.append("held-out, licensed, and non-plant validation required")
 
     return f"{prefix} ({', '.join(parts)})"

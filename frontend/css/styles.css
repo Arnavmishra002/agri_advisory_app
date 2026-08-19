@@ -2890,3 +2890,23 @@ body.service-view .services-container {
 [data-theme="dark"] .content-section { background: #101a14; }
 [data-theme="dark"] .navbar { background: rgba(18,31,23,0.96); }
 [data-theme="dark"] .service-card .service-icon { background: #223a2c; }
+.chat-history-item-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.chat-history-delete {
+    border: 1px solid #e0e0e0;
+    background: #fff;
+    color: #b42318;
+    border-radius: 6px;
+    min-width: 40px;
+}
+
+.chat-history-delete:hover,
+.chat-history-delete:focus-visible {
+    background: #fff1f0;
+    border-color: #f2b8b5;
+}

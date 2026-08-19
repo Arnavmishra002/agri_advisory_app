@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 
+from django.contrib.auth import get_user_model
 from rest_framework import serializers, status
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework.response import Response
@@ -27,6 +28,17 @@ class _RejectUnknownFieldsMixin:
 
 class StrictTokenObtainPairSerializer(_RejectUnknownFieldsMixin, TokenObtainPairSerializer):
     allowed_fields = frozenset(("username", "password"))
+
+    def validate(self, attrs):
+        identifier = str(attrs.get("username") or "").strip()
+        if "@" in identifier:
+            matches = list(
+                get_user_model().objects.filter(email__iexact=identifier)
+                .values_list("username", flat=True)[:2]
+            )
+            if len(matches) == 1:
+                attrs = {**attrs, "username": matches[0]}
+        return super().validate(attrs)
 
 
 class StrictTokenRefreshSerializer(_RejectUnknownFieldsMixin, TokenRefreshSerializer):

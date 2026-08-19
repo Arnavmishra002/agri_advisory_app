@@ -32,8 +32,13 @@ from ...models import FarmerInteractionLog, FarmerProfile, IoTSensorReading
 from ..errors import safe_error_message
 from ..location_utils import attach_location_metadata, resolve_request_location
 from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
-from ...services.chat_intelligence_service import chat_intelligence_service, _current_season
+from ...services.chat_intelligence_service import (
+    INTENT_GREETING,
+    _current_season,
+    chat_intelligence_service,
+)
 from ...services.session_memory_service import session_memory
+from ...services.guest_session_service import make_guest_session_token
 from ..auth_utils import _cors_for_request, _resolve_user_id
 from ..serializers import ChatbotFeedbackSerializer, ChatbotRequestSerializer
 
@@ -190,6 +195,7 @@ def _parse_request(request) -> Dict[str, Any]:
         "language": parsed.get("language", "hi"),
         "session_id": parsed.get("session_id") or None,
         "fast_mode": parsed.get("fast_mode", False),
+        "sensor_context": parsed.get("sensor_context"),
     }
 
 
@@ -225,7 +231,10 @@ def _build_history_and_context(request, session_id, language):
         history = clean_client
 
     session_ctx = session_memory.load_session_context(session_id) if session_id else {}
-    if language in ("auto", "") and session_ctx.get("language"):
+    # `auto` is an explicit per-message instruction. Reusing the previous
+    # session language here prevented farmers from switching naturally between
+    # English, Hindi, Hinglish, and regional scripts in one conversation.
+    if not language and session_ctx.get("language"):
         language = session_ctx["language"]
 
     return history, session_ctx, language
@@ -328,6 +337,16 @@ def _load_farmer_context(request, session_id, session_ctx) -> dict:
     return farmer_ctx
 
 
+def _resolve_chat_location(request, query: str):
+    """Avoid remote reverse geocoding for plain greetings only."""
+    intent, crops = chat_intelligence_service.classify_query(query)
+    is_plain_greeting = intent == INTENT_GREETING and not crops
+    return resolve_request_location(
+        request,
+        enrich_coordinates=not is_plain_greeting,
+    )
+
+
 # ─────────────────────────────────────────────────────────────
 # ChatbotViewSet — JSON endpoint (unchanged shape)
 # ─────────────────────────────────────────────────────────────
@@ -420,7 +439,7 @@ class ChatbotViewSet(viewsets.ViewSet):
         language   = parsed["language"]
         session_id = parsed["session_id"]
         fast_mode  = parsed["fast_mode"]
-        ctx        = resolve_request_location(request)
+        sensor_context = parsed["sensor_context"]
 
         if not query:
             return Response(
@@ -430,6 +449,8 @@ class ChatbotViewSet(viewsets.ViewSet):
         too_long = query_too_long(query, MAX_CHAT_QUERY_LENGTH, field="query")
         if too_long:
             return too_long
+
+        ctx = _resolve_chat_location(request, query)
 
         history, session_ctx, language = _build_history_and_context(
             request, session_id, language
@@ -444,6 +465,7 @@ class ChatbotViewSet(viewsets.ViewSet):
                     query, ctx, language=language, history=history,
                     farmer_profile=farmer_ctx if farmer_ctx else None,
                     fast_mode=fast_mode,
+                    sensor_context=sensor_context,
                 )
             if result.get("location_context"):
                 from ...services.location_context import LocationContext
@@ -502,9 +524,15 @@ class ChatbotViewSet(viewsets.ViewSet):
             "data_source":      result.get("data_source"),
             "chatbot_diagnostics": result.get("chatbot_diagnostics", {}),
             "ai_data_quality":  result.get("ai_data_quality", {}),
+            "iot_sensors_used": result.get("iot_sensors_used", False),
+            "sensor_source": result.get("sensor_source"),
+            "sensor_observed_at": result.get("sensor_observed_at"),
+            "sensor_age_seconds": result.get("sensor_age_seconds"),
+            "weather_constraints": result.get("weather_constraints", {}),
             "response_time_ms": response_time_ms,
             "timestamp":        _now_utc.isoformat(),
             "session_id":       session_id,
+            "guest_session_token": make_guest_session_token(session_id or ""),
             "feedback_token": _make_chat_feedback_token(
                 session_id, query, result.get("response", "")
             ),
@@ -527,7 +555,7 @@ def _sse_frame(data: dict) -> str:
 
 def _stream_generator(
     query, ctx, language, history, farmer_ctx, fast_mode,
-    session_id, request, user_id,
+    session_id, request, user_id, sensor_context=None,
 ) -> Generator[str, None, None]:
     """
     Generator that yields SSE frames.
@@ -548,6 +576,7 @@ def _stream_generator(
                 history=history,
                 farmer_profile=farmer_ctx if farmer_ctx else None,
                 fast_mode=fast_mode,
+                sensor_context=sensor_context,
             ):
                 # Sentinel dict marks end of stream
                 if isinstance(chunk, dict) and chunk.get("__done__"):
@@ -578,10 +607,16 @@ def _stream_generator(
         "crops_detected":  result_meta.get("crops_detected", []),
         "chatbot_diagnostics": result_meta.get("chatbot_diagnostics", {}),
         "ai_data_quality": result_meta.get("ai_data_quality", {}),
+        "iot_sensors_used": result_meta.get("iot_sensors_used", False),
+        "sensor_source": result_meta.get("sensor_source"),
+        "sensor_observed_at": result_meta.get("sensor_observed_at"),
+        "sensor_age_seconds": result_meta.get("sensor_age_seconds"),
+        "weather_constraints": result_meta.get("weather_constraints", {}),
         "sources":         sources,
         "crop_suggestions": result_meta.get("crop_suggestions", []),
         "response_time_ms": response_time_ms,
         "session_id":      session_id,
+        "guest_session_token": make_guest_session_token(session_id or ""),
         "feedback_token": _make_chat_feedback_token(
             session_id, query, full_response
         ),
@@ -664,6 +699,7 @@ def stream_chat(request):
     language   = body.get("language", "hi")
     session_id = (body.get("session_id") or "").strip() or None
     fast_mode  = body.get("fast_mode", False)
+    sensor_context = body.get("sensor_context")
 
     if not query:
         from django.http import JsonResponse
@@ -676,7 +712,7 @@ def stream_chat(request):
             status=400,
         )
 
-    ctx = resolve_request_location(request)
+    ctx = _resolve_chat_location(request, query)
     history, session_ctx, language = _build_history_and_context(
         request, session_id, language
     )
@@ -686,9 +722,9 @@ def stream_chat(request):
     response = StreamingHttpResponse(
         _stream_generator(
             query, ctx, language, history, farmer_ctx, fast_mode,
-            session_id, request, user_id,
+            session_id, request, user_id, sensor_context,
         ),
-        content_type="text/event-stream",
+        content_type="text/event-stream; charset=utf-8",
     )
     response["Cache-Control"]     = "no-cache"
     response["X-Accel-Buffering"] = "no"   # disable nginx buffering

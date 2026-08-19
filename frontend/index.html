@@ -196,9 +196,9 @@
                 <div class="stat-value" id="stat-crops">202</div>
                 <div class="stat-label">फसल प्रोफाइल</div>
             </div>
-            <div class="stat-item" data-count="22" data-prefix="" data-suffix="">
-                <div class="stat-value" id="stat-langs">22</div>
-                <div class="stat-label">भारतीय भाषाएं</div>
+            <div class="stat-item" data-count="3" data-prefix="" data-suffix="">
+                <div class="stat-value" id="stat-langs">3</div>
+                <div class="stat-label">लॉन्च भाषाएं</div>
             </div>
             <div class="stat-item" data-count="16" data-prefix="" data-suffix=" दिन">
                 <div class="stat-value">16 दिन</div>
@@ -283,9 +283,9 @@
                     <div class="service-info-panel" style="border-left-color:#f57f17;">
                         <div class="service-info-panel-label" style="color:#e65100;">📊 Live Mandi Data</div>
                         <div class="service-info-panel-body">
-                            🌾 गेहूँ MSP ₹2,425 / q<br>
-                            🍚 धान MSP ₹2,369 / q<br>
-                            🌻 सोयाबीन MSP ₹4,892 / q<br>
+                            🌾 गेहूँ MSP 2026-27 ₹2,585 / q<br>
+                            🍚 धान MSP 2026-27 ₹2,441 / q<br>
+                            🌻 सोयाबीन MSP 2026-27 ₹5,708 / q<br>
                             🔄 हर 3 मिनट अपडेट
                         </div>
                     </div>
@@ -319,7 +319,7 @@
                     <div class="status-indicator"></div>
                     <div class="service-icon">🤖</div>
                     <h3 class="service-title" data-i18n="service_ai">AI सहायक</h3>
-                    <p class="service-description">22 भाषाएं · Local KrishiMitra LLM + RAG · Gemini fallback</p>
+                    <p class="service-description">हिंदी, Hinglish और English में कृषि सलाह</p>
                     <div class="service-info-panel" style="border-left-color:#6a1b9a;">
                         <div class="service-info-panel-label" style="color:#4a148c;">💬 किसी भी भाषा में पूछें</div>
                         <div class="service-info-panel-body">
@@ -446,6 +446,7 @@
                     placeholder="फसल खोजें — Wheat, गेहूँ, Cotton..."
                     onkeyup="searchCrop(event)" onfocus="showCropSuggestions()" autocomplete="off">
                 <button class="btn btn-success btn-sm" onclick="searchSpecificCrop()" style="font-size:0.82rem;">खोजें</button>
+                <button class="btn btn-outline-success btn-sm" type="button" onclick="clearCropRecommendationSearch()" style="font-size:0.82rem;white-space:nowrap;">सभी फसलें</button>
             </div>
             <div id="cropSuggestions" class="crop-suggestions"></div>
         </div>
@@ -577,16 +578,21 @@
 
         <!-- Mandi selector -->
         <div class="mandi-bar">
-            <label class="fw-bold m-0 mandi-bar-label">🏪 नज़दीकी मंडी:</label>
-            <select id="mandiRadiusSelect" onchange="onMandiRadiusChanged()" class="form-select form-select-sm mandi-radius-select" title="मंडी खोज दायरा">
+            <label class="fw-bold m-0 mandi-bar-label">🏪 मंडी सूची:</label>
+            <select id="mandiRadiusSelect" onchange="onMandiRadiusChanged()" class="form-select form-select-sm mandi-radius-select" title="मंडी सूची का दायरा">
                 <option value="50">50 km</option>
                 <option value="100">100 km</option>
                 <option value="150" selected>150 km</option>
                 <option value="250">250 km</option>
+                <option value="state">पूरा राज्य</option>
             </select>
+            <input id="mandiSearchInput" type="search" class="form-control form-control-sm mandi-selector"
+                placeholder="मंडी या जिला खोजें..." autocomplete="off"
+                oninput="filterMandiOptions(this.value)" aria-label="मंडी या जिला खोजें">
             <select id="mandiSelector" onchange="onMandiSelected(this.value)" class="form-select form-select-sm mandi-selector">
                 <option value="">-- सभी मंडियां (All Mandis) --</option>
             </select>
+            <span id="mandiRegistryStatus" class="mandi-status-badge" aria-live="polite"></span>
             <span id="mandiStatusBadge" class="mandi-status-badge"></span>
             <button id="mandiRefreshBtn" class="btn btn-sm btn-outline-success mandi-refresh-btn" onclick="refreshNearbyMandis()" title="नज़दीकी मंडियां फिर से लोड करें">
                 <i class="fas fa-location-crosshairs"></i>
@@ -614,7 +620,7 @@
 <div class="content-section" id="pest-control-content">
     <div class="container">
         <div class="section-header mb-1"><h2>🩺 KrishiRaksha 2.0</h2></div>
-        <p class="text-muted mb-4">EfficientNet-B3 model readiness · honest advisory fallback · GPS weather verification</p>
+        <p class="text-muted mb-4">फोटो गुणवत्ता जांच · लक्षण-आधारित सुरक्षित सलाह · GPS मौसम सत्यापन</p>
 
         <div class="row g-4">
             <!-- Step 1 -->
@@ -677,7 +683,7 @@
                 <button class="btn btn-lg px-5 py-3 text-white fw-bold rounded-pill shadow" id="diagnosisRunBtn" type="button"
                     style="background:linear-gradient(135deg,#b71c1c,#e53935);border:none;font-size:1rem;letter-spacing:0.02em;"
                     onclick="runKrishiRakshaDiagnosis()">
-                    <i class="fas fa-microscope me-2"></i> Run AI Diagnosis — जांच शुरू करें
+                    <i class="fas fa-microscope me-2"></i> Photo Advisory — फोटो सलाह लें
                 </button>
             </div>
         </div>
@@ -686,8 +692,8 @@
         <div id="krishiRakshaResults" style="display:none;" class="animated-result mt-4">
             <div class="text-center py-5">
                 <i class="fas fa-spinner fa-spin fa-3x" style="color:#4a7c59;"></i>
-                <h4 class="mt-3">Analyzing Crop Health...</h4>
-                <p class="text-muted">Plant validation · EfficientNet-B3 · Weather verification</p>
+                <h4 class="mt-3">फोटो और फसल की जानकारी देखी जा रही है...</h4>
+                <p class="text-muted">Photo quality · symptom guidance · weather verification</p>
             </div>
         </div>
     </div>
@@ -808,7 +814,7 @@
                 <div id="chatLanguageSwitcherContainer"></div>
             </div>
         </div>
-        <p class="text-muted mb-3" id="chat-subtitle">22 भाषाएं · Local KrishiMitra LLM + RAG + ICAR data · Gemini fallback</p>
+        <p class="text-muted mb-3" id="chat-subtitle">अपने खेत, मौसम, मंडी और फसल के हिसाब से सवाल पूछें</p>
 
         <!-- Suggested chips Empty State -->
         <div id="empty-state" class="mb-3">
@@ -869,10 +875,10 @@
             </div>
         </div>
 
-        <!-- AI Status badge -->
+        <!-- Source status badge -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-size:0.8rem;color:#666;">AI Engine:</span>
-            <span id="aiStatusBadge" style="display:inline-block;background:#f3e5f5;color:#4a148c;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;">📚 Loading...</span>
+            <span style="font-size:0.8rem;color:#666;">स्रोत:</span>
+            <span id="aiStatusBadge" style="display:inline-block;background:#e8f5e9;color:#1b5e20;border-radius:999px;padding:3px 12px;font-size:0.75rem;font-weight:700;">कृषि सलाह तैयार</span>
             <span style="flex:1;"></span>
             <button type="button" id="chatHistoryBtn" class="chat-toolbar-btn" onclick="openChatHistory()" title="पुरानी बातचीत" aria-label="पुरानी बातचीत खोलें">
                 <i class="fas fa-history"></i>
@@ -951,7 +957,7 @@
 <div id="notification" class="notification"></div>
 
 <!-- Scroll-to-top button -->
-<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="ऊपर जाएं">
+<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="ऊपर जाएं" aria-label="पेज के ऊपर जाएं">
     <i class="fas fa-chevron-up"></i>
 </button>
 
@@ -1017,7 +1023,7 @@
       <span>🌾 NABARD: <strong style="color:#b9f0c8;">1800-200-1025</strong></span>
     </div>
     <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;font-size:0.72rem;opacity:0.5;margin-top:10px;">
-      <span>Open-Meteo</span><span>·</span><span>Agmarknet</span><span>·</span><span>data.gov.in</span><span>·</span><span>Local LLM + RAG</span><span>·</span><span>Gemini fallback</span><span>·</span><span>ICAR</span>
+	      <span>Open-Meteo</span><span>·</span><span>Agmarknet</span><span>·</span><span>data.gov.in</span><span>·</span><span>ICAR/KVK guidance</span>
     </div>
     <p style="margin:10px 0 0;font-size:0.7rem;opacity:0.55;">&copy; <span id="footerYear">2026</span> KrishiMitra AI &middot; किसानों के लिए डिजिटल कृषि सहायता</p>
   </div>
@@ -1382,9 +1388,9 @@ window.toggleVoiceInput = function() {
         </div>
         <!-- TAB 2: Password -->
         <div id="authTabPassword" class="auth-tab-panel" style="display:none;">
-          <label class="auth-label" for="authUsernameInput">👤 Username</label>
+          <label class="auth-label" for="authUsernameInput">👤 Username या email</label>
           <input type="text" id="authUsernameInput" class="auth-input"
-            placeholder="username या phone" autocomplete="username"
+            placeholder="username या email" autocomplete="username"
             onkeydown="if(event.key==='Enter'){document.getElementById('authPasswordInput').focus();}">
           <label class="auth-label mt-3" for="authPasswordInput">🔒 Password</label>
           <div class="auth-password-group">
@@ -1392,6 +1398,7 @@ window.toggleVoiceInput = function() {
               placeholder="••••••••" autocomplete="current-password"
               onkeydown="if(event.key==='Enter'){KM_Auth.loginPassword();}">
             <button class="auth-password-toggle" type="button"
+              aria-label="Show password" title="Show password"
               onclick="KM_Auth.togglePasswordVisibility('authPasswordInput',this)">
               <i class="fas fa-eye"></i>
             </button>
@@ -1414,6 +1421,7 @@ window.toggleVoiceInput = function() {
             <input type="password" id="regPasswordInput" class="auth-input auth-password-input"
               placeholder="••••••••" autocomplete="new-password">
             <button class="auth-password-toggle" type="button"
+              aria-label="Show password" title="Show password"
               onclick="KM_Auth.togglePasswordVisibility('regPasswordInput',this)">
               <i class="fas fa-eye"></i>
             </button>

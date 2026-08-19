@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://krishimitra.in/schemas/reviewed-learning-manifest-v1.json",
+  "title": "KrishiMitra Reviewed Learning Dataset Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_version",
+    "purpose",
+    "record_count",
+    "contains_raw_pii",
+    "review_required",
+    "training_eligible",
+    "promotion_stage",
+    "records_file"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "dataset_version": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "purpose": {"enum": ["human_review_queue", "reviewed_training_dataset"]},
+    "record_count": {"type": "integer", "minimum": 0},
+    "languages": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "intents": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "contains_raw_pii": {"const": false},
+    "review_required": {"type": "boolean"},
+    "training_eligible": {"type": "boolean"},
+    "promotion_stage": {
+      "enum": ["review_queue_only", "agronomist_approved", "staging_evaluated", "production_promoted"]
+    },
+    "records_file": {"type": "string", "minLength": 1},
+    "reviewer_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "evaluation_report": {"type": ["string", "null"]}
+  }
+}

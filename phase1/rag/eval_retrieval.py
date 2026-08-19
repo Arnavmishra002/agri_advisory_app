@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.request
@@ -25,7 +26,10 @@ else:
     from .ingest import CHUNK_SIZE, chunk_text
 
 KB_DIR = Path(__file__).resolve().parents[1] / "knowledge_base"
-OLLAMA_URL = "http://localhost:11434"
+
+
+def _ollama_url() -> str:
+    return os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 
 CASES = [
     ("wheat yellow rust control dose", {"wheat_diseases_rust_smut.txt", "wheat_icar.txt"}),
@@ -59,7 +63,13 @@ CASES = [
     ("cucumber french bean broccoli season and soil", {"indian_horticulture_extended.txt"}),
     ("tapioca elephant foot yam cultivation", {"indian_horticulture_extended.txt"}),
     ("बेर किन्नू नींबू बागवानी", {"indian_horticulture_extended.txt"}),
-    ("saffron vanilla climate requirements", {"indian_horticulture_extended.txt"}),
+    (
+        "saffron vanilla climate requirements",
+        {"indian_horticulture_extended.txt", "indian_crop_profiles_202.txt"},
+    ),
+    ("rambutan climate soil and suitable states", {"indian_crop_profiles_202.txt"}),
+    ("मखाना के लिए पानी और मौसम", {"indian_crop_profiles_202.txt"}),
+    ("ashwagandha soil pH season", {"indian_crop_profiles_202.txt"}),
 ]
 
 REQUIRED_METADATA = {
@@ -76,7 +86,7 @@ REQUIRED_METADATA = {
 
 def _ollama_available() -> bool:
     try:
-        req = urllib.request.Request(f"{OLLAMA_URL}/api/tags")
+        req = urllib.request.Request(f"{_ollama_url()}/api/tags")
         with urllib.request.urlopen(req, timeout=3) as resp:
             data = json.loads(resp.read())
         return any("nomic-embed-text" in model.get("name", "") for model in data.get("models", []))

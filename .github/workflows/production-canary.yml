@@ -1,0 +1,51 @@
+name: KrishiMitra Production Canary
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  farmer-critical-canary:
+    name: Daily farmer-critical canary
+    runs-on: ubuntu-latest
+    env:
+      CANARY_API_BASE_URL: ${{ vars.CANARY_API_BASE_URL }}
+      CANARY_PHASE1_BASE_URL: ${{ vars.CANARY_PHASE1_BASE_URL }}
+      CANARY_OTP_PHONE: ${{ secrets.CANARY_OTP_PHONE }}
+      PHASE1_SERVICE_TOKEN: ${{ secrets.PHASE1_SERVICE_TOKEN }}
+      CANARY_LATITUDE: ${{ vars.CANARY_LATITUDE }}
+      CANARY_LONGITUDE: ${{ vars.CANARY_LONGITUDE }}
+      CANARY_COMMODITY: ${{ vars.CANARY_COMMODITY }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Check production configuration
+        id: config
+        run: |
+          if [ -z "$CANARY_API_BASE_URL" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Set CANARY_API_BASE_URL to activate daily production canaries."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run farmer-critical canary
+        if: steps.config.outputs.configured == 'true'
+        run: python3 scripts/production_canary.py --json /tmp/production-canary.json
+
+      - name: Upload canary report
+        if: always() && steps.config.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-canary-${{ github.run_id }}
+          path: /tmp/production-canary.json
+          if-no-files-found: error
+          retention-days: 30

@@ -118,6 +118,22 @@ class CropDiseasePredictor:
         save_gradcam_to: Optional[Path] = None,
         skip_validation: bool = False,
     ) -> Dict[str, Any]:
+        classification_enabled = os.getenv(
+            "DISEASE_CLASSIFICATION_ENABLED", "false"
+        ).lower() in {"1", "true", "yes", "on"}
+        if not classification_enabled:
+            return {
+                "status": "classification_disabled",
+                "message": (
+                    "Image disease classification is disabled. "
+                    "Symptom-based advisory remains available."
+                ),
+                "crop_name": None,
+                "disease_name": None,
+                "confidence": 0.0,
+                "top_predictions": [],
+            }
+
         raw_bytes: Optional[bytes] = None
         if isinstance(image, bytes):
             raw_bytes = image

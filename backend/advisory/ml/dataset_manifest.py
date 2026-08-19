@@ -60,8 +60,8 @@ def validate_manifest_data(data: Dict[str, Any]) -> Dict[str, Any]:
                 errors.append(f"{prefix}.{field} must not be empty")
         if not _valid_date(source.get("retrieved_at")):
             errors.append(f"{prefix}.retrieved_at must be an ISO date")
-        if source.get("usage_approved") is not True:
-            errors.append(f"{prefix}.usage_approved must be true before training")
+        if not isinstance(source.get("usage_approved"), bool):
+            errors.append(f"{prefix}.usage_approved must be a boolean")
         for field in ("crop_labels", "disease_labels"):
             values = source.get(field)
             if not isinstance(values, list) or not values or not all(
@@ -82,6 +82,20 @@ def validate_manifest_data(data: Dict[str, Any]) -> Dict[str, Any]:
 
     if errors:
         raise ValueError("Invalid dataset manifest: " + "; ".join(errors))
+    return data
+
+
+def ensure_training_approved(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Refuse production training when any dataset source lacks usage approval."""
+    unapproved = [
+        str(source.get("name") or f"source-{index + 1}")
+        for index, source in enumerate(data.get("sources", []))
+        if source.get("usage_approved") is not True
+    ]
+    if unapproved:
+        raise ValueError(
+            "Dataset usage is not approved for training: " + ", ".join(unapproved)
+        )
     return data
 
 

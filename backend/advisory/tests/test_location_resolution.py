@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -18,6 +19,8 @@ class LocationResolutionTests(TestCase):
             ctx = resolve_request_location(request)
 
         resolver.assert_not_called()
+        self.assertIsNone(ctx.latitude)
+        self.assertIsNone(ctx.longitude)
         self.assertEqual(ctx.display_name, "")
         self.assertEqual(ctx.source, "unconfirmed")
         self.assertEqual(ctx.confidence, 0.0)
@@ -48,3 +51,67 @@ class LocationResolutionTests(TestCase):
         )
         self.assertEqual(ctx.display_name, "Lucknow")
         self.assertEqual(ctx.state, "Uttar Pradesh")
+
+    def test_manual_coordinates_preserve_farmer_selected_place_name(self):
+        request = SimpleNamespace(
+            query_params={},
+            data={
+                "location": "Lucknow",
+                "latitude": 26.8467,
+                "longitude": 80.9462,
+                "location_confirmed": True,
+                "location_source": "manual_search",
+                "state": "Uttar Pradesh",
+            },
+        )
+        with patch("advisory.api.location_utils.location_resolver.resolve") as resolver:
+            ctx = resolve_request_location(request)
+
+        resolver.assert_not_called()
+        self.assertEqual(ctx.display_name, "Lucknow")
+        self.assertEqual(ctx.city, "Lucknow")
+        self.assertEqual(ctx.source, "manual_search")
+        self.assertFalse(ctx.is_gps)
+        self.assertTrue(ctx.confirmed)
+
+    def test_fast_location_uses_confirmed_request_label_without_reverse_geocoding(self):
+        request = SimpleNamespace(
+            query_params={},
+            data={
+                "location": "Lucknow",
+                "latitude": 26.8467,
+                "longitude": 80.9462,
+                "location_confirmed": True,
+                "state": "Uttar Pradesh",
+            },
+        )
+
+        with patch("advisory.api.location_utils.location_resolver.resolve") as resolver:
+            ctx = resolve_request_location(request, enrich_coordinates=False)
+
+        resolver.assert_not_called()
+        self.assertEqual(ctx.display_name, "Lucknow")
+        self.assertEqual(ctx.state, "Uttar Pradesh")
+        self.assertEqual(ctx.source, "request_coordinates")
+        self.assertTrue(ctx.confirmed)
+
+    def test_greeting_endpoint_skips_remote_location_enrichment(self):
+        with patch("advisory.api.location_utils.location_resolver.resolve") as resolver:
+            response = self.client.post(
+                "/api/chatbot/query/",
+                data=json.dumps({
+                    "query": "hello",
+                    "language": "en",
+                    "location": "Lucknow",
+                    "latitude": 26.8467,
+                    "longitude": 80.9462,
+                    "location_confirmed": True,
+                }),
+                content_type="application/json",
+            )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        resolver.assert_not_called()
+        body = response.json()
+        self.assertEqual(body["intent"], "greeting")
+        self.assertEqual(body["location"], "Lucknow")

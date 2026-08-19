@@ -41,6 +41,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
 from ...rate_limiters import AtomicWindowRateLimiter, ExponentialBackoff, client_ip_from_request
+from ...services.guest_session_service import verify_guest_session_token
 from ..serializers import (
     OTPRequestInputSerializer,
     OTPVerifyInputSerializer,
@@ -147,6 +148,25 @@ def _backoff_response(request, identifiers: tuple[str, str]):
     )
 
 
+def _verified_guest_session(validated: dict) -> str:
+    session_id = str(validated.get("session_id") or "")
+    token = str(validated.get("guest_session_token") or "")
+    return session_id if verify_guest_session_token(session_id, token) else ""
+
+
+def _copy_guest_profile_fields(source, target) -> None:
+    for field in (
+        "location_name", "state", "district", "latitude", "longitude",
+        "farm_size_bigha", "farm_size_hectare", "irrigation_type", "soil_type",
+        "soil_ph", "crop_history", "current_crop", "current_season",
+        "preferred_language",
+    ):
+        current = getattr(target, field)
+        incoming = getattr(source, field)
+        if current in (None, "", [], {}) and incoming not in (None, "", [], {}):
+            setattr(target, field, incoming)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 class AuthViewSet(viewsets.ViewSet):
     """
@@ -198,7 +218,7 @@ class AuthViewSet(viewsets.ViewSet):
         resp: dict = {"success": True, "expires_in": 600, "sms_sent": sms_sent}
 
         # In DEBUG mode, include the OTP in the response for easier dev/testing
-        if os.getenv("DEBUG", "False").lower() == "true":
+        if settings.DEBUG:
             resp["dev_otp"] = otp
 
         return Response(resp)
@@ -224,6 +244,7 @@ class AuthViewSet(viewsets.ViewSet):
         phone_raw = serializer.validated_data["phone_number"]
         otp_code = serializer.validated_data["otp_code"]
         session_id = serializer.validated_data.get("session_id", "")
+        verified_guest_session = _verified_guest_session(serializer.validated_data)
 
         phone = _normalise_phone(phone_raw)
         identifiers = _auth_identifiers(request, phone)
@@ -288,15 +309,22 @@ class AuthViewSet(viewsets.ViewSet):
         profile_name = ""
         try:
             from ...models import FarmerProfile
-            profile, profile_created = FarmerProfile.objects.get_or_create(
-                phone_number=phone,
-                defaults={"is_active": True} if hasattr(FarmerProfile, "is_active") else {},
-            )
-            # Migrate guest session data into this profile
-            if session_id and not profile.session_id:
-                profile.session_id = session_id
-                profile.save(update_fields=["session_id"])
-                logger.info("Guest session %s migrated to phone account %s", session_id, phone)
+            profile = FarmerProfile.objects.filter(phone_number=phone).first()
+            guest_profile = None
+            if verified_guest_session:
+                guest_profile = FarmerProfile.objects.filter(
+                    session_id=verified_guest_session, phone_number=""
+                ).first()
+            if profile is None:
+                profile = guest_profile or FarmerProfile(phone_number=phone)
+                profile.phone_number = phone
+            elif guest_profile and guest_profile.pk != profile.pk:
+                _copy_guest_profile_fields(guest_profile, profile)
+            if verified_guest_session and not profile.session_id:
+                profile.session_id = verified_guest_session
+            profile.save()
+            if verified_guest_session:
+                logger.info("Verified guest session migrated to phone account %s", phone)
             profile_name = profile.location_name or ""
         except Exception as exc:
             logger.warning("FarmerProfile OTP link failed: %s", exc)
@@ -308,6 +336,7 @@ class AuthViewSet(viewsets.ViewSet):
         return Response({
             "access":  str(refresh.access_token),
             "refresh": str(refresh),
+            "guest_session_migrated": bool(verified_guest_session),
             "user": {
                 "id":       user.id,
                 "username": username,
@@ -347,6 +376,7 @@ class AuthViewSet(viewsets.ViewSet):
         state = validated.get("state", "")
         language = validated.get("language", "hi")
         session_id = validated.get("session_id", "")
+        verified_guest_session = _verified_guest_session(validated)
         phone_normalised = ""
         if phone_raw:
             phone_normalised = _normalise_phone(phone_raw)
@@ -384,22 +414,23 @@ class AuthViewSet(viewsets.ViewSet):
             if session_id:
                 profile_defaults["session_id"] = session_id
 
-            identifier = phone_normalised or session_id
-            if identifier:
-                if phone_normalised:
-                    profile, _ = FarmerProfile.objects.get_or_create(
-                        phone_number=phone_normalised,
-                        defaults=profile_defaults,
-                    )
-                else:
-                    profile, _ = FarmerProfile.objects.get_or_create(
-                        session_id=session_id,
-                        defaults=profile_defaults,
-                    )
-                # Ensure session_id is set for guest migration
-                if session_id and not profile.session_id:
-                    profile.session_id = session_id
-                    profile.save(update_fields=["session_id"])
+            owned_session_id = f"user:{user.id}"
+            profile = None
+            if verified_guest_session:
+                profile = FarmerProfile.objects.filter(
+                    session_id=verified_guest_session, phone_number=""
+                ).first()
+            if profile is None:
+                profile = FarmerProfile.objects.filter(session_id=owned_session_id).first()
+            if profile is None:
+                profile = FarmerProfile(**profile_defaults)
+            for field, value in profile_defaults.items():
+                if getattr(profile, field) in (None, "", [], {}) and value not in (None, "", [], {}):
+                    setattr(profile, field, value)
+            profile.session_id = owned_session_id
+            if phone_normalised:
+                profile.phone_number = phone_normalised
+            profile.save()
         except Exception as exc:
             logger.warning("FarmerProfile register link failed: %s", exc)
 
@@ -409,6 +440,7 @@ class AuthViewSet(viewsets.ViewSet):
             {
                 "access":  str(refresh.access_token),
                 "refresh": str(refresh),
+                "guest_session_migrated": bool(verified_guest_session),
                 "user": {
                     "id":       user.id,
                     "username": username,
@@ -437,7 +469,8 @@ class AuthViewSet(viewsets.ViewSet):
             # Resolve only through the authenticated user's phone/username. A
             # client-supplied session_id must never select another farmer's PII.
             profile = (
-                FarmerProfile.objects.filter(phone_number=f"+91{user.username}").first()
+                FarmerProfile.objects.filter(session_id=f"user:{user.id}").first()
+                or FarmerProfile.objects.filter(phone_number=f"+91{user.username}").first()
                 or FarmerProfile.objects.filter(phone_number=user.username).first()
             )
             if profile:

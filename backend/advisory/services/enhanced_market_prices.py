@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from urllib.parse import urlencode
 
-from .msp_data import MSP_2024_25
+from .msp_data import MSP_2024_25, MSP_MARKETING_SEASON
 
 logger = logging.getLogger(__name__)
 
@@ -409,7 +409,7 @@ class EnhancedMarketPricesService:
         
         state = state.lower()
         if 'maharashtra' in state or 'pune' in state:
-            common_crops.update({'Cotton': MSP_2024_25['cotton'], 'Soybean': MSP_2024_25['soybean'], 'Sugarcane': MSP_2024_25['sugarcane'], 'Turmeric': 7500, 'Pomegranate': 6000})
+            common_crops.update({'Cotton': MSP_2024_25['cotton'], 'Soybean': MSP_2024_25['soybean'], 'Turmeric': 7500, 'Pomegranate': 6000})
         elif 'delhi' in state:
             common_crops.update({'Mustard': MSP_2024_25['mustard'], 'Cauliflower': 1500, 'Carrot': 1800})
         elif 'karnataka' in state or 'bangalore' in state:
@@ -1179,7 +1179,7 @@ class EnhancedMarketPricesService:
     def _get_mandi_filtered_fallback_data(self, mandi_name: str, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Get mandi-filtered fallback data using real government MSP data"""
         try:
-            # Get real government MSP data (2024-25)
+            # Get current government MSP reference data.
             government_msp_data = self._get_real_government_msp_data()
             
             # Get state and region info
@@ -1244,7 +1244,7 @@ class EnhancedMarketPricesService:
                 'is_live': False,
                 'data_status': 'estimated',
                 'crops': crops,
-                'sources': ['MSP 2024-25 reference', f'{mandi_name} estimate'],
+                'sources': [f'MSP {MSP_MARKETING_SEASON} reference', f'{mandi_name} estimate'],
                 'location': location,
                 'mandi': mandi_name,
                 'state': state,
@@ -1265,7 +1265,7 @@ class EnhancedMarketPricesService:
     def _get_enhanced_fallback_data(self, location: str, latitude: float = None, longitude: float = None) -> Dict[str, Any]:
         """Enhanced fallback data using real government MSP data with location-specific pricing"""
         # Use MSP-based structured fallback when all real-time government APIs fail
-        # Get real government MSP data (2024-25)
+        # Get current government MSP reference data.
         government_msp_data = self._get_real_government_msp_data()
         
         # Get state and region info
@@ -1344,7 +1344,7 @@ class EnhancedMarketPricesService:
             'is_live': False,
             'data_status': 'estimated',
             'crops': crops,
-            'sources': ['MSP 2024-25 reference', 'Location estimate'],
+            'sources': [f'MSP {MSP_MARKETING_SEASON} reference', 'Location estimate'],
             'location': location,
             'state': state,
             'nearest_mandis': [m['name'] for m in nearest_mandis[:3]],
@@ -1512,7 +1512,6 @@ class EnhancedMarketPricesService:
             'Maize': {'msp': MSP_2024_25['maize'], 'unit': '/quintal', 'season': 'Kharif'},
             'Mustard': {'msp': MSP_2024_25['mustard'], 'unit': '/quintal', 'season': 'Rabi'},
             'Cotton': {'msp': MSP_2024_25['cotton'], 'unit': '/quintal', 'season': 'Kharif'},
-            'Sugarcane': {'msp': MSP_2024_25['sugarcane'], 'unit': '/quintal', 'season': 'All Season'},
             'Potato': {'msp': 800, 'unit': '/quintal', 'season': 'All Season'},
             'Onion': {'msp': 1200, 'unit': '/quintal', 'season': 'All Season'},
             'Tomato': {'msp': 900, 'unit': '/quintal', 'season': 'All Season'},

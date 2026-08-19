@@ -63,3 +63,8 @@ class DiagnosticsFeedbackSecurityTests(TestCase):
             diagnostic_session=self.diagnostic
         )
         self.assertEqual(verification.expert_diagnosis, "Late Blight")
+        self.assertFalse(verification.is_verified)
+        self.assertIsNone(verification.verified_at)
+        self.assertIn("pending agronomist review", verification.expert_notes)
+        self.assertEqual(response.data["review_status"], "pending_agronomist_review")
+        self.assertFalse(response.data["training_eligible"])

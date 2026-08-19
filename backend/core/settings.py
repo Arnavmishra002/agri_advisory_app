@@ -22,6 +22,7 @@ _RUNNING_PYTEST = bool(
     or os.environ.get("PYTEST_VERSION")
     or "pytest" in sys.modules
 )
+_RUNNING_TESTS = _RUNNING_PYTEST or "test" in sys.argv
 
 # Import sentry_sdk for error monitoring
 try:
@@ -351,8 +352,10 @@ if _REDIS_URL:
 # Cache busting for frontend files
 CACHE_BUST_TIMESTAMP = int(time.time())
 
-# Disable caching for development
-if DEBUG:
+# Disable caching for interactive development. Django's test runner needs a
+# real in-process cache so OTP, throttling, freshness, and backoff contracts
+# are exercised even when CI sets DEBUG=True.
+if DEBUG and not _RUNNING_TESTS:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
@@ -451,6 +454,15 @@ RATE_LIMIT_ENABLED = os.environ.get(
 RATE_LIMIT_FAIL_OPEN = os.environ.get(
     'RATE_LIMIT_FAIL_OPEN', 'true' if DEBUG else 'false'
 ).lower() == 'true'
+STRICT_PRODUCTION_CONFIG = os.environ.get(
+    'STRICT_PRODUCTION_CONFIG', 'false'
+).lower() == 'true'
+
+if STRICT_PRODUCTION_CONFIG and not DEBUG and RATE_LIMIT_ENABLED and not _REDIS_URL:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "STRICT_PRODUCTION_CONFIG=true requires REDIS_URL when rate limiting is enabled."
+    )
 
 
 def _positive_int_env(name, default):
@@ -493,7 +505,7 @@ RATE_LIMIT_DEFAULT_CAPACITY = _positive_int_env('RATE_LIMIT_DEFAULT_CAPACITY', 2
 RATE_LIMIT_DEFAULT_FILL_RATE = _non_negative_float_env('RATE_LIMIT_DEFAULT_FILL_RATE', 3.0)
 RATE_LIMIT_NOMINATIM_CAPACITY = _positive_int_env('RATE_LIMIT_NOMINATIM_CAPACITY', 10)
 RATE_LIMIT_NOMINATIM_FILL_RATE = _non_negative_float_env('RATE_LIMIT_NOMINATIM_FILL_RATE', 1.0)
-AUTH_BACKOFF_THRESHOLD = _positive_int_env('AUTH_BACKOFF_THRESHOLD', 5)
+AUTH_BACKOFF_THRESHOLD = _positive_int_env('AUTH_BACKOFF_THRESHOLD', 3)
 AUTH_BACKOFF_BASE_SECONDS = _non_negative_float_env('AUTH_BACKOFF_BASE_SECONDS', 2)
 AUTH_BACKOFF_MAX_SECONDS = max(1.0, _non_negative_float_env('AUTH_BACKOFF_MAX_SECONDS', 300))
 AUTH_BACKOFF_WINDOW_SECONDS = _positive_int_env('AUTH_BACKOFF_WINDOW_SECONDS', 3600)
@@ -502,7 +514,7 @@ AUTH_BACKOFF_WINDOW_SECONDS = _positive_int_env('AUTH_BACKOFF_WINDOW_SECONDS', 3
 # protection without changing normal authentication traffic limits.
 OTP_REQUEST_CAPACITY = _positive_int_env('OTP_REQUEST_CAPACITY', 3)
 OTP_REQUEST_WINDOW_SECONDS = _positive_int_env('OTP_REQUEST_WINDOW_SECONDS', 3600)
-OTP_VERIFY_CAPACITY = _positive_int_env('OTP_VERIFY_CAPACITY', 5)
+OTP_VERIFY_CAPACITY = _positive_int_env('OTP_VERIFY_CAPACITY', 3)
 OTP_VERIFY_WINDOW_SECONDS = _positive_int_env('OTP_VERIFY_WINDOW_SECONDS', 3600)
 KRISHI_RAKSHA_MAX_UPLOAD_BYTES = int(
     os.environ.get('KRISHI_RAKSHA_MAX_UPLOAD_MB', '5')

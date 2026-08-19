@@ -39,10 +39,13 @@ from __future__ import annotations
 import logging
 import math
 import os
+import threading
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -110,14 +113,29 @@ class FieldSensorService:
     NASA_POWER_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
 
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "KrishiMitra-AI/3.0 (field-precision)",
-            "Accept": "application/json",
-        })
+        self._local = threading.local()
         # In-memory cache keyed by (lat_rounded, lon_rounded)
         self._soil_history_cache: Dict[str, Dict] = {}
         self._weather_cache: Dict[str, Dict] = {}
+
+    @property
+    def session(self) -> requests.Session:
+        if not hasattr(self._local, "session"):
+            session = requests.Session()
+            session.headers.update({
+                "User-Agent": "KrishiMitra-AI/3.0 (field-precision)",
+                "Accept": "application/json",
+            })
+            retry = Retry(
+                total=1,
+                backoff_factor=0.2,
+                status_forcelist=(429, 500, 502, 503, 504),
+                allowed_methods=frozenset({"GET"}),
+                raise_on_status=False,
+            )
+            session.mount("https://", HTTPAdapter(max_retries=retry))
+            self._local.session = session
+        return self._local.session
 
     # ── Main Entry Point ───────────────────────────────────────────────
 
@@ -166,16 +184,26 @@ class FieldSensorService:
         # Step 7: Localise
         from .language_service import normalise_language_code
         lang = normalise_language_code(language)
+        sensor_values = (sensor_data or {}).get("sensors", sensor_data or {})
+        iot_sensors_used = bool(sensor_values)
 
         return {
-            "status": "success",
+            "status": "success" if om_data.get("is_live") else "degraded",
+            "data_quality_status": "live" if om_data.get("is_live") else "partial_inputs",
+            "weather_is_live": bool(om_data.get("is_live")),
+            "government_soil_is_live": bool(govt_soil.get("is_live")),
             "field_id": field_id,
             "location": location_name,
             "coordinates": {"latitude": latitude, "longitude": longitude},
             "timestamp": ts,
             "analysis_level": "field",
-            "grid_resolution": "1km (Open-Meteo) + 100m (sensor)",
+            "grid_resolution": (
+                "1km Open-Meteo grid + farmer-entered field values"
+                if iot_sensors_used
+                else "1km Open-Meteo grid"
+            ),
             "data_sources": self._list_data_sources(sensor_data, govt_soil, om_data),
+            "iot_sensors_used": iot_sensors_used,
 
             # Core soil profile
             "soil_profile": merged_soil,
@@ -187,6 +215,11 @@ class FieldSensorService:
                 "farming_alerts": weather_analysis.get("alerts", []),
                 "irrigation_schedule": weather_analysis.get("irrigation_schedule", []),
                 "planting_window": weather_analysis.get("planting_window", ""),
+                "risk": weather_analysis.get("risk", "Unavailable"),
+                "rain_7d_mm": weather_analysis.get("rain_7d_mm"),
+                "rain_14d_mm": weather_analysis.get("rain_14d_mm"),
+                "avg_max_temp_7d": weather_analysis.get("avg_max_temp_7d"),
+                "total_et0_7d_mm": weather_analysis.get("total_et0_7d_mm"),
             },
 
             # Recommendations
@@ -200,7 +233,9 @@ class FieldSensorService:
             "sensor_quality": self._assess_sensor_quality(sensor_data),
 
             # Plain-text summary
-            "summary": self._generate_summary(merged_soil, scored_crops[:3], weather_analysis, lang),
+            "summary": self._generate_summary(
+                merged_soil, scored_crops[:3], weather_analysis, lang
+            ).replace("**", ""),
         }
 
     # ── Data Fetching ──────────────────────────────────────────────────
@@ -216,7 +251,7 @@ class FieldSensorService:
         """
         cache_key = f"{round(lat,3)}:{round(lon,3)}"
         cached = self._weather_cache.get(cache_key)
-        if cached and (datetime.now() - cached.get("_fetched_at", datetime.min)).seconds < 1800:
+        if cached and (datetime.now() - cached.get("_fetched_at", datetime.min)).total_seconds() < 1800:
             return cached
 
         try:
@@ -318,6 +353,9 @@ class FieldSensorService:
                 })
 
             result = {
+                "status": "success",
+                "is_live": True,
+                "is_stale": False,
                 "current": {
                     "temperature":   curr.get("temperature_2m"),
                     "humidity":      curr.get("relative_humidity_2m"),
@@ -399,8 +437,12 @@ class FieldSensorService:
                 return {
                     "source": "NASA POWER (agro-climate estimate)",
                     "annual_rainfall_mm": round(annual_rain),
-                    "is_live": True,
-                    "note": "Nutrient data from NASA POWER agro-climate estimate",
+                    "is_live": False,
+                    "data_quality": "historical_climate_reference",
+                    "note": (
+                        "Historical climate reference only; NASA POWER does not "
+                        "provide soil nutrient measurements."
+                    ),
                 }
         except Exception as e:
             logger.debug("NASA POWER unavailable: %s", e)
@@ -715,7 +757,9 @@ class FieldSensorService:
         if moisture is not None and req.get("moisture_min") is not None:
             m_min = req["moisture_min"]
             if moisture >= m_min:
-                score += 10; reasons.append(f"✅ Soil moisture {moisture}% adequate")
+                score += 10; reasons.append(
+                    f"✅ Moisture {moisture}% meets this crop's {m_min}% minimum"
+                )
                 npk_match["moisture"] = {"status": "Adequate", "value": moisture}
             elif moisture >= m_min * 0.6:
                 score += 6; reasons.append(f"⚠️ Moisture {moisture}% slightly low (min {m_min}%)")
@@ -1018,18 +1062,25 @@ class FieldSensorService:
         return hints
 
     def _list_data_sources(self, sensor_data, govt_soil, om_data) -> List[str]:
-        sources = ["Open-Meteo (real-time soil moisture + weather, 1km grid)"]
+        sources = []
+        if om_data.get("is_live"):
+            sources.append("Open-Meteo (real-time soil moisture + weather, 1km grid)")
+        else:
+            sources.append("Open-Meteo unavailable (no weather values substituted)")
         if govt_soil.get("is_live"):
             sources.append("Soil Health Card — soilhealth.dac.gov.in")
-        if sensor_data:
+        elif govt_soil.get("source"):
+            sources.append(govt_soil["source"])
+        sensors = (sensor_data or {}).get("sensors", sensor_data or {})
+        if sensors:
             sources.append(self._sensor_source_label(sensor_data.get("_sensor_meta", {})))
         return sources
 
     def _assess_sensor_quality(self, sensor_data: Optional[Dict]) -> Dict[str, Any]:
-        if not sensor_data:
+        sensors = (sensor_data or {}).get("sensors", sensor_data or {})
+        if not sensors:
             return {"quality": "None", "completeness_pct": 0,
                     "message": "No sensor data — using government + satellite sources"}
-        sensors = sensor_data.get("sensors", sensor_data)
         sensor_meta = sensor_data.get("_sensor_meta", {})
         fields = ["nitrogen_kg_ha","phosphorus_kg_ha","potassium_kg_ha",
                   "ph","ec_ds_m","moisture_pct","organic_carbon","soil_temp_c"]
@@ -1048,8 +1099,10 @@ class FieldSensorService:
     @staticmethod
     def _sensor_source_label(sensor_meta: Dict[str, Any]) -> str:
         status = (sensor_meta or {}).get("status")
+        if status == "farmer_entered":
+            return "Farmer-entered soil/sensor values (current request)"
         if status == "live_request":
-            return "IoT Field Sensor (live request, field-level)"
+            return "Farmer-entered soil/sensor values (current request)"
         if status == "fresh_saved":
             age = sensor_meta.get("age_minutes")
             age_text = f", {age} min old" if age is not None else ""
@@ -1119,10 +1172,13 @@ class FieldSensorService:
     def _open_meteo_fallback(self, lat: float, lon: float) -> Dict[str, Any]:
         """Fallback when Open-Meteo is unavailable."""
         return {
+            "status": "unavailable",
+            "is_live": False,
+            "is_stale": True,
             "current": {"temperature": None, "humidity": None, "rainfall_mm": 0},
             "soil_layers": {},
             "forecast": [],
-            "data_source": "Fallback (Open-Meteo unavailable)",
+            "data_source": "Open-Meteo unavailable (no values substituted)",
         }
 
 

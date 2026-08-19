@@ -18,6 +18,8 @@ Endpoints:
 """
 
 import json
+import asyncio
+import hmac
 import logging
 import os
 import sys
@@ -37,7 +39,7 @@ logger = logging.getLogger("krishimitra")
 try:
     from fastapi import FastAPI, HTTPException, Query, Request
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import StreamingResponse
+    from fastapi.responses import JSONResponse, StreamingResponse
     from pydantic import BaseModel, Field
 except ImportError:
     print("❌  FastAPI not installed. Run: pip install fastapi uvicorn")
@@ -75,6 +77,63 @@ app.add_middleware(
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+_PROTECTED_PATH_PREFIXES = ("/chat", "/rag")
+_REQUEST_SEMAPHORE = asyncio.Semaphore(
+    max(1, int(os.environ.get("PHASE1_MAX_CONCURRENT_REQUESTS", "4")))
+)
+
+
+@app.middleware("http")
+async def protect_ai_service(request: Request, call_next):
+    """Fail closed for remote AI calls while keeping health probes public."""
+    if not request.url.path.startswith(_PROTECTED_PATH_PREFIXES):
+        return await call_next(request)
+
+    configured_token = os.environ.get("PHASE1_SERVICE_TOKEN", "").strip()
+    debug = os.environ.get("DEBUG", "false").lower() == "true"
+    require_token = (
+        os.environ.get("PHASE1_REQUIRE_SERVICE_TOKEN", str(not debug)).lower()
+        in {"1", "true", "yes"}
+    )
+    if require_token and not configured_token:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "Phase 1 service authentication is not configured.",
+                "error_code": "SERVICE_AUTH_NOT_CONFIGURED",
+            },
+        )
+    if configured_token:
+        supplied = request.headers.get("Authorization", "")
+        expected = f"Bearer {configured_token}"
+        if not hmac.compare_digest(supplied, expected):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Unauthorized", "error_code": "UNAUTHORIZED"},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    max_body_bytes = max(1024, int(os.environ.get("PHASE1_MAX_BODY_BYTES", "65536")))
+    content_length = request.headers.get("content-length")
+    if content_length and content_length.isdigit() and int(content_length) > max_body_bytes:
+        return JSONResponse(
+            status_code=413,
+            content={"detail": "Request body is too large.", "error_code": "PAYLOAD_TOO_LARGE"},
+        )
+
+    try:
+        await asyncio.wait_for(_REQUEST_SEMAPHORE.acquire(), timeout=0.1)
+    except asyncio.TimeoutError:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Local AI is busy.", "error_code": "CAPACITY_FULL"},
+            headers={"Retry-After": "2"},
+        )
+    try:
+        return await call_next(request)
+    finally:
+        _REQUEST_SEMAPHORE.release()
 
 
 @app.get("/")
@@ -246,6 +305,14 @@ async def chat_endpoint(req: ChatRequest):
     rag_results = retrieve_with_sources(req.query, k=5)
     rag_texts   = [r["text"]        for r in rag_results]
     rag_sources = list({r["source_file"] for r in rag_results})
+    if not rag_texts and not (req.verified_knowledge or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": "NO_GROUNDING",
+                "message": "No verified knowledge matched this question.",
+            },
+        )
 
     # 2. Optional weather (non-blocking)
     weather_summary = ""
@@ -295,6 +362,14 @@ async def chat_stream_endpoint(req: ChatRequest):
     """
     # 1. RAG — Top-20 → rerank → Top-5 (RAG-1/2/3 pipeline)
     rag_texts = retrieve(req.query, k=5)
+    if not rag_texts and not (req.verified_knowledge or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": "NO_GROUNDING",
+                "message": "No verified knowledge matched this question.",
+            },
+        )
 
     # 2. Weather
     weather_summary = ""

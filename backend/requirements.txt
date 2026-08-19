@@ -28,7 +28,6 @@ requests>=2.32.0,<3
 urllib3>=2.2.0,<3                  # Fixed: no longer pinned to <2.0
 
 # ── Google Gemini AI (chatbot grounding) ───────────────────────
-google-generativeai>=0.8.0
 
 # ── Data processing ────────────────────────────────────────────
 numpy>=1.26.0,<2.0

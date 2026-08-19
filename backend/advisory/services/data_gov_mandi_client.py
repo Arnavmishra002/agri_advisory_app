@@ -415,7 +415,7 @@ class DataGovMandiClient:
                 modal_price = round(float(r.get("as_on_price") or 0), 2)
             except (ValueError, TypeError):
                 continue
-            msp = _MSP_2024_25.get(crop_id) or (float(r["msp_price"]) if r.get("msp_price") else None)
+            msp = _MSP_2024_25.get(crop_id)
             profit_vs_msp = None
             if msp and msp > 0:
                 profit_vs_msp = round(((modal_price - msp) / msp) * 100, 1)

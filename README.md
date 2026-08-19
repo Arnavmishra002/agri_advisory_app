@@ -158,6 +158,20 @@ and stores the generated index in the `krishimitra_rag_data` volume. Set
 `RAG_INDEX_REQUIRED=true` in production to stop startup when fresh knowledge
 cannot be indexed; the default local setting starts in a clearly degraded mode.
 
+The canonical 202-crop recommendation catalog is also exported into Phase 1 as
+grounded planning profiles. Regenerate and verify that snapshot whenever crop
+metadata changes:
+
+```bash
+python3 scripts/generate_crop_knowledge.py
+python3 scripts/generate_crop_knowledge.py --check
+python3 phase1/rag/eval_retrieval.py --static
+```
+
+The snapshot deliberately excludes estimated economics, synthetic live data,
+disease classification, and chemical doses. Crop-specific field practices must
+still be confirmed against the local KVK or current state package of practices.
+
 Check it:
 
 ```bash
@@ -180,7 +194,8 @@ Create `.env` first and set at least `SECRET_KEY`.
 cp .env.example .env
 ```
 
-Common commands:
+Local development commands (the automatically loaded
+`docker-compose.override.yml` uses Django hot reload and SQLite):
 
 ```bash
 # API plus built frontend served by Django, host port 8001
@@ -192,12 +207,31 @@ docker compose --profile ai up --build web phase1
 # API plus nginx static UI, host ports 8001 and 8080
 docker compose --profile full up --build
 
-# Full stack: Django, nginx, PostgreSQL, Redis, Phase 1, MQTT
+# Development full stack
 docker compose --profile all up --build
 ```
 
 The compose file stores runtime state in named volumes for the database,
 uploads, static files, Redis, MQTT, and mounted ML models.
+
+For a production deployment, create an untracked `.env.production` with every
+required secret from `.env.example`, then use the production overlay explicitly:
+
+```bash
+docker compose --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.production.yml \
+  --profile all config --quiet
+
+docker compose --env-file .env.production \
+  -f docker-compose.yml -f docker-compose.production.yml \
+  --profile all up --build -d
+```
+
+The explicit `-f` files prevent the local development override from loading.
+This production path uses Gunicorn, PostgreSQL, shared Redis rate limits/cache,
+strict RAG startup, and bearer authentication between Django and Phase 1. It
+fails before startup when the database password, data.gov.in key, Sentry DSN,
+OTP credentials, host/origin restrictions, or Phase 1 token are missing.
 
 ## Crop Disease Model
 
@@ -208,7 +242,10 @@ models/crop_disease/efficientnetb3_crop_disease.keras
 ```
 
 Large datasets and trained model artifacts are intentionally not committed.
-Install or mount the model in production, or train one from local datasets.
+Install or mount a validated model in production, or train one from local
+datasets. Advisory-only diagnostics are launch-safe and remain the default;
+an unverified image classifier is never enabled merely because a `.keras` file
+exists.
 
 Install ML dependencies:
 
@@ -222,35 +259,44 @@ Prepare datasets under `data/datasets/` and inspect them:
 python scripts/setup_training_data.py --analyze-only
 ```
 
-Train EfficientNet-B3:
+Train a bounded candidate without replacing the installed model:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.train \
-  --data-dir data/datasets \
-  --output-dir models/crop_disease \
-  --architecture efficientnetb3
+python3 scripts/train_crop_disease.py --skip-setup \
+  --max-per-class 100 --epochs 4 --warmup-epochs 3 \
+  --fine-tune-layers 20 --max-test-samples 760
+```
+
+The default output is `models/crop_disease_candidate/`. Production mode also
+requires an approved provenance manifest and non-plant negatives:
+
+```bash
+python3 scripts/train_crop_disease.py --skip-setup --production \
+  --max-per-class 0 --epochs 20 --max-test-samples 0 \
+  --dataset-manifest data/datasets/dataset_manifest.json
 ```
 
 Evaluate before production:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.evaluate \
-  --model-dir models/crop_disease \
+PYTHONPATH=backend python3 -m advisory.ml.evaluate \
+  --model-dir models/crop_disease_candidate \
   --data-dir data/datasets
 ```
 
 For quick local/CI smoke checks on constrained hardware:
 
 ```bash
-PYTHONPATH=backend python -m advisory.ml.evaluate \
-  --model-dir models/crop_disease \
+PYTHONPATH=backend python3 -m advisory.ml.evaluate \
+  --model-dir models/crop_disease_candidate \
   --data-dir data/datasets \
   --max-test-samples 390
 ```
 
 `/api/health/readiness/` reports whether the model is missing, needs retraining,
-or is a production candidate. Models marked `needs_retraining` or `unknown` are
-blocked from farmer-facing predictions by default; use
+needs validation, or is a production candidate. Models marked
+`needs_retraining`, `needs_validation`, or `unknown` are blocked from
+farmer-facing predictions by default; use
 `ML_ALLOW_UNVERIFIED_MODEL=true` only for offline evaluation, never for a farmer
 production deployment.
 
@@ -314,7 +360,8 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 | `PHASE1_STREAM_TOTAL_TIMEOUT_S` | Optional | Total Phase 1 stream budget |
 | `CHAT_LOCAL_AI_MAX_CONCURRENCY` | Optional | Max concurrent local Phase 1/Ollama chatbot calls; use `1` on small CPU-only hosts |
 | `OLLAMA_BASE_URL` | Optional | Local Ollama URL |
-| `OLLAMA_MODEL` | Optional | Local LLM model name |
+| `OLLAMA_MAX_TOKENS` | Optional | JSON answer generation cap; default `320` for bounded CPU latency |
+| `OLLAMA_STREAM_MAX_TOKENS` | Optional | Streamed answer generation cap; default `320` |
 | `OLLAMA_DIRECT_TIMEOUT_S` | Optional | Direct Ollama fallback read timeout |
 | `CROP_DISEASE_MODEL_DIR` | Optional | Directory containing disease model artifacts |
 | `ML_CONFIDENCE_THRESHOLD` | Optional | Minimum confidence for image classification |
@@ -351,8 +398,8 @@ Local shell environments may not have Flutter installed. GitHub Actions runs
 
 ## Verification
 
-This repo currently uses smoke checks and CI contract tests rather than a pytest
-suite.
+This repo uses Django regression tests, deterministic service verifiers,
+Playwright browser journeys, dependency audits, and Docker smoke checks.
 
 Backend:
 
@@ -360,6 +407,7 @@ Backend:
 python3 -m compileall -q backend phase1 scripts custom_llm_trainer
 python manage.py check
 python manage.py makemigrations --check --dry-run
+python manage.py test advisory.tests
 python scripts/check_before_push.py
 ```
 
@@ -369,13 +417,15 @@ Frontend:
 cd frontend
 node --check public/js/app.js
 npm audit --audit-level=high
+npm run test:ui
+npm run test:e2e
 npm run build
 ```
 
 Mobile:
 
 ```bash
-cd mobile/krishimitra
+cd mobile/krishimitra_app
 flutter analyze
 ```
 
@@ -391,11 +441,11 @@ curl "http://127.0.0.1:8000/api/crops/search/?q=makhana"
 ## GitHub Actions
 
 The CI workflow validates backend routes and farmer-critical API behavior,
-frontend build health, mobile analysis, code quality rules, and Docker build
-contracts. It starts the API and Phase 1 containers, checks both health routes,
-and verifies an instant chatbot greeting. Quick-service and production reports
-are uploaded as Actions artifacts for 14 days even though generated `docs/`
-reports are ignored locally. Pull requests should be green before merging.
+desktop/mobile-width Playwright journeys, frontend build health, mobile
+analysis, code quality rules, and Docker build contracts. It starts the API and
+Phase 1 containers, checks both health routes, and verifies an instant chatbot
+greeting. Quick-service, browser-failure, and production reports are uploaded
+as Actions artifacts for 14 days. Pull requests should be green before merging.
 
 For a deployed pre-launch gate, set repository variable `LAUNCH_CHECK=true` and
 `LAUNCH_READINESS_URL=https://your-api.example.com`. The optional Actions job
@@ -411,7 +461,8 @@ Recommended production setup:
 4. Frontend hosted by CDN/static hosting, nginx, or Django with
    `SERVE_FRONTEND=true`.
 5. Optional Phase 1 service plus Ollama for local RAG/LLM.
-6. Trained crop disease model mounted at `models/crop_disease/`.
+6. Optional production-candidate disease model mounted at
+   `models/crop_disease/`; otherwise keep advisory-only diagnostics enabled.
 7. `DATA_GOV_IN_API_KEY` set for stronger mandi coverage.
 8. `SENTRY_DSN`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, and
    `CSRF_TRUSTED_ORIGINS` set to production values.
@@ -421,18 +472,20 @@ Recommended production setup:
     production Phase 1 service instead of silently weakening answers.
 
 Before launch, the strict readiness endpoint must return `ready`. Missing Redis,
-mandi key, Phase 1/RAG, configured Ollama model, production-candidate disease
-model, or Sentry are reported as explicit blockers. Development remains usable
-with honest fallback labels when `LAUNCH_CHECK=false`.
+mandi key, Phase 1/RAG, configured Ollama model, or Sentry are explicit blockers.
+An unverified disease model is a blocker only when image classification is
+enabled; advisory-only disease guidance remains launch-safe. Development remains
+usable with honest fallback labels when `LAUNCH_CHECK=false`.
 
 Disease model training must use a licensed dataset manifest in the format at
 `backend/advisory/ml/dataset_manifest.schema.json`:
 
 ```bash
-python -m advisory.ml.dataset_manifest data/datasets/dataset_manifest.json
-python -m advisory.ml.train --data-dir data/datasets \
-  --output-dir models/crop_disease --require-manifest
-python -m advisory.ml.evaluate --model-dir models/crop_disease \
+python3 -m advisory.ml.dataset_manifest data/datasets/dataset_manifest.json
+python3 -m advisory.ml.train --data-dir data/datasets \
+  --output-dir models/crop_disease_candidate \
+  --require-manifest --require-non-plant
+python3 -m advisory.ml.evaluate --model-dir models/crop_disease_candidate \
   --data-dir data/datasets
 ```
 
@@ -443,6 +496,9 @@ rates. Farmer image classification remains disabled unless metadata quality is
 Render/Railway style API-only deployments can use `Procfile`, `render.yaml`,
 or `scripts/deploy.sh`. Combined single-container deployments should build the
 frontend first and set `SERVE_FRONTEND=true`.
+
+The production procedures, stop conditions, incident responses, and rollback
+checks are in `docs/FARMER_BETA_RUNBOOK.md`.
 
 ## Troubleshooting
 

@@ -62,7 +62,7 @@ class LocationRecommendationViewSet(viewsets.ViewSet):
             ctx = resolve_request_location(request)
             return Response({
                 "status": "success",
-                "location": ctx.to_dict(),
+                "location": {**ctx.to_dict(), "confirmed": ctx.confirmed},
                 "coordinates": {"lat": ctx.latitude, "lon": ctx.longitude},
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             })

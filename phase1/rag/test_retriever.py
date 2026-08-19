@@ -7,6 +7,31 @@ from . import retriever
 
 
 class RetrieverRankingTests(unittest.TestCase):
+    def test_query_taxonomy_covers_every_generated_crop_profile(self):
+        self.assertEqual(len(retriever._QUERY_CROP_TERMS), 202)
+        self.assertIn("रामबूटान", retriever._QUERY_CROP_TERMS["rambutan"])
+        self.assertIn("अश्वगंधा", retriever._QUERY_CROP_TERMS["ashwagandha"])
+
+    def test_query_crop_detection_does_not_treat_prices_as_rice(self):
+        self.assertNotIn(
+            "rice",
+            retriever._extract_tags("show verified mandi prices", retriever._QUERY_CROP_TERMS),
+        )
+
+    def test_romanised_hindi_query_is_augmented_for_english_knowledge_base(self):
+        augmented = retriever._augment("gehu ki buwai ka sahi samay")
+
+        self.assertIn("wheat", augmented)
+        self.assertIn("sowing", augmented)
+        self.assertIn("time", augmented)
+
+    def test_multilingual_crop_aliases_are_augmented_to_canonical_ids(self):
+        augmented = retriever._augment("बेर किन्नू नींबू बागवानी")
+
+        self.assertIn("ber", augmented)
+        self.assertIn("kinnow", augmented)
+        self.assertIn("lemon", augmented)
+
     def test_metadata_alignment_beats_noisy_vector_match(self):
         candidates = [
             {
@@ -31,6 +56,30 @@ class RetrieverRankingTests(unittest.TestCase):
 
         self.assertEqual(ranked[0]["source_file"], "groundnut_millets.txt")
         self.assertGreater(ranked[0]["score"], ranked[1]["score"])
+
+    def test_extended_crop_metadata_outranks_unrelated_high_vector_match(self):
+        candidates = [
+            {
+                "text": "Banana climate and tropical fruit production notes.",
+                "source_file": "horticulture_fruits.txt",
+                "category": "crops",
+                "crops": "banana",
+                "topics": "seed",
+                "score": 0.72,
+            },
+            {
+                "text": "CROP_ID: rambutan. Rambutan climate fit, soil pH and suitable states.",
+                "source_file": "indian_crop_profiles_202.txt",
+                "category": "crops",
+                "crops": "rambutan",
+                "topics": "soil|weather",
+                "score": 0.59,
+            },
+        ]
+
+        ranked = retriever._rerank(candidates, "rambutan climate and soil", final_k=2)
+
+        self.assertEqual(ranked[0]["source_file"], "indian_crop_profiles_202.txt")
 
     def test_relevance_threshold_filters_weak_matches(self):
         results = [{"score": 0.49}, {"score": 0.51}]

@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "suite": "farmer_beta_launch_intents",
+  "launch_languages": ["hi", "hinglish", "en"],
+  "cases": [
+    {"id": "en-greeting", "query": "hello", "language": "en", "intent": "greeting"},
+    {"id": "en-weather", "query": "Will it rain tomorrow?", "language": "en", "intent": "weather"},
+    {"id": "en-market", "query": "What is today's wheat mandi price?", "language": "en", "intent": "market_price"},
+    {"id": "en-disease", "query": "Rice leaves have brown spots", "language": "en", "intent": "pest_disease"},
+    {"id": "en-fertilizer", "query": "When should I apply fertilizer to rice?", "language": "en", "intent": "fertilizer"},
+    {"id": "en-crop", "query": "Which crop should I grow here?", "language": "en", "intent": "crop_recommendation"},
+    {"id": "en-scheme", "query": "PM Kisan eligibility", "language": "en", "intent": "government_scheme"},
+    {"id": "en-irrigation", "query": "When should cotton be irrigated?", "language": "en", "intent": "irrigation"},
+
+    {"id": "hi-greeting", "query": "नमस्ते", "language": "hi", "intent": "greeting"},
+    {"id": "hi-weather", "query": "कल बारिश होगी क्या", "language": "hi", "intent": "weather"},
+    {"id": "hi-market", "query": "आज गेहूँ का मंडी भाव क्या है", "language": "hi", "intent": "market_price"},
+    {"id": "hi-disease", "query": "धान की पत्तियों पर रोग के धब्बे हैं", "language": "hi", "intent": "pest_disease"},
+    {"id": "hi-fertilizer", "query": "धान में खाद कब डालें", "language": "hi", "intent": "fertilizer"},
+    {"id": "hi-crop", "query": "मेरे खेत में कौन सी फसल लगाऊँ", "language": "hi", "intent": "crop_recommendation"},
+    {"id": "hi-scheme", "query": "पीएम किसान की पात्रता क्या है", "language": "hi", "intent": "government_scheme"},
+    {"id": "hi-irrigation", "query": "कपास में सिंचाई कब करें", "language": "hi", "intent": "irrigation"},
+
+    {"id": "hinglish-greeting", "query": "hii", "language": "en", "intent": "greeting"},
+    {"id": "hinglish-weather", "query": "kal ka mausam kaisa hoga", "language": "hinglish", "intent": "weather"},
+    {"id": "hinglish-market", "query": "gehu ka mandi bhav kya hai", "language": "hinglish", "intent": "market_price"},
+    {"id": "hinglish-disease", "query": "rice me disease ke spots hain", "language": "hinglish", "intent": "pest_disease"},
+    {"id": "hinglish-fertilizer", "query": "dhan me khad kab dalu", "language": "hinglish", "intent": "fertilizer"},
+    {"id": "hinglish-crop", "query": "meri location ke liye best crop", "language": "hinglish", "intent": "crop_recommendation"},
+    {"id": "hinglish-scheme", "query": "pm kisan me apply kaise karu", "language": "hinglish", "intent": "government_scheme"},
+    {"id": "hinglish-irrigation", "query": "cotton ko pani kab dena hai", "language": "hinglish", "intent": "irrigation"}
+  ]
+}

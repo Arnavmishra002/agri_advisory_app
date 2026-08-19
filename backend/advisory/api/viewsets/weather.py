@@ -21,7 +21,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from ..location_utils import attach_location_metadata, resolve_request_location
+from ..location_utils import (
+    attach_location_metadata,
+    require_confirmed_location,
+    resolve_request_location,
+)
 from ..errors import safe_error_message
 from ...services.language_service import normalise_language_code
 from ...services.unified_realtime_service import weather_service
@@ -39,6 +43,9 @@ class WeatherViewSet(viewsets.ViewSet):
             return Response({"error": "Invalid weather parameters", "errors": serializer.errors}, status=400)
         params = serializer.validated_data
         ctx  = resolve_request_location(request)
+        location_error = require_confirmed_location(ctx, service="weather")
+        if location_error:
+            return location_error
         lang = normalise_language_code(params.get("language", "hi"))
         data = weather_service.get_weather(
             ctx.query_label, ctx.latitude, ctx.longitude, lang=lang
@@ -99,6 +106,9 @@ class WeatherViewSet(viewsets.ViewSet):
                 return Response({"error": "Invalid weather parameters", "errors": serializer.errors}, status=400)
             params = serializer.validated_data
             ctx  = resolve_request_location(request)
+            location_error = require_confirmed_location(ctx, service="weather")
+            if location_error:
+                return location_error
             lang = normalise_language_code(params.get("language", "hi"))
             # Invalidate the Django weather_cache for this location
             try:

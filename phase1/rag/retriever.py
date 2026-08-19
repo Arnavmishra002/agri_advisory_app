@@ -34,6 +34,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+try:
+    from .crop_profile_snapshot import load_crop_terms, merge_crop_terms
+except ImportError:
+    from rag.crop_profile_snapshot import load_crop_terms, merge_crop_terms
+
 logger = logging.getLogger(__name__)
 
 CHROMA_DIR   = Path(__file__).parent.parent / "chroma_db"
@@ -94,6 +99,7 @@ _QUERY_CROP_TERMS = {
     "ginger": ("ginger", "अदरक"),
     "garlic": ("garlic", "लहसुन"),
 }
+_QUERY_CROP_TERMS = merge_crop_terms(_QUERY_CROP_TERMS, load_crop_terms())
 
 _QUERY_TOPIC_TERMS = {
     "disease": ("disease", "blast", "blight", "rust", "rot", "wilt", "smut", "रोग", "झुलसा", "रतुआ"),
@@ -160,12 +166,60 @@ _HI_EN: dict = {
     "मंडी": "mandi market", "एमएसपी": "msp minimum support price",
 }
 
+_ROMAN_HI_EN: dict = {
+    "gehu": "wheat",
+    "gehun": "wheat",
+    "dhan": "rice paddy",
+    "buwai": "sowing planting seed",
+    "bonai": "sowing planting seed",
+    "samay": "time timing",
+    "tarika": "method practice",
+    "mausam": "weather",
+    "barish": "rain rainfall",
+    "baarish": "rain rainfall",
+    "fasal": "crop",
+    "sinchai": "irrigation water",
+    "khad": "fertilizer nutrient",
+    "mandi": "market price",
+    "bhav": "price rate",
+    "daam": "price rate",
+    "rog": "disease",
+    "keet": "pest",
+    "dawai": "crop protection treatment",
+}
+
+
+@lru_cache(maxsize=4096)
+def _taxonomy_pattern(term: str):
+    return re.compile(rf"(?<![a-z0-9_]){re.escape(term)}(?![a-z0-9_])")
+
+
+def _contains_taxonomy_term(text_lower: str, term: str) -> bool:
+    """Match Latin terms as words while retaining substring matching for Indic scripts."""
+    normalized = str(term or "").strip().lower()
+    if not normalized:
+        return False
+    if re.search(r"[a-z0-9]", normalized):
+        return bool(_taxonomy_pattern(normalized).search(text_lower))
+    return normalized in text_lower
+
 
 def _augment(query: str) -> str:
-    """Append English equivalents for Hindi terms found in query."""
-    if not re.search(r"[\u0900-\u097F]", query):
-        return query
+    """Append English equivalents for Devanagari and Romanised Hindi terms."""
     extras = [eng for hi, eng in _HI_EN.items() if hi in query]
+    lower = query.lower()
+    extras.extend(
+        english
+        for roman, english in _ROMAN_HI_EN.items()
+        if re.search(rf"\b{re.escape(roman)}\b", lower)
+    )
+    extras.extend(
+        crop_id.replace("_", " ")
+        for crop_id, terms in _QUERY_CROP_TERMS.items()
+        if crop_id.replace("_", " ") not in lower
+        and any(_contains_taxonomy_term(lower, term) for term in terms)
+    )
+    extras = list(dict.fromkeys(extras))
     return (query + " " + " ".join(extras)) if extras else query
 
 
@@ -230,8 +284,8 @@ def _keyword_score(query_terms: set, doc: str) -> float:
     """
     if not query_terms:
         return 0.0
-    doc_lower  = doc.lower()
-    hits = sum(1 for t in query_terms if t in doc_lower)
+    doc_lower = doc.lower()
+    hits = sum(1 for term in query_terms if _contains_taxonomy_term(doc_lower, term))
     return hits / len(query_terms)
 
 
@@ -240,7 +294,7 @@ def _extract_tags(text: str, taxonomy: dict) -> set:
     return {
         tag
         for tag, terms in taxonomy.items()
-        if any(term.lower() in lower for term in terms)
+        if any(_contains_taxonomy_term(lower, term) for term in terms)
     }
 
 

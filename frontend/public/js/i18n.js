@@ -54,6 +54,12 @@
             mr: 'AI सहाय्यक', ta: 'AI உதவியாளர்', gu: 'AI સહાયક', kn: 'AI ಸಹಾಯಕ',
             ml: 'AI സഹായി', pa: 'AI ਸਹਾਇਕ', or: 'AI ସହାୟକ', as: 'AI সহায়ক', ur: 'AI معاون'
         },
+        nav_profile: {
+            hi: 'मेरी प्रोफ़ाइल', en: 'My Profile'
+        },
+        chat_suggested_title: {
+            hi: '💡 अक्सर पूछे जाने वाले सवाल:', en: '💡 Suggested questions:'
+        },
         // Hero
         hero_title: {
             hi: '🌾 कृषिमित्र AI', en: '🌾 KrishiMitra AI', bn: '🌾 কৃষিমিত্র AI',
