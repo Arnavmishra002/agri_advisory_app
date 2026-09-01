@@ -26,7 +26,7 @@ import json
 import logging
 import time
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -80,6 +80,25 @@ _CROP_HINDI: Dict[str, str] = {
     "arhar": "अरहर",       "onion": "प्याज",    "potato": "आलू",
     "tomato": "टमाटर",
 }
+
+def _has_price(record: Dict[str, Any]) -> bool:
+    """True only when a row carries a usable price.
+
+    Agmarknet returns rows with a null or empty price for markets that
+    reported an arrival but no rate (seen at DADRI APMC). Counting those as an
+    answer would show a farmer a mandi row with no number in it.
+    """
+    for key in ("as_on_price", "modal_price", "price"):
+        raw = record.get(key)
+        if raw in (None, "", "-"):
+            continue
+        try:
+            if float(raw) > 0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
 
 # ── Static seed prices (last known good data — updated when API call succeeds) ─
 # Verified real Agmarknet prices from 12-06-2026. Serves as instant fallback.
@@ -226,6 +245,80 @@ class AgmarknetDirectClient:
         except Exception as exc:
             logger.error("Agmarknet Direct: unexpected error: %s", exc)
         return None
+
+    def fetch_scoped(
+        self,
+        *,
+        state_id: Optional[int] = None,
+        district_id: Optional[int] = None,
+        market_id: Optional[int] = None,
+        commodity_id: Optional[int] = None,
+        limit: int = 100,
+    ) -> Dict[str, Any]:
+        """Ask Agmarknet for the most local rows it will actually answer with.
+
+        The default query this client used to send is the national "All States"
+        aggregate. Agmarknet also accepts state, district and market IDs, and
+        the narrower the scope the more relevant the number: measured on
+        2026-09-01 for the same reported date, Wheat came back as 2523.70 for
+        the Uttar Pradesh average and 2541.83 for Gautam Budh Nagar.
+
+        Individual mandis are sparse, though -- DADRI APMC returned a single
+        Maize row with no price -- so this escalates outward rather than
+        insisting on the tightest scope, and reports which scope actually
+        answered so the caller can label it honestly. It never invents a row:
+        an empty result stays empty.
+        """
+        ALL = {"state": 100006, "district": 100007, "market": 100009, "commodity": 100001}
+        attempts: List[Tuple[str, Dict[str, Any]]] = []
+        if market_id:
+            attempts.append(("market", {"state": state_id or ALL["state"],
+                                        "district": [district_id or ALL["district"]],
+                                        "market": [market_id]}))
+        if district_id:
+            attempts.append(("district", {"state": state_id or ALL["state"],
+                                          "district": [district_id],
+                                          "market": [ALL["market"]]}))
+        if state_id:
+            attempts.append(("state", {"state": state_id,
+                                       "district": [ALL["district"]],
+                                       "market": [ALL["market"]]}))
+        attempts.append(("national", {"state": ALL["state"],
+                                      "district": [ALL["district"]],
+                                      "market": [ALL["market"]]}))
+
+        for coverage, scope in attempts:
+            payload = {
+                "dashboard": DASHBOARD,
+                "date": date.today().isoformat(),
+                "group": [100000],
+                "commodity": [commodity_id or ALL["commodity"]],
+                "variety": 100021,
+                "grades": [4],
+                "format": "json",
+                "limit": limit,
+            }
+            payload.update(scope)
+            try:
+                resp = self.session.post(AGMARKNET_API_URL, json=payload, timeout=REQUEST_TIMEOUT)
+                resp.raise_for_status()
+                raw = resp.json()
+            except Exception as exc:
+                logger.warning("Agmarknet scoped query (%s) failed: %s", coverage, exc)
+                continue
+            if raw.get("status") not in (True, "success", "Success", 1):
+                # A scope with no data answers status:false -- that is a normal
+                # "nothing reported here", not an error worth aborting on.
+                continue
+            records = ((raw.get("data") or {}).get("records")) or []
+            # Rows can carry a null price (seen at DADRI APMC); those are not
+            # a price and must not be counted as a usable answer.
+            priced = [r for r in records if _has_price(r)]
+            if priced:
+                return {"records": priced, "coverage": coverage,
+                        "reported_date": priced[0].get("reported_date"),
+                        "scope": scope}
+        return {"records": [], "coverage": None, "reported_date": None, "scope": None}
 
     def _get_seed_result(self) -> Dict[str, Any]:
         """
