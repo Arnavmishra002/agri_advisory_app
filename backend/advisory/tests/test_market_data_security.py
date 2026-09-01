@@ -96,8 +96,23 @@ class MarketDataSecurityTests(TestCase):
             "state",
         )
         self.assertIn("No estimated price", response["message"])
-        self.assertIn("displayed separately", response["message"])
+        # The dated row must be announced as separate from a current price.
+        # Assert the meaning, not one exact phrasing, so wording can improve.
+        self.assertIn("separately", response["message"])
         self.assertNotIn("no historical fallback", response["message"].lower())
+
+        # "message" is rendered straight into the farmer-facing price screen,
+        # so it must never carry operator instructions. It previously shipped
+        # the sentence "adding a DATA_GOV_IN_API_KEY widens state and mandi
+        # coverage" -- displayed in English to farmers reading a Hindi UI.
+        farmer_text = response["message"].lower()
+        for jargon in ("api_key", "api key", "env", "agmarknet is queried",
+                       "freshness window", "data_gov"):
+            self.assertNotIn(jargon, farmer_text,
+                             f"operator jargon {jargon!r} leaked into the farmer message")
+        # The diagnostic detail still has to exist, just under its own key.
+        self.assertIn("operator_note", response)
+        self.assertIn("freshness window", response["operator_note"].lower())
 
     @patch.object(DataGovMandiClient, "_fetch_data_gov", return_value=None)
     @patch.object(DataGovMandiClient, "_fetch_agmarknet_direct", return_value=None)

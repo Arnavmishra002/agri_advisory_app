@@ -1700,7 +1700,9 @@
             ? `${liveDot} ${isFreshOfficial ? 'ताजा आधिकारिक भाव' : 'नवीनतम आधिकारिक रिपोर्ट'}${latestOfficialDate ? ' · ' + escapeHtml(latestOfficialDate) : ''} — ${escapeHtml(data.data_source || 'Agmarknet / data.gov.in')}`
             : isEstimatesOnly
             ? `${liveDot} MSP संदर्भ — आज का मंडी व्यापार भाव नहीं`
-            : `${liveDot} ${escapeHtml(data.message || 'Live data unavailable')}`;
+            : `${liveDot} ${latestOfficialDate
+                ? `${window.t('market_latest_official_report')} · ${escapeHtml(latestOfficialDate)} — ${window.t('market_not_published_today')}`
+                : window.t('market_not_published_today')}`;
 
         if (!crops.length) {
             const unavailableReason = data.mandi_no_live_rows === true

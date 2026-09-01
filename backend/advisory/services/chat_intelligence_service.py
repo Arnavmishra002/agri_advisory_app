@@ -760,6 +760,12 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
         # "<crop> कब बोई जाती है / कब लगाते हैं / की बुवाई कब"
         r"(कब)\s*(बोई|बोया|लगाई|लगाया|लगाते|बोते|बोना|लगाना|रोपाई)",
         r"(बुवाई|बुआई|रोपाई)\s*(का|की|कब|के)",
+        # "how much seed" is a sowing quantity, not a variety question. The
+        # Hinglish "seed rate kitna hai" already routed; the Devanagari
+        # phrasings a farmer actually types did not, and fell through to a
+        # generic reply even though the sowing answer carries the seed rate.
+        r"(कितना|कितनी|कुल)\s*\S{0,8}\s*(बीज|beej)",
+        r"(बीज|beej)\s*(दर|मात्रा|कितना|कितनी|कितने|लगेगा|लगेगी|लगेंगे|डालना|चाहिए|प्रति)",
         # English: "when to sow/plant X", "best time to sow X"
         r"\bwhen\s+(to\s+|should\s+i\s+|do\s+i\s+|can\s+i\s+|is\s+the\s+)?(sow|plant|seed|transplant|sowing|planting)\b",
         r"\b(best|right|correct)\s+time\s+to\s+(sow|plant|seed)\b",
@@ -782,7 +788,7 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
 
     # ── STORAGE / POST-HARVEST ────────────────────────────────────
     (INTENT_STORAGE, [
-        r"\b(storage|bhandaran|भंडारण|store|godown|silo|sirf|cold\s*storage|warehouse)\b",
+        r"\b(storage|bhandaran|भंडारण|भंडार|स्टोर|store|godown|silo|sirf|cold\s*storage|warehouse)\b",
         r"\b(kitne\s*din|how\s*long|कितने\s*दिन)\s*(rakh\s*sakte|store|रख\s*सकते|preserve)\b",
         r"\b(post\s*harvest|fasal\s*ke\s*baad|कटाई\s*के\s*बाद)\s*(kya|kyaa|treatment|handling)\b",
         r"\b(namami|naami|moisture|nami)\s*(content|level)\s*(grain|storage|before)\b",
@@ -919,6 +925,10 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
         r"\b(pattian|pattiyan|pattiyon|patti|leaf|पत्तियां|पत्ती)\s*(pili|peli|peeli|peele|पीली|yellow|pale|lal|red|kali|brown|safed|white)\b",
         # Hindi word order is adjective-first: "पीले पत्ते", "भूरे धब्बे", "काली पत्तियां"
         r"(पीले|पीली|पीला|भूरे|भूरी|काले|काली|लाल|सफेद|सूखे|मुरझाए)\s*(पत्ते|पत्तों|पत्ती|पत्तियां|पत्तियों|धब्बे|धब्बा|दाग|निशान)",
+        # Weeds have no intent of their own. They are a crop-protection
+        # problem, so the pest/disease engine is the closest engine that can
+        # actually answer -- better than the generic fallback these reached.
+        r"(खरपतवार|खरपतवारनाशी|kharpatwar|weedicide|herbicide|निराई|गुड़ाई|घास\s*फूस)",
         # plural "पत्ते" forms missing from the noun lists above
         r"(पत्ते|पत्तों|पत्तियों)\s*(पर|में|का|के|की)?\s*(पीला|पीले|धब्बे|दाग|सूख|मुरझा|छेद|कीड़)",
         r"\b(fasal|crop|plant|paudha)\s*(pili|peli|pilI|पीली|yellow|sukh|wilt|mar|gal|rot)\s*(rahi|raha|gayi|gaya|ho\s*rahi|pad\s*rahi)?\b",
@@ -985,6 +995,44 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
         r"\b\d+\s*(din|days)\s*(baad|after|mein)?\s*(khad|urea|dap|fertilizer|उर्वरक|top\s*dress)\b",
     ]),
 
+]
+
+
+def _devanagari_safe_boundaries(pattern: str) -> str:
+    r"""Make ``\b`` anchors work for Devanagari as well as Latin.
+
+    Python's ``\w`` covers letters and digits but NOT Devanagari vowel signs
+    and the virama (U+093F, U+0940, U+094D -- categories Mc/Mn). A word like
+    "मिट्टी" therefore ENDS on a non-word character, so the trailing
+    ``\b`` in ``\b(...|मिट्टी)\b`` demands a word-to-non-word transition that can
+    never occur -- the pattern silently never matches.
+
+    This was not theoretical. An audit of this table found the bug disabling
+    core farmer vocabulary across nearly every intent: मंडी (mandi), पानी
+    (water), मिट्टी (soil), बीमा (insurance), योजना (scheme), पीली/पत्ती
+    (yellow/leaf -- disease symptoms), सफेद मक्खी (whitefly), बाढ़ (flood).
+    Most questions still routed, because some other alternative in the same
+    group happened to end in a consonant -- which is exactly what made it hard
+    to spot. It failed only for the phrasings where the Devanagari term was
+    the one that should have matched, and those fell through to a generic
+    reply that told the farmer nothing.
+
+    Replacing the outer anchors with lookarounds keeps the intent -- do not
+    match inside a longer word -- while dropping the requirement that our own
+    final character be a word character. Latin behaviour is unchanged:
+    "soiled" still fails to match "soil" because "e" is a word character.
+    """
+    out = pattern
+    if out.startswith(r"\b"):
+        out = r"(?<!\w)" + out[2:]
+    if out.endswith(r"\b"):
+        out = out[:-2] + r"(?!\w)"
+    return out
+
+
+_INTENT_PATTERNS = [
+    (intent, [_devanagari_safe_boundaries(p) for p in patterns])
+    for intent, patterns in _INTENT_PATTERNS
 ]
 
 

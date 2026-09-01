@@ -1134,21 +1134,26 @@ class MarketPricesService:
         # real cause is simply that the source has not published a newer row
         # sends the operator chasing the wrong problem.
         if registered:
-            msg = (
+            operator_note = (
                 "No mandi row inside the current freshness window. The official "
-                "source has not published a newer figure yet. No estimated price "
-                "is being shown. Any older official rows are displayed separately "
-                "with their reported date and coverage."
+                "source has not published a newer figure yet."
             )
         else:
-            msg = (
+            operator_note = (
                 "No mandi row inside the current freshness window. Agmarknet is "
                 "queried without a key, so this usually means the source has not "
                 "published newer data yet; adding a DATA_GOV_IN_API_KEY widens "
-                "state and mandi coverage. No estimated price is being shown. Any "
-                "older official rows are displayed separately with their reported "
-                "date and coverage."
+                "state and mandi coverage."
             )
+        # What the farmer is shown. The text above is written for whoever runs
+        # the service -- it names an env var and an upstream API -- and it was
+        # being rendered verbatim in the price screen, in English, to farmers
+        # reading a Hindi UI. Keep the two separate.
+        msg = (
+            "Today's verified mandi price has not been published yet. "
+            "No estimated price is being shown. Any older official row is "
+            "shown separately with the date it was reported."
+        )
         if crop:
             msg = (
                 f"No live mandi row for '{crop}' in this state today. "
@@ -1171,6 +1176,9 @@ class MarketPricesService:
             "top_crops": [],
             "total_records": 0,
             "message": msg,
+            # Diagnostics for whoever runs the service. Kept out of "message"
+            # so the price screen cannot render it at a farmer again.
+            "operator_note": operator_note,
         }
 
     def _finalize_market_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
