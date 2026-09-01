@@ -746,13 +746,23 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
     (INTENT_SOWING, [
         # Hindi/Hinglish timing — explicitly "buwai kab" or "kab boun"
         r"\b(buwai|buai|बुवाई|बुआई)\s*(kab|कब|ka\s*samay|when|kaise|कैसे)",
-        r"\b(kab|कब|when)\s*(bouwe|boun|lagaun|ugaun|daalen|लगाएं|बोएं|dalein)",
+        r"(kab|कब|when)\s*(bouwe|boun|boon|lagaun|ugaun|लगाएं|लगाऊं|लगाऊँ|लगायें|बोएं|बोऊं|बोऊँ|बोयें|उगाऊं|उगाऊँ|उगाएं)",
+        # "डालना" is ambiguous (seed vs fertiliser vs water) - only treat it as
+        # sowing when an explicit seed word is present.
+        r"(बीज|beej)\s*\S{0,12}\s*(कब|kab)\s*(डालूं|डालूँ|डालें|daalen|dalein)",
+        r"(कब|kab)\s*(डालूं|डालूँ|डालें|daalen|dalein)\s*(बीज|beej)",
         r"\b(kab|कब|when)\s*(se|से)?\s*(buwai|buai|बुवाई|sowing|planting|रोपाई)\s*(karein|karo|shuru|start)?",
         # Seed rate — but NOT seed treatment (that goes to SEED)
         r"\b(beej|बीज|seed)\s*(rate|matra|मात्रा|amount|kitna|कितना|how\s*much|per\s*(acre|hectare|bigha|hec))\b",
         r"\b(spacing|doori|दूरी|plant\s*to\s*plant|row\s*to\s*row|katar)\s*(kitni|कितनी|how\s*much)",
         r"\b(sowing\s*(depth|time|date|month|season)|बुवाई\s*(गहराई|समय|तारीख|महीना))\b",
         r"\b(kab\s*lagaye|kab\s*boye|kab\s*daalen|kab\s*ugaye)\b",
+        # "<crop> कब बोई जाती है / कब लगाते हैं / की बुवाई कब"
+        r"(कब)\s*(बोई|बोया|लगाई|लगाया|लगाते|बोते|बोना|लगाना|रोपाई)",
+        r"(बुवाई|बुआई|रोपाई)\s*(का|की|कब|के)",
+        # English: "when to sow/plant X", "best time to sow X"
+        r"\bwhen\s+(to\s+|should\s+i\s+|do\s+i\s+|can\s+i\s+|is\s+the\s+)?(sow|plant|seed|transplant|sowing|planting)\b",
+        r"\b(best|right|correct)\s+time\s+to\s+(sow|plant|seed)\b",
         r"\b(rabi|kharif|zaid)\s*(mein|में)\s*(kab|when)\s*(boun|lagaun|sow|plant)\b",
         r"\b(is\s*mahine|इस\s*महीने|this\s*month)\s*(mein|में|me)\s*(kya|kaun|konsi)\s*(lagaun|ugaun|boun)",
     ]),
@@ -840,6 +850,13 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
         r"\b(फसल|fasal)\s*(का|के|की)\s*(सुझाव|चुनाव|select|suggest|recommend)",
         r"\bkaunsi\s+fasal\b",
         r"\bkonsi\s+fasal\b",
+        # Devanagari decision phrasing ("... फसल क्या लगाऊं", "फसल कौन सी बोएं")
+        r"(फसल|खेती)\s*(क्या|कौन\s*सी|कौनसी)?\s*(लगाऊं|लगाऊँ|लगाएं|लगाये|बोऊं|बोऊँ|बोएं|उगाऊं|उगाऊँ|उगाएं|करूं|करूँ|करें|लगानी|बोनी|उगानी)",
+        r"(क्या|कौन\s*सी|कौनसी)\s*(फसल|खेती)\s*(लगाऊं|लगाऊँ|लगाएं|बोऊं|बोएं|उगाऊं|उगाएं)?",
+        # Rotation / next-crop questions in any script ("गेहूं के बाद अगली फसल", "next crop after wheat")
+        r"(अगली|अगला|agli|agla)\s*(फसल|fasal|crop)",
+        r"\bnext\s+crop\b",
+        r"(के\s*बाद|ke\s*baad)\s*\S{0,20}\s*(फसल|fasal|crop)",
         r"\b(mere\s*khet|meri\s*zameen|apni\s*kheti)\s*(ke\s*liye|mein)\s*(kya|konsi)\b",
         # Regional
         r"\b(ফসল|పంట|பயிர்|ਫ਼ਸਲ|ক্ষেত)\b.*\b(পরামর্শ|సూచన|பரிந்துரை|ਸੁਝਾਅ)\b",
@@ -900,6 +917,10 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
         r"\b(sundi|afid|aphid|mite|thrips|whitefly|सफेद\s*मक्खी|माहू|टिड्डा|locust|stem\s*borer|bollworm|armyworm|jassid|planthopper)\b",
         # Yellow leaf / yellowing (very common Hinglish symptom query) — broadened
         r"\b(pattian|pattiyan|pattiyon|patti|leaf|पत्तियां|पत्ती)\s*(pili|peli|peeli|peele|पीली|yellow|pale|lal|red|kali|brown|safed|white)\b",
+        # Hindi word order is adjective-first: "पीले पत्ते", "भूरे धब्बे", "काली पत्तियां"
+        r"(पीले|पीली|पीला|भूरे|भूरी|काले|काली|लाल|सफेद|सूखे|मुरझाए)\s*(पत्ते|पत्तों|पत्ती|पत्तियां|पत्तियों|धब्बे|धब्बा|दाग|निशान)",
+        # plural "पत्ते" forms missing from the noun lists above
+        r"(पत्ते|पत्तों|पत्तियों)\s*(पर|में|का|के|की)?\s*(पीला|पीले|धब्बे|दाग|सूख|मुरझा|छेद|कीड़)",
         r"\b(fasal|crop|plant|paudha)\s*(pili|peli|pilI|पीली|yellow|sukh|wilt|mar|gal|rot)\s*(rahi|raha|gayi|gaya|ho\s*rahi|pad\s*rahi)?\b",
         r"\b(pila\s*pad|pili\s*ho|peeli\s*ho|peele\s*dhabbe|yellow\s*ho|peela\s*ho|pattiyaan\s*pili|pattiyon\s*par\s*peele)\b",
         # "wheat/crop pili" without explicit verb — catch direct colour + crop combos
@@ -950,6 +971,8 @@ _INTENT_PATTERNS: List[Tuple[str, List[str]]] = [
     # ── FERTILIZER ───────────────────────────────────────────────
     (INTENT_FERTILIZER, [
         r"\b(urea|dap|npk|mkp|mop|fertilizer|khad|खाद|urvarak|उर्वरक|zinc|sulfur|boron|magnesium|vermicompost|FYM|neem\s*coated)\b",
+        # Devanagari fertiliser nouns - farmers type "यूरिया", not "urea"
+        r"(यूरिया|डीएपी|एनपीके|पोटाश|जिंक|गोबर\s*की\s*खाद|कम्पोस्ट|कंपोस्ट|सुपर\s*फॉस्फेट|म्यूरेट)",
         # "kitni khad" or "khad kitni" — quantity question
         r"\b(kitni|कितनी|how\s*much|kitna)\s*(khad|urea|dap|fertilizer|nitrogen|npk|potash)\b",
         # Schedule-only patterns WITHOUT "kab" alone (to avoid grabbing das-based queries)
@@ -2935,6 +2958,88 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         return found[:5]
 
     @staticmethod
+    def _crop_profile_summary(
+        crops_mentioned: List[Dict[str, Any]],
+        lang: str,
+    ) -> Optional[str]:
+        """Render the verified planning profile for a detected crop.
+
+        Used as a last resort before telling a farmer we have no answer. Only
+        emits fields present in the canonical crop database - nothing inferred.
+        """
+        if not crops_mentioned:
+            return None
+        crop_id = crops_mentioned[0].get("id")
+        profile = _ALL_CROP_DATA.get(crop_id) or {}
+        if not profile:
+            return None
+        name = crops_mentioned[0].get("name") or str(crop_id).replace("_", " ").title()
+
+        season = profile.get("season")
+        duration = profile.get("duration_days")
+        water = profile.get("water_requirement")
+        ph_min, ph_max = profile.get("ph_min"), profile.get("ph_max")
+        t_min, t_max = profile.get("temperature_min"), profile.get("temperature_max")
+
+        rows: List[str] = []
+        if lang == "hi":
+            if season:
+                rows.append(f"मौसम: **{season}**")
+            if duration:
+                rows.append(f"फसल अवधि: लगभग **{duration} दिन**")
+            if water:
+                rows.append(f"पानी की जरूरत: **{water}**")
+            if ph_min and ph_max:
+                rows.append(f"उपयुक्त मिट्टी pH: **{ph_min}-{ph_max}**")
+            if t_min and t_max:
+                rows.append(f"तापमान: **{t_min}-{t_max}°C**")
+            if not rows:
+                return None
+            return (
+                f"**{name}** के बारे में सत्यापित जानकारी:\n\n"
+                + "\n".join(f"- {r}" for r in rows)
+                + "\n\nअधिक सटीक सलाह के लिए बताएं: फसल की अवस्था, खेत की समस्या, "
+                  "और पिछली सिंचाई या बारिश कब हुई।"
+            )
+        if lang == "hinglish":
+            if season:
+                rows.append(f"Season: **{season}**")
+            if duration:
+                rows.append(f"Crop duration: lagbhag **{duration} din**")
+            if water:
+                rows.append(f"Pani ki zarurat: **{water}**")
+            if ph_min and ph_max:
+                rows.append(f"Suitable soil pH: **{ph_min}-{ph_max}**")
+            if t_min and t_max:
+                rows.append(f"Temperature: **{t_min}-{t_max}°C**")
+            if not rows:
+                return None
+            return (
+                f"**{name}** ke baare mein verified jankari:\n\n"
+                + "\n".join(f"- {r}" for r in rows)
+                + "\n\nZyada exact advice ke liye batayein: crop stage, field problem, "
+                  "aur last irrigation ya baarish kab hui."
+            )
+        if season:
+            rows.append(f"Season: **{season}**")
+        if duration:
+            rows.append(f"Crop duration: about **{duration} days**")
+        if water:
+            rows.append(f"Water requirement: **{water}**")
+        if ph_min and ph_max:
+            rows.append(f"Suitable soil pH: **{ph_min}-{ph_max}**")
+        if t_min and t_max:
+            rows.append(f"Temperature: **{t_min}-{t_max}°C**")
+        if not rows:
+            return None
+        return (
+            f"Verified profile for **{name}**:\n\n"
+            + "\n".join(f"- {r}" for r in rows)
+            + "\n\nFor a more precise answer, tell me the crop stage, the field "
+              "symptom, and when you last irrigated or it rained."
+        )
+
+    @staticmethod
     def _crop_profile_answer(
         query: str,
         crops_mentioned: List[Dict[str, Any]],
@@ -3840,6 +3945,13 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             crop_answer = self._crop_information_fallback(query, crops, lang)
             if crop_answer:
                 return alert_prefix + crop_answer
+            # Before giving up, surface what the verified crop profile DOES say.
+            # A farmer who asks about a crop we hold data for should never get a
+            # bare "cannot answer" - that reads as a broken assistant. Every value
+            # below comes from the canonical crop database, so this stays grounded.
+            profile_answer = self._crop_profile_summary(crops, lang)
+            if profile_answer:
+                return alert_prefix + profile_answer
             return alert_prefix + {
                 "hi": (
                     "इस फसल से जुड़े सवाल का सुरक्षित, स्रोत-आधारित उत्तर अभी उपलब्ध नहीं हो पाया। "

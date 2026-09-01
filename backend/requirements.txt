@@ -74,3 +74,10 @@ click>=8.3.3                        # PYSEC-2026-2132 fix; Python 3.10+ runtime
 # ── Scikit-learn (crop ML scoring helpers) ─────────────────────
 scikit-learn>=1.5.0,<2.0
 joblib>=1.4.0
+
+# ── Crop-disease model serving (low memory) ─────────────────────
+# tflite-runtime is ~5 MB against ~2 GB for full TensorFlow, so the free-tier
+# web host can serve the EfficientNet-B3 disease model. Training still uses
+# TensorFlow (requirements-ml.txt); production only ever runs the .tflite
+# export produced by the same training run.
+tflite-runtime>=2.14.0; python_version < "3.12"

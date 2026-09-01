@@ -26,6 +26,7 @@ from .config import (
     LOW_CONFIDENCE_MESSAGE,
     MODEL_FILENAME,
     NOT_PLANT_MESSAGE,
+    TFLITE_FILENAME,
     TOP_K,
     UNKNOWN_DISPLAY,
     UNKNOWN_LABEL,
@@ -47,22 +48,79 @@ class CropDiseasePredictor:
             or os.getenv("CROP_DISEASE_MODEL_DIR", str(DEFAULT_MODEL_DIR))
         )
         self.model: Optional[Any] = None
+        # "keras" (full TensorFlow) or "tflite" (tflite-runtime, low memory).
+        self.backend: Optional[str] = None
+        self._tflite_input: Optional[Dict[str, Any]] = None
+        self._tflite_output: Optional[Dict[str, Any]] = None
         self.class_names: List[str] = []
         self.metadata: Dict[str, Any] = {}
         self._load()
 
+    @staticmethod
+    def _load_tflite_interpreter(model_path: Path):
+        """Return a TFLite interpreter, preferring the standalone runtime.
+
+        tflite-runtime is a ~5 MB wheel, against ~2 GB for TensorFlow, so a
+        512 MB host can serve the model with it. Full TensorFlow is accepted as
+        a fallback for development machines that already have it.
+        """
+        try:
+            from tflite_runtime.interpreter import Interpreter  # type: ignore
+        except ImportError:
+            try:
+                from tensorflow.lite import Interpreter  # type: ignore
+            except ImportError:
+                return None
+        interpreter = Interpreter(model_path=str(model_path))
+        interpreter.allocate_tensors()
+        return interpreter
+
     def _load(self) -> None:
-        model_path = self.model_dir / MODEL_FILENAME
-        if not model_path.exists():
+        keras_path = self.model_dir / MODEL_FILENAME
+        if not keras_path.exists():
             alt = self.model_dir / "checkpoints" / "best.keras"
             if alt.exists():
-                model_path = alt
-            else:
-                logger.warning("No trained model at %s — ML predictions disabled", self.model_dir)
-                return
+                keras_path = alt
+        tflite_path = self.model_dir / TFLITE_FILENAME
 
-        import tensorflow as tf
-        self.model = tf.keras.models.load_model(model_path)
+        # Prefer TFLite when TensorFlow is absent (the production case) or when
+        # explicitly requested. The two artifacts come from the same training
+        # run, so labels, thresholds and metadata apply identically to both.
+        prefer_tflite = os.getenv("ML_PREFER_TFLITE", "").lower() in {"1", "true", "yes", "on"}
+        if tflite_path.exists():
+            tensorflow_available = True
+            if not prefer_tflite:
+                try:
+                    import tensorflow  # noqa: F401
+                except ImportError:
+                    tensorflow_available = False
+            if prefer_tflite or not tensorflow_available:
+                interpreter = self._load_tflite_interpreter(tflite_path)
+                if interpreter is not None:
+                    self.model = interpreter
+                    self.backend = "tflite"
+                    self._tflite_input = interpreter.get_input_details()[0]
+                    self._tflite_output = interpreter.get_output_details()[0]
+                    logger.info("Loaded TFLite crop-disease model from %s", tflite_path)
+
+        if self.model is None:
+            if not keras_path.exists():
+                logger.warning(
+                    "No trained model at %s — ML predictions disabled", self.model_dir
+                )
+                return
+            try:
+                import tensorflow as tf
+            except ImportError:
+                logger.warning(
+                    "TensorFlow is not installed and no TFLite model is present at %s "
+                    "— ML predictions disabled",
+                    tflite_path,
+                )
+                return
+            self.model = tf.keras.models.load_model(keras_path)
+            self.backend = "keras"
+
         labels_file = self.model_dir / LABELS_FILENAME
         if labels_file.exists():
             self.class_names = load_labels(labels_file)
@@ -77,7 +135,11 @@ class CropDiseasePredictor:
                 return int(raw_size[0]), int(raw_size[1])
             except (TypeError, ValueError):
                 pass
-        if self.model is not None:
+        if self.backend == "tflite" and self._tflite_input is not None:
+            shape = self._tflite_input.get("shape")
+            if shape is not None and len(shape) >= 3:
+                return int(shape[2]), int(shape[1])
+        if self.model is not None and self.backend == "keras":
             shape = getattr(self.model, "input_shape", None)
             if isinstance(shape, list):
                 shape = shape[0]
@@ -91,9 +153,35 @@ class CropDiseasePredictor:
             return batch / 255.0
         if preprocess_mode == "none":
             return batch
-        from .model_builder import get_preprocess_fn
-        preprocess = get_preprocess_fn()
+        # "efficientnet": keras.applications.efficientnet.preprocess_input is a
+        # documented no-op — EfficientNet carries its own Rescaling and
+        # Normalization layers, so the network expects raw float32 RGB in
+        # [0, 255], exactly what prepare_for_model() returns. Importing Keras
+        # here would drag TensorFlow into a TFLite-only host, so pass through
+        # directly when TensorFlow is unavailable.
+        try:
+            from .model_builder import get_preprocess_fn
+        except ImportError:
+            return batch
+        try:
+            preprocess = get_preprocess_fn()
+        except Exception:  # pragma: no cover - TF present but Keras app missing
+            return batch
         return preprocess(batch)
+
+    def _predict_probs(self, batch_pp):
+        """Run a forward pass on whichever backend is loaded."""
+        if self.backend == "tflite":
+            import numpy as np
+
+            expected = self._tflite_input["dtype"]
+            interpreter = self.model
+            interpreter.set_tensor(
+                self._tflite_input["index"], batch_pp.astype(expected)
+            )
+            interpreter.invoke()
+            return np.array(interpreter.get_tensor(self._tflite_output["index"])[0])
+        return self.model.predict(batch_pp, verbose=0)[0]
 
     @property
     def is_ready(self) -> bool:
@@ -194,7 +282,7 @@ class CropDiseasePredictor:
         batch_pp = self._preprocess_batch(batch)
         import numpy as np
 
-        probs = self.model.predict(batch_pp, verbose=0)[0]
+        probs = self._predict_probs(batch_pp)
         top_indices = np.argsort(probs)[::-1][:TOP_K]
 
         top_predictions = []
@@ -231,7 +319,7 @@ class CropDiseasePredictor:
             result["crop_name"] = best["crop_name"] if confidence >= 0.4 else None
             result["disease_name"] = None
 
-        if save_gradcam_to and self.model is not None:
+        if save_gradcam_to and self.model is not None and self.backend == "keras":
             try:
                 if isinstance(image, str):
                     from .grad_cam import save_grad_cam_overlay

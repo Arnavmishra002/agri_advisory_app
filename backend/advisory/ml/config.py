@@ -65,6 +65,10 @@ USE_CLASS_WEIGHTS = os.getenv("ML_USE_CLASS_WEIGHTS", "true").lower() in {
 
 # Checkpoint filenames
 MODEL_FILENAME = "efficientnetb3_crop_disease.keras"
+# Low-memory serving artifact. Free-tier hosts cannot fit TensorFlow
+# (~2 GB) in RAM, so production serves this float16 TFLite export via
+# tflite-runtime (~150-250 MB resident) instead.
+TFLITE_FILENAME = "efficientnetb3_crop_disease.tflite"
 LABELS_FILENAME = "class_labels.json"
 METRICS_FILENAME = "metrics.json"
 HISTORY_FILENAME = "training_history.json"

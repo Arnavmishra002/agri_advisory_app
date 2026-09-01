@@ -114,7 +114,15 @@ services:
       - key: RAG_INDEX_REQUIRED
         value: "true"
       - key: DISEASE_CLASSIFICATION_ENABLED
-        value: "false"
+        # Safe to enable: the predictor still refuses to answer unless a model
+        # is present AND its metrics.json clears the production promotion gate
+        # (held-out accuracy, all classes evaluated, non-plant samples tested).
+        # Without a model it returns "model_unavailable" rather than guessing.
+        value: "true"
+      - key: ML_PREFER_TFLITE
+        # Serve the float16 TFLite export; full TensorFlow is not installed on
+        # this host and would not fit in the free tier's memory.
+        value: "true"
       - key: REDIS_URL
         fromService:
           type: keyvalue
