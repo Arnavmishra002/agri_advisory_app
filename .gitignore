@@ -392,8 +392,12 @@ mobile/krishimitra_app/.flutter-plugins-dependencies
 /staticfiles/
 /static/
 
-# Kiro IDE specs (local development only)
-.kiro/specs/
+# Specs now live in docs/specs/ (moved out of the tool-specific folder).
+# The broad "docs/*" and "*.md" rules earlier in this file would otherwise
+# drop them from every "git add -A": the already-tracked copies would
+# freeze and any new spec would be skipped without a word.
+!docs/specs/
+!docs/specs/**
 
 # Extra local DB files in backend (only backend/db.sqlite3 allowed by Django rule above)
 backend/live_test.db
