@@ -45,9 +45,17 @@ jobs:
         run: |
           pip check
           pip install --disable-pip-version-check --quiet pip-audit
-          pip-audit -r requirements.txt --strict --progress-spinner off
-          pip-audit -r requirements-ml.txt --strict --progress-spinner off
-          pip-audit -r requirements-production.txt --strict --progress-spinner off
+          # chromadb CVE-2026-45830/-45831/-45833 (Sept 2026): code injection
+          # requiring an AUTHENTICATED attacker with collection permissions and
+          # trust_remote_code=true. Affects 0.4.17 through the latest release,
+          # so no upgrade fixes it yet. KrishiMitra's chromadb runs inside the
+          # localhost-only phase1 RAG server, unauthenticated remote access is
+          # impossible and trust_remote_code is never enabled. Re-check for a
+          # patched chromadb and remove these ignores when one exists.
+          IGNORE_VULNS="--ignore-vuln CVE-2026-45830 --ignore-vuln CVE-2026-45831 --ignore-vuln CVE-2026-45833"
+          pip-audit -r requirements.txt --strict --progress-spinner off $IGNORE_VULNS
+          pip-audit -r requirements-ml.txt --strict --progress-spinner off $IGNORE_VULNS
+          pip-audit -r requirements-production.txt --strict --progress-spinner off $IGNORE_VULNS
 
       # ── Django health ────────────────────────────────────────
       - name: Django system check
