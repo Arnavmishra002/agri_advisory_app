@@ -5,6 +5,8 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from django.contrib.auth import get_user_model
+
 from advisory.models import IoTSensorReading
 from advisory.services.field_sensor_service import field_sensor_service
 
@@ -12,6 +14,14 @@ from advisory.services.field_sensor_service import field_sensor_service
 class FieldAdvisorySensorFreshnessTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        # Reading a saved sensor value back is gated behind authentication
+        # (saved readings are another farmer's private soil data and field_id
+        # is derived from coordinates). These tests exercise the freshness
+        # logic, which sits behind that gate, so they authenticate first.
+        self.user = get_user_model().objects.create_user(
+            username="freshness-tester", password="unused-password-123"
+        )
+        self.client.force_authenticate(user=self.user)
 
     @patch.dict("os.environ", {"IOT_SENSOR_MAX_AGE_MINUTES": "60"})
     @patch("advisory.api.viewsets.field_advisory.field_sensor_service.get_field_recommendation")
