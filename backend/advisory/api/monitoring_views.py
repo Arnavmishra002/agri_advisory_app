@@ -308,21 +308,39 @@ def readiness_check(request):
     # unverified classifier must remain disabled, but it must not make runtime
     # readiness look unhealthy when the API is deliberately using that mode.
     try:
-        from advisory.ml.config import DEFAULT_MODEL_DIR, MODEL_FILENAME, LABELS_FILENAME
+        from pathlib import Path
+
+        from advisory.ml.config import (
+            DEFAULT_MODEL_DIR,
+            LABELS_FILENAME,
+            MODEL_FILENAME,
+            TFLITE_FILENAME,
+        )
         from advisory.ml.labels import load_labels
         from advisory.ml.model_metadata import load_model_metadata, readiness_summary
         classification_enabled = os.environ.get(
             "DISEASE_CLASSIFICATION_ENABLED", "false"
         ).lower() in {"1", "true", "yes"}
-        model_path = DEFAULT_MODEL_DIR / MODEL_FILENAME
-        labels_path = DEFAULT_MODEL_DIR / LABELS_FILENAME
-        if model_path.exists() and labels_path.exists():
+        # Honour the same directory override the predictor uses, or readiness
+        # reports on a different model than the one actually being served.
+        model_dir = Path(
+            os.environ.get("CROP_DISEASE_MODEL_DIR", str(DEFAULT_MODEL_DIR))
+        )
+        # Production ships only the float16 .tflite (the ~80 MB .keras is not
+        # committed), so either artifact counts as "model present". Checking
+        # for .keras alone reported a healthy, serving model as missing.
+        keras_path = model_dir / MODEL_FILENAME
+        tflite_path = model_dir / TFLITE_FILENAME
+        labels_path = model_dir / LABELS_FILENAME
+        served_path = tflite_path if tflite_path.exists() else keras_path
+        if served_path.exists() and labels_path.exists():
             labels = load_labels(labels_path)
-            metadata = load_model_metadata(DEFAULT_MODEL_DIR, labels)
-            candidate_summary = readiness_summary(metadata)
+            metadata = load_model_metadata(model_dir, labels)
+            candidate_summary = f"{readiness_summary(metadata)} [{served_path.suffix.lstrip('.')}]"
         else:
             candidate_summary = (
-                f"missing ({model_path.name}); diagnostics use advisory_fallback"
+                f"missing ({MODEL_FILENAME} / {TFLITE_FILENAME}); "
+                "diagnostics use advisory_fallback"
             )
         checks["crop_disease_candidate"] = candidate_summary
         checks["crop_disease_model"] = (

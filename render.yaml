@@ -20,7 +20,16 @@ services:
       cd frontend && npm ci --no-audit --no-fund --silent && npm run build && cd .. &&
       pip install -r backend/requirements.txt &&
       cd backend && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: "cd backend && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --worker-class gthread --log-level info"
+    # Run from the repo root and let gunicorn.conf.py drive everything: it does
+    # its own chdir into backend/, binds $PORT, and — critically — reads
+    # WEB_CONCURRENCY (=1 below) and sets preload_app.
+    # The previous form hardcoded "--workers 2" and never loaded the config file
+    # (gunicorn auto-discovers ./gunicorn.conf.py, but this ran from backend/
+    # while the file sits at the repo root). Both workers then loaded their own
+    # copy of the disease model: measured 25 + 244 + 246 = 516 MB RSS against
+    # this plan's 512 MB ceiling, i.e. an OOM on the first pair of concurrent
+    # photo diagnoses. One worker measured 110 MB total.
+    startCommand: "gunicorn core.wsgi:application -c gunicorn.conf.py"
     envVars:
       - key: DATABASE_URL
         fromDatabase:

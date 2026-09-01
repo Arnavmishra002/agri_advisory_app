@@ -52,6 +52,16 @@ class CropDiseasePredictor:
         self.backend: Optional[str] = None
         self._tflite_input: Optional[Dict[str, Any]] = None
         self._tflite_output: Optional[Dict[str, Any]] = None
+        # A TFLite Interpreter owns mutable internal tensor buffers and is NOT
+        # thread-safe. The predictor is a process-wide singleton served by
+        # gunicorn's gthread worker (4 threads), so two farmers uploading photos
+        # at the same moment would interleave set_tensor/invoke/get_tensor on
+        # one interpreter. Observed result: tflite_runtime raises "There is at
+        # least 1 reference to internal data in the interpreter", and under load
+        # the worker takes SIGSEGV -- killing every in-flight request, not just
+        # the racing pair. Serialising the forward pass costs ~0.35 s of
+        # queueing per concurrent request, which is far cheaper than a crash.
+        self._invoke_lock = threading.Lock()
         self.class_names: List[str] = []
         self.metadata: Dict[str, Any] = {}
         self._load()
@@ -64,15 +74,38 @@ class CropDiseasePredictor:
         512 MB host can serve the model with it. Full TensorFlow is accepted as
         a fallback for development machines that already have it.
         """
-        try:
-            from tflite_runtime.interpreter import Interpreter  # type: ignore
-        except ImportError:
+        Interpreter = None
+        errors = []
+        # tflite_runtime wheels are built against NumPy 1.x and raise
+        # "_ARRAY_API not found" under NumPy 2. requirements.txt pins
+        # numpy<2 so this is the normal path, but fall through to
+        # ai-edge-litert (the NumPy-2-compatible successor) and finally to
+        # full TensorFlow so an environment change cannot silently disable
+        # farmer-facing diagnosis.
+        for label, importer in (
+            ("tflite_runtime", lambda: __import__(
+                "tflite_runtime.interpreter", fromlist=["Interpreter"]).Interpreter),
+            ("ai_edge_litert", lambda: __import__(
+                "ai_edge_litert.interpreter", fromlist=["Interpreter"]).Interpreter),
+            ("tensorflow.lite", lambda: __import__(
+                "tensorflow", fromlist=["lite"]).lite.Interpreter),
+        ):
             try:
-                from tensorflow.lite import Interpreter  # type: ignore
-            except ImportError:
-                return None
-        interpreter = Interpreter(model_path=str(model_path))
-        interpreter.allocate_tensors()
+                Interpreter = importer()
+                break
+            except Exception as exc:  # ImportError, or NumPy ABI mismatch
+                errors.append(f"{label}: {exc}")
+        if Interpreter is None:
+            logger.warning(
+                "No usable TFLite interpreter (%s)", "; ".join(errors)
+            )
+            return None
+        try:
+            interpreter = Interpreter(model_path=str(model_path))
+            interpreter.allocate_tensors()
+        except Exception as exc:
+            logger.warning("Failed to initialise TFLite interpreter: %s", exc)
+            return None
         return interpreter
 
     def _load(self) -> None:
@@ -176,11 +209,20 @@ class CropDiseasePredictor:
 
             expected = self._tflite_input["dtype"]
             interpreter = self.model
-            interpreter.set_tensor(
-                self._tflite_input["index"], batch_pp.astype(expected)
-            )
-            interpreter.invoke()
-            return np.array(interpreter.get_tensor(self._tflite_output["index"])[0])
+            # set_tensor/invoke/get_tensor mutate shared interpreter state and
+            # must run as one atomic unit -- see _invoke_lock in __init__.
+            # np.array() copies the output buffer inside the lock so no caller
+            # holds a view into interpreter memory after releasing it (a live
+            # view is exactly what triggers the "reference to internal data"
+            # error on the next invoke).
+            with self._invoke_lock:
+                interpreter.set_tensor(
+                    self._tflite_input["index"], batch_pp.astype(expected)
+                )
+                interpreter.invoke()
+                return np.array(
+                    interpreter.get_tensor(self._tflite_output["index"])[0]
+                )
         return self.model.predict(batch_pp, verbose=0)[0]
 
     @property

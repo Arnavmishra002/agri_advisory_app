@@ -407,3 +407,19 @@ phase1/chroma_db/
 # Playwright output (CI uploads reports/traces as artifacts)
 frontend/test-results/
 frontend/playwright-report/
+
+# ── Crop-disease production serving artifacts ───────────────────
+# The rules above ignore models/ and *.tflite, which is right for the large
+# training checkpoints. But Render builds the web service FROM SOURCE, so the
+# small serving artifacts must be committed or production can never load the
+# model. Re-include just those (a parent dir must be un-excluded first, hence
+# the stepwise negations). The ~50 MB .keras stays ignored - only the 21.6 MB
+# float16 .tflite is used in production.
+!models/
+models/*
+!models/crop_disease/
+models/crop_disease/*
+!models/crop_disease/*.tflite
+!models/crop_disease/class_labels.json
+!models/crop_disease/metrics.json
+!models/crop_disease/training_history.json
