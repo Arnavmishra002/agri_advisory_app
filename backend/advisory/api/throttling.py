@@ -29,7 +29,11 @@ def _limiter(policy: str, window: str, capacity: int) -> AtomicWindowRateLimiter
 
 def _policy_for_request(request) -> str:
     path = request.path.rstrip("/")
-    if path.startswith("/api/users") or path == "/api/token":
+    # NOTE: this was an exact match on "/api/token", which meant
+    # "/api/token/refresh/" (rstripped to "/api/token/refresh") missed the
+    # "auth" policy and fell through to "public" - 100/min instead of 20/min,
+    # a 5x abuse ceiling on the refresh endpoint. Prefix match covers both.
+    if path.startswith("/api/users") or path.startswith("/api/token"):
         return "auth"
     if path.startswith("/api/diagnostics") or path.startswith("/api/pest") or path.startswith("/api/tts"):
         return "heavy"

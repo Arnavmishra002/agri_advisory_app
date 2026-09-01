@@ -127,7 +127,16 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                         sensor_data["_sensor_meta"] = _live_request_sensor_meta()
                         sensor_freshness = sensor_data["_sensor_meta"]
 
-            if not sensor_data and data.get("use_saved_sensor", True):
+            # Saved sensor readings are another farmer's private soil data
+            # (NPK, pH, EC, moisture). Writing one already requires auth, so
+            # reading one back must too. field_id defaults to
+            # f"{round(lat,4)}_{round(lon,4)}" (derived from coordinates, not
+            # secret) and the fallback matches any reading in a ~55 m box, so
+            # an anonymous caller could read another farmer's soil profile.
+            # IoTSensorReading has no owner column; requiring authentication is
+            # the correct interim boundary until an owner FK lands.
+            _may_read_saved = bool(getattr(request.user, "is_authenticated", False))
+            if not sensor_data and data.get("use_saved_sensor", True) and _may_read_saved:
                 try:
                     from ...models import IoTSensorReading
                     iot_reading = None
