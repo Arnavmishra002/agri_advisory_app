@@ -2,7 +2,7 @@ name: KrishiMitra CI
 
 on:
   push:
-    branches: [main, master, develop, staging, feature/premium-ui, 'improve/**', 'fix/**', 'codex/**']
+    branches: [main, master, develop, staging, feature/premium-ui, 'improve/**', 'fix/**']
   pull_request:
     branches: [main, master, develop]
   workflow_dispatch:
@@ -207,6 +207,9 @@ jobs:
               "OLLAMA_DIRECT_TIMEOUT_S": "1",
               "CHAT_REALTIME_TIMEOUT_S": "1",
               "RATE_LIMIT_ENABLED": "false",
+          # The float16 .tflite ships in the repo now, so CI must exercise the
+          # real serving path rather than the "feature switched off" branch.
+          "DISEASE_CLASSIFICATION_ENABLED": "true",
           })
 
           import django
@@ -258,6 +261,9 @@ jobs:
           checks = readiness.json()["checks"]
           for key in ["database", "cache", "phase1_ai", "ollama", "crop_disease_model"]:
               assert key in checks, f"readiness missing {key}"
+          # The model is committed, so "missing" here means the artifact did not
+          # survive checkout/build -- fail rather than ship a mute diagnoser.
+          assert checks["crop_disease_model"].startswith("ok"), checks["crop_disease_model"]
 
           loc = client.get("/api/locations/search/", {"q": "lucknow", "limit": "2"})
           assert loc.status_code == 200, loc.content
@@ -281,7 +287,9 @@ jobs:
           assert predict.status_code == 200, predict.content
           pjson = predict.json()
           assert {"crop", "disease", "response", "recommendation"}.issubset(pjson), pjson
-          assert pjson["status"] in {"model_unavailable", "tensorflow_missing", "not_plant", "success", "low_confidence"}, pjson
+          # model_unavailable/tensorflow_missing are deliberately not accepted any
+          # more: with the model committed they mean a missing or corrupt artifact.
+          assert pjson["status"] in {"not_plant", "success", "low_confidence"}, pjson
 
           b64 = __import__("base64").b64encode(img).decode("ascii")
           detect = client.post(
@@ -299,7 +307,8 @@ jobs:
           )
           assert detect.status_code == 200, detect.content
           djson = detect.json()
-          assert djson["status"] in {"advisory_fallback", "model_unavailable", "tensorflow_missing", "not_plant", "success"}, djson
+          # With a real model loaded, a served-but-refused diagnosis is expected here.
+          assert djson["status"] in {"advisory_fallback", "not_plant", "success", "low_confidence"}, djson
           assert {"crop", "disease", "response", "recommendation"}.issubset(djson), djson
 
           delhi = client.get("/api/advisories/", {"location": "Delhi", "latitude": "28.6139", "longitude": "77.2090"}).json()

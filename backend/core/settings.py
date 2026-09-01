@@ -130,7 +130,9 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'advisory.middleware.security_headers.SecurityHeadersMiddleware',  # emits CSP_HEADERS
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # ✅ Added by antigravity fix
+    # Serves the built frontend and static assets straight from the app
+    # process, so the free-tier deploy needs no separate static host.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware', # Add CorsMiddleware
     'advisory.middleware.rate_limiting.UserRateLimitMiddleware',  # User rate limiting
@@ -248,7 +250,7 @@ REST_FRAMEWORK = {
 # DRF Spectacular settings for faster Swagger UI loading
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Krishimitra Agri-Advisory API',
-    'DESCRIPTION': 'Enhanced Agricultural Chatbot with ChatGPT-like capabilities and 25+ language support',
+    'DESCRIPTION': 'Conversational agricultural advisory API with multilingual support across 25+ Indian languages',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': False,  # Simplified for faster generation
