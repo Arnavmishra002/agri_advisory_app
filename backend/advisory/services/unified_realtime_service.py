@@ -54,13 +54,18 @@ DATA_GOV_DEMO_KEY = "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b"
 _GEOCODE_CACHE_TTL = 60 * 60 * 24 * 7   # 7 days — location→coords is stable
 DATA_GOV_TIMEOUT  = (5, 25)  # connect, read seconds
 OPENWEATHER_KEY   = os.getenv("OPENWEATHER_API_KEY", "")
-# The gemini-1.5-* names were retired and now return 404 on the v1beta
-# endpoint, which made every Gemini call fail silently and fall through to the
-# rule engine.  The "-latest" aliases track whatever Google currently serves,
-# so they do not go stale the same way.
+# Model names go stale fast on this API.  gemini-1.5-* and gemini-2.0-flash are
+# both retired and now 404, which made every Gemini call fail silently and drop
+# through to the rule engine.  The three below were each verified against the
+# live v1beta endpoint (HTTP 200 with a real completion) before being pinned:
+#   gemini-flash-latest      - alias, tracks the current flash model
+#   gemini-2.5-flash         - pinned stable, survives alias churn
+#   gemini-flash-lite-latest - cheapest, most headroom when the others are
+#                              rate-limited (gemini-pro-latest returns 429 on
+#                              a free-tier key, so it is deliberately not used)
 GEMINI_MODEL      = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
-GEMINI_FLASH      = os.getenv("GEMINI_FLASH_MODEL", "gemini-2.0-flash")
-GEMINI_MODELS_CHAIN = [GEMINI_MODEL, GEMINI_FLASH, "gemini-pro-latest"]
+GEMINI_FLASH      = os.getenv("GEMINI_FLASH_MODEL", "gemini-2.5-flash")
+GEMINI_MODELS_CHAIN = [GEMINI_MODEL, GEMINI_FLASH, "gemini-flash-lite-latest"]
 IOT_DEMO_ENV      = "KRISHIMITRA_ENABLE_IOT_DEMO"
 
 
@@ -2285,7 +2290,9 @@ class GeminiService:
         if not _is_valid_gemini_key(self.api_key):
             return self._rule_based_response(user_query or prompt)
 
-        for model in [GEMINI_MODEL, GEMINI_FLASH]:
+        # Walk the full verified chain: a 503 ("high demand") or 429 (quota) on
+        # one model should move to the next, not abandon Gemini altogether.
+        for model in GEMINI_MODELS_CHAIN:
             try:
                 response = self._call_api(
                     model, prompt, system_prompt, max_tokens, temperature

@@ -89,6 +89,80 @@ class RetrieverRankingTests(unittest.TestCase):
 
         self.assertEqual(filtered, [{"score": 0.51}])
 
+    def test_keyword_fallback_retrieves_grounded_chunks_without_embeddings(self):
+        collection = Mock()
+        collection.get.return_value = {
+            "documents": [
+                "Wheat sowing is recommended in November in North India.",
+                "Banana needs a warm climate and regular irrigation.",
+            ],
+            "metadatas": [
+                {"source_file": "wheat.txt", "category": "crops", "crops": "wheat", "topics": "seed"},
+                {"source_file": "banana.txt", "category": "crops", "crops": "banana", "topics": "irrigation"},
+            ],
+        }
+
+        with patch.object(retriever, "_get_collection", return_value=collection):
+            results = retriever._keyword_search("wheat sowing", 5, None)
+
+        self.assertEqual(results[0]["source_file"], "wheat.txt")
+
+    def test_hybrid_retrieval_keeps_exact_crop_source_over_generic_vector_match(self):
+        collection = Mock()
+        collection.count.return_value = 2
+
+        vector_candidate = {
+            "text": "General crop calendar and irrigation notes.",
+            "source_file": "generic_calendar.txt",
+            "category": "crops",
+            "crops": "",
+            "topics": "weather",
+            "score": 0.92,
+        }
+        keyword_candidate = {
+            "text": "ICAR wheat sowing time is 1-15 November in North India.",
+            "source_file": "wheat_icar.txt",
+            "category": "crops",
+            "crops": "wheat",
+            "topics": "seed",
+            "chunk_index": 0,
+            "score": 0.50,
+        }
+
+        with patch.object(retriever, "_get_collection", return_value=collection), \
+             patch.object(retriever, "_embed", return_value=(0.1,)), \
+             patch.object(retriever, "_vector_search", return_value=[vector_candidate]), \
+             patch.object(retriever, "_keyword_search", return_value=[keyword_candidate]):
+            results = retriever.retrieve_with_sources("wheat sowing time", k=1)
+
+        self.assertEqual(results[0]["source_file"], "wheat_icar.txt")
+
+    def test_source_crop_alignment_rejects_cross_crop_filename_metadata_leak(self):
+        ranked = retriever._rerank(
+            [
+                {
+                    "text": "Rice notes that mention wheat sowing.",
+                    "source_file": "rice_varieties_zone_wise.txt",
+                    "category": "crops",
+                    "crops": "wheat",
+                    "topics": "seed",
+                    "score": 0.90,
+                },
+                {
+                    "text": "ICAR wheat package: sowing is 1-15 November.",
+                    "source_file": "wheat_icar.txt",
+                    "category": "crops",
+                    "crops": "wheat",
+                    "topics": "seed",
+                    "score": 0.70,
+                },
+            ],
+            "wheat sowing time",
+            final_k=2,
+        )
+
+        self.assertEqual(ranked[0]["source_file"], "wheat_icar.txt")
+
     def test_protected_cultivation_topic_outranks_generic_subsidy(self):
         candidates = [
             {

@@ -34,12 +34,21 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+# Chroma's optional PostHog integration is not part of request processing and
+# older dependency combinations can emit a capture() signature error on every
+# query. Disable it before Chroma is imported or its client is constructed.
+os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
+
 try:
     from .crop_profile_snapshot import load_crop_terms, merge_crop_terms
 except ImportError:
     from rag.crop_profile_snapshot import load_crop_terms, merge_crop_terms
 
 logger = logging.getLogger(__name__)
+# Chroma 0.5.x can still invoke its disabled PostHog callback with an
+# incompatible signature. It does not affect retrieval, so keep that optional
+# integration from presenting itself as a Phase 1 service error.
+logging.getLogger("chromadb.telemetry.product.posthog").setLevel(logging.CRITICAL)
 
 CHROMA_DIR   = Path(__file__).parent.parent / "chroma_db"
 COLLECTION   = "krishimitra_kb"
@@ -337,6 +346,27 @@ def _source_alignment_score(query_topics: set, candidate: dict) -> float:
     return matched / len(query_topics)
 
 
+def _source_crop_alignment_score(query_crops: set, candidate: dict) -> float:
+    """Prefer a source whose filename names the requested crop.
+
+    Chunk metadata is inferred from text and can inherit a crop word from a
+    cross-reference (for example a rice document mentioning wheat).  The
+    source filename is a stronger guard against cross-crop grounding.
+    """
+    if not query_crops:
+        return 0.0
+    source = str(candidate.get("source_file") or candidate.get("source_stem") or "").lower()
+    if any(crop in source for crop in query_crops):
+        return 1.0
+    known_crop_sources = set()
+    for crop, aliases in _QUERY_CROP_TERMS.items():
+        if crop in source or any(alias.lower() in source for alias in aliases if alias.isascii()):
+            known_crop_sources.add(crop)
+    if known_crop_sources and not (known_crop_sources & query_crops):
+        return -0.5
+    return 0.0
+
+
 def _apply_relevance_threshold(results: List[dict], min_relevance: float) -> List[dict]:
     if min_relevance <= 0:
         return results
@@ -383,12 +413,18 @@ def _rerank(
         crop_score = _tag_alignment_score(query_crops, cand_crops)
         topic_score = _tag_alignment_score(query_topics, cand_topics, mismatch_penalty=-0.15)
         source_score = _source_alignment_score(query_topics, c)
+        source_crop_score = _source_crop_alignment_score(query_crops, c)
+        # Exact crop and topic metadata are stronger evidence than a merely
+        # similar embedding in agricultural advice.  This prevents a wheat
+        # question from grounding on a rice/calendar passage with overlapping
+        # words such as "sowing" or "season".
         combined = (
-            0.50 * vec_sim
-            + 0.25 * kw_score
-            + 0.15 * crop_score
-            + 0.05 * topic_score
+            0.30 * vec_sim
+            + 0.20 * kw_score
+            + 0.25 * crop_score
+            + 0.10 * topic_score
             + 0.05 * source_score
+            + 0.10 * source_crop_score
         )
         scored.append((combined, c))
 
@@ -441,6 +477,43 @@ def _vector_search(
     ]
 
 
+def _keyword_search(query: str, n: int, category: Optional[str]) -> List[dict]:
+    """Retrieve grounded chunks when the optional embedding service is down."""
+    col = _get_collection()
+    if col is None:
+        return []
+    kwargs: dict = {"include": ["documents", "metadatas"]}
+    if category:
+        kwargs["where"] = {"category": category}
+    data = col.get(**kwargs)
+    query_terms = set(re.findall(r"\w+", query.lower()))
+    query_crops = _extract_tags(query, _QUERY_CROP_TERMS)
+    query_topics = _extract_tags(query, _QUERY_TOPIC_TERMS)
+    scored: List[Tuple[float, dict]] = []
+    for doc, meta in zip(data.get("documents", []), data.get("metadatas", [])):
+        candidate = {
+            "text": doc,
+            "source_file": meta.get("source_file", "unknown"),
+            "category": meta.get("category", "general"),
+            "crops": meta.get("crops", "general"),
+            "topics": meta.get("topics", meta.get("category", "general")),
+            "language": meta.get("language", "unknown"),
+            "chunk_index": meta.get("chunk_index"),
+            "score": 0.0,
+        }
+        crops, topics = _candidate_tag_sets(candidate)
+        score = (
+            0.65 * _keyword_score(query_terms, doc)
+            + 0.25 * _tag_alignment_score(query_crops, crops)
+            + 0.10 * _tag_alignment_score(query_topics, topics, mismatch_penalty=0.0)
+        )
+        if score > 0:
+            candidate["score"] = score
+            scored.append((score, candidate))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return [candidate for _, candidate in scored[:n]]
+
+
 def retrieve(
     query: str,
     k: int = _DEFAULT_K,
@@ -491,13 +564,34 @@ def retrieve_with_sources(
         # and cache check happen in the calling thread.  We run the embed
         # on the pool so it doesn't block other operations in the caller.
         embed_future = _RETRIEVAL_POOL.submit(_embed, aug)
-        vec = embed_future.result(timeout=15)   # raises on timeout
+        try:
+            vec = embed_future.result(timeout=15)
+            # ── RAG-1: vector search ──────────────────────────────────────
+            n_candidates = min(_RETRIEVAL_CANDIDATES, col.count())
+            t_vec = time.monotonic()
+            candidates = _vector_search(vec, n_candidates, category)
+            logger.debug("VECTOR_MS=%.0f", (time.monotonic() - t_vec) * 1000)
 
-        # ── RAG-1: vector search ──────────────────────────────────────────
-        n_candidates = min(_RETRIEVAL_CANDIDATES, col.count())
-        t_vec = time.monotonic()
-        candidates = _vector_search(vec, n_candidates, category)
-        logger.debug("VECTOR_MS=%.0f", (time.monotonic() - t_vec) * 1000)
+            # Embeddings are useful for semantic recall, but agricultural
+            # queries need exact crop/topic grounding too.  Always add the
+            # lexical metadata matches so a high-similarity generic passage
+            # cannot displace the crop's ICAR/package-of-practices passage.
+            keyword_candidates = _keyword_search(aug, n_candidates, category)
+            merged = {}
+            for candidate in candidates + keyword_candidates:
+                key = (
+                    candidate.get("source_file", ""),
+                    candidate.get("chunk_index"),
+                    candidate.get("text", "")[:80],
+                )
+                existing = merged.get(key)
+                if existing is None or candidate.get("score", 0) > existing.get("score", 0):
+                    merged[key] = candidate
+            candidates = list(merged.values())
+            logger.debug("HYBRID_CANDIDATES=%d", len(candidates))
+        except Exception as exc:
+            logger.warning("Embedding retrieval unavailable; using keyword KB fallback: %s", exc)
+            candidates = _keyword_search(aug, _RETRIEVAL_CANDIDATES, category)
 
         # ── RAG-1+2: rerank + compress ────────────────────────────────────
         t_rerank = time.monotonic()
@@ -519,8 +613,9 @@ def retrieve_with_sources(
         return results
 
     except FuturesTimeout:
-        logger.error("Embedding timed out for query: %s", query[:40])
-        return []
+        logger.warning("Embedding timed out; using keyword KB fallback for query: %s", query[:40])
+        candidates = _keyword_search(aug, _RETRIEVAL_CANDIDATES, category)
+        return _apply_relevance_threshold(_rerank(candidates, aug, k), min_relevance)
     except Exception as exc:
         logger.error("Retrieval failed: %s", exc)
         return []

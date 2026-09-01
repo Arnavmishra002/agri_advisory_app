@@ -8,6 +8,18 @@ except ImportError:
 
 
 class Phase1WeatherContextTests(unittest.TestCase):
+    def test_chat_request_can_disable_weather_enrichment(self):
+        request = main.ChatRequest(
+            query="How should I store wheat after harvest?",
+            language="en",
+            location="Lucknow",
+            latitude=26.85,
+            longitude=80.95,
+            include_weather=False,
+        )
+
+        self.assertFalse(request.include_weather)
+
     def test_uv_notice_is_not_injected_into_agronomy_prompt_context(self):
         weather_service = unittest.mock.Mock()
         weather_service.get_weather.return_value = {

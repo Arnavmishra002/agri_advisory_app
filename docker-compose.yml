@@ -23,6 +23,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
+      args:
+        VCS_REF: ${GIT_COMMIT:-unknown}
     image: krishimitra-api:latest
     container_name: krishimitra_api
     ports:
@@ -91,7 +93,7 @@ services:
       PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S: ${DOCKER_PHASE1_STREAM_FIRST_TOKEN_TIMEOUT_S:-12}
       PHASE1_STREAM_IDLE_TIMEOUT_S: ${DOCKER_PHASE1_STREAM_IDLE_TIMEOUT_S:-15}
       PHASE1_STREAM_TOTAL_TIMEOUT_S: ${DOCKER_PHASE1_STREAM_TOTAL_TIMEOUT_S:-40}
-      OLLAMA_BASE_URL:           ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_BASE_URL:           ${DOCKER_OLLAMA_BASE_URL:-http://ollama:11434}
       OLLAMA_CONNECT_TIMEOUT_S:  ${DOCKER_OLLAMA_CONNECT_TIMEOUT_S:-2}
       OLLAMA_READ_TIMEOUT_S:     ${DOCKER_OLLAMA_READ_TIMEOUT_S:-8}
       OLLAMA_DIRECT_TIMEOUT_S:   ${DOCKER_OLLAMA_DIRECT_TIMEOUT_S:-8}
@@ -108,6 +110,9 @@ services:
       # Private uploads; no public /media/ route exists
       - media_files:/app/backend/private_uploads
     depends_on:
+      ollama:
+        condition: service_healthy
+        required: false
       postgres:
         condition: service_healthy
         required: false    # only required when --profile postgres is active
@@ -137,6 +142,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
+      args:
+        VCS_REF: ${GIT_COMMIT:-unknown}
     image: krishimitra-api:latest          # reuse the same image
     container_name: krishimitra_celery
     working_dir: /app/backend
@@ -178,8 +185,8 @@ services:
         max-file: "3"
 
   # ── Phase 1 RAG + local LLM bridge (profile: ai or all) ─────
-  # Requires Ollama to be reachable at DOCKER_OLLAMA_BASE_URL. On Docker Desktop,
-  # http://host.docker.internal:11434 points to Ollama running on the host.
+  # Uses the bundled Ollama service by default. Set DOCKER_OLLAMA_BASE_URL only
+  # when connecting to a managed or host Ollama instead.
   phase1:
     profiles: ["ai", "all"]
     build:
@@ -201,7 +208,9 @@ services:
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env before starting Docker}
       DEBUG: ${DEBUG:-False}
       DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/db.sqlite3}
-      OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      # The bundled Ollama service is the reliable Docker path. Set
+      # DOCKER_OLLAMA_BASE_URL explicitly only when using a managed/host Ollama.
+      OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
       OLLAMA_CHAT_TIMEOUT_S: ${DOCKER_OLLAMA_CHAT_TIMEOUT_S:-45}
       OLLAMA_STREAM_TIMEOUT_S: ${DOCKER_OLLAMA_STREAM_TIMEOUT_S:-60}
@@ -214,6 +223,10 @@ services:
       PHASE1_REQUIRE_SERVICE_TOKEN: ${PHASE1_REQUIRE_SERVICE_TOKEN:-false}
       PHASE1_MAX_CONCURRENT_REQUESTS: ${PHASE1_MAX_CONCURRENT_REQUESTS:-4}
       PHASE1_MAX_BODY_BYTES: ${PHASE1_MAX_BODY_BYTES:-65536}
+    depends_on:
+      ollama:
+        condition: service_healthy
+        required: false
     ports:
       - "${PHASE1_PORT:-8002}:8001"
     volumes:
@@ -226,6 +239,39 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Ollama + Qwen (profile: ai or all) ───────────────────────
+  # The model is deliberately opt-in because qwen2.5:7b needs several GB.
+  # Start with OLLAMA_PULL_MODEL=true once Docker has enough free storage.
+  ollama:
+    profiles: ["ai", "all", "ollama"]
+    image: ollama/ollama:latest
+    container_name: krishimitra_ollama
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      OLLAMA_PULL_MODEL: ${OLLAMA_PULL_MODEL:-false}
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      "ollama serve & pid=$$!;
+      for i in $$(seq 1 30); do ollama list >/dev/null 2>&1 && break || sleep 1; done;
+      if [ \"$$OLLAMA_PULL_MODEL\" = \"true\" ]; then ollama pull \"$$OLLAMA_MODEL\"; fi;
+      wait $$pid"
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
     logging:
       driver: "json-file"
       options:
@@ -354,3 +400,5 @@ volumes:
     name: krishimitra_mosquitto_data
   mosquitto_log:
     name: krishimitra_mosquitto_log
+  ollama_data:
+    name: krishimitra_ollama_data

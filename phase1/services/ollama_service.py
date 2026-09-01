@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 OLLAMA_BASE   = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
-_OLLAMA_CHAT_TIMEOUT_S = int(os.getenv("OLLAMA_CHAT_TIMEOUT_S", "20"))
+_OLLAMA_CHAT_TIMEOUT_S = int(os.getenv("OLLAMA_CHAT_TIMEOUT_S", "45"))
 _OLLAMA_STREAM_TIMEOUT_S = int(os.getenv("OLLAMA_STREAM_TIMEOUT_S", "60"))
 _OLLAMA_MAX_TOKENS = max(96, int(os.getenv("OLLAMA_MAX_TOKENS", "320")))
 _OLLAMA_STREAM_MAX_TOKENS = max(96, int(os.getenv("OLLAMA_STREAM_MAX_TOKENS", "320")))
@@ -126,6 +126,8 @@ def _compress_chunks(chunks: List[str]) -> str:
 def build_farming_prompt(
     question: str,
     rag_chunks: List[str],
+    response_language: Optional[str] = None,
+    include_weather_advice: bool = True,
     verified_knowledge: Optional[str] = None,
     weather_summary: Optional[str] = None,
     market_summary: Optional[str] = None,
@@ -197,6 +199,12 @@ def build_farming_prompt(
     # 3. Weather
     if weather_summary:
         parts.append(f"[LIVE WEATHER DATA]\n{weather_summary}")
+    elif not include_weather_advice:
+        parts.append(
+            "[WEATHER SCOPE]\n"
+            "Weather was not requested and no live weather data was supplied. "
+            "Do not mention weather, rain, temperature, alerts, or weather-based actions."
+        )
 
     # 4. Market prices
     if market_summary:
@@ -228,6 +236,21 @@ def build_farming_prompt(
             parts.append("[RECENT CONVERSATION]\n" + "\n".join(history_lines))
 
     # 7. Current question + response instructions
+    language_labels = {
+        "en": "English only",
+        "hi": "Hindi in Devanagari",
+        "hinglish": "natural Hinglish in Latin script",
+    }
+    requested_language = language_labels.get(
+        (response_language or "").strip().lower(),
+        (response_language or "").strip(),
+    )
+    if requested_language:
+        parts.append(
+            "[RESPONSE LANGUAGE — REQUIRED]\n"
+            f"Write the complete answer in {requested_language}. "
+            "Do not mix another language except standard crop or scheme names."
+        )
     parts.append(f"[FARMER'S QUESTION]\n{question}")
     parts.append(
         "[YOUR RESPONSE — follow these checks before writing]\n"

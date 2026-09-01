@@ -1021,42 +1021,20 @@ class EnhancedMarketPricesService:
         primary_mandi = nearest_mandis[0]['name'] if nearest_mandis else f"{location} Mandi"
         
         crops = []
-        
-        # Process each crop as an explicitly labeled MSP-based estimate.
-        import random
-        import hashlib
-        
-        # Use location hash for consistent but different pricing per location
-        location_hash = int(hashlib.md5(location.encode()).hexdigest()[:8], 16)
-        random.seed(location_hash)
-        
-        crop_index = 0
+
+        # When every live source has failed, the only number this service can
+        # still stand behind is the official MSP itself. Earlier revisions
+        # synthesised a "current market price" here from MSP times
+        # random.uniform demand/seasonal factors and a per-location hash; even
+        # under an "estimate" label, a random-derived figure can steer a sell
+        # decision, so no synthetic markup is applied any more. The MSP floor
+        # price is reported as-is and the caller's labels/note make clear it
+        # is a reference, not a market rate.
         for crop_name, msp_data in government_msp_data.items():
-            # Get location-specific pricing variations
-            location_price_variation = self._get_location_price_variation(crop_name, location, state)
-            
-            # Create significant price differences for each crop based on location
-            # Use crop index and location hash for consistent but different prices
-            crop_specific_factor = 1.0 + (crop_index * 0.12)  # 12% increase per crop
-            market_demand_factor = random.uniform(1.15, 1.45)  # 15-45% above MSP
-            seasonal_factor = random.uniform(0.85, 1.25)  # Seasonal variation
-            location_factor = 1.0 + (location_hash % 100) / 1000  # Location-specific factor
-            
-            # Calculate current market price based on MSP and location factors
             base_msp = msp_data['msp']
-            base_location_factor = location_price_variation['price_factor']
-            
-            # Apply all factors for realistic price differences
-            current_price = int(base_msp * base_location_factor * region_multiplier * crop_specific_factor * market_demand_factor * seasonal_factor * location_factor)
-            
-            # Ensure minimum price above MSP (at least 15% above MSP)
-            current_price = max(current_price, int(base_msp * 1.15))
-            
-            crop_index += 1
-            
-            # Calculate profit margins
-            profit_margin = max(0, current_price - base_msp)
-            profit_percentage = round((profit_margin / base_msp) * 100, 2) if base_msp > 0 else 0
+            current_price = base_msp
+            profit_margin = 0
+            profit_percentage = 0.0
             
             crops.append({
                 'name': crop_name,
@@ -1066,7 +1044,7 @@ class EnhancedMarketPricesService:
                 'mandi': primary_mandi,
                 'state': state,
                 'date': datetime.now().strftime('%Y-%m-%d'),
-                'source': 'MSP reference estimate (not live mandi price)',
+                'source': 'Government MSP (official floor price, not live mandi price)',
                 'data_source': 'msp_reference_estimate',
                 'price_status': 'estimated',
                 'is_live': False,
@@ -1075,8 +1053,8 @@ class EnhancedMarketPricesService:
                 'profit_percentage': profit_percentage,
                 'unit': msp_data.get('unit', '/quintal'),
                 'season': msp_data.get('season', 'All Season'),
-                'location_factor': round(location_factor, 2),
-                'region_multiplier': round(region_multiplier, 2),
+                'location_factor': 1.0,
+                'region_multiplier': 1.0,
                 'api_source': 'msp_reference_estimate'
             })
         
@@ -1098,8 +1076,9 @@ class EnhancedMarketPricesService:
             'data_reliability': 0.35,
             'data_source': 'MSP reference estimate (not live mandi price)',
             'note': (
-                f'Estimated reference prices for {location}, {state}; not live market data. '
-                'Verify on Agmarknet/e-NAM or the local mandi before trading.'
+                f'Live mandi prices are unavailable for {location}, {state}; showing the official '
+                'government MSP floor price for each crop, not live market data. Actual mandi rates '
+                'differ - verify on Agmarknet/e-NAM or at the local mandi before trading.'
             )
         }
     

@@ -207,6 +207,9 @@ class ChatRequest(_StrictModel):
     sensor_context: Optional[SensorContextPayload] = None
     farmer_profile: Optional[FarmerProfilePayload] = None
     verified_knowledge: Optional[str] = Field(None, max_length=3000)
+    # The Django chatbot sets this from its classified intent.  Omitted means
+    # the standalone Phase 1 API keeps its historical weather enrichment.
+    include_weather: Optional[bool] = None
     stream: bool = False
 
     class Config:
@@ -316,7 +319,12 @@ async def chat_endpoint(req: ChatRequest):
 
     # 2. Optional weather (non-blocking)
     weather_summary = ""
-    if req.latitude and req.longitude and req.location:
+    if (
+        req.include_weather is not False
+        and req.latitude
+        and req.longitude
+        and req.location
+    ):
         weather_summary = _get_weather_summary(
             req.location, req.latitude, req.longitude, req.language
         )
@@ -325,6 +333,8 @@ async def chat_endpoint(req: ChatRequest):
     prompt = build_farming_prompt(
         question=req.query,
         rag_chunks=rag_texts,
+        response_language=req.language,
+        include_weather_advice=req.include_weather is not False,
         verified_knowledge=req.verified_knowledge,
         weather_summary=weather_summary or None,
         sensor_data=_model_dict(req.sensor_context),
@@ -373,7 +383,12 @@ async def chat_stream_endpoint(req: ChatRequest):
 
     # 2. Weather
     weather_summary = ""
-    if req.latitude and req.longitude and req.location:
+    if (
+        req.include_weather is not False
+        and req.latitude
+        and req.longitude
+        and req.location
+    ):
         weather_summary = _get_weather_summary(
             req.location, req.latitude, req.longitude, req.language
         )
@@ -382,6 +397,8 @@ async def chat_stream_endpoint(req: ChatRequest):
     prompt = build_farming_prompt(
         question=req.query,
         rag_chunks=rag_texts,
+        response_language=req.language,
+        include_weather_advice=req.include_weather is not False,
         verified_knowledge=req.verified_knowledge,
         weather_summary=weather_summary or None,
         sensor_data=_model_dict(req.sensor_context),

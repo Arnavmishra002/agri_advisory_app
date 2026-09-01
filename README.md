@@ -194,15 +194,19 @@ Create `.env` first and set at least `SECRET_KEY`.
 cp .env.example .env
 ```
 
-Local development commands (the automatically loaded
-`docker-compose.override.yml` uses Django hot reload and SQLite):
+Docker commands (the automatically loaded override keeps the Gunicorn runtime
+and uses SQLite for a lightweight local stack):
 
 ```bash
 # API plus built frontend served by Django, host port 8001
 docker compose up --build web
 
-# API plus Phase 1 AI/RAG, host ports 8001 and 8002
-docker compose --profile ai up --build web phase1
+# API plus Phase 1 and bundled Ollama, host ports 8001 and 8002
+docker compose --profile ai up --build -d web phase1 ollama
+
+# Download Qwen once into the persistent Ollama volume
+docker exec krishimitra_ollama ollama pull qwen2.5:7b
+docker exec krishimitra_ollama ollama pull nomic-embed-text
 
 # API plus nginx static UI, host ports 8001 and 8080
 docker compose --profile full up --build

@@ -6,6 +6,9 @@ from . import ollama_service
 
 
 class OllamaServiceTimeoutTests(unittest.TestCase):
+    def test_local_default_chat_timeout_matches_documented_runtime_budget(self):
+        self.assertEqual(ollama_service._OLLAMA_CHAT_TIMEOUT_S, 45)
+
     @patch.object(ollama_service, "_ollama_available", return_value=True)
     @patch.object(ollama_service.urllib.request, "urlopen")
     def test_chat_timeout_returns_empty_so_caller_can_use_grounded_fallback(self, urlopen, _available):
@@ -64,6 +67,20 @@ class FarmingPromptSensorGuardTests(unittest.TestCase):
         self.assertIn("Air humidity or weather humidity", ollama_service.AGRI_SYSTEM_PROMPT)
         self.assertIn("never invent soil", ollama_service.AGRI_SYSTEM_PROMPT)
         self.assertIn("Do not begin with thanks", ollama_service.AGRI_SYSTEM_PROMPT)
+
+    def test_prompt_places_explicit_response_language_near_question(self):
+        prompt = ollama_service.build_farming_prompt(
+            question="How should I store wheat?",
+            rag_chunks=["Wheat must be dried before storage."],
+            response_language="en",
+            include_weather_advice=False,
+        )
+
+        self.assertIn("[RESPONSE LANGUAGE — REQUIRED]", prompt)
+        self.assertIn("English only", prompt)
+        self.assertIn("Do not mix another language", prompt)
+        self.assertIn("[WEATHER SCOPE]", prompt)
+        self.assertIn("Do not mention weather", prompt)
 
     @patch.object(ollama_service, "_ollama_available", return_value=True)
     @patch.object(ollama_service.urllib.request, "urlopen")
