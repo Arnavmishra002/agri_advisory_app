@@ -9,6 +9,26 @@ from advisory.services.field_sensor_service import FieldSensorService
 
 
 class FieldDataTruthfulnessTests(SimpleTestCase):
+    def test_missing_forecast_does_not_claim_favorable_weather(self):
+        service = FieldSensorService()
+        weather = service._analyse_weather_for_farming([], {"temperature": 26})
+        self.assertEqual(weather["risk"], "Unavailable")
+        self.assertEqual(weather["current_temp"], 26)
+        crop = {"crop_name": "Rice", "crop_name_hindi": "Rice", "suitability_score": 50}
+        summary = service._generate_summary({}, [crop], weather, "en")
+        self.assertIn("unavailable", summary.lower())
+        self.assertNotIn("28°C", summary)
+        self.assertNotIn("0mm", summary)
+        self.assertNotIn("favorable", summary)
+
+    def test_incomplete_forecast_is_not_a_seven_day_total(self):
+        weather = FieldSensorService()._analyse_weather_for_farming(
+            [{"rainfall_mm": None, "max_temp": 31, "et0_mm": None}], {},
+        )
+        self.assertEqual(weather["risk"], "Unavailable")
+        self.assertIsNone(weather.get("rain_7d_mm"))
+        self.assertEqual(weather["irrigation_schedule"], [])
+
     def _live_open_meteo_payload(self):
         return {
             "status": "success",
