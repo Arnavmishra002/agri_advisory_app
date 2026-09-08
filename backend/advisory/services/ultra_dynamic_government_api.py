@@ -14,6 +14,7 @@ from typing import Dict, List, Any, Optional
 from .enhanced_market_prices import EnhancedMarketPricesService
 from concurrent.futures import ThreadPoolExecutor
 import urllib3
+from .api_keys import env_key
 
 # NOTE: Global SSL warning suppression removed.
 # urllib3.disable_warnings() was disabling SSL verification warnings for the
@@ -345,7 +346,7 @@ class UltraDynamicGovernmentAPI:
         try:
             # OpenWeatherMap API (free tier)
             import os
-            api_key = os.getenv('OPENWEATHER_API_KEY', '')
+            api_key = env_key('OPENWEATHER_API_KEY')
             if api_key == 'demo':
                 return None  # Skip if no real API key
             url = f"https://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&appid={api_key}&units=metric&lang=hi"

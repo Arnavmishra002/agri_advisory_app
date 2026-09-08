@@ -198,7 +198,9 @@ class MarketDataSecurityTests(TestCase):
         self.assertGreater(len(called_urls), 0)
         self.assertTrue(all("api-key=" not in url for url in called_urls))
 
-    @patch.dict("os.environ", {"DATA_GOV_IN_API_KEY": "test-key"})
+    # Long enough for api_keys.is_real_key, and deliberately not shaped like a real
+    # provider key -- GitHub push protection flags credential-shaped test data.
+    @patch.dict("os.environ", {"DATA_GOV_IN_API_KEY": "notarealkey-testfixture-only-000000000"})
     def test_data_gov_uses_env_api_key_when_configured(self):
         service = EnhancedMarketPricesService()
         called_urls = []
@@ -211,7 +213,9 @@ class MarketDataSecurityTests(TestCase):
 
         service._fetch_from_data_gov_in("Lucknow", "Uttar Pradesh")
 
-        self.assertTrue(any("api-key=test-key" in url for url in called_urls))
+        self.assertTrue(
+            any("api-key=notarealkey-testfixture-only-000000000" in url for url in called_urls)
+        )
 
     def test_synthetic_mandi_fallback_is_labeled_non_live(self):
         service = EnhancedMarketPricesService()

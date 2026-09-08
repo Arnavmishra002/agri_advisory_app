@@ -40,6 +40,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..errors import safe_error_message
+from advisory.services.api_keys import env_key
 from ..serializers import (
     AdvisoryAudioInputSerializer,
     EmptyInputSerializer,
@@ -58,7 +59,7 @@ WHATSAPP_APP_SECRET   = os.getenv("WHATSAPP_APP_SECRET", "")
 TWILIO_SID            = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_TOKEN          = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_FROM           = os.getenv("TWILIO_FROM_NUMBER", "")
-GROQ_API_KEY          = os.getenv("GROQ_API_KEY", "")   # for Whisper STT (free tier)
+GROQ_API_KEY          = env_key("GROQ_API_KEY")   # for Whisper STT (free tier)
 
 
 def _owned_advisory_audio_session(request) -> str:

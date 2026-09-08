@@ -25,11 +25,12 @@ import os
 import logging
 
 import requests
+from .api_keys import env_key
 
 logger = logging.getLogger(__name__)
 
 OPEN_LLM_BASE_URL = os.getenv("OPEN_LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
-OPEN_LLM_API_KEY = (os.getenv("OPEN_LLM_API_KEY") or os.getenv("GROQ_API_KEY") or "").strip()
+OPEN_LLM_API_KEY = env_key("OPEN_LLM_API_KEY") or env_key("GROQ_API_KEY")
 OPEN_LLM_MODEL = os.getenv("OPEN_LLM_MODEL", "llama-3.3-70b-versatile").strip()
 _TIMEOUT = (5, 30)
 

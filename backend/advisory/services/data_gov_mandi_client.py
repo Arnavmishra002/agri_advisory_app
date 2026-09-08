@@ -14,7 +14,7 @@ Why this is better than scraping Agmarknet directly:
   - Supports: commodity filter, state filter, market filter, date filter, pagination
 
 Live source chain:
-  1. data.gov.in OGD API (if DATA_GOV_IN_API_KEY set and not placeholder)
+  1. data.gov.in OGD API (if DATA_GOV_IN_API_KEY set and not a placeholder)
   2. Agmarknet direct dashboard API (no key needed — 25 commodities)
   3. Unavailable response with no price rows
 
@@ -44,6 +44,7 @@ from urllib3.util.retry import Retry
 logger = logging.getLogger(__name__)
 
 from .msp_data import MSP_2024_25 as _CANONICAL_MSP
+from .api_keys import is_real_key
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 _DATA_GOV_BASE    = "https://api.data.gov.in/resource"
@@ -63,10 +64,8 @@ _PLACEHOLDERS = frozenset({
 
 
 def _is_valid_key(key: str) -> bool:
-    if not key or len(key) < 10:
-        return False
-    lower = key.lower()
-    return not any(p in lower for p in _PLACEHOLDERS)
+    """Retained name; the rule now lives in api_keys so every reader shares it."""
+    return is_real_key(key)
 
 
 def _get_api_key() -> Optional[str]:
@@ -423,58 +422,9 @@ class DataGovMandiClient:
             logger.warning("Agmarknet direct fallback failed: %s", exc)
             return None
 
-    # ── Seed data fallback ────────────────────────────────────────────────────
-
-    def _get_seed_result(self, commodity: Optional[str] = None) -> Dict[str, Any]:
-        """Return hardcoded seed prices — always available."""
-        from .agmarknet_direct_client import _SEED_PRICES, _AGMARKNET_TO_CROP_ID, _CROP_HINDI as _AGMARKNET_HINDI
-
-        top_crops = []
-        for r in _SEED_PRICES:
-            raw_name  = (r.get("cmdt_name") or "").lower().strip()
-            crop_id   = _AGMARKNET_TO_CROP_ID.get(raw_name, raw_name.replace(" ", "_"))
-            if commodity and commodity.lower() not in crop_id and commodity.lower() not in raw_name:
-                continue
-            try:
-                modal_price = round(float(r.get("as_on_price") or 0), 2)
-            except (ValueError, TypeError):
-                continue
-            msp = _MSP_2024_25.get(crop_id)
-            profit_vs_msp = None
-            if msp and msp > 0:
-                profit_vs_msp = round(((modal_price - msp) / msp) * 100, 1)
-            top_crops.append({
-                "crop_name":       r.get("cmdt_name", crop_id.title()),
-                "crop_name_hindi": _AGMARKNET_HINDI.get(crop_id, ""),
-                "crop_id":         crop_id,
-                "modal_price":     modal_price,
-                "msp":             msp,
-                "profit_vs_msp":   profit_vs_msp,
-                "trend":           (r.get("trend") or "").lower(),
-                "category":        r.get("cmdt_grp_name", ""),
-                "mandi_name":      "National Average (Reference)",
-                "state":           "All India",
-                "reported_date":   r.get("reported_date", ""),
-                "price_source":    "seed_fallback",
-                "is_live":         False,
-            })
-
-        return {
-            "status":             "success",
-            "is_live":            False,
-            "data_source":        "Reference Prices (Agmarknet 12-06-2026 — live API temporarily unavailable)",
-            "data_source_short":  "Reference data",
-            "reported_date":      "12-06-2026",
-            "top_crops":          top_crops,
-            "total_records":      len(top_crops),
-            "message":            "Using reference prices — live API retried every hour automatically",
-            "api_key_registered": bool(_get_api_key()),
-            "using_demo_key":     False,
-            "coverage":           "national",
-            "timestamp":          datetime.now(tz=timezone.utc).isoformat(),
-        }
-
-    # ── Redis cache helpers ───────────────────────────────────────────────────
+    # Seed data fallback removed: see the note in agmarknet_direct_client.
+    # This accessor imported that table and was itself never called; the
+    # live path already returns typed unavailability, which the tests assert.
 
     @staticmethod
     def _cache_key(commodity: Optional[str], state: Optional[str]) -> str:

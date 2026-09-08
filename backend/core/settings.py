@@ -644,25 +644,48 @@ if not DEBUG:
     SESSION_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_HTTPONLY = True
     CSRF_COOKIE_SAMESITE = 'Lax'
-    # Content-Security-Policy — blocks inline XSS and rogue script sources
+    # ── Content-Security-Policy ────────────────────────────────────────────
+    # This was left in Report-Only because an earlier enforced policy omitted
+    # cdn.jsdelivr.net from style-src and broke the layout in production. That
+    # blocker is gone: every vendor asset is now served from this origin, and a
+    # sweep of index.html and public/js finds no external script, style or font
+    # host at all. The CDN allowlists below were therefore dead weight and are
+    # removed, and the policy is enforced by default.
+    #
+    # 'unsafe-inline' stays in script-src because the frontend still carries six
+    # inline <script> blocks and 93 inline on* handlers; removing it means
+    # refactoring those to addEventListener, which is worth doing but is not a
+    # change to make blind. 'unsafe-eval' is dropped -- nothing calls eval,
+    # new Function, or string-form setTimeout.
+    #
+    # Set CSP_REPORT_ONLY=true to fall back to reporting without a code change.
+    _CSP_POLICY = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self' data:; "
+        "img-src 'self' data: blob: https:; "
+        "connect-src 'self' https:; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "frame-ancestors 'none';"
+    )
+    _CSP_REPORT_ONLY = os.environ.get('CSP_REPORT_ONLY', 'false').lower() in {'1', 'true', 'yes'}
     CSP_HEADERS = {
-        # Report-Only: emit violations for monitoring but NEVER block a resource,
-        # so the CSP can't break the UI. (An earlier enforced policy omitted
-        # cdn.jsdelivr.net from style-src, which blocked Bootstrap's CSS and broke
-        # the layout in production.) The directives below are corrected so this can
-        # be switched to the enforcing 'Content-Security-Policy' header later once
-        # confirmed clean. All CDN hosts the app actually uses are now allowlisted
-        # in every relevant directive.
-        'Content-Security-Policy-Report-Only': (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
-            "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
-            "img-src 'self' data: blob: https:; "
-            "connect-src 'self' https:; "
-            "frame-ancestors 'none';"
-        )
+        (
+            'Content-Security-Policy-Report-Only' if _CSP_REPORT_ONLY
+            else 'Content-Security-Policy'
+        ): _CSP_POLICY,
+        # Deny hardware and ambient APIs this app never uses. Absent before.
+        'Permissions-Policy': (
+            'accelerometer=(), autoplay=(), camera=(), display-capture=(), '
+            'encrypted-media=(), fullscreen=(self), geolocation=(self), '
+            'gyroscope=(), magnetometer=(), microphone=(self), midi=(), '
+            'payment=(), usb=(), xr-spatial-tracking=()'
+        ),
     }
+
 else:
     X_FRAME_OPTIONS = 'SAMEORIGIN'
     CSP_HEADERS = {}

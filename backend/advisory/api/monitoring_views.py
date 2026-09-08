@@ -21,6 +21,7 @@ from rest_framework.response import Response
 
 from ..middleware.rate_limiting import get_rate_limit_status, reset_rate_limits
 from .serializers import EmptyInputSerializer, LocationQuerySerializer, RateLimitResetInputSerializer
+from advisory.services.api_keys import env_key, env_setting
 
 logger = logging.getLogger(__name__)
 
@@ -370,12 +371,13 @@ def readiness_check(request):
 
 
 def _configured_env(name: str) -> bool:
-    value = os.environ.get(name, "").strip()
-    return bool(value) and value.lower() not in {
-        "change_me",
-        "your_api_key_here",
-        "your_data_gov_in_api_key_here",
-    }
+    """Whether *name* holds a real credential rather than a shipped placeholder.
+
+    The local list this replaced enumerated three sample values and so passed
+    `your_groq_api_key_here` and `your_gemini_api_key_here` as configured,
+    which made readiness report a half-configured deployment as ready.
+    """
+    return bool(env_key(name))
 
 
 @csrf_exempt
@@ -431,9 +433,12 @@ def launch_readiness_check(request):
     ).lower() in {"1", "true", "yes"}
     allowed_hosts_ok = bool(settings.ALLOWED_HOSTS) and "*" not in settings.ALLOWED_HOSTS
     cors_ok = not bool(getattr(settings, "CORS_ALLOW_ALL_ORIGINS", False))
-    twilio_ok = all(
-        _configured_env(name)
-        for name in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER")
+    # SID and token are credentials; the sender number is not, and must not be
+    # held to the credential length floor.
+    twilio_ok = (
+        _configured_env("TWILIO_ACCOUNT_SID")
+        and _configured_env("TWILIO_AUTH_TOKEN")
+        and bool(env_setting("TWILIO_FROM_NUMBER"))
     )
 
     if not database_ok:

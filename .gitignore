@@ -399,6 +399,14 @@ mobile/krishimitra_app/.flutter-plugins-dependencies
 !docs/specs/
 !docs/specs/**
 
+# Bundled Agmarknet filter reference (states, commodities, grades). The
+# broad "data/" rule earlier is meant for downloaded datasets, but it
+# also swallowed this source file: the service reads it at import time,
+# so it shipped without the bundle and CI failed on a file that was
+# sitting right there in the working tree.
+!backend/advisory/data/
+!backend/advisory/data/*.json
+
 # Extra local DB files in backend (only backend/db.sqlite3 allowed by Django rule above)
 backend/live_test.db
 backend/local.db

@@ -23,6 +23,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 
 from .location_context import _haversine_km
+from .api_keys import env_key
 from .language_service import (
     get_language_info,
     normalise_language_code,
@@ -37,9 +38,9 @@ from .language_service import (
 logger = logging.getLogger(__name__)
 
 # ─── API Keys (from environment) ─────────────────────────────────────────────
-GOOGLE_AI_KEY     = os.getenv("GOOGLE_AI_API_KEY", "")
+GOOGLE_AI_KEY     = env_key("GOOGLE_AI_API_KEY")
 # Set in .env — register at https://data.gov.in/user/register (free)
-DATA_GOV_KEY      = os.getenv("DATA_GOV_IN_API_KEY", "").strip()
+DATA_GOV_KEY      = env_key("DATA_GOV_IN_API_KEY")
 # OGD public demo key (limited to 10 rows/request); register your own for production
 DATA_GOV_DEMO_KEY = "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b"
 # ↑ Kept as a tombstone constant only — no longer used in production code paths.
@@ -53,7 +54,7 @@ DATA_GOV_DEMO_KEY = "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b"
 # is renamed or a farmer enters a slightly different spelling.
 _GEOCODE_CACHE_TTL = 60 * 60 * 24 * 7   # 7 days — location→coords is stable
 DATA_GOV_TIMEOUT  = (5, 25)  # connect, read seconds
-OPENWEATHER_KEY   = os.getenv("OPENWEATHER_API_KEY", "")
+OPENWEATHER_KEY   = env_key("OPENWEATHER_API_KEY")
 # Model names go stale fast on this API.  gemini-1.5-* and gemini-2.0-flash are
 # both retired and now 404, which made every Gemini call fail silently and drop
 # through to the rule engine.  The three below were each verified against the
@@ -913,8 +914,15 @@ class MarketPricesService:
         lon: float = None,
         state: str = None,
         include_estimates: bool = False,
+        district: str = None,
     ) -> Dict[str, Any]:
-        """Get fresh official prices; ``include_estimates`` is ignored for compatibility."""
+        """Get fresh official prices; ``include_estimates`` is ignored for compatibility.
+
+        ``district`` lets the caller pass the farmer's own district (from the
+        geocoded location context). It narrows the Agmarknet query one level
+        below state, which is where the numbers stop being an average of places
+        the farmer will never sell in.
+        """
         coord_key = (
             f"{round(lat, 4)}:{round(lon, 4)}" if lat is not None and lon is not None else ""
         )
@@ -923,6 +931,9 @@ class MarketPricesService:
             _cache_token(coord_key),
             _cache_token(location),
             _cache_token(state),
+            # Without this, two farmers in different districts of the same
+            # state would be served each other's cached district price.
+            _cache_token(district),
             _cache_token(mandi),
             _cache_token(crop),
             "live_only",
@@ -959,6 +970,51 @@ class MarketPricesService:
                 ),
                 "coverage": candidate.get("coverage", "state"),
             }
+
+        # Priority 0a: Agmarknet scoped to the farmer's own district.
+        # Agmarknet accepts state/district/market ids, and the narrower the
+        # scope the more relevant the number. Measured on 2026-09-01, same
+        # commodity and same reported date: Wheat came back 2523.70 as the
+        # Uttar Pradesh average and 2541.83 for Gautam Budh Nagar. Individual
+        # mandis are sparse, so get_local_prices escalates outward on its own
+        # and reports which scope answered. Failure here is never fatal -- the
+        # existing national path below still runs.
+        try:
+            from .agmarknet_filters import agmarknet_filters
+            from .agmarknet_direct_client import agmarknet_direct_client
+
+            scope = agmarknet_filters.resolve_location(
+                state or self._infer_state(location, state=state), district
+            )
+            if scope.get("state_id"):
+                commodity = agmarknet_filters.resolve_commodity(crop) if crop else None
+                place = scope.get("district_name") or scope.get("state_name")
+                local = agmarknet_direct_client.get_local_prices(
+                    state_id=scope["state_id"],
+                    district_id=scope.get("district_id"),
+                    commodity_id=commodity[0] if commodity else None,
+                    # Label the rows with the place they actually describe, so
+                    # a district average is never shown as a national one.
+                    coverage_label=(
+                        f"{place} ({scope['coverage']} average, Agmarknet)"
+                        if place else None
+                    ),
+                    state_label=scope.get("state_name"),
+                )
+                if local:
+                    local["coverage"] = scope["coverage"]
+                    local["resolved_district"] = scope.get("district_name")
+                    local["resolved_state"] = scope.get("state_name")
+                    remember_dated_official(local)
+                    validated = self._validated_live_data(local)
+                    if validated and validated.get("top_crops"):
+                        data = validated
+                        logger.info(
+                            "Agmarknet %s-level rows for %s",
+                            scope["coverage"], scope.get("district_name") or scope.get("state_name"),
+                        )
+        except Exception as exc:
+            logger.warning("Agmarknet scoped lookup failed: %s", exc)
 
         # Priority 0: data.gov.in official API; national Agmarknet dashboard is
         # used only when no state scope was requested.

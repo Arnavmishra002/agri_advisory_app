@@ -100,8 +100,8 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center gap-1">
                 <li class="nav-item"><a class="nav-link active" href="#" id="nav-home" onclick="showService('home');return false;" data-i18n="nav_home">🏠 होम</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" id="nav-weather" onclick="showService('weather');return false;">🌤️ मौसम</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" id="nav-market" onclick="showService('market-prices');return false;">💰 बाजार</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" id="nav-weather" onclick="showService('weather');return false;" data-i18n="nav_weather">🌤️ मौसम</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" id="nav-market" onclick="showService('market-prices');return false;" data-i18n="nav_market">💰 बाजार</a></li>
                 <li class="nav-item"><a class="nav-link" href="#" id="nav-schemes" onclick="showService('government-schemes');return false;" data-i18n="nav_schemes">🏛️ योजनाएं</a></li>
                 <li class="nav-item"><a class="nav-link" href="#" id="nav-ai" onclick="showService('ai-assistant');return false;" data-i18n="nav_ai">🤖 AI सहायक</a></li>
                 <!-- Language switcher injected by i18n.js -->
@@ -168,10 +168,10 @@
         </div>
 
         <div class="hero-quick-actions" aria-label="मुख्य किसान सेवाएं">
-            <button type="button" onclick="showService('ai-assistant')"><i class="fas fa-comments"></i><span>AI से पूछें</span></button>
-            <button type="button" onclick="showService('crop-recommendations')"><i class="fas fa-seedling"></i><span>फसल चुनें</span></button>
-            <button type="button" onclick="showService('market-prices')"><i class="fas fa-indian-rupee-sign"></i><span>मंडी भाव</span></button>
-            <button type="button" onclick="showService('pest-control')"><i class="fas fa-camera"></i><span>फोटो जांच</span></button>
+            <button type="button" onclick="showService('ai-assistant')"><i class="fas fa-comments"></i><span data-i18n="qa_ask_ai">AI से पूछें</span></button>
+            <button type="button" onclick="showService('crop-recommendations')"><i class="fas fa-seedling"></i><span data-i18n="qa_choose_crop">फसल चुनें</span></button>
+            <button type="button" onclick="showService('market-prices')"><i class="fas fa-indian-rupee-sign"></i><span data-i18n="qa_mandi_price">मंडी भाव</span></button>
+            <button type="button" onclick="showService('pest-control')"><i class="fas fa-camera"></i><span data-i18n="qa_photo_check">फोटो जांच</span></button>
         </div>
     </div>
 </div>
@@ -185,8 +185,8 @@
         <!-- Section title -->
         <div class="services-heading">
             <div>
-                <span class="section-eyebrow">काम चुनें</span>
-                <h2>आज आपको किस काम में मदद चाहिए?</h2>
+                <span class="section-eyebrow" data-i18n="services_eyebrow">काम चुनें</span>
+                <h2 data-i18n="services_heading">आज आपको किस काम में मदद चाहिए?</h2>
             </div>
             <p>बड़े और साफ बटन दबाएं। हर सेवा आपके चुने हुए स्थान का उपयोग करती है।</p>
         </div>
@@ -446,7 +446,7 @@
                     placeholder="फसल खोजें — Wheat, गेहूँ, Cotton..."
                     onkeyup="searchCrop(event)" onfocus="showCropSuggestions()" autocomplete="off">
                 <button class="btn btn-success btn-sm" onclick="searchSpecificCrop()" style="font-size:0.82rem;">खोजें</button>
-                <button class="btn btn-outline-success btn-sm" type="button" onclick="clearCropRecommendationSearch()" style="font-size:0.82rem;white-space:nowrap;">सभी फसलें</button>
+                <button class="btn btn-outline-success btn-sm" type="button" onclick="clearCropRecommendationSearch()" style="font-size:0.82rem;white-space:nowrap;" data-i18n="crop_all_crops">सभी फसलें</button>
             </div>
             <div id="cropSuggestions" class="crop-suggestions"></div>
         </div>
@@ -491,7 +491,7 @@
                 </button>
             </div>
             <details class="mt-3">
-                <summary style="cursor:pointer;color:#2d5016;font-weight:600;">मिट्टी जाँच और खेत विवरण</summary>
+                <summary style="cursor:pointer;color:#2d5016;font-weight:600;" data-i18n="crop_soil_details">मिट्टी जाँच और खेत विवरण</summary>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px;margin-top:12px;">
                     <label class="form-label mb-0">N kg/ha<input id="cropRecN" class="form-control form-control-sm mt-1" type="number" min="0" max="5000"></label>
                     <label class="form-label mb-0">P kg/ha<input id="cropRecP" class="form-control form-control-sm mt-1" type="number" min="0" max="2000"></label>
@@ -562,12 +562,12 @@
 
         <!-- Crop search -->
         <div style="position:relative;margin-bottom:14px;">
-            <label class="fw-semibold mb-1" style="color:#2d5016;font-size:0.88rem;">🌾 फसल खोजें</label>
+            <label class="fw-semibold mb-1" style="color:#2d5016;font-size:0.88rem;" data-i18n="crop_search_label">🌾 फसल खोजें</label>
             <div style="display:flex;gap:8px;">
                 <input type="text" id="cropPriceSearchInput" class="form-control"
                     placeholder="गेहूँ, Onion, Maize, टमाटर..."
                     oninput="searchCropsForMarket(event)" autocomplete="off">
-                <button type="button" class="btn btn-outline-success btn-sm" onclick="clearCropPriceSearch()" style="white-space:nowrap;">सभी फसलें</button>
+                <button type="button" class="btn btn-outline-success btn-sm" onclick="clearCropPriceSearch()" style="white-space:nowrap;" data-i18n="crop_all_crops">सभी फसलें</button>
             </div>
             <div id="cropPriceSuggestions" class="crop-suggestions" style="display:none;"></div>
             <div id="selectedCropBadge" style="margin-top:6px;font-size:0.85rem;color:#4a7c59;font-weight:600;"></div>
@@ -578,13 +578,13 @@
 
         <!-- Mandi selector -->
         <div class="mandi-bar">
-            <label class="fw-bold m-0 mandi-bar-label">🏪 मंडी सूची:</label>
+            <label class="fw-bold m-0 mandi-bar-label" data-i18n="mandi_list_label">🏪 मंडी सूची:</label>
             <select id="mandiRadiusSelect" onchange="onMandiRadiusChanged()" class="form-select form-select-sm mandi-radius-select" title="मंडी सूची का दायरा">
                 <option value="50">50 km</option>
                 <option value="100">100 km</option>
                 <option value="150" selected>150 km</option>
                 <option value="250">250 km</option>
-                <option value="state">पूरा राज्य</option>
+                <option value="state" data-i18n="mandi_whole_state">पूरा राज्य</option>
             </select>
             <input id="mandiSearchInput" type="search" class="form-control form-control-sm mandi-selector"
                 placeholder="मंडी या जिला खोजें..." autocomplete="off"
@@ -597,7 +597,7 @@
             <button id="mandiRefreshBtn" class="btn btn-sm btn-outline-success mandi-refresh-btn" onclick="refreshNearbyMandis()" title="नज़दीकी मंडियां फिर से लोड करें">
                 <i class="fas fa-location-crosshairs"></i>
             </button>
-            <button id="mandiLoadMoreBtn" class="btn btn-sm btn-outline-success mandi-load-more-btn" style="display:none;" onclick="loadMoreMandis()">और मंडियां</button>
+            <button id="mandiLoadMoreBtn" class="btn btn-sm btn-outline-success mandi-load-more-btn" style="display:none;" onclick="loadMoreMandis()" data-i18n="mandi_load_more">और मंडियां</button>
         </div>
 
         <div id="pricesData" class="loading">
@@ -766,18 +766,18 @@
                     <span class="sensor-hint">Good: &gt;0.75%</span>
                 </div>
                 <div class="col-6 col-md-4">
-                    <label class="form-label fw-semibold" style="font-size:0.82rem;">🔄 पिछली फसल</label>
+                    <label class="form-label fw-semibold" style="font-size:0.82rem;" data-i18n="field_previous_crop">🔄 पिछली फसल</label>
                     <input type="text" id="fa_prev_crop" class="form-control form-control-sm" placeholder="wheat / rice / cotton">
                     <span class="sensor-hint">Rotation bonus/penalty</span>
                 </div>
                 <div class="col-6 col-md-4">
-                    <label class="form-label fw-semibold" style="font-size:0.82rem;">🚿 सिंचाई प्रकार</label>
+                    <label class="form-label fw-semibold" style="font-size:0.82rem;" data-i18n="field_irrigation_type">🚿 सिंचाई प्रकार</label>
                     <select id="fa_irrigation" class="form-select form-select-sm">
-                        <option value="unknown">-- चुनें --</option>
-                        <option value="drip">💧 ड्रिप इरिगेशन</option>
-                        <option value="sprinkler">🌧 स्प्रिंकलर</option>
-                        <option value="flood">🌊 बाढ़ सिंचाई</option>
-                        <option value="rainfed">🌦 वर्षा आधारित</option>
+                        <option value="unknown" data-i18n="opt_choose">-- चुनें --</option>
+                        <option value="drip" data-i18n="irr_drip">💧 ड्रिप इरिगेशन</option>
+                        <option value="sprinkler" data-i18n="irr_sprinkler">🌧 स्प्रिंकलर</option>
+                        <option value="flood" data-i18n="irr_flood">🌊 बाढ़ सिंचाई</option>
+                        <option value="rainfed" data-i18n="irr_rainfed">🌦 वर्षा आधारित</option>
                     </select>
                 </div>
             </div>
@@ -785,17 +785,17 @@
             <!-- Quick presets -->
             <div class="mt-3 pt-3" style="border-top:1px solid #f0f0f0;">
                 <span style="font-size:0.78rem;color:#999;margin-right:8px;">Quick fill:</span>
-                <button onclick="fillPreset('fertile')"   class="btn btn-outline-success btn-sm me-1" style="font-size:0.73rem;border-radius:999px;">✅ उपजाऊ</button>
-                <button onclick="fillPreset('deficient')" class="btn btn-outline-warning btn-sm me-1" style="font-size:0.73rem;border-radius:999px;">⚠️ पोषण-कमी</button>
-                <button onclick="fillPreset('saline')"    class="btn btn-outline-danger btn-sm me-1"  style="font-size:0.73rem;border-radius:999px;">🧂 लवणीय</button>
-                <button onclick="fillPreset('acidic')"    class="btn btn-outline-secondary btn-sm"    style="font-size:0.73rem;border-radius:999px;">⚗️ अम्लीय</button>
+                <button onclick="fillPreset('fertile')"   class="btn btn-outline-success btn-sm me-1" style="font-size:0.73rem;border-radius:999px;" data-i18n="preset_fertile">✅ उपजाऊ</button>
+                <button onclick="fillPreset('deficient')" class="btn btn-outline-warning btn-sm me-1" style="font-size:0.73rem;border-radius:999px;" data-i18n="preset_deficient">⚠️ पोषण-कमी</button>
+                <button onclick="fillPreset('saline')"    class="btn btn-outline-danger btn-sm me-1"  style="font-size:0.73rem;border-radius:999px;" data-i18n="preset_saline">🧂 लवणीय</button>
+                <button onclick="fillPreset('acidic')"    class="btn btn-outline-secondary btn-sm"    style="font-size:0.73rem;border-radius:999px;" data-i18n="preset_acidic">⚗️ अम्लीय</button>
             </div>
 
             <div class="text-center mt-4">
                 <button class="btn btn-lg px-5 py-2 rounded-pill text-white fw-bold" id="fieldAnalyzeBtn" type="button"
                     style="background:linear-gradient(135deg,#bf360c,#ff6f00);border:none;box-shadow:0 4px 16px rgba(191,54,12,0.35);font-size:0.95rem;"
                     onclick="loadFieldAdvisory()">
-                    🔬 फसल सलाह प्राप्त करें
+                    <span data-i18n="crop_get_advice">🔬 फसल सलाह प्राप्त करें</span>
                 </button>
             </div>
         </div>
@@ -987,15 +987,15 @@
 <nav class="bottom-nav" id="bottomNav" aria-label="Bottom navigation">
     <button class="bottom-nav-item active" id="bnav-home" onclick="showService('home')" aria-label="Home">
         <i class="fas fa-home"></i>
-        <span class="bottom-nav-label">होम</span>
+        <span class="bottom-nav-label" data-i18n="bottomnav_home">होम</span>
     </button>
     <button class="bottom-nav-item" id="bnav-weather" onclick="showService('weather')" aria-label="Weather">
         <i class="fas fa-cloud-sun"></i>
-        <span class="bottom-nav-label">मौसम</span>
+        <span class="bottom-nav-label" data-i18n="bottomnav_weather">मौसम</span>
     </button>
     <button class="bottom-nav-item" id="bnav-market" onclick="showService('market-prices')" aria-label="Market">
         <i class="fas fa-rupee-sign"></i>
-        <span class="bottom-nav-label">बाजार</span>
+        <span class="bottom-nav-label" data-i18n="bottomnav_market">बाजार</span>
     </button>
     <button class="bottom-nav-item" id="bnav-ai" onclick="showService('ai-assistant')" aria-label="AI Assistant">
         <i class="fas fa-robot"></i>
@@ -1003,7 +1003,7 @@
     </button>
     <button class="bottom-nav-item" id="bnav-more" onclick="showService('government-schemes')" aria-label="More">
         <i class="fas fa-th-large"></i>
-        <span class="bottom-nav-label">और</span>
+        <span class="bottom-nav-label" data-i18n="bottomnav_more">और</span>
     </button>
 </nav>
 

@@ -12,6 +12,7 @@ from typing import Dict, List, Any, Optional
 from urllib.parse import urlencode
 
 from .msp_data import MSP_2024_25, MSP_MARKETING_SEASON
+from .api_keys import env_key
 
 logger = logging.getLogger(__name__)
 
@@ -1679,7 +1680,7 @@ class EnhancedMarketPricesService:
                 "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
                 "https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69",
             ]
-            api_key = os.getenv("DATA_GOV_IN_API_KEY", "").strip()
+            api_key = env_key("DATA_GOV_IN_API_KEY")
             if api_key:
                 query = urlencode({
                     "api-key": api_key,

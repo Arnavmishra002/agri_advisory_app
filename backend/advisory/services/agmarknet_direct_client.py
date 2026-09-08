@@ -100,31 +100,12 @@ def _has_price(record: Dict[str, Any]) -> bool:
     return False
 
 
-# ── Static seed prices (last known good data — updated when API call succeeds) ─
-# Verified real Agmarknet prices from 12-06-2026. Serves as instant fallback.
-_SEED_PRICES: List[Dict[str, Any]] = [
-    {"cmdt_name": "Bajra(Pearl Millet/Cumbu)",   "as_on_price": "2336.41", "msp_price": "2775.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
-    {"cmdt_name": "Barley(Jau)",                 "as_on_price": "2200.62", "msp_price": "2150.00", "trend": "up",   "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
-    {"cmdt_name": "Jowar(Sorghum)",              "as_on_price": "3712.85", "msp_price": "3699.00", "trend": "up",   "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
-    {"cmdt_name": "Maize",                       "as_on_price": "1756.00", "msp_price": "2400.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
-    {"cmdt_name": "Paddy(Common)",               "as_on_price": "2179.00", "msp_price": "2369.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
-    {"cmdt_name": "Ragi(Finger Millet)",         "as_on_price": "3300.00", "msp_price": "4290.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
-    {"cmdt_name": "Wheat",                       "as_on_price": "2401.30", "msp_price": "2425.00", "trend": "down", "cmdt_grp_name": "Cereals",    "reported_date": "12-06-2026"},
-    {"cmdt_name": "Mustard",                     "as_on_price": "5876.00", "msp_price": "5950.00", "trend": "down", "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
-    {"cmdt_name": "Groundnut",                   "as_on_price": "5914.00", "msp_price": "6783.00", "trend": "down", "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
-    {"cmdt_name": "Soyabean",                    "as_on_price": "4241.00", "msp_price": "4892.00", "trend": "down", "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
-    {"cmdt_name": "Sunflower/Sunflower Seed",    "as_on_price": "6330.00", "msp_price": "7280.00", "trend": "down", "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
-    {"cmdt_name": "Sesamum(Sesame,Gingelly,Til)","as_on_price": "16200.00","msp_price": "9267.00", "trend": "up",   "cmdt_grp_name": "Oil Seeds",  "reported_date": "12-06-2026"},
-    {"cmdt_name": "Cotton",                      "as_on_price": "6900.00", "msp_price": "7121.00", "trend": "down", "cmdt_grp_name": "Fibre Crops","reported_date": "12-06-2026"},
-    {"cmdt_name": "Bengal Gram(Gram)(Whole)",    "as_on_price": "4800.00", "msp_price": "5650.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
-    {"cmdt_name": "Red gram/Arhar/Tur(whole)",   "as_on_price": "6500.00", "msp_price": "8000.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
-    {"cmdt_name": "Green Gram(Moong)(Whole)",    "as_on_price": "6800.00", "msp_price": "8682.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
-    {"cmdt_name": "Black Gram(Urd Beans)(Whole)","as_on_price": "5500.00", "msp_price": "7400.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
-    {"cmdt_name": "Lentil(Masur)(Whole)",        "as_on_price": "5200.00", "msp_price": "6425.00", "trend": "down", "cmdt_grp_name": "Pulses",     "reported_date": "12-06-2026"},
-    {"cmdt_name": "Onion",                       "as_on_price": "1500.00", "msp_price": None,       "trend": "up",   "cmdt_grp_name": "Vegetables", "reported_date": "12-06-2026"},
-    {"cmdt_name": "Potato",                      "as_on_price": "900.00",  "msp_price": None,       "trend": "down", "cmdt_grp_name": "Vegetables", "reported_date": "12-06-2026"},
-    {"cmdt_name": "Tomato",                      "as_on_price": "800.00",  "msp_price": None,       "trend": "down", "cmdt_grp_name": "Vegetables", "reported_date": "12-06-2026"},
-]
+# Seed prices were removed. The table held real Agmarknet rows captured on
+# 12-06-2026 beside a docstring promising they were "up to a day old"; by the
+# time this was audited they were 88 days old. Nothing called the accessor --
+# the freshness contract had already routed every path to typed unavailability
+# -- so the rows survived only as a loaded gun for the next caller who skipped
+# the filter. The system may state that it does not know, but may not guess.
 
 
 class AgmarknetDirectClient:
@@ -320,24 +301,55 @@ class AgmarknetDirectClient:
                         "scope": scope}
         return {"records": [], "coverage": None, "reported_date": None, "scope": None}
 
-    def _get_seed_result(self) -> Dict[str, Any]:
-        """
-        Return the static seed prices as a properly formatted response.
+    def get_local_prices(
+        self,
+        *,
+        state_id: Optional[int] = None,
+        district_id: Optional[int] = None,
+        market_id: Optional[int] = None,
+        commodity_id: Optional[int] = None,
+        coverage_label: Optional[str] = None,
+        state_label: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Official rows for the tightest scope Agmarknet will answer with.
 
-        Seed prices are real Agmarknet values captured on 12-06-2026.
-        When the live API is unavailable they serve as a meaningful fallback
-        rather than showing nothing — but they are clearly labelled as
-        'Reference prices' so farmers know they may be up to a day old.
-        The live API is retried on the next request (cache TTL = 1h), so
-        seed data is shown for at most one hour before a fresh attempt.
+        Public wrapper around :meth:`fetch_scoped` that returns the same shape
+        as the other price methods, so the caller can push it through the usual
+        freshness filter instead of special-casing it.
+
+        ``coverage`` records which scope actually answered -- market, district,
+        state or national -- so a district average is never presented as though
+        it were the selected mandi's own quote. Returns None when no scope had
+        a priced row, and never falls back to the static seed rows.
         """
-        return self._format_response(_SEED_PRICES, "12-06-2026", is_live=False)
+        scoped = self.fetch_scoped(
+            state_id=state_id,
+            district_id=district_id,
+            market_id=market_id,
+            commodity_id=commodity_id,
+        )
+        records = scoped.get("records") or []
+        if not records:
+            return None
+        coverage = scoped.get("coverage") or "national"
+        data = self._format_response(
+            records,
+            scoped.get("reported_date") or "",
+            is_live=True,
+            coverage_label=coverage_label,
+            state_label=state_label,
+        )
+        data["coverage"] = coverage
+        data["data_source"] = "Agmarknet 2.0 API (api.agmarknet.gov.in)"
+        return data
 
     def _format_response(
         self,
         records: List[Dict[str, Any]],
         reported_date: str,
         is_live: bool = True,
+        coverage_label: Optional[str] = None,
+        state_label: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Convert Agmarknet records to the shape used by MarketPricesService."""
         from .msp_data import get_current_msp
@@ -366,8 +378,13 @@ class AgmarknetDirectClient:
                 "profit_vs_msp":   profit_vs_msp,
                 "trend":           trend,
                 "category":        r.get("cmdt_grp_name", ""),
-                "mandi_name":      "National Average (Agmarknet)",
-                "state":           "All India",
+                # These default to the national labels because that is the
+                # only scope this client used to query. A scoped lookup passes
+                # its own labels: calling a Gautam Budh Nagar figure a
+                # "National Average" would misstate where the price came from,
+                # which is the one thing a price screen must not do.
+                "mandi_name":      coverage_label or "National Average (Agmarknet)",
+                "state":           state_label or "All India",
                 "one_day_price":   self._safe_float(r.get("one_day_ago_price")),
                 "two_day_price":   self._safe_float(r.get("two_day_ago_price")),
                 "arrival_tonnes":  self._safe_float(r.get("as_on_arrival")),

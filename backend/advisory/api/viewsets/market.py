@@ -55,6 +55,10 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 lon=ctx.longitude,
                 state=ctx.state or None,
                 include_estimates=include_estimates,
+                # The geocoded district narrows Agmarknet one level below
+                # state, which is where the price stops being an average over
+                # places this farmer will never sell in.
+                district=ctx.district or None,
             )
             if norm:
                 data["crop_suggestion"] = norm
@@ -161,6 +165,10 @@ class MarketPricesViewSet(viewsets.ViewSet):
                 lon=ctx.longitude,
                 state=ctx.state or None,
                 include_estimates=include_estimates,
+                # The geocoded district narrows Agmarknet one level below
+                # state, which is where the price stops being an average over
+                # places this farmer will never sell in.
+                district=ctx.district or None,
             )
 
             # Keep the selected mandi result authoritative. When it has no

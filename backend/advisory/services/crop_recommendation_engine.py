@@ -34,6 +34,18 @@ RAINFALL_BANDS = {
     "Very High":(2000, 9999),
 }
 
+# Long-term rainfall band → the irrigation level it is worth, on the same
+# 0/1/2 scale as WATER_IRRIGATION_MIN. Kept as plain ints because the scoring
+# code compares it directly against the irrigation level; an earlier version
+# fed this through a second, string-keyed lookup, which never matched.
+RAINFALL_TO_WATER_LEVEL = {
+    "Very Low": 0,
+    "Low":      0,
+    "Medium":   1,
+    "High":     2,
+    "Very High": 2,
+}
+
 # Water requirement → minimum irrigation level needed when rainfall is Low
 WATER_IRRIGATION_MIN = {
     "Low":       "Low",
@@ -916,14 +928,36 @@ class CropRecommendationEngine:
             factor("rainfall", -8, 8, "poor", "Large rainfall mismatch")
 
         # 4. Water and irrigation.
+        # Two inputs bear on water, and they are not interchangeable. The
+        # irrigation level is what this farmer says they can actually deliver,
+        # year round. The rainfall band is a broad district average that only
+        # arrives inside the monsoon window. Rainfall may therefore supplement
+        # stated irrigation; it must not silently stand in for it.
+        #
+        # This previously read
+        #     rain_val = irr_levels.get({"Very Low": 0, ...}.get(band, 1), 1)
+        # The inner dict returns an int while irr_levels is keyed by str, so the
+        # outer .get() never matched and rain_val was always 1. Two consequences:
+        # every rainfall band scored alike (a desert district scored as a wet
+        # one), and a farmer reporting no irrigation was scored as though they
+        # had Medium, which is why rainfed and irrigated farmers received the
+        # same rice recommendation.
         water_req = crop.get("water_requirement", "Moderate")
         irr_min   = WATER_IRRIGATION_MIN.get(water_req, "Low")
         irr_levels = {"Low": 0, "Medium": 1, "High": 2}
         irr_val    = irr_levels.get(irrigation, 1)
-        rain_val   = irr_levels.get(
-            {"Very Low": 0, "Low": 0, "Medium": 1, "High": 2, "Very High": 2}.get(rainfall_band, 1), 1
-        )
-        effective_water = max(irr_val, rain_val)
+        rain_val   = RAINFALL_TO_WATER_LEVEL.get(rainfall_band, 1)
+
+        if crop_season in ("kharif", "year_round"):
+            # Monsoon rain can lift the effective level, but by at most one
+            # step, so "no irrigation" can never be scored as fully irrigated.
+            effective_water = max(irr_val, min(rain_val, irr_val + 1))
+            water_source = "rainfall" if effective_water > irr_val else "irrigation"
+        else:
+            # Rabi and zaid crops grow outside the monsoon; only what the
+            # farmer can irrigate with counts.
+            effective_water = irr_val
+            water_source = "irrigation"
         min_val = irr_levels.get(irr_min, 0)
 
         if effective_water >= min_val:
@@ -931,12 +965,15 @@ class CropRecommendationEngine:
                 factor("water", 6, 12, "compatible", "Drainage needed with abundant water")
                 reasons.append("Water abundant (drought-resistant crop)")
             else:
-                factor("water", 12, 12, "ideal", f"{water_req} requirement met")
-                reasons.append(f"Water needs met ({water_req})")
+                factor("water", 12, 12, "ideal",
+                       f"{water_req} requirement met via {water_source}")
+                reasons.append(f"Water needs met ({water_req}, from {water_source})")
         else:
             deficit = min_val - effective_water
             penalty = deficit * -12
-            factor("water", penalty, 12, "poor", f"Needs {water_req} water")
+            factor("water", penalty, 12, "poor",
+                   f"Needs {water_req} water; stated irrigation {irrigation}, "
+                   f"district rainfall {rainfall_band}")
             reasons.append(f"WATER DEFICIT — needs {water_req} irrigation")
 
         # 5. Current temperature.

@@ -9,6 +9,7 @@ import logging
 import os
 from datetime import datetime
 from typing import Dict, Any, Optional
+from .api_keys import env_key
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +171,7 @@ class CleanWeatherAPI:
     def _try_openweathermap_api(self, latitude: float, longitude: float, location: str) -> Optional[Dict[str, Any]]:
         """Try OpenWeatherMap API with real API key"""
         try:
-            api_key = os.getenv('OPENWEATHER_API_KEY')
+            api_key = env_key('OPENWEATHER_API_KEY')
             if not api_key or api_key == 'demo':
                 return None
             

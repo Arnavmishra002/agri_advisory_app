@@ -1,0 +1,12 @@
+{
+  "_note": "Stable Agmarknet 2.0 filter reference, captured from https://api.agmarknet.gov.in/v1/dashboard-filters/?dashboard_name=marketwise_price_arrival. States, commodity groups, commodities, grades and varieties change very rarely, so they are bundled to keep the app useful with no network. Districts (746) and markets (4179) are large and are fetched at runtime by agmarknet_filters.AgmarknetFilterRegistry.",
+  "captured_on": "2026-09-01",
+  "dashboard": "marketwise_price_arrival",
+  "all_ids": {"state": 100006, "district": 100007, "market": 100009,
+              "commodity": 100001, "group": 100000, "variety": 100021, "grade_faq": 4},
+  "states": [[100006,"All States/UTs"],[1,"Andaman and Nicobar"],[2,"Andhra Pradesh"],[3,"Arunachal Pradesh"],[4,"Assam"],[5,"Bihar"],[6,"Chandigarh"],[7,"Chattisgarh"],[8,"Dadra and Nagar Haveli"],[9,"Daman and Diu"],[10,"Goa"],[11,"Gujarat"],[12,"Haryana"],[13,"Himachal Pradesh"],[14,"Jammu and Kashmir"],[15,"Jharkhand"],[16,"Karnataka"],[17,"Keralam"],[18,"Lakshadweep"],[19,"Madhya Pradesh"],[20,"Maharashtra"],[21,"Manipur"],[22,"Meghalaya"],[23,"Mizoram"],[25,"NCT of Delhi"],[24,"Nagaland"],[26,"Odisha"],[27,"Pondicherry"],[28,"Punjab"],[29,"Rajasthan"],[30,"Sikkim"],[31,"Tamil Nadu"],[32,"Telangana"],[33,"Tripura"],[34,"Uttar Pradesh"],[35,"Uttarakhand"],[36,"West Bengal"]],
+  "commodity_groups": [[100000,"All Commodity Groups"],[1,"Cereals"],[4,"Fibre Crops"],[3,"Oil Seeds"],[2,"Pulses"],[6,"Vegetables"],[10,"Others"]],
+  "commodities": [[100001,"All Commodities",null,null],[28,"Bajra(Pearl Millet/Cumbu)",1,"MSP"],[29,"Barley(Jau)",1,"MSP"],[6,"Bengal Gram(Gram)(Whole)",2,"MSP"],[8,"Black Gram(Urd Beans)(Whole)",2,"MSP"],[111,"Copra",3,"MSP"],[15,"Cotton",4,"MSP"],[9,"Green Gram(Moong)(Whole)",2,"MSP"],[10,"Groundnut",3,"MSP"],[5,"Jowar(Sorghum)",1,"MSP"],[16,"Jute",4,"MSP"],[52,"Lentil(Masur)(Whole)",2,"MSP"],[4,"Maize",1,"MSP"],[12,"Mustard",3,"MSP"],[83,"Niger Seed(Ramtil)",3,"MSP"],[23,"Onion",6,"TOP"],[2,"Paddy(Common)",1,"MSP"],[24,"Potato",6,"TOP"],[30,"Ragi(Finger Millet)",1,"MSP"],[45,"Red gram/Arhar/Tur(whole)",2,"MSP"],[48,"Safflower",3,"MSP"],[11,"Sesamum(Sesame,Gingelly,Til)",3,"MSP"],[13,"Soyabean",3,"MSP"],[122,"Sugarcane",10,"MSP"],[14,"Sunflower/Sunflower Seed",3,"MSP"],[65,"Tomato",6,"TOP"],[55,"Toria",3,"MSP"],[1,"Wheat",1,"MSP"]],
+  "grades": [[4,"FAQ"],[100011,"Non FAQ & Others"]],
+  "varieties": [[100021,"All Varieties"],[100022,"Individual"]]
+}
