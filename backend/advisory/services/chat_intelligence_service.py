@@ -3435,7 +3435,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
                 lines.append(
                     f"[LIVE WEATHER] {ctx.display_name}: {temp}°C, {cond}, "
-                    f"humidity {humidity}%, wind {wind} km/h, rain {rain}mm/hr"
+                    + (f"humidity {humidity}%, " if humidity is not None else "humidity unavailable, ")
+                    + (f"wind {wind} km/h, " if wind is not None else "wind unavailable, ")
+                    + (f"rain {rain}mm/hr" if rain is not None else "rain unavailable")
                     + (f", ET0 {et0}mm/day" if et0 else "")
                 )
 
@@ -3449,14 +3451,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     or []
                 )
                 if forecast:
-                    lines.append("[7-DAY FORECAST]")
+                    lines.append("[AVAILABLE FORECAST]")
                     for day in forecast[:5]:
                         wb  = day.get("water_balance_mm")
                         irr = " (IRRIGATE)" if day.get("irrigation_needed") else ""
                         lines.append(
                             f"  {day.get('date')}: max {day.get('max_temp')}°C, "
                             f"rain {day.get('rainfall_mm', 0)}mm, "
-                            f"prob {day.get('rain_probability', 0)}%"
+                            + (f"prob {day['rain_probability']}%" if day.get('rain_probability') is not None else "prob unavailable")
                             + (f", WB {wb}mm{irr}" if wb is not None else "")
                         )
 
@@ -3731,7 +3733,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             farming_advice = fa_line.replace("[FARMING ADVICE]", "").strip()
 
         season = _current_season()
-        now    = datetime.now(tz=timezone.utc)
+        from .market_data_quality import INDIA_TZ
+        now    = datetime.now(tz=INDIA_TZ)
 
         # ── Evaluation Check 1: active weather alerts (prefix all responses) ─
         alert_prefix = ""
@@ -3908,33 +3911,36 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "",
             )
             tomorrow_values = re.search(
-                r"max\s+([\d.]+)°C,\s*rain\s+([\d.]+)mm,\s*prob\s+([\d.]+)%",
+                r"max\s+(-?[\d.]+)°C,\s*rain\s+([\d.]+)mm(?:,\s*prob\s+([\d.]+)%)?",
                 tomorrow_line,
                 re.I,
             )
 
             if wants_tomorrow and tomorrow_values:
                 max_temp, rain_mm, rain_probability = tomorrow_values.groups()
+                probability = f"{rain_probability}%" if rain_probability is not None else {
+                    "hi": "उपलब्ध नहीं", "hinglish": "uplabdh nahi", "en": "unavailable",
+                }.get(lang, "unavailable")
                 resp = {
                     "hi": (
                         f"🌦️ **कल {loc} का मौसम:**\n\n"
                         f"🌡️ अधिकतम तापमान **{max_temp}°C** रहेगा। "
-                        f"बारिश की संभावना **{rain_probability}%** है और लगभग **{rain_mm} mm** बारिश हो सकती है।\n"
+                        f"बारिश की संभावना **{probability}** है और लगभग **{rain_mm} mm** बारिश हो सकती है।\n"
                         f"{'🚨 ' + farming_advice if farming_advice else '✅ खेत का काम बारिश की संभावना देखकर तय करें।'}\n\n"
                     ),
                     "hinglish": (
                         f"🌦️ **Kal {loc} ka mausam:**\n\n"
                         f"🌡️ Maximum temperature **{max_temp}°C** rahega. "
-                        f"Baarish ki probability **{rain_probability}%** hai aur lagbhag **{rain_mm} mm** rain ho sakti hai.\n"
+                        f"Baarish ki probability **{probability}** hai aur lagbhag **{rain_mm} mm** rain ho sakti hai.\n"
                         "✅ Field work aur irrigation ka decision rain probability dekhkar karein.\n\n"
                     ),
                     "en": (
                         f"🌦️ **Tomorrow in {loc}:**\n\n"
                         f"🌡️ Maximum temperature **{max_temp}°C**. Rain probability is "
-                        f"**{rain_probability}%**, with about **{rain_mm} mm** forecast.\n"
+                        f"**{probability}**, with about **{rain_mm} mm** forecast.\n"
                         "✅ Plan field work and irrigation around the rain probability.\n\n"
                     ),
-                }.get(lang, f"Tomorrow in {loc}: max {max_temp}°C, rain {rain_mm}mm ({rain_probability}%).\n\n")
+                }.get(lang, f"Tomorrow in {loc}: max {max_temp}°C, rain {rain_mm}mm (probability {probability}).\n\n")
             else:
                 resp = {
                 "hi": (
@@ -4032,11 +4038,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
             if forecast_lines:
                 forecast_header = (
-                    "📅 **7 दिन का पूर्वानुमान:**\n"
+                    "📅 **उपलब्ध पूर्वानुमान:**\n"
                     if lang == "hi"
                     else "📅 **Agle dinon ka forecast:**\n"
                     if lang == "hinglish"
-                    else "📅 **7-Day Forecast:**\n"
+                    else "📅 **Available Forecast:**\n"
                 )
                 resp += forecast_header
                 resp += "\n".join(f"• {l.strip()}" for l in forecast_lines[:5]) + "\n\n"
