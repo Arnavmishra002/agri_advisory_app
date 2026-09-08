@@ -170,38 +170,53 @@ services:
       - key: LAUNCH_CHECK
         value: "false"
 
-  - type: worker
-    name: agri-advisory-mqtt-worker
-    env: python
-    plan: free
-    rootDir: backend
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python manage.py run_mqtt_subscriber"
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: agri-advisory-db
-          property: connectionString
-      - key: SECRET_KEY
-        generateValue: true
-      - key: DEBUG
-        value: "False"
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: agri-advisory-cache
-          property: connectionString
-      - key: PYTHON_VERSION
-        value: "3.11.0"
-      - key: MQTT_BROKER_HOST
-        value: ""
-      - key: MQTT_BROKER_PORT
-        value: "1883"
-      - key: MQTT_USERNAME
-        value: ""
-      - key: MQTT_PASSWORD
-        value: ""
-      - key: MQTT_TOPIC_PREFIX
-        value: "krishimitra/farm"
-      - key: MQTT_CLIENT_ID
-        value: "krishimitra-backend-worker"
+  # ── MQTT sensor worker — commented out 2026-09-08 ────────────────────────
+  # Render refuses this on every Blueprint sync:
+  #
+  #     Create background worker agri-advisory-mqtt-worker
+  #       (service type is not available for this plan)
+  #
+  # Background workers are not offered on the free plan, so this has failed on
+  # every sync since it was added -- the failure was simply masked by the
+  # database error until that was resolved. A Blueprint that always reports
+  # "Failed sync" is a broken signal: it hides the next real problem.
+  #
+  # Nothing farmer-facing is lost. This worker ingests optional IoT telemetry,
+  # which is level 1 of the five-level soil hierarchy; without it the resolver
+  # falls back to the Government Soil Health Card and modelled soil layers
+  # exactly as designed. Uncomment when there is a paid plan to run it on.
+  # - type: worker
+  #   name: agri-advisory-mqtt-worker
+  #   env: python
+  #   plan: free
+  #   rootDir: backend
+  #   buildCommand: "pip install -r requirements.txt"
+  #   startCommand: "python manage.py run_mqtt_subscriber"
+  #   envVars:
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: agri-advisory-db
+  #         property: connectionString
+  #     - key: SECRET_KEY
+  #       generateValue: true
+  #     - key: DEBUG
+  #       value: "False"
+  #     - key: REDIS_URL
+  #       fromService:
+  #         type: keyvalue
+  #         name: agri-advisory-cache
+  #         property: connectionString
+  #     - key: PYTHON_VERSION
+  #       value: "3.11.0"
+  #     - key: MQTT_BROKER_HOST
+  #       value: ""
+  #     - key: MQTT_BROKER_PORT
+  #       value: "1883"
+  #     - key: MQTT_USERNAME
+  #       value: ""
+  #     - key: MQTT_PASSWORD
+  #       value: ""
+  #     - key: MQTT_TOPIC_PREFIX
+  #       value: "krishimitra/farm"
+  #     - key: MQTT_CLIENT_ID
+  #       value: "krishimitra-backend-worker"

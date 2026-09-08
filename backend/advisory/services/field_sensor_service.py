@@ -1171,7 +1171,51 @@ class FieldSensorService:
         return summaries.get(lang, summaries["en"])
 
     def _open_meteo_fallback(self, lat: float, lon: float) -> Dict[str, Any]:
-        """Fallback when Open-Meteo is unavailable."""
+        """Recover current conditions from the provider cascade when Open-Meteo fails.
+
+        This layer used to have exactly one weather provider. When Open-Meteo
+        was unavailable it returned typed unavailability -- honest, but it meant
+        field advisory lost live temperature, rainfall and its whole forecast
+        while the weather screen, which cascades Open-Meteo -> MET Norway ->
+        OpenWeatherMap, carried on fine. Observed in production on 2026-09-08:
+        /api/weather/current/ answered is_live=true from MET Norway at the same
+        moment /api/field-advisory/recommend/ reported weather_is_live=false for
+        the same coordinates, because Render's shared egress was being throttled
+        by Open-Meteo. Single-provider redundancy is a correctness property, not
+        an optimisation, and this layer was missing it.
+
+        Soil layers stay Open-Meteo-only and stay null here: no other provider in
+        the cascade publishes multi-depth soil moisture, and substituting a guess
+        for a measurement is exactly what this system refuses to do.
+        """
+        try:
+            from .unified_realtime_service import weather_service
+
+            wx = weather_service.get_weather("", lat=lat, lon=lon) or {}
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Weather cascade unavailable for field advisory: %s", exc)
+            wx = {}
+
+        if wx.get("is_live"):
+            current = wx.get("current") or {}
+            return {
+                "status": "partial",
+                "is_live": True,
+                "is_stale": False,
+                "current": {
+                    "temperature": current.get("temperature"),
+                    "humidity": current.get("humidity"),
+                    "rainfall_mm": current.get("precipitation") or 0,
+                },
+                # No substitute source exists for multi-depth soil moisture.
+                "soil_layers": {},
+                "forecast": wx.get("forecast") or [],
+                "data_source": (
+                    f"{wx.get('data_source', 'provider cascade')} "
+                    "(Open-Meteo unavailable; soil layers omitted, not substituted)"
+                ),
+            }
+
         return {
             "status": "unavailable",
             "is_live": False,
@@ -1179,7 +1223,7 @@ class FieldSensorService:
             "current": {"temperature": None, "humidity": None, "rainfall_mm": 0},
             "soil_layers": {},
             "forecast": [],
-            "data_source": "Open-Meteo unavailable (no values substituted)",
+            "data_source": "All weather providers unavailable (no values substituted)",
         }
 
 

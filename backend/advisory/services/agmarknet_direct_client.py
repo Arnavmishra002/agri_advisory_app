@@ -393,6 +393,19 @@ class AgmarknetDirectClient:
                 "is_live":         is_live,
             })
 
+        # Keep the parsed rows before the freshness filter runs. The live gate
+        # drops anything older than 24 hours, which is correct -- a two-day-old
+        # figure is not a live price. But the caller's dated-official path is
+        # meant to re-emit rows aged 24 hours to 7 days as clearly dated
+        # references, and it was being handed the *filtered* list, i.e. nothing.
+        #
+        # Observed 2026-09-08: Agmarknet resumed publishing after being frozen
+        # since 30-08 and was serving 23 commodities dated 06-09-2026, every row
+        # with a real price and well inside the 7-day reference window. Farmers
+        # still saw an empty market screen, because the live filter consumed the
+        # rows two steps before anything could offer them as a dated reference.
+        unfiltered_rows = list(top_crops)
+
         if is_live:
             from .market_data_quality import filter_fresh_live_rows
 
@@ -417,6 +430,11 @@ class AgmarknetDirectClient:
             "data_age_minutes":  age_minutes,
             "freshness":         "latest_official" if is_live and top_crops else "historical_reference",
             "top_crops":         top_crops,
+            # Rows as parsed, before the 24-hour live gate. The live contract is
+            # unchanged -- top_crops still holds only rows the gate accepted --
+            # but a caller can now build a dated official reference from the
+            # rows it rejected instead of being handed an empty list.
+            "unfiltered_rows":   unfiltered_rows,
             "total_records":     len(top_crops),
             "message":           f"Latest official national prices reported {reported_date} (Agmarknet 2.0)",
             "using_demo_key":    False,

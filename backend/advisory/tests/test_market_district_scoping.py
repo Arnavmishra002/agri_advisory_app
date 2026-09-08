@@ -194,3 +194,51 @@ class PriceCacheIsolationTests(SimpleTestCase):
             len(set(keys)), len(keys),
             f"two districts collided on one cache key: {keys}",
         )
+
+
+class DatedOfficialReferenceSurvivesLiveFilterTests(SimpleTestCase):
+    """The 24-hour live gate used to consume the rows the 7-day path needed.
+
+    Agmarknet resumed publishing on 2026-09-08 after being frozen since 30-08,
+    serving 23 commodities dated 06-09-2026 -- every row priced, two days old,
+    well inside the seven-day reference window. Farmers still saw an empty
+    market screen: `_format_response` ran `filter_fresh_live_rows` first and
+    handed the caller the emptied list, so `build_dated_official_reference`
+    had nothing left to offer.
+    """
+
+    RECORDS = [
+        {"cmdt_name": "Wheat", "msp_price": "2585.00", "as_on_price": "2536.24",
+         "as_on_arrival": "13730.68", "cmdt_grp_name": "Cereals",
+         "reported_date": "06-09-2026", "trend": "down"},
+        {"cmdt_name": "Onion", "msp_price": None, "as_on_price": "3565.33",
+         "as_on_arrival": "3539.88", "cmdt_grp_name": "Vegetables",
+         "reported_date": "06-09-2026", "trend": None},
+    ]
+
+    def _formatted(self):
+        from advisory.services.agmarknet_direct_client import AgmarknetDirectClient
+        return AgmarknetDirectClient()._format_response(
+            self.RECORDS, "06-09-2026", is_live=True
+        )
+
+    def test_two_day_old_rows_are_never_presented_as_live(self):
+        out = self._formatted()
+        self.assertEqual(out["top_crops"], [])
+
+    def test_the_rows_survive_for_the_dated_official_path(self):
+        out = self._formatted()
+        self.assertEqual(len(out["unfiltered_rows"]), 2)
+
+    def test_a_dated_official_reference_is_built_from_them(self):
+        from advisory.services.market_data_quality import build_dated_official_reference
+
+        out = self._formatted()
+        rows, _age, reported = build_dated_official_reference(
+            out["unfiltered_rows"], response_date="06-09-2026"
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(reported, "06-09-2026")
+        for row in rows:
+            self.assertEqual(row["freshness"], "dated_official")
+            self.assertFalse(row["is_live"], "a dated reference must not claim to be live")

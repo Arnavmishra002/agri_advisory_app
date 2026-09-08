@@ -122,3 +122,58 @@ class PlaceholderApiKeyTests(SimpleTestCase):
     @patch.dict("os.environ", {"TWILIO_FROM_NUMBER": "+911234567890"})
     def test_env_setting_accepts_a_sender_number(self):
         self.assertEqual(env_setting("TWILIO_FROM_NUMBER"), "+911234567890")
+
+
+class FieldAdvisoryWeatherRedundancyTests(SimpleTestCase):
+    """Field advisory had one weather provider while the weather screen had three.
+
+    Observed in production 2026-09-08: /api/weather/current/ answered is_live
+    from MET Norway at the same moment /api/field-advisory/recommend/ reported
+    weather_is_live=false for the same coordinates, because Open-Meteo was
+    throttling Render's shared egress and this layer had no cascade to fall to.
+    """
+
+    def test_cascade_supplies_current_conditions_when_open_meteo_fails(self):
+        from advisory.services.field_sensor_service import field_sensor_service
+
+        cascade = {
+            "is_live": True,
+            "data_source": "MET Norway (Real-time, Free)",
+            "current": {"temperature": 31.2, "humidity": 54, "precipitation": 0},
+            "forecast": [{"date": "2026-09-09"}],
+        }
+        with patch("advisory.services.unified_realtime_service.weather_service.get_weather",
+                   return_value=cascade):
+            out = field_sensor_service._open_meteo_fallback(28.61, 77.20)
+
+        self.assertTrue(out["is_live"])
+        self.assertEqual(out["current"]["temperature"], 31.2)
+        self.assertEqual(out["forecast"], [{"date": "2026-09-09"}])
+        self.assertIn("MET Norway", out["data_source"])
+
+    def test_soil_layers_are_never_substituted_from_another_provider(self):
+        """No provider but Open-Meteo publishes multi-depth soil moisture."""
+        from advisory.services.field_sensor_service import field_sensor_service
+
+        cascade = {
+            "is_live": True,
+            "data_source": "MET Norway",
+            "current": {"temperature": 30, "humidity": 50, "precipitation": 0},
+            "forecast": [],
+        }
+        with patch("advisory.services.unified_realtime_service.weather_service.get_weather",
+                   return_value=cascade):
+            out = field_sensor_service._open_meteo_fallback(28.61, 77.20)
+        self.assertEqual(out["soil_layers"], {})
+
+    def test_typed_unavailability_when_every_provider_fails(self):
+        from advisory.services.field_sensor_service import field_sensor_service
+
+        with patch("advisory.services.unified_realtime_service.weather_service.get_weather",
+                   return_value={"is_live": False}):
+            out = field_sensor_service._open_meteo_fallback(28.61, 77.20)
+
+        self.assertFalse(out["is_live"])
+        self.assertIsNone(out["current"]["temperature"])
+        self.assertEqual(out["forecast"], [])
+        self.assertIn("no values substituted", out["data_source"])

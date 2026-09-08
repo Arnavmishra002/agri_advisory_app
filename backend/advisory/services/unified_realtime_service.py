@@ -955,9 +955,19 @@ class MarketPricesService:
                 return
             from .market_data_quality import build_dated_official_reference
 
+            # Prefer the rows as parsed, before the 24-hour live gate ran.
+            # top_crops has already had everything older than 24 hours removed,
+            # so passing it here meant the dated-official path could only ever
+            # see rows that were live anyway -- and produced nothing exactly
+            # when it was needed. unfiltered_rows carries the 24h-7d rows this
+            # path exists to surface; it falls back to top_crops for callers
+            # that do not supply it.
             rows, age_minutes, reported_date = build_dated_official_reference(
-                candidate.get("top_crops") or [],
-                response_date=candidate.get("reported_date"),
+                candidate.get("unfiltered_rows") or candidate.get("top_crops") or [],
+                response_date=(
+                    candidate.get("reported_date")
+                    or (candidate.get("unfiltered_rows") or [{}])[0].get("reported_date")
+                ),
             )
             if not rows:
                 return
