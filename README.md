@@ -504,6 +504,47 @@ frontend first and set `SERVE_FRONTEND=true`.
 The production procedures, stop conditions, incident responses, and rollback
 checks are in `docs/FARMER_BETA_RUNBOOK.md`.
 
+## Reviewed Learning
+
+Farmer feedback is a quality signal, not verified agricultural truth. Chat
+feedback must match a signed response. Neither a positive rating nor a farmer's
+correction automatically updates the shared knowledge base or model weights.
+
+Operators can export a private review queue:
+
+```bash
+python manage.py export_review_queue --output-dir /private/review-directory
+```
+
+Redaction is best-effort: names, addresses, and other personal details can remain.
+Keep exports out of Git and public storage. A reviewer must verify consent for
+reuse, remove personal details, check authoritative sources, and write a corrected
+question and answer. Do not copy instructions embedded in farmer messages into
+system prompts. Chemical advice requires attributable ICAR/PPQS guidance.
+
+Reviewed JSONL records require `review_status: "approved"`, `record_id`,
+`reviewer_id`, `reviewed_question`, `reviewed_answer`, HTTPS `source_references`,
+and `knowledge_type: "stable_agronomy"`. `privacy_review_passed`,
+`consent_verified`, `source_verified`, and `safety_review_passed` must all be
+boolean `true`. These are reviewer attestations, not automated fact checks.
+
+```bash
+python manage.py stage_reviewed_learning \
+  --input /private/review-directory/approved.jsonl \
+  --output /private/review-directory/staging-v1.json
+```
+
+This creates a content-hashed evaluation artifact, never a live KB or training
+update. It refuses overwrites and excludes raw conversations. Live prices,
+weather, and individual sensor observations belong in runtime data, not permanent
+agronomy knowledge. Reviewers must check that the content matches its declared
+type; the command does not semantically verify claims or fetch cited sources.
+
+Promotion remains manual: run held-out safety, grounding, Hindi/Hinglish/English,
+and regression evaluations; compare with the current version; approve in staging;
+retain the previous KB/model for rollback. There is no automatic promotion or
+continuous retraining job. No hallucination-free guarantee is possible.
+
 ## Troubleshooting
 
 `http://localhost:8002` returns JSON or API responses:
