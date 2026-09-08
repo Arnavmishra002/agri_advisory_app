@@ -1894,9 +1894,12 @@
             const locLabel = data.location || currentLocation;
             const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
 
-            const liveBadge = data.is_live === false
-                ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#856404;">${data._offline_cache ? '🕒 Cached/stale' : '⚠️ Unavailable'}: ${escapeHtml(data.data_source || 'No weather values available')}</div>`
-                : `<div style="background:#d4edda;border:1px solid #c3e6cb;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#155724;">✅ Live: ${escapeHtml(data.data_source || 'Open-Meteo (Real-time, Free, 1km)')} · Real-time</div>`;
+            const weatherIsLive = data.is_live === true && data.is_stale !== true && !data._offline_cache;
+            const weatherSource = escapeHtml(data.data_source || data.provider || 'Source unavailable');
+            const weatherFreshness = weatherIsLive ? 'Live' : (data._offline_cache || data.is_stale ? 'Cached/stale' : 'Unavailable');
+            const liveBadge = !weatherIsLive
+                ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#856404;">${weatherFreshness}: ${weatherSource}</div>`
+                : `<div style="background:#d4edda;border:1px solid #c3e6cb;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#155724;">✅ Live: ${weatherSource}</div>`;
 
             if (weather && weather.temperature != null) {
                 let html = liveBadge;
@@ -1949,7 +1952,7 @@
                 // 16-day forecast
                 if (forecast && forecast.length > 0) {
                     html += `<div style="background:white;border-radius:15px;padding:25px;box-shadow:0 4px 15px rgba(0,0,0,0.08);">
-                        <h5 style="color:#2d5016;margin-bottom:15px;">📅 ${forecast.length}-दिन पूर्वानुमान <span style="font-size:0.78rem;color:#888;font-weight:400;">(Open-Meteo, real-time)</span></h5>
+                        <h5 style="color:#2d5016;margin-bottom:15px;">📅 ${Math.min(forecast.length, 16)}-${lang === 'en' ? 'day forecast' : 'दिन पूर्वानुमान'} <span style="font-size:0.78rem;color:#888;font-weight:400;">(${weatherSource} · ${weatherFreshness})</span></h5>
                         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;">`;
 
                     forecast.slice(0, 16).forEach(day => {
