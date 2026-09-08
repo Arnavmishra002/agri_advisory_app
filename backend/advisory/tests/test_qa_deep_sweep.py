@@ -35,15 +35,20 @@ class QASweep(TestCase):
             r = self.c.get(url)
             self.assertIn(r.status_code, (401, 403), f"{url} -> {r.status_code}")
 
-    # ── security headers on a real response ──────────────────────────────
-    def test_security_headers(self):
+    # ── headers that hold in every environment ───────────────────────────
+    def test_responses_are_not_sniffable(self):
+        """Asserted here because it holds regardless of DEBUG.
+
+        The production-only headers -- DENY, the enforcing CSP,
+        Permissions-Policy -- are computed inside `if not DEBUG:` and cannot be
+        checked against ambient settings: CI runs every job with DEBUG="True",
+        so an earlier version of this asserted DENY and failed there while
+        passing locally. ProductionSecurityHeaderTests loads settings with
+        DEBUG=False in a subprocess and covers those properly.
+        """
         r = self.c.get("/api/schemes/")
         self.assertEqual(r.get("X-Content-Type-Options"), "nosniff")
-        self.assertEqual(r.get("X-Frame-Options"), "DENY")
-        self.assertEqual(r.get("Referrer-Policy"), "strict-origin-when-cross-origin")
-        self.assertTrue(r.get("Content-Security-Policy"), "CSP must be enforcing")
-        self.assertIsNone(r.get("Content-Security-Policy-Report-Only"))
-        self.assertTrue(r.get("Permissions-Policy"))
+        self.assertIn(r.get("X-Frame-Options"), ("DENY", "SAMEORIGIN"))
 
     def test_reflected_input_is_json_not_html(self):
         r = self.c.get("/api/locations/search/?q=<script>alert(1)</script>")
