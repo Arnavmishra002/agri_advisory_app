@@ -1,0 +1,3213 @@
+{
+  "started": "2026-09-08T15:49:17.260918+00:00",
+  "summary": {
+    "location": {
+      "total": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0
+    },
+    "market": {
+      "total": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0
+    },
+    "weather": {
+      "total": 44,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 24
+    },
+    "crop_advisory": {
+      "total": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0
+    },
+    "schemes": {
+      "total": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0
+    },
+    "chatbot": {
+      "total": 47,
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0
+    },
+    "diagnostics": {
+      "total": 48,
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0
+    },
+    "security": {
+      "total": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0
+    },
+    "health": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "domain": "location",
+      "case_id": "loc_search_01",
+      "name": "search: Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_02",
+      "name": "search: Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_03",
+      "name": "search: Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_04",
+      "name": "search: Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_05",
+      "name": "search: Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_06",
+      "name": "search: Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_07",
+      "name": "search: Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_08",
+      "name": "search: Ahmedabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_09",
+      "name": "search: Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_10",
+      "name": "search: Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_11",
+      "name": "search: Chandigarh",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_12",
+      "name": "search: Indore",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_13",
+      "name": "search: Bhopal",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_14",
+      "name": "search: Patna",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_15",
+      "name": "search: Nagpur",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_16",
+      "name": "search: Noida",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_17",
+      "name": "search: Ludhiana",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_18",
+      "name": "search: Amritsar",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_19",
+      "name": "search: Kochi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_20",
+      "name": "search: Guwahati",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_21",
+      "name": "search: Varanasi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_22",
+      "name": "search: Surat",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_23",
+      "name": "search: Ranchi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_24",
+      "name": "search: Thiruvananthapuram",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_search_25",
+      "name": "search: Greater Noida",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_01",
+      "name": "resolve GPS Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_02",
+      "name": "resolve GPS Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_03",
+      "name": "resolve GPS Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_04",
+      "name": "resolve GPS Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_05",
+      "name": "resolve GPS Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_06",
+      "name": "resolve GPS Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_07",
+      "name": "resolve GPS Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_08",
+      "name": "resolve GPS Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_09",
+      "name": "resolve GPS Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_10",
+      "name": "resolve GPS Chandigarh",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_11",
+      "name": "resolve GPS Indore",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_12",
+      "name": "resolve GPS Bhopal",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_13",
+      "name": "resolve GPS Patna",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_14",
+      "name": "resolve GPS Nagpur",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_resolve_gps_15",
+      "name": "resolve GPS Ludhiana",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_01",
+      "name": "reverse acc=5m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_02",
+      "name": "reverse acc=8m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_03",
+      "name": "reverse acc=10m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_04",
+      "name": "reverse acc=25m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_05",
+      "name": "reverse acc=50m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_06",
+      "name": "reverse acc=100m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_07",
+      "name": "reverse acc=200m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_08",
+      "name": "reverse acc=500m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_09",
+      "name": "reverse acc=1000m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "location",
+      "case_id": "loc_reverse_acc_10",
+      "name": "reverse acc=5000m",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_01",
+      "name": "prices Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_02",
+      "name": "prices Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_03",
+      "name": "prices Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_04",
+      "name": "prices Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_05",
+      "name": "prices Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_06",
+      "name": "prices Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_07",
+      "name": "prices Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_08",
+      "name": "prices Ahmedabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_09",
+      "name": "prices Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_10",
+      "name": "prices Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_11",
+      "name": "prices Chandigarh",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_12",
+      "name": "prices Indore",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_13",
+      "name": "prices Bhopal",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_14",
+      "name": "prices Patna",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_15",
+      "name": "prices Nagpur",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_16",
+      "name": "prices Noida",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_17",
+      "name": "prices Ludhiana",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_18",
+      "name": "prices Amritsar",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_19",
+      "name": "prices Kochi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_list_20",
+      "name": "prices Guwahati",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_01",
+      "name": "mandis Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_02",
+      "name": "mandis Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_03",
+      "name": "mandis Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_04",
+      "name": "mandis Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_05",
+      "name": "mandis Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_06",
+      "name": "mandis Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_07",
+      "name": "mandis Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_08",
+      "name": "mandis Ahmedabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_09",
+      "name": "mandis Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_mandis_10",
+      "name": "mandis Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_01",
+      "name": "crop filter wheat",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_02",
+      "name": "crop filter rice",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_03",
+      "name": "crop filter maize",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_04",
+      "name": "crop filter mustard",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_05",
+      "name": "crop filter tomato",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_06",
+      "name": "crop filter onion",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_07",
+      "name": "crop filter potato",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_08",
+      "name": "crop filter cotton",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_09",
+      "name": "crop filter sugarcane",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_crop_10",
+      "name": "crop filter soybean",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_01",
+      "name": "crop-search wheat",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_02",
+      "name": "crop-search rice",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_03",
+      "name": "crop-search maize",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_04",
+      "name": "crop-search mustard",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_05",
+      "name": "crop-search tomato",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_06",
+      "name": "crop-search onion",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_07",
+      "name": "crop-search potato",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_08",
+      "name": "crop-search cotton",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_09",
+      "name": "crop-search sugarcane",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "market",
+      "case_id": "mkt_search_10",
+      "name": "crop-search soybean",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_01",
+      "name": "weather Delhi",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_02",
+      "name": "weather Mumbai",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_03",
+      "name": "weather Bangalore",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_04",
+      "name": "weather Hyderabad",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_05",
+      "name": "weather Chennai",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_06",
+      "name": "weather Kolkata",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_07",
+      "name": "weather Pune",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_08",
+      "name": "weather Ahmedabad",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_09",
+      "name": "weather Jaipur",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_10",
+      "name": "weather Lucknow",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_11",
+      "name": "weather Chandigarh",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_12",
+      "name": "weather Indore",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_13",
+      "name": "weather Bhopal",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_14",
+      "name": "weather Patna",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_15",
+      "name": "weather Nagpur",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_16",
+      "name": "weather Noida",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_17",
+      "name": "weather Ludhiana",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_18",
+      "name": "weather Amritsar",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_19",
+      "name": "weather Kochi",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_20",
+      "name": "weather Guwahati",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_21",
+      "name": "weather Varanasi",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_22",
+      "name": "weather Surat",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_23",
+      "name": "weather Ranchi",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_24",
+      "name": "weather Thiruvananthapuram",
+      "status": "skipped",
+      "message": "Weather not from live source: Unavailable (no weather values substituted)",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_01",
+      "name": "weather GPS Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_02",
+      "name": "weather GPS Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_03",
+      "name": "weather GPS Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_04",
+      "name": "weather GPS Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_05",
+      "name": "weather GPS Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_06",
+      "name": "weather GPS Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_07",
+      "name": "weather GPS Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_08",
+      "name": "weather GPS Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_09",
+      "name": "weather GPS Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_10",
+      "name": "weather GPS Chandigarh",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_11",
+      "name": "weather GPS Indore",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_12",
+      "name": "weather GPS Bhopal",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_13",
+      "name": "weather GPS Patna",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_14",
+      "name": "weather GPS Nagpur",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_15",
+      "name": "weather GPS Ludhiana",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_16",
+      "name": "weather GPS Kochi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_17",
+      "name": "weather GPS Guwahati",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_18",
+      "name": "weather GPS Varanasi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_19",
+      "name": "weather GPS Surat",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "weather",
+      "case_id": "wth_gps_20",
+      "name": "weather GPS Ranchi",
+      "status": "passed",
+      "message": "",
+      "requires_network": true
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_01",
+      "name": "advisory Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_02",
+      "name": "advisory Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_03",
+      "name": "advisory Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_04",
+      "name": "advisory Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_05",
+      "name": "advisory Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_06",
+      "name": "advisory Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_07",
+      "name": "advisory Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_08",
+      "name": "advisory Ahmedabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_09",
+      "name": "advisory Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_10",
+      "name": "advisory Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_11",
+      "name": "advisory Chandigarh",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_12",
+      "name": "advisory Indore",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_13",
+      "name": "advisory Bhopal",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_14",
+      "name": "advisory Patna",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_15",
+      "name": "advisory Nagpur",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_16",
+      "name": "advisory Noida",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_17",
+      "name": "advisory Ludhiana",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_18",
+      "name": "advisory Amritsar",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_19",
+      "name": "advisory Kochi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_adv_20",
+      "name": "advisory Guwahati",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_01",
+      "name": "advisory GPS Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_02",
+      "name": "advisory GPS Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_03",
+      "name": "advisory GPS Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_04",
+      "name": "advisory GPS Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_05",
+      "name": "advisory GPS Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_06",
+      "name": "advisory GPS Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_07",
+      "name": "advisory GPS Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_08",
+      "name": "advisory GPS Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_09",
+      "name": "advisory GPS Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_10",
+      "name": "advisory GPS Chandigarh",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_11",
+      "name": "advisory GPS Indore",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_12",
+      "name": "advisory GPS Bhopal",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_13",
+      "name": "advisory GPS Patna",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_14",
+      "name": "advisory GPS Nagpur",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_gps_15",
+      "name": "advisory GPS Ludhiana",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_01",
+      "name": "trending Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_02",
+      "name": "trending Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_03",
+      "name": "trending Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_04",
+      "name": "trending Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_05",
+      "name": "trending Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_06",
+      "name": "trending Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_07",
+      "name": "trending Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_08",
+      "name": "trending Ahmedabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_09",
+      "name": "trending Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_trend_10",
+      "name": "trending Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_catalog_01",
+      "name": "crops/search wheat",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_catalog_02",
+      "name": "crops/search rice",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_catalog_03",
+      "name": "crops/search maize",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_catalog_04",
+      "name": "crops/search mustard",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "crop_advisory",
+      "case_id": "crop_catalog_05",
+      "name": "crops/search tomato",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_01",
+      "name": "schemes Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_02",
+      "name": "schemes Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_03",
+      "name": "schemes Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_04",
+      "name": "schemes Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_05",
+      "name": "schemes Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_06",
+      "name": "schemes Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_07",
+      "name": "schemes Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_08",
+      "name": "schemes Ahmedabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_09",
+      "name": "schemes Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_10",
+      "name": "schemes Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_11",
+      "name": "schemes Chandigarh",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_12",
+      "name": "schemes Indore",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_13",
+      "name": "schemes Bhopal",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_14",
+      "name": "schemes Patna",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_15",
+      "name": "schemes Nagpur",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_16",
+      "name": "schemes Noida",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_17",
+      "name": "schemes Ludhiana",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_18",
+      "name": "schemes Amritsar",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_19",
+      "name": "schemes Kochi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_list_20",
+      "name": "schemes Guwahati",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_01",
+      "name": "scheme keyword pm-kisan",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_02",
+      "name": "scheme keyword pm kisan",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_03",
+      "name": "scheme keyword kcc",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_04",
+      "name": "scheme keyword pmfby",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_05",
+      "name": "scheme keyword pm-kusum",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_06",
+      "name": "scheme keyword enam",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_07",
+      "name": "scheme keyword soil health",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_08",
+      "name": "scheme keyword drip irrigation",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_09",
+      "name": "scheme keyword fertilizer subsidy",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_kw_10",
+      "name": "scheme keyword msp",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_01",
+      "name": "eligibility profile variant 1",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_02",
+      "name": "eligibility profile variant 2",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_03",
+      "name": "eligibility profile variant 3",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_04",
+      "name": "eligibility profile variant 4",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_05",
+      "name": "eligibility profile variant 5",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_06",
+      "name": "eligibility profile variant 6",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_07",
+      "name": "eligibility profile variant 7",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_08",
+      "name": "eligibility profile variant 8",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_09",
+      "name": "eligibility profile variant 9",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_10",
+      "name": "eligibility profile variant 10",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_11",
+      "name": "eligibility profile variant 11",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_12",
+      "name": "eligibility profile variant 12",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_13",
+      "name": "eligibility profile variant 13",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_14",
+      "name": "eligibility profile variant 14",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_15",
+      "name": "eligibility profile variant 15",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_16",
+      "name": "eligibility profile variant 16",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_17",
+      "name": "eligibility profile variant 17",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_18",
+      "name": "eligibility profile variant 18",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_19",
+      "name": "eligibility profile variant 19",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "schemes",
+      "case_id": "sch_elig_20",
+      "name": "eligibility profile variant 20",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_01",
+      "name": "intent crop",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_02",
+      "name": "intent mandi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_03",
+      "name": "intent weather",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_04",
+      "name": "intent scheme",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_05",
+      "name": "intent pest",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_06",
+      "name": "intent greeting",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_07",
+      "name": "intent hindi_crop",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_08",
+      "name": "intent hindi_mandi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_09",
+      "name": "intent hindi_weather",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_10",
+      "name": "intent kcc",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_01",
+      "name": "query: wheat MSP 2024",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_02",
+      "name": "query: rice cultivation tips",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_03",
+      "name": "query: onion storage",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_04",
+      "name": "query: cotton pest control",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_05",
+      "name": "query: sugarcane harvest time",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_06",
+      "name": "query: maize fertilizer dose",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_07",
+      "name": "query: PMFBY insurance claim",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_08",
+      "name": "query: eNAM registration",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_09",
+      "name": "query: soil test near me",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_10",
+      "name": "query: drip subsidy Punjab",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_11",
+      "name": "query: irrigation schedule wheat",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_extra_12",
+      "name": "query: \u0939\u093f\u0902\u0926\u0940 \u092e\u0947\u0902 \u092e\u0902\u0921\u0940 \u092d\u093e\u0935",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_empty",
+      "name": "empty query \u2192 400",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_01",
+      "name": "chat with location Delhi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_02",
+      "name": "chat with location Mumbai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_03",
+      "name": "chat with location Bangalore",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_04",
+      "name": "chat with location Hyderabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_05",
+      "name": "chat with location Chennai",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_06",
+      "name": "chat with location Kolkata",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_07",
+      "name": "chat with location Pune",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_08",
+      "name": "chat with location Ahmedabad",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_09",
+      "name": "chat with location Jaipur",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_10",
+      "name": "chat with location Lucknow",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_11",
+      "name": "chat with location Chandigarh",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_12",
+      "name": "chat with location Indore",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_13",
+      "name": "chat with location Bhopal",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_14",
+      "name": "chat with location Patna",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_15",
+      "name": "chat with location Nagpur",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_16",
+      "name": "chat with location Noida",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_17",
+      "name": "chat with location Ludhiana",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_18",
+      "name": "chat with location Amritsar",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_19",
+      "name": "chat with location Kochi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_20",
+      "name": "chat with location Guwahati",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_21",
+      "name": "chat with location Varanasi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_22",
+      "name": "chat with location Surat",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_23",
+      "name": "chat with location Ranchi",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "chatbot",
+      "case_id": "chat_loc_24",
+      "name": "chat with location Thiruvananthapuram",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_01",
+      "name": "photo_required wheat",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_02",
+      "name": "photo_required rice",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_03",
+      "name": "photo_required maize",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_04",
+      "name": "photo_required mustard",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_05",
+      "name": "photo_required tomato",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_06",
+      "name": "photo_required onion",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_07",
+      "name": "photo_required potato",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_08",
+      "name": "photo_required cotton",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_09",
+      "name": "photo_required sugarcane",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_10",
+      "name": "photo_required soybean",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_11",
+      "name": "photo_required gram",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_12",
+      "name": "photo_required bajra",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_photo_13",
+      "name": "photo_required jowar",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_01",
+      "name": "crop-search wheat",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_02",
+      "name": "crop-search rice",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_03",
+      "name": "crop-search maize",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_04",
+      "name": "crop-search mustard",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_05",
+      "name": "crop-search tomato",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_06",
+      "name": "crop-search onion",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_07",
+      "name": "crop-search potato",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_08",
+      "name": "crop-search cotton",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_09",
+      "name": "crop-search sugarcane",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_search_10",
+      "name": "crop-search soybean",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_predict_400",
+      "name": "predict without image \u2192 400",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_predict_tiny",
+      "name": "predict tiny image",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_01",
+      "name": "feedback auth required 1",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_02",
+      "name": "feedback auth required 2",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_03",
+      "name": "feedback auth required 3",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_04",
+      "name": "feedback auth required 4",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_05",
+      "name": "feedback auth required 5",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_06",
+      "name": "feedback auth required 6",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_07",
+      "name": "feedback auth required 7",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_08",
+      "name": "feedback auth required 8",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_09",
+      "name": "feedback auth required 9",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_10",
+      "name": "feedback auth required 10",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_11",
+      "name": "feedback auth required 11",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_12",
+      "name": "feedback auth required 12",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_13",
+      "name": "feedback auth required 13",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_14",
+      "name": "feedback auth required 14",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_15",
+      "name": "feedback auth required 15",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_16",
+      "name": "feedback auth required 16",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_17",
+      "name": "feedback auth required 17",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_18",
+      "name": "feedback auth required 18",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_19",
+      "name": "feedback auth required 19",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_20",
+      "name": "feedback auth required 20",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_21",
+      "name": "feedback auth required 21",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_22",
+      "name": "feedback auth required 22",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "diagnostics",
+      "case_id": "diag_fb_23",
+      "name": "feedback auth required 23",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_chat_too_long",
+      "name": "chat query length limit",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_loc_search_long",
+      "name": "location search q too long",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_diag_crop_long",
+      "name": "diagnostic crop name too long",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_no_traceback",
+      "name": "no stack traces when DEBUG=False",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_health_paths",
+      "name": "health endpoints reachable",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_01",
+      "name": "benign GET weather sample 1",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_02",
+      "name": "benign GET weather sample 2",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_03",
+      "name": "benign GET weather sample 3",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_04",
+      "name": "benign GET weather sample 4",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_05",
+      "name": "benign GET weather sample 5",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_06",
+      "name": "benign GET weather sample 6",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_07",
+      "name": "benign GET weather sample 7",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_08",
+      "name": "benign GET weather sample 8",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_09",
+      "name": "benign GET weather sample 9",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_10",
+      "name": "benign GET weather sample 10",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_11",
+      "name": "benign GET weather sample 11",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_12",
+      "name": "benign GET weather sample 12",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_13",
+      "name": "benign GET weather sample 13",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_14",
+      "name": "benign GET weather sample 14",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_15",
+      "name": "benign GET weather sample 15",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_16",
+      "name": "benign GET weather sample 16",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_17",
+      "name": "benign GET weather sample 17",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_18",
+      "name": "benign GET weather sample 18",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_19",
+      "name": "benign GET weather sample 19",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_20",
+      "name": "benign GET weather sample 20",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_21",
+      "name": "benign GET weather sample 21",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_22",
+      "name": "benign GET weather sample 22",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_23",
+      "name": "benign GET weather sample 23",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_24",
+      "name": "benign GET weather sample 24",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_25",
+      "name": "benign GET weather sample 25",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_26",
+      "name": "benign GET weather sample 26",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_27",
+      "name": "benign GET weather sample 27",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_28",
+      "name": "benign GET weather sample 28",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_29",
+      "name": "benign GET weather sample 29",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_30",
+      "name": "benign GET weather sample 30",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_31",
+      "name": "benign GET weather sample 31",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_32",
+      "name": "benign GET weather sample 32",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_33",
+      "name": "benign GET weather sample 33",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_34",
+      "name": "benign GET weather sample 34",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_35",
+      "name": "benign GET weather sample 35",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_36",
+      "name": "benign GET weather sample 36",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_37",
+      "name": "benign GET weather sample 37",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_38",
+      "name": "benign GET weather sample 38",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_39",
+      "name": "benign GET weather sample 39",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_40",
+      "name": "benign GET weather sample 40",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_41",
+      "name": "benign GET weather sample 41",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_42",
+      "name": "benign GET weather sample 42",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_43",
+      "name": "benign GET weather sample 43",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_44",
+      "name": "benign GET weather sample 44",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "security",
+      "case_id": "sec_api_ok_45",
+      "name": "benign GET weather sample 45",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "health",
+      "case_id": "health_01",
+      "name": "GET /api/health/",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "health",
+      "case_id": "health_02",
+      "name": "GET /api/health/simple/",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "health",
+      "case_id": "health_03",
+      "name": "GET /api/health/liveness/",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "health",
+      "case_id": "health_04",
+      "name": "GET /api/monitoring/health/",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    },
+    {
+      "domain": "health",
+      "case_id": "health_root",
+      "name": "API root JSON",
+      "status": "passed",
+      "message": "",
+      "requires_network": false
+    }
+  ]
+}
