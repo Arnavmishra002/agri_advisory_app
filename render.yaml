@@ -1,5 +1,17 @@
 databases:
-  - name: agri-advisory-db
+  # Renamed from agri-advisory-db on 2026-09-08. The original instance
+  # (dpg-d9o434u417fc73eg8fg0-a) hit Render's 30-day free-tier expiry and was
+  # suspended, so its internal hostname stopped resolving and every deploy died
+  # at `migrate` with "could not translate host name". Renaming here makes the
+  # Blueprint provision a fresh instance and rewire DATABASE_URL automatically,
+  # which is more durable than hand-editing the env var on a Blueprint-managed
+  # service.
+  #
+  # WARNING: this is free again, so the same 30-day clock is now running, and it
+  # ends the same way -- suspended, then deleted, taking farmer accounts,
+  # profiles and chat history with it. Free instances have no backups. Move to a
+  # paid plan (from $6/month) before real farmers depend on this.
+  - name: agri-advisory-db-v2
     databaseName: agri_advisory
     user: agri_user
     plan: free
@@ -16,7 +28,13 @@ services:
     env: python
     plan: free
     # No rootDir — run from repo root so both frontend/ and backend/ are accessible
+    # render_preflight.py runs first and costs milliseconds. It exists because a
+    # deleted database used to surface as a hundred-line psycopg2 traceback at
+    # the very end of the build, after npm ci, a vite build and a pip install had
+    # already burned three minutes. Free PostgreSQL instances are deleted 30 days
+    # after creation, so this is a recurring failure, not a one-off.
     buildCommand: >-
+      python scripts/render_preflight.py &&
       cd frontend && npm ci --no-audit --no-fund --silent && npm run build && cd .. &&
       pip install -r backend/requirements.txt &&
       cd backend && python manage.py collectstatic --noinput && python manage.py migrate
@@ -33,7 +51,7 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: agri-advisory-db
+          name: agri-advisory-db-v2
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
@@ -156,7 +174,7 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: agri-advisory-db
+          name: agri-advisory-db-v2
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
