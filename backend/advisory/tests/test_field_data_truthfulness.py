@@ -36,18 +36,53 @@ class FieldDataTruthfulnessTests(SimpleTestCase):
             "_fetched_at": datetime.now() - timedelta(days=2),
         }
 
-        with patch.object(service.session, "get", side_effect=TimeoutError("offline")) as fetch:
+        # The provider cascade is stubbed out as well as Open-Meteo. It is the
+        # fallback path now, so leaving it unmocked would make this test reach
+        # the network and assert on whatever the internet happened to return.
+        with patch.object(service.session, "get", side_effect=TimeoutError("offline")) as fetch, \
+             patch("advisory.services.unified_realtime_service.weather_service.get_weather",
+                   return_value={"is_live": False}):
             result = service._fetch_open_meteo_soil_weather(26.8467, 80.9462)
 
         fetch.assert_called_once()
         self.assertEqual(result["status"], "unavailable")
 
-    def test_open_meteo_failure_is_explicitly_unavailable(self):
-        data = FieldSensorService()._open_meteo_fallback(26.8467, 80.9462)
+    def test_field_weather_is_unavailable_only_when_every_provider_fails(self):
+        """Open-Meteo failing is no longer sufficient on its own.
+
+        This asserted that an Open-Meteo failure always means unavailable, which
+        was true while this layer had a single provider. It now falls through to
+        the same cascade the weather screen uses, so unavailability requires the
+        whole cascade to be down. The truthfulness contract is unchanged: nothing
+        is substituted, and soil layers stay empty because no other provider
+        publishes multi-depth soil moisture.
+        """
+        with patch("advisory.services.unified_realtime_service.weather_service.get_weather",
+                   return_value={"is_live": False}):
+            data = FieldSensorService()._open_meteo_fallback(26.8467, 80.9462)
 
         self.assertEqual(data["status"], "unavailable")
         self.assertFalse(data["is_live"])
         self.assertTrue(data["is_stale"])
+        self.assertIsNone(data["current"]["temperature"])
+        self.assertEqual(data["soil_layers"], {})
+
+    def test_cascade_recovers_current_conditions_without_inventing_soil(self):
+        cascade = {
+            "is_live": True,
+            "data_source": "MET Norway (Real-time, Free)",
+            "current": {"temperature": 31.2, "humidity": 54, "precipitation": 0},
+            "forecast": [{"date": "2026-09-09"}],
+        }
+        with patch("advisory.services.unified_realtime_service.weather_service.get_weather",
+                   return_value=cascade):
+            data = FieldSensorService()._open_meteo_fallback(26.8467, 80.9462)
+
+        self.assertTrue(data["is_live"])
+        self.assertEqual(data["current"]["temperature"], 31.2)
+        self.assertIn("MET Norway", data["data_source"])
+        # Soil moisture has no substitute source, so it must stay absent.
+        self.assertEqual(data["soil_layers"], {})
 
     def test_satellite_only_advisory_does_not_claim_iot_sensor(self):
         service = FieldSensorService()
@@ -112,7 +147,12 @@ class FieldDataTruthfulnessTests(SimpleTestCase):
 
     @patch("advisory.api.viewsets.field_advisory.field_sensor_service._fetch_open_meteo_soil_weather")
     def test_field_weather_endpoint_never_claims_live_when_provider_failed(self, fetch):
-        fetch.return_value = FieldSensorService()._open_meteo_fallback(26.8467, 80.9462)
+        # The cascade is stubbed as down so the fallback is deterministic. Left
+        # unmocked it reaches the network, and on a runner with internet it
+        # returns live data -- which is the opposite of what this test asserts.
+        with patch("advisory.services.unified_realtime_service.weather_service.get_weather",
+                   return_value={"is_live": False}):
+            fetch.return_value = FieldSensorService()._open_meteo_fallback(26.8467, 80.9462)
         request = APIRequestFactory().get(
             "/api/field-advisory/weather_analysis/",
             {"latitude": 26.8467, "longitude": 80.9462},
