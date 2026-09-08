@@ -588,12 +588,27 @@
     // ── Current language state ─────────────────────────────────────────
     let _currentLang = 'hi';
 
-    /** Translate a key to the current language (falls back to Hindi, then key). */
+    // Languages written in Devanagari. For these, falling back to Hindi leaves
+    // the reader with a script they can actually read.
+    const _DEVANAGARI_LANGS = new Set(['hi', 'mr', 'ne', 'doi', 'kok', 'mai', 'sat', 'bo']);
+
+    /** Translate a key, falling back in a script the reader can actually read.
+     *
+     * The fallback chain used to be language -> Hindi -> English unconditionally.
+     * That is right for Marathi or Nepali, which share Devanagari. It is wrong
+     * for Manipuri (Bengali script), Sindhi and Kashmiri (Perso-Arabic): those
+     * have no translations here, so every untranslated string rendered as
+     * Devanagari, which a reader of those languages cannot read at all. English
+     * is the better second choice for them -- imperfect, but legible.
+     */
     window.t = function (key, lang) {
         const l = lang || _currentLang;
         const entry = T[key];
         if (!entry) return key;
-        return entry[l] || entry['hi'] || entry['en'] || key;
+        if (entry[l]) return entry[l];
+        return _DEVANAGARI_LANGS.has(l)
+            ? (entry['hi'] || entry['en'] || key)
+            : (entry['en'] || entry['hi'] || key);
     };
 
     window.getCurrentLang = function () { return _currentLang; };
