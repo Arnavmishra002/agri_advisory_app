@@ -1,17 +1,23 @@
 databases:
-  # Renamed from agri-advisory-db on 2026-09-08. The original instance
-  # (dpg-d9o434u417fc73eg8fg0-a) hit Render's 30-day free-tier expiry and was
-  # suspended, so its internal hostname stopped resolving and every deploy died
-  # at `migrate` with "could not translate host name". Renaming here makes the
-  # Blueprint provision a fresh instance and rewire DATABASE_URL automatically,
-  # which is more durable than hand-editing the env var on a Blueprint-managed
-  # service.
+  # This instance (dpg-d9o434u417fc73eg8fg0-a) hit Render's 30-day free-tier
+  # expiry on 2026-09-08 and is SUSPENDED: its internal hostname stopped
+  # resolving, so every deploy dies at `migrate`, and Render deletes it -- and
+  # all farmer accounts, profiles and chat history -- 30 days after expiry.
+  # Free instances have no backups.
   #
-  # WARNING: this is free again, so the same 30-day clock is now running, and it
-  # ends the same way -- suspended, then deleted, taking farmer accounts,
-  # profiles and chat history with it. Free instances have no backups. Move to a
-  # paid plan (from $6/month) before real farmers depend on this.
-  - name: agri-advisory-db-v2
+  # A rename to agri-advisory-db-v2 was tried on 2026-09-08 to make the
+  # Blueprint provision a replacement. Render refused it:
+  #
+  #     Create database agri-advisory-db-v2
+  #       (cannot have more than one active free tier database)
+  #
+  # An account gets ONE active free database, and another project's trustfi-db
+  # holds that slot. So the rename could never succeed, and every sync failed on
+  # it -- taking the DATABASE_URL and worker updates down with it. Reverted.
+  #
+  # The only route that restores this database with its data is upgrading this
+  # instance to a paid plan (from $6/month), which also ends the 30-day cycle.
+  - name: agri-advisory-db
     databaseName: agri_advisory
     user: agri_user
     plan: free
@@ -51,7 +57,7 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: agri-advisory-db-v2
+          name: agri-advisory-db
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
@@ -174,7 +180,7 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: agri-advisory-db-v2
+          name: agri-advisory-db
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
