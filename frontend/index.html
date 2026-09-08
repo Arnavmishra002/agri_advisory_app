@@ -151,7 +151,7 @@
                     onkeydown="if(event.key==='Enter'){event.preventDefault();applyManualLocation();}"
                     autocomplete="off">
                 <button class="btn" type="button" onclick="applyManualLocation()" title="स्थान खोजें">
-                    <i class="fas fa-search"></i> <span>खोजें</span>
+                    <i class="fas fa-search"></i> <span data-i18n="btn_search">खोजें</span>
                 </button>
             </div>
             <div id="locationSuggestions" class="location-suggestions"></div>
@@ -159,8 +159,8 @@
 
         <!-- Current location bar -->
         <div class="current-location-display mt-3">
-            <span class="location-label">📍 स्थान:</span>
-            <span id="currentLocationDisplay" class="location-name">स्थान चुनें या GPS चलाएं</span>
+            <span class="location-label" data-i18n="loc_label">📍 स्थान:</span>
+            <span id="currentLocationDisplay" class="location-name" data-i18n="loc_choose">स्थान चुनें या GPS चलाएं</span>
             <span id="locationAccuracyBadge" class="location-accuracy-badge" style="display:none;"></span>
             <button class="btn btn-sm btn-outline-light" type="button" onclick="detectLocation()">
                 <i class="fas fa-crosshairs"></i> <span data-i18n="detect_location">GPS</span>
@@ -416,7 +416,7 @@
 <!-- Government Schemes -->
 <div class="content-section" id="government-schemes-content">
     <div class="container">
-        <div class="section-header"><h2>🏛️ सरकारी योजनाएं</h2></div>
+        <div class="section-header"><h2 data-i18n="sec_schemes">🏛️ सरकारी योजनाएं</h2></div>
         <p class="text-muted mb-4">केंद्र सरकार की कृषि योजनाएं — official MoAFW catalog</p>
         <div id="schemesData" class="loading">
             <div class="skeleton-card mb-3">
@@ -437,7 +437,7 @@
 <!-- Crop Recommendations -->
 <div class="content-section" id="crop-recommendations-content">
     <div class="container">
-        <div class="section-header"><h2>🌾 फसल सुझाव</h2><span class="live-dot ms-2"></span></div>
+        <div class="section-header"><h2 data-i18n="sec_crops">🌾 फसल सुझाव</h2><span class="live-dot ms-2"></span></div>
         <p class="text-muted mb-4">202 भारतीय फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
         <div class="crop-search-container mb-4" style="position:relative;max-width:560px;">
             <div class="search-box">
@@ -531,7 +531,7 @@
 <!-- Weather -->
 <div class="content-section" id="weather-content">
     <div class="container">
-        <div class="section-header"><h2>🌤️ मौसम पूर्वानुमान</h2><span class="live-dot ms-2"></span></div>
+        <div class="section-header"><h2 data-i18n="sec_weather">🌤️ मौसम पूर्वानुमान</h2><span class="live-dot ms-2"></span></div>
         <p class="text-muted mb-4">Open-Meteo · 16-दिन · ET₀ · मिट्टी नमी · कृषि चेतावनी</p>
         <div id="weatherData" class="loading">
             <div class="skeleton-card mb-3">
@@ -553,7 +553,7 @@
 <div class="content-section" id="market-prices-content">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div class="section-header"><h2>💰 बाजार कीमतें</h2><span class="live-dot ms-2"></span></div>
+            <div class="section-header"><h2 data-i18n="sec_market">💰 बाजार कीमतें</h2><span class="live-dot ms-2"></span></div>
             <button onclick="loadMarketPrices()" class="btn btn-outline-success btn-sm" style="border-radius:999px;">
                 <i class="fas fa-sync-alt"></i> रिफ्रेश
             </button>
@@ -590,7 +590,7 @@
                 placeholder="मंडी या जिला खोजें..." autocomplete="off"
                 oninput="filterMandiOptions(this.value)" aria-label="मंडी या जिला खोजें">
             <select id="mandiSelector" onchange="onMandiSelected(this.value)" class="form-select form-select-sm mandi-selector">
-                <option value="">-- सभी मंडियां (All Mandis) --</option>
+                <option value="" data-i18n="mandi_all_option">-- सभी मंडियां (All Mandis) --</option>
             </select>
             <span id="mandiRegistryStatus" class="mandi-status-badge" aria-live="polite"></span>
             <span id="mandiStatusBadge" class="mandi-status-badge"></span>
@@ -653,7 +653,7 @@
                                 <div class="upload-zone">
                                     <i class="fas fa-tree fa-2x mb-2" style="color:#388e3c;"></i>
                                     <h6 class="mb-1">Whole Plant</h6>
-                                    <small class="text-muted d-block mb-2">5-10 फीट दूर से पूरी फसल</small>
+                                    <small class="text-muted d-block mb-2" data-i18n="photo_tip_full">5-10 फीट दूर से पूरी फसल</small>
                                     <input type="file" id="imgWhole" class="form-control form-control-sm" accept="image/*">
                                 </div>
                             </div>
@@ -661,7 +661,7 @@
                                 <div class="upload-zone">
                                     <i class="fas fa-microscope fa-2x mb-2" style="color:#c62828;"></i>
                                     <h6 class="mb-1">Affected Part</h6>
-                                    <small class="text-muted d-block mb-2">रोग/कीट वाले भाग का नजदीकी फोटो</small>
+                                    <small class="text-muted d-block mb-2" data-i18n="photo_tip_close">रोग/कीट वाले भाग का नजदीकी फोटो</small>
                                     <input type="file" id="imgCloseUp" class="form-control form-control-sm" accept="image/*">
                                 </div>
                             </div>
@@ -669,7 +669,7 @@
                                 <div class="upload-zone">
                                     <i class="fas fa-leaf fa-2x mb-2" style="color:#f57f17;"></i>
                                     <h6 class="mb-1">Leaf Texture</h6>
-                                    <small class="text-muted d-block mb-2">पत्ती की नसें और धब्बे स्पष्ट दिखें</small>
+                                    <small class="text-muted d-block mb-2" data-i18n="photo_tip_clear">पत्ती की नसें और धब्बे स्पष्ट दिखें</small>
                                     <input type="file" id="imgLeaf" class="form-control form-control-sm" accept="image/*">
                                 </div>
                             </div>
@@ -809,7 +809,7 @@
     <div class="container" style="max-width:860px;">
         <!-- Chat header container -->
         <div class="chat-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div class="section-header mb-0"><h2>🤖 KrishiMitra AI सहायक</h2></div>
+            <div class="section-header mb-0"><h2 data-i18n="sec_ai">🤖 KrishiMitra AI सहायक</h2></div>
             <div class="chat-header-actions d-flex align-items-center gap-2">
                 <div id="chatLanguageSwitcherContainer"></div>
             </div>
@@ -836,24 +836,24 @@
         <div id="farmerProfileCard" style="background:linear-gradient(135deg,#f0fff4,#e8f5e8);border:1.5px solid #a5d6a7;border-radius:14px;padding:14px 18px;margin-bottom:16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
                 <span style="font-size:1.1rem;">👤</span>
-                <strong style="color:#1a3a0a;font-size:0.92rem;">मेरी किसान प्रोफ़ाइल</strong>
-                <span style="font-size:0.72rem;color:#666;background:#fff;border-radius:999px;padding:2px 8px;border:1px solid #ddd;">AI को बेहतर सलाह देने में मदद करें</span>
+                <strong style="color:#1a3a0a;font-size:0.92rem;" data-i18n="profile_title">मेरी किसान प्रोफ़ाइल</strong>
+                <span style="font-size:0.72rem;color:#666;background:#fff;border-radius:999px;padding:2px 8px;border:1px solid #ddd;" data-i18n="profile_sub">AI को बेहतर सलाह देने में मदद करें</span>
             </div>
             <div class="row g-2">
                 <div class="col-6 col-md-3">
-                    <label style="font-size:0.78rem;color:#555;font-weight:600;">🌾 वर्तमान फसल</label>
+                    <label style="font-size:0.78rem;color:#555;font-weight:600;" data-i18n="profile_current_crop">🌾 वर्तमान फसल</label>
                     <input type="text" id="fp_crop" class="form-control form-control-sm"
                         placeholder="गेहूँ, धान, सरसों..."
                         onblur="_upsertFarmerProfile({current_crop: this.value.trim()})" style="font-size:0.82rem;">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label style="font-size:0.78rem;color:#555;font-weight:600;">📐 खेत (बीघा)</label>
+                    <label style="font-size:0.78rem;color:#555;font-weight:600;" data-i18n="profile_farm_size">📐 खेत (बीघा)</label>
                     <input type="number" id="fp_size" class="form-control form-control-sm"
                         placeholder="e.g. 5" min="0" max="1000"
                         onblur="_upsertFarmerProfile({farm_size_bigha: parseFloat(this.value)||null})" style="font-size:0.82rem;">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label style="font-size:0.78rem;color:#555;font-weight:600;">⚗️ मिट्टी pH</label>
+                    <label style="font-size:0.78rem;color:#555;font-weight:600;" data-i18n="profile_soil_ph">⚗️ मिट्टी pH</label>
                     <input type="number" id="fp_ph" class="form-control form-control-sm"
                         placeholder="e.g. 6.8" step="0.1" min="3" max="10"
                         onblur="_upsertFarmerProfile({soil_ph: parseFloat(this.value)||null})" style="font-size:0.82rem;">
@@ -862,7 +862,7 @@
                     <label style="font-size:0.78rem;color:#555;font-weight:600;">💳 PM-Kisan</label>
                     <select id="fp_pmkisan" class="form-select form-select-sm"
                         onchange="_upsertFarmerProfile({has_pm_kisan: this.value==='yes', pm_kisan_status: this.value})" style="font-size:0.82rem;">
-                        <option value="">चुनें</option>
+                        <option value="" data-i18n="opt_choose_short">चुनें</option>
                         <option value="active">✅ Enrolled (Active)</option>
                         <option value="pending">⏳ Applied (Pending)</option>
                         <option value="none">❌ Not enrolled</option>
@@ -927,8 +927,8 @@
         <dialog id="chatHistoryDialog" class="chat-history-dialog" aria-labelledby="chatHistoryTitle">
             <div class="chat-history-header">
                 <div>
-                    <strong id="chatHistoryTitle">पुरानी बातचीत</strong>
-                    <small>यह इतिहास केवल इसी डिवाइस पर रहता है।</small>
+                    <strong id="chatHistoryTitle" data-i18n="chat_history_title">पुरानी बातचीत</strong>
+                    <small data-i18n="chat_history_note">यह इतिहास केवल इसी डिवाइस पर रहता है।</small>
                 </div>
                 <button type="button" class="chat-toolbar-btn" onclick="closeChatHistory()" title="बंद करें" aria-label="इतिहास बंद करें">
                     <i class="fas fa-times"></i>
@@ -1345,7 +1345,7 @@ window.toggleVoiceInput = function() {
         <!-- TAB 1: OTP -->
         <div id="authTabPhone" class="auth-tab-panel">
           <div id="otpStep1">
-            <label class="auth-label" for="authPhoneInput">📱 मोबाइल नंबर</label>
+            <label class="auth-label" for="authPhoneInput" data-i18n="auth_mobile">📱 मोबाइल नंबर</label>
             <div class="auth-phone-input-group">
               <span class="auth-phone-prefix">+91</span>
               <input type="tel" id="authPhoneInput" class="auth-input auth-phone-input"
@@ -1370,7 +1370,7 @@ window.toggleVoiceInput = function() {
               </button>
               <span class="auth-phone-display" id="otpPhoneDisplay"></span>
             </div>
-            <label class="auth-label">🔑 6-अंकीय OTP दर्ज करें</label>
+            <label class="auth-label" data-i18n="auth_otp_enter">🔑 6-अंकीय OTP दर्ज करें</label>
             <div class="otp-input-group" id="otpInputGroup">
               <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" autocomplete="one-time-code">
               <input type="text" class="otp-digit" maxlength="1" inputmode="numeric">
@@ -1395,7 +1395,7 @@ window.toggleVoiceInput = function() {
         </div>
         <!-- TAB 2: Password -->
         <div id="authTabPassword" class="auth-tab-panel" style="display:none;">
-          <label class="auth-label" for="authUsernameInput">👤 Username या email</label>
+          <label class="auth-label" for="authUsernameInput" data-i18n="auth_username">👤 Username या email</label>
           <input type="text" id="authUsernameInput" class="auth-input"
             placeholder="username या email" autocomplete="username"
             onkeydown="if(event.key==='Enter'){document.getElementById('authPasswordInput').focus();}">
@@ -1419,7 +1419,7 @@ window.toggleVoiceInput = function() {
         </div>
         <!-- TAB 3: Register -->
         <div id="authTabRegister" class="auth-tab-panel" style="display:none;">
-          <label class="auth-label" for="regNameInput">👤 नाम (वैकल्पिक)</label>
+          <label class="auth-label" for="regNameInput" data-i18n="auth_name_opt">👤 नाम (वैकल्पिक)</label>
           <input type="text" id="regNameInput" class="auth-input" placeholder="Ramesh Kumar" autocomplete="off">
           <label class="auth-label mt-3" for="regUsernameInput">🆔 Username</label>
           <input type="text" id="regUsernameInput" class="auth-input" placeholder="ramesh_farmer" autocomplete="off">
@@ -1433,14 +1433,14 @@ window.toggleVoiceInput = function() {
               <i class="fas fa-eye"></i>
             </button>
           </div>
-          <label class="auth-label mt-3">📱 मोबाइल नंबर (वैकल्पिक)</label>
+          <label class="auth-label mt-3" data-i18n="auth_mobile_opt">📱 मोबाइल नंबर (वैकल्पिक)</label>
           <div class="auth-phone-input-group">
             <span class="auth-phone-prefix">+91</span>
             <input type="tel" id="regPhoneInput" class="auth-input auth-phone-input"
               placeholder="9876543210" maxlength="10" inputmode="numeric" autocomplete="off"
               oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)">
           </div>
-          <label class="auth-label mt-3" for="regStateInput">🗺️ राज्य (वैकल्पिक)</label>
+          <label class="auth-label mt-3" for="regStateInput" data-i18n="auth_state_opt">🗺️ राज्य (वैकल्पिक)</label>
           <input type="text" id="regStateInput" class="auth-input" placeholder="Uttar Pradesh" list="stateList" autocomplete="off">
           <datalist id="stateList">
             <option value="Andhra Pradesh"><option value="Assam"><option value="Bihar">
