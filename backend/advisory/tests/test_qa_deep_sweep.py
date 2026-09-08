@@ -11,14 +11,24 @@ class QASweep(TestCase):
 
     # ── farmer services answer or refuse, never fabricate ────────────────
     def test_every_farmer_service_answers_or_refuses(self):
-        for name, url in [
-            ("weather",  "/api/weather/current/?lat=28.61&lon=77.20"),
-            ("market",   "/api/market-prices/?lat=28.61&lon=77.20"),
-            ("schemes",  "/api/schemes/"),
-            ("crops",    "/api/crops/?lat=28.61&lon=77.20"),
-        ]:
-            r = self.c.get(url)
-            self.assertIn(r.status_code, (200, 400), f"{name} -> {r.status_code}")
+        """Upstreams are stubbed as down: the contract under test is that a
+        dead provider still yields a clean answer or an honest refusal, never a
+        5xx and never an invented value. Leaving them live would also make this
+        reach the internet, which is slow and non-deterministic."""
+        with patch("advisory.services.unified_realtime_service.weather_service"
+                   ".get_weather", return_value={"is_live": False, "status": "unavailable"}), \
+             patch("advisory.services.unified_realtime_service.market_service"
+                   ".get_prices", return_value={"is_live": False, "status": "unavailable",
+                                                "top_crops": []}):
+            for name, url in [
+                ("weather",  "/api/weather/current/?lat=28.61&lon=77.20"),
+                ("market",   "/api/market-prices/?lat=28.61&lon=77.20"),
+                ("schemes",  "/api/schemes/"),
+                ("crops",    "/api/crops/?lat=28.61&lon=77.20"),
+            ]:
+                r = self.c.get(url)
+                self.assertIn(r.status_code, (200, 400), f"{name} -> {r.status_code}")
+                self.assertLess(r.status_code, 500, f"{name} returned a server error")
 
     def test_no_endpoint_leaks_a_traceback(self):
         for url in ["/api/weather/current/?lat=abc&lon=xyz",

@@ -455,3 +455,14 @@ class AgmarknetDirectClient:
 
 # ── Module-level singleton ────────────────────────────────────────────────────
 agmarknet_direct = AgmarknetDirectClient()
+
+# Both spellings are exported deliberately. unified_realtime_service imports
+# `agmarknet_direct_client` for the district-scoped Priority-0a lookup, while
+# monitoring_views and data_gov_mandi_client import `agmarknet_direct`. The
+# former name did not exist, so that import raised ImportError inside a
+# `try/except Exception` that logs a warning and falls through to the national
+# path -- meaning the entire district-scoped lookup silently never ran, and
+# every farmer received a national average instead of their district's price.
+# Nothing failed loudly, and the tests missed it because they patch
+# get_local_prices directly rather than exercising the import.
+agmarknet_direct_client = agmarknet_direct

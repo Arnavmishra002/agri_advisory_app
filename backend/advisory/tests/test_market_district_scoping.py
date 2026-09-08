@@ -242,3 +242,61 @@ class DatedOfficialReferenceSurvivesLiveFilterTests(SimpleTestCase):
         for row in rows:
             self.assertEqual(row["freshness"], "dated_official")
             self.assertFalse(row["is_live"], "a dated reference must not claim to be live")
+
+
+class ScopedLookupImportsAreWiredTests(SimpleTestCase):
+    """The district-scoped lookup lives behind a broad `except Exception`.
+
+    `unified_realtime_service` imported `agmarknet_direct_client` from a module
+    that only defined `agmarknet_direct`. The ImportError was swallowed by the
+    surrounding try/except, which logs a warning and falls through to the
+    national path -- so Priority-0a never ran once, and every farmer got a
+    national average instead of their own district's price. Nothing failed
+    loudly. These assert the names the caller actually imports.
+    """
+
+    def test_every_name_the_price_path_imports_exists(self):
+        import importlib
+
+        for module_path, attr in [
+            ("advisory.services.agmarknet_direct_client", "agmarknet_direct_client"),
+            ("advisory.services.agmarknet_direct_client", "agmarknet_direct"),
+            ("advisory.services.agmarknet_filters", "agmarknet_filters"),
+            ("advisory.services.data_gov_mandi_client", "data_gov_mandi_client"),
+        ]:
+            module = importlib.import_module(module_path)
+            self.assertTrue(
+                hasattr(module, attr),
+                f"{module_path} does not export {attr!r}; the import that needs it "
+                f"is inside a try/except and would fail silently",
+            )
+
+    def test_the_scoped_client_exposes_the_method_the_caller_calls(self):
+        from advisory.services.agmarknet_direct_client import agmarknet_direct_client
+
+        for method in ("get_local_prices", "get_national_prices"):
+            self.assertTrue(callable(getattr(agmarknet_direct_client, method, None)), method)
+
+    def test_scoped_lookup_is_reached_rather_than_skipped(self):
+        """Priority-0a must actually be attempted, not swallowed on import.
+
+        Every downstream fetcher is stubbed. An earlier version patched only
+        resolve_location and let the rest of get_prices run, which made real
+        network calls and took the suite from 12s to 38s -- a test that reaches
+        the internet is neither fast nor trustworthy.
+        """
+        from unittest.mock import patch
+        from advisory.services.unified_realtime_service import market_service
+
+        with patch("advisory.services.agmarknet_filters.agmarknet_filters."
+                   "resolve_location", return_value={}) as resolve, \
+             patch("advisory.services.agmarknet_direct_client.agmarknet_direct"
+                   ".get_national_prices", return_value=None), \
+             patch("advisory.services.data_gov_mandi_client.data_gov_mandi_client"
+                   ".get_national_prices", return_value=None), \
+             patch.object(market_service, "_fetch_data_gov", return_value=None), \
+             patch("advisory.services.agmarknet_client.agmarknet_client"
+                   ".get_market_prices", return_value=None):
+            market_service.get_prices("Lucknow", state="Uttar Pradesh")
+
+        resolve.assert_called()
