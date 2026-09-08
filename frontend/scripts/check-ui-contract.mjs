@@ -78,10 +78,19 @@ check(
   !app.includes('currentMandi = nearestName'),
   'Nearest mandi may be highlighted but must not hide state live rows through automatic selection',
 );
+// The intent here is that the selector defaults to the 150 km radius and that a
+// whole-state option exists beside it. This used to pin the exact Hindi markup,
+// which meant the assertion failed the moment that option became translatable --
+// the check was fighting localisation rather than the behaviour it guards. Match
+// on the option values and allow attributes; the label itself is i18n's job.
 check(
-  /<option value="150" selected>150 km<\/option>/.test(html) &&
-    /<option value="state">पूरा राज्य<\/option>/.test(html),
+  /<option value="150"[^>]*\sselected[^>]*>\s*150 km\s*<\/option>/.test(html) &&
+    /<option value="state"[^>]*>/.test(html),
   'Mandi selector must default to nearby 150 km, not the whole-state registry',
+);
+check(
+  /<option value="state"[^>]*data-i18n="mandi_whole_state"/.test(html),
+  'Whole-state option must carry its i18n key so it is not stuck in Hindi',
 );
 check(
   app.includes('updateMandiSelectionStatus(data)') &&
