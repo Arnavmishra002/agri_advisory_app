@@ -435,3 +435,8 @@ models/crop_disease/*
 !models/crop_disease/class_labels.json
 !models/crop_disease/metrics.json
 !models/crop_disease/training_history.json
+
+# Local CI-reproduction artifacts
+*.db-journal
+backend/docs/PRODUCTION_TEST_REPORT.json
+COMMIT_MSG.txt
