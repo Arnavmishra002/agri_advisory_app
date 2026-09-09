@@ -504,6 +504,22 @@ frontend first and set `SERVE_FRONTEND=true`.
 The production procedures, stop conditions, incident responses, and rollback
 checks are in `docs/FARMER_BETA_RUNBOOK.md`.
 
+## Recommendation Quality Contract
+
+Crop suitability and confidence are heuristic scores, not calibrated probabilities
+of harvest success. `confidence_kind` states this explicitly. Regional soil and
+irrigation defaults are labeled `regional_assumption` in `input_provenance` until
+the farmer supplies those inputs.
+
+`prediction_data.data_completeness` measures availability of eight farmer inputs
+(soil texture, irrigation, previous crop, pH, budget, and N/P/K) plus live weather
+and a verified price for that crop. It does not certify that farmer-entered values
+are correct. `data_completeness_basis` is `farmer_inputs_and_live_sources_v1`.
+The former scored-factor ratio is retained separately as `score_factor_coverage`;
+clients must not present it as complete farmer data. Missing inputs are listed in
+`confidence_inputs_missing`. This changes the meaning of the old completeness
+field; old cached responses without the basis label should not show input coverage.
+
 ## Reviewed Learning
 
 Farmer feedback is a quality signal, not verified agricultural truth. Chat

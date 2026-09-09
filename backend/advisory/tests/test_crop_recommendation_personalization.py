@@ -96,6 +96,38 @@ class CropDatabaseCoverageTests(SimpleTestCase):
 
 
 class CropRecommendationPersonalizationTests(SimpleTestCase):
+    def test_positive_factor_scores_do_not_imply_complete_farmer_data(self):
+        engine = crop_recommendation_engine
+        scored = [(95, "wheat", ALL_CROP_DATA["wheat"], ["Season match"], {
+            "season": {"status": "ideal"}, "soil": {"status": "ideal"},
+        })]
+        crop = engine._format_recommendations(scored, "en", {}, {}, {})[0]
+        self.assertEqual(crop["prediction_data"]["data_completeness"], 0)
+        self.assertEqual(crop["prediction_data"]["score_factor_coverage"], 1)
+        self.assertIn("ph", crop["confidence_inputs_missing"])
+        self.assertIn("budget_per_hectare", crop["confidence_inputs_missing"])
+        self.assertEqual(crop["confidence_kind"], "heuristic_not_calibrated_probability")
+
+    def test_regional_defaults_are_not_reported_as_farmer_measurements(self):
+        with patch.object(self.engine, "_fetch_realtime_context", return_value=self.realtime):
+            result = self.engine.recommend("Delhi", 28.6139, 77.2090, state="Delhi", language="en")
+        self.assertEqual(result["input_provenance"]["soil_type"], "regional_assumption")
+        self.assertEqual(result["input_provenance"]["irrigation"], "regional_assumption")
+
+    def test_complete_inputs_include_measured_zero_and_have_higher_confidence(self):
+        engine = crop_recommendation_engine
+        scored = [(80, "wheat", ALL_CROP_DATA["wheat"], [], {"season": {"status": "ideal"}})]
+        inputs = {"soil_type": "loamy", "irrigation": "drip", "previous_crop": "rice",
+                  "ph": 6.5, "budget_per_hectare": 50000, "nitrogen_kg_ha": 0,
+                  "phosphorus_kg_ha": 20, "potassium_kg_ha": 100}
+        complete = engine._format_recommendations(
+            scored, "en", {"wheat": {"is_live": True}}, {}, inputs, weather_is_live=True,
+        )[0]
+        missing = engine._format_recommendations(scored, "en", {}, {}, {})[0]
+        self.assertEqual(complete["prediction_data"]["data_completeness"], 1)
+        self.assertEqual(complete["confidence_inputs_missing"], [])
+        self.assertGreater(complete["confidence"], missing["confidence"])
+
     def setUp(self):
         self.engine = crop_recommendation_engine
         self.realtime = (

@@ -107,6 +107,11 @@ class CropRecommendationEngine:
       4. Generic India defaults
     """
 
+    CONFIDENCE_FARMER_INPUTS = (
+        "soil_type", "irrigation", "previous_crop", "ph", "budget_per_hectare",
+        "nitrogen_kg_ha", "phosphorus_kg_ha", "potassium_kg_ha",
+    )
+
     # ── Public API ─────────────────────────────────────────────────────
 
     def recommend(
@@ -202,6 +207,10 @@ class CropRecommendationEngine:
             "crop_profile_version": "2026.07-beta1",
             "confidence_inputs_missing": missing_confidence_inputs,
             "input_parameters": inputs,
+            "input_provenance": {
+                key: "farmer_supplied" if key in inputs else "regional_assumption"
+                for key in ("soil_type", "irrigation")
+            },
             "factors_analyzed": self._factors_analyzed(
                 profile,
                 season_key,
@@ -219,7 +228,7 @@ class CropRecommendationEngine:
         inputs: Dict[str, Any], weather_is_live: bool, market_is_live: bool
     ) -> List[str]:
         missing = [
-            key for key in ("soil_type", "irrigation", "previous_crop")
+            key for key in CropRecommendationEngine.CONFIDENCE_FARMER_INPUTS
             if inputs.get(key) in (None, "")
         ]
         if not weather_is_live:
@@ -1329,7 +1338,7 @@ class CropRecommendationEngine:
         inputs = agronomic_inputs or {}
         season_key = inputs.get("season") or _current_season()
         missing_farmer_inputs = [
-            key for key in ("soil_type", "irrigation", "previous_crop")
+            key for key in self.CONFIDENCE_FARMER_INPUTS
             if inputs.get(key) in (None, "")
         ]
         out = []
@@ -1378,15 +1387,20 @@ class CropRecommendationEngine:
                 value for value in factor_rows
                 if value.get("status") not in {"uncertain", "neutral", "unavailable"}
             ]
-            data_completeness = round(
+            score_factor_coverage = round(
                 len(supported_rows) / max(len(factor_rows), 1), 2
             )
+            missing_inputs = self._missing_confidence_inputs(
+                inputs, weather_is_live, bool(mkt.get("is_live")),
+            )
+            input_count = len(self.CONFIDENCE_FARMER_INPUTS) + 2
+            data_completeness = round((input_count - len(missing_inputs)) / input_count, 2)
 
             input_quality = max(0.55, 1.0 - (0.1 * len(missing_farmer_inputs)))
             if not weather_is_live:
                 input_quality = max(0.45, input_quality - 0.12)
             if not mkt.get("is_live", False):
-                input_quality = max(0.5, input_quality - 0.08)
+                input_quality = max(0.45, input_quality - 0.08)
             confidence = min(
                 (score / 100.0) * (0.7 + 0.3 * data_completeness) * input_quality,
                 0.98,
@@ -1402,9 +1416,8 @@ class CropRecommendationEngine:
                 "season_key": crop.get("season", season_key),
                 "suitability_score": int(min(score, 99)),
                 "confidence": round(confidence, 2),
-                "confidence_inputs_missing": missing_farmer_inputs
-                + ([] if weather_is_live else ["live_weather"])
-                + ([] if mkt.get("is_live", False) else ["verified_market_price"]),
+                "confidence_kind": "heuristic_not_calibrated_probability",
+                "confidence_inputs_missing": missing_inputs,
                 "reason": " | ".join(priority_reasons[:3]),
                 "reason_hindi": reason_local,
                 "factors": reasons,
@@ -1451,6 +1464,8 @@ class CropRecommendationEngine:
                     "method": "multi_factor_scoring_v5",
                     "score_breakdown": breakdown,
                     "data_completeness": data_completeness,
+                    "score_factor_coverage": score_factor_coverage,
+                    "data_completeness_basis": "farmer_inputs_and_live_sources_v1",
                     "farmer_inputs_used": sorted(inputs),
                 },
                 "outlook": profile.get("_source", ""),
