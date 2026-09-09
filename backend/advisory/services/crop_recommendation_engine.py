@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from .location_context import LocationContext
+from .market_data_quality import filter_fresh_live_rows
 from .unified_realtime_service import market_service, weather_service
 try:
     from .comprehensive_crop_database import ALL_CROP_DATA
@@ -135,6 +136,18 @@ class CropRecommendationEngine:
         weather, live_market, realtime_status = self._fetch_realtime_context(
             location, latitude, longitude, state, language
         )
+        raw_market_rows = live_market.get("top_crops") or []
+        fresh_market_rows, _, _ = filter_fresh_live_rows(
+            raw_market_rows if live_market.get("is_live") is True else [],
+        )
+        live_market = {
+            **live_market,
+            "top_crops": fresh_market_rows,
+            "is_live": bool(fresh_market_rows),
+            "status": live_market.get("status", "success") if fresh_market_rows else "unavailable",
+        }
+        if not fresh_market_rows:
+            realtime_status = {**realtime_status, "market": "unavailable"}
         current_weather = weather.get("current") or {}
         forecast = weather.get("forecast_7day") or weather.get("forecast_7_days") or weather.get("forecast") or []
 
@@ -1242,6 +1255,7 @@ class CropRecommendationEngine:
         if not market_data.get("is_live"):
             return price_map
         crops = market_data.get("top_crops") or []
+        crops, _, _ = filter_fresh_live_rows(crops)
         for row in crops:
             name = str(row.get("crop_name", "")).lower().strip().replace(" ", "_")
             modal_price = row.get("modal_price", 0)

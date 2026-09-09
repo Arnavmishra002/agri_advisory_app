@@ -506,6 +506,15 @@ checks are in `docs/FARMER_BETA_RUNBOOK.md`.
 
 ## Recommendation Quality Contract
 
+Weather observations and official market rows are dynamic provider data; crop
+profiles, regional climate bands, MSP, and agronomy guidance are reference data.
+Do not label the entire recommendation "real-time". Crop scoring rechecks each
+market row's publication date and positive finite price, even if its response
+says `is_live`. Stale or undated prices cannot become current market evidence.
+Explicit timestamp offsets are preserved; date-only mandi reports still use the
+documented 09:00 IST approximation, not a verified intraday observation time.
+Incomplete forecast data cannot establish favorable seven-day conditions.
+
 Crop suitability and confidence are heuristic scores, not calibrated probabilities
 of harvest success. `confidence_kind` states this explicitly. Regional soil and
 irrigation defaults are labeled `regional_assumption` in `input_provenance` until
