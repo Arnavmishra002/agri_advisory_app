@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import re
 import atexit
@@ -135,7 +136,7 @@ class CropRecommendationEngine:
             location, latitude, longitude, state, language
         )
         current_weather = weather.get("current") or {}
-        forecast = weather.get("forecast_7day") or weather.get("forecast_7_days") or []
+        forecast = weather.get("forecast_7day") or weather.get("forecast_7_days") or weather.get("forecast") or []
 
         # 3. Build live market signal map
         market_price_map = self._build_market_price_map(live_market)
@@ -1209,20 +1210,23 @@ class CropRecommendationEngine:
 
     def _assess_weather_risk(self, forecast: List[Dict], current: Dict) -> Dict[str, Any]:
         """Assess 7-day weather risk for crop scoring."""
-        if not forecast:
-            return {"risk": "Unavailable", "description": "No live forecast data"}
+        if len(forecast) < 7 or not all(
+            type(day.get(key)) in (int, float) and math.isfinite(day[key])
+            for day in forecast[:7] for key in ("rainfall_mm", "max_temp")
+        ):
+            return {"risk": "Unavailable", "description": "Complete seven-day forecast unavailable"}
 
-        total_rain = sum(d.get("rainfall_mm", 0) or 0 for d in forecast[:7])
-        max_temps  = [d.get("max_temp") for d in forecast[:7] if d.get("max_temp")]
-        avg_max    = sum(max_temps) / len(max_temps) if max_temps else 28
+        total_rain = sum(d["rainfall_mm"] for d in forecast[:7])
+        max_temps  = [d["max_temp"] for d in forecast[:7]]
+        avg_max    = sum(max_temps) / len(max_temps)
 
-        # Use real soil moisture from Open-Meteo if available
-        humidity = current.get("humidity") or 65
+        # Air humidity is not a measurement of root-zone soil moisture.
+        humidity = current.get("humidity")
 
         if total_rain > 150:
             return {"risk": "High Rainfall", "description": f"Heavy rain expected ({total_rain:.0f}mm / 7 days)"}
-        if total_rain < 5 and humidity < 30:
-            return {"risk": "Drought", "description": "Dry spell — very low moisture"}
+        if total_rain < 5 and type(humidity) in (int, float) and 0 <= humidity < 30:
+            return {"risk": "Drought", "description": "Low rainfall and dry air; check soil moisture before irrigation"}
         if avg_max > 42:
             return {"risk": "Heatwave", "description": f"Heatwave expected ({avg_max:.1f}°C avg max)"}
         if avg_max < 8:
