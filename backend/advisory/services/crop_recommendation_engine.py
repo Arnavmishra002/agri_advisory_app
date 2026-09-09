@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import re
 import atexit
@@ -12,6 +13,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from .location_context import LocationContext
+from .market_data_quality import filter_fresh_live_rows
 from .unified_realtime_service import market_service, weather_service
 try:
     from .comprehensive_crop_database import ALL_CROP_DATA
@@ -107,6 +109,11 @@ class CropRecommendationEngine:
       4. Generic India defaults
     """
 
+    CONFIDENCE_FARMER_INPUTS = (
+        "soil_type", "irrigation", "previous_crop", "ph", "budget_per_hectare",
+        "nitrogen_kg_ha", "phosphorus_kg_ha", "potassium_kg_ha",
+    )
+
     # ── Public API ─────────────────────────────────────────────────────
 
     def recommend(
@@ -129,8 +136,20 @@ class CropRecommendationEngine:
         weather, live_market, realtime_status = self._fetch_realtime_context(
             location, latitude, longitude, state, language
         )
+        raw_market_rows = live_market.get("top_crops") or []
+        fresh_market_rows, _, _ = filter_fresh_live_rows(
+            raw_market_rows if live_market.get("is_live") is True else [],
+        )
+        live_market = {
+            **live_market,
+            "top_crops": fresh_market_rows,
+            "is_live": bool(fresh_market_rows),
+            "status": live_market.get("status", "success") if fresh_market_rows else "unavailable",
+        }
+        if not fresh_market_rows:
+            realtime_status = {**realtime_status, "market": "unavailable"}
         current_weather = weather.get("current") or {}
-        forecast = weather.get("forecast_7day") or weather.get("forecast_7_days") or []
+        forecast = weather.get("forecast_7day") or weather.get("forecast_7_days") or weather.get("forecast") or []
 
         # 3. Build live market signal map
         market_price_map = self._build_market_price_map(live_market)
@@ -202,6 +221,10 @@ class CropRecommendationEngine:
             "crop_profile_version": "2026.07-beta1",
             "confidence_inputs_missing": missing_confidence_inputs,
             "input_parameters": inputs,
+            "input_provenance": {
+                key: "farmer_supplied" if key in inputs else "regional_assumption"
+                for key in ("soil_type", "irrigation")
+            },
             "factors_analyzed": self._factors_analyzed(
                 profile,
                 season_key,
@@ -219,7 +242,7 @@ class CropRecommendationEngine:
         inputs: Dict[str, Any], weather_is_live: bool, market_is_live: bool
     ) -> List[str]:
         missing = [
-            key for key in ("soil_type", "irrigation", "previous_crop")
+            key for key in CropRecommendationEngine.CONFIDENCE_FARMER_INPUTS
             if inputs.get(key) in (None, "")
         ]
         if not weather_is_live:
@@ -1200,20 +1223,23 @@ class CropRecommendationEngine:
 
     def _assess_weather_risk(self, forecast: List[Dict], current: Dict) -> Dict[str, Any]:
         """Assess 7-day weather risk for crop scoring."""
-        if not forecast:
-            return {"risk": "Unavailable", "description": "No live forecast data"}
+        if len(forecast) < 7 or not all(
+            type(day.get(key)) in (int, float) and math.isfinite(day[key])
+            for day in forecast[:7] for key in ("rainfall_mm", "max_temp")
+        ):
+            return {"risk": "Unavailable", "description": "Complete seven-day forecast unavailable"}
 
-        total_rain = sum(d.get("rainfall_mm", 0) or 0 for d in forecast[:7])
-        max_temps  = [d.get("max_temp") for d in forecast[:7] if d.get("max_temp")]
-        avg_max    = sum(max_temps) / len(max_temps) if max_temps else 28
+        total_rain = sum(d["rainfall_mm"] for d in forecast[:7])
+        max_temps  = [d["max_temp"] for d in forecast[:7]]
+        avg_max    = sum(max_temps) / len(max_temps)
 
-        # Use real soil moisture from Open-Meteo if available
-        humidity = current.get("humidity") or 65
+        # Air humidity is not a measurement of root-zone soil moisture.
+        humidity = current.get("humidity")
 
         if total_rain > 150:
             return {"risk": "High Rainfall", "description": f"Heavy rain expected ({total_rain:.0f}mm / 7 days)"}
-        if total_rain < 5 and humidity < 30:
-            return {"risk": "Drought", "description": "Dry spell — very low moisture"}
+        if total_rain < 5 and type(humidity) in (int, float) and 0 <= humidity < 30:
+            return {"risk": "Drought", "description": "Low rainfall and dry air; check soil moisture before irrigation"}
         if avg_max > 42:
             return {"risk": "Heatwave", "description": f"Heatwave expected ({avg_max:.1f}°C avg max)"}
         if avg_max < 8:
@@ -1229,6 +1255,7 @@ class CropRecommendationEngine:
         if not market_data.get("is_live"):
             return price_map
         crops = market_data.get("top_crops") or []
+        crops, _, _ = filter_fresh_live_rows(crops)
         for row in crops:
             name = str(row.get("crop_name", "")).lower().strip().replace(" ", "_")
             modal_price = row.get("modal_price", 0)
@@ -1329,7 +1356,7 @@ class CropRecommendationEngine:
         inputs = agronomic_inputs or {}
         season_key = inputs.get("season") or _current_season()
         missing_farmer_inputs = [
-            key for key in ("soil_type", "irrigation", "previous_crop")
+            key for key in self.CONFIDENCE_FARMER_INPUTS
             if inputs.get(key) in (None, "")
         ]
         out = []
@@ -1378,15 +1405,20 @@ class CropRecommendationEngine:
                 value for value in factor_rows
                 if value.get("status") not in {"uncertain", "neutral", "unavailable"}
             ]
-            data_completeness = round(
+            score_factor_coverage = round(
                 len(supported_rows) / max(len(factor_rows), 1), 2
             )
+            missing_inputs = self._missing_confidence_inputs(
+                inputs, weather_is_live, bool(mkt.get("is_live")),
+            )
+            input_count = len(self.CONFIDENCE_FARMER_INPUTS) + 2
+            data_completeness = round((input_count - len(missing_inputs)) / input_count, 2)
 
             input_quality = max(0.55, 1.0 - (0.1 * len(missing_farmer_inputs)))
             if not weather_is_live:
                 input_quality = max(0.45, input_quality - 0.12)
             if not mkt.get("is_live", False):
-                input_quality = max(0.5, input_quality - 0.08)
+                input_quality = max(0.45, input_quality - 0.08)
             confidence = min(
                 (score / 100.0) * (0.7 + 0.3 * data_completeness) * input_quality,
                 0.98,
@@ -1402,9 +1434,8 @@ class CropRecommendationEngine:
                 "season_key": crop.get("season", season_key),
                 "suitability_score": int(min(score, 99)),
                 "confidence": round(confidence, 2),
-                "confidence_inputs_missing": missing_farmer_inputs
-                + ([] if weather_is_live else ["live_weather"])
-                + ([] if mkt.get("is_live", False) else ["verified_market_price"]),
+                "confidence_kind": "heuristic_not_calibrated_probability",
+                "confidence_inputs_missing": missing_inputs,
                 "reason": " | ".join(priority_reasons[:3]),
                 "reason_hindi": reason_local,
                 "factors": reasons,
@@ -1451,6 +1482,8 @@ class CropRecommendationEngine:
                     "method": "multi_factor_scoring_v5",
                     "score_breakdown": breakdown,
                     "data_completeness": data_completeness,
+                    "score_factor_coverage": score_factor_coverage,
+                    "data_completeness_basis": "farmer_inputs_and_live_sources_v1",
                     "farmer_inputs_used": sorted(inputs),
                 },
                 "outlook": profile.get("_source", ""),

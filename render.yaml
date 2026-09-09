@@ -1,22 +1,8 @@
 databases:
-  # This instance (dpg-d9o434u417fc73eg8fg0-a) hit Render's 30-day free-tier
-  # expiry on 2026-09-08 and is SUSPENDED: its internal hostname stopped
-  # resolving, so every deploy dies at `migrate`, and Render deletes it -- and
-  # all farmer accounts, profiles and chat history -- 30 days after expiry.
-  # Free instances have no backups.
-  #
-  # A rename to agri-advisory-db-v2 was tried on 2026-09-08 to make the
-  # Blueprint provision a replacement. Render refused it:
-  #
-  #     Create database agri-advisory-db-v2
-  #       (cannot have more than one active free tier database)
-  #
-  # An account gets ONE active free database, and another project's trustfi-db
-  # holds that slot. So the rename could never succeed, and every sync failed on
-  # it -- taking the DATABASE_URL and worker updates down with it. Reverted.
-  #
-  # The only route that restores this database with its data is upgrading this
-  # instance to a paid plan (from $6/month), which also ends the 30-day cycle.
+  # Legacy suspended database retained for possible recovery; not used by web.
+  # The replacement agri-advisory-db-v2 was created manually in Oregon.
+  # Its connection is managed in Render's Environment tab, never in Git.
+  # Free databases expire; inspect Render's recovery deadline before deleting.
   - name: agri-advisory-db
     databaseName: agri_advisory
     user: agri_user
@@ -37,8 +23,8 @@ services:
     # render_preflight.py runs first and costs milliseconds. It exists because a
     # deleted database used to surface as a hundred-line psycopg2 traceback at
     # the very end of the build, after npm ci, a vite build and a pip install had
-    # already burned three minutes. Free PostgreSQL instances are deleted 30 days
-    # after creation, so this is a recurring failure, not a one-off.
+    # already burned three minutes. Expired or suspended databases can stop
+    # resolving; DNS failure alone does not establish permanent deletion.
     buildCommand: >-
       python scripts/render_preflight.py &&
       cd frontend && npm ci --no-audit --no-fund --silent && npm run build && cd .. &&
@@ -56,9 +42,8 @@ services:
     startCommand: "gunicorn core.wsgi:application -c gunicorn.conf.py"
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: agri-advisory-db
-          property: connectionString
+        # Preserve the operator-set replacement connection across Blueprint syncs.
+        sync: false
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG

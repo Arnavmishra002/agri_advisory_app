@@ -1207,6 +1207,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             }
         ):
             for msg in reversed((history or [])[-6:]):
+                if msg.get("role") != "user":
+                    continue
                 past = msg.get("content") or msg.get("message_content") or ""
                 if past:
                     past_crops = self._detect_crops(past)
@@ -2995,10 +2997,22 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 phrase = " ".join(tokens[i:i + length])
                 if len(phrase) < 2:
                     continue
+                if i and tokens[i - 1] == "not":
+                    continue
+                if i >= 2 and tokens[i - 2:i] == ["instead", "of"]:
+                    continue
                 # Entity extraction must be exact. Autocomplete-style fuzzy
                 # matching turns Hinglish time words such as "kal" into crops
                 # such as Kale/Kalmegh and pollutes weather/mandi answers.
                 norm = crop_catalog.normalize(phrase, allow_fuzzy=False)
+                # Only accept a plural reduction if it resolves exactly to a
+                # catalog entry; never fuzzy-match ordinary conversational words.
+                if not norm and length == 1 and phrase.isascii():
+                    for suffix in ("es", "s"):
+                        if phrase.endswith(suffix) and len(phrase) > len(suffix) + 2:
+                            norm = crop_catalog.normalize(phrase[:-len(suffix)], allow_fuzzy=False)
+                            if norm:
+                                break
                 # FIX: was norm["id"] — crashes when normalize() returns None
                 if norm and norm.get("id") and norm["id"] not in seen:
                     seen.add(norm["id"])
@@ -3421,7 +3435,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
                 lines.append(
                     f"[LIVE WEATHER] {ctx.display_name}: {temp}°C, {cond}, "
-                    f"humidity {humidity}%, wind {wind} km/h, rain {rain}mm/hr"
+                    + (f"humidity {humidity}%, " if humidity is not None else "humidity unavailable, ")
+                    + (f"wind {wind} km/h, " if wind is not None else "wind unavailable, ")
+                    + (f"rain {rain}mm/hr" if rain is not None else "rain unavailable")
                     + (f", ET0 {et0}mm/day" if et0 else "")
                 )
 
@@ -3435,14 +3451,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     or []
                 )
                 if forecast:
-                    lines.append("[7-DAY FORECAST]")
+                    lines.append("[AVAILABLE FORECAST]")
                     for day in forecast[:5]:
                         wb  = day.get("water_balance_mm")
                         irr = " (IRRIGATE)" if day.get("irrigation_needed") else ""
                         lines.append(
                             f"  {day.get('date')}: max {day.get('max_temp')}°C, "
                             f"rain {day.get('rainfall_mm', 0)}mm, "
-                            f"prob {day.get('rain_probability', 0)}%"
+                            + (f"prob {day['rain_probability']}%" if day.get('rain_probability') is not None else "prob unavailable")
                             + (f", WB {wb}mm{irr}" if wb is not None else "")
                         )
 
@@ -3570,7 +3586,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # 4. Government schemes
         if intent == INTENT_GOVERNMENT_SCHEME or \
-           any(w in query.lower() for w in ("yojana", "scheme", "kisan", "योजना", "subsidy", "sarkaar", "apply", "register")):
+           any(w in query.lower() for w in ("yojana", "scheme", "योजना", "subsidy", "sarkaar", "pm-kisan", "pm kisan")):
             try:
                 schemes = schemes_service.get_schemes(ctx.query_label)
                 sources.append("Government schemes (MoAFW)")
@@ -3717,7 +3733,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             farming_advice = fa_line.replace("[FARMING ADVICE]", "").strip()
 
         season = _current_season()
-        now    = datetime.now(tz=timezone.utc)
+        from .market_data_quality import INDIA_TZ
+        now    = datetime.now(tz=INDIA_TZ)
 
         # ── Evaluation Check 1: active weather alerts (prefix all responses) ─
         alert_prefix = ""
@@ -3726,6 +3743,50 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 f"⚠️ **कृषि चेतावनी:** {wc.alerts_text}\n\n"
                 if lang == "hi" else
                 f"⚠️ **Farming Alert:** {wc.alerts_text}\n\n"
+            )
+
+        # A request for checks is not a request for a fertilizer prescription.
+        if intent in {INTENT_FERTILIZER, INTENT_PEST_DISEASE} and re.search(
+            r"fertili[sz]er|khad|खाद|उर्वरक", query, re.I
+        ) and re.search(r"\bbefore\b|\bcheck\b|pehle|पहले|जांच|जाँच", query, re.I):
+            crop_name = crops[0]["name"] if crops else "your crop"
+            older_yellow = bool(re.search(r"older? leaves.*yellow|yellow.*older? leaves", query, re.I))
+            if lang == "hi":
+                return alert_prefix + (
+                    "**खाद डालने से पहले जांचें**\n\n"
+                    "आपके बताए लक्षणों से अकेले पोषक तत्व की कमी या रोग तय नहीं किया जा सकता।\n"
+                    "1. पीलापन पुरानी पत्तियों में है या नई पत्तियों में, और कितने पौधों पर है?\n"
+                    "2. मिट्टी सूखी है, नम है या जलभराव है? आखिरी सिंचाई और बारिश कब हुई?\n"
+                    "3. पिछली खाद का नाम, मात्रा, तारीख और मिट्टी जांच रिपोर्ट देखें।\n"
+                    "4. पत्तियों के दोनों तरफ, तने और पूरे पौधे की फोटो लें।\n\n"
+                    "फसल की उम्र और मिट्टी जांच के बिना मैं मात्रा नहीं बताऊंगा। "
+                    "लक्षण तेजी से फैलें या पौधे मुरझाएं तो स्थानीय KVK से जांच कराएं।"
+                )
+            if lang == "hinglish":
+                return alert_prefix + (
+                    f"**{crop_name}: khad daalne se pehle kya check karein**\n\n"
+                    "Sirf peele patton se nutrient deficiency ya disease confirm nahi hoti.\n"
+                    "1. Purane ya naye patte? Ek paudha ya poora khet?\n"
+                    "2. Mitti dry, moist ya waterlogged hai? Last irrigation/rain kab hui?\n"
+                    "3. Last khad ka naam, matra, date aur soil test report dekhein.\n"
+                    "4. Patton ke dono taraf aur poore plant ki photos lein.\n\n"
+                    "Crop age aur soil test ke bina dose suggest nahi karunga. "
+                    "Wilting ya tezi se failte symptoms par local KVK se jaanch karwaein."
+                )
+            observation = (
+                "You reported yellow older leaves while the newer leaves are green. "
+                if older_yellow and re.search(r"new.*green", query, re.I) else ""
+            )
+            return alert_prefix + (
+                f"**Before adding fertilizer to {crop_name}**\n\n"
+                + observation + "That description alone cannot confirm a nutrient deficiency or disease.\n\n"
+                "1. Note which leaves changed first and whether one plant or the whole plot is affected.\n"
+                "2. Check whether the soil is dry, moist or waterlogged, and note the last irrigation/rain.\n"
+                "3. Check your soil test and record the last fertilizer product, amount and application date.\n"
+                "4. Take clear photos of both leaf surfaces, the stem and the whole plant.\n\n"
+                "How old is the crop, and what did you last apply? I would not prescribe a dose "
+                "without those details and a soil test. If symptoms spread rapidly or plants wilt, "
+                "ask your local KVK to examine them."
             )
 
         # ── Evaluation Check 2: irrigation vs. moisture ───────────
@@ -3850,33 +3911,36 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "",
             )
             tomorrow_values = re.search(
-                r"max\s+([\d.]+)°C,\s*rain\s+([\d.]+)mm,\s*prob\s+([\d.]+)%",
+                r"max\s+(-?[\d.]+)°C,\s*rain\s+([\d.]+)mm(?:,\s*prob\s+([\d.]+)%)?",
                 tomorrow_line,
                 re.I,
             )
 
             if wants_tomorrow and tomorrow_values:
                 max_temp, rain_mm, rain_probability = tomorrow_values.groups()
+                probability = f"{rain_probability}%" if rain_probability is not None else {
+                    "hi": "उपलब्ध नहीं", "hinglish": "uplabdh nahi", "en": "unavailable",
+                }.get(lang, "unavailable")
                 resp = {
                     "hi": (
                         f"🌦️ **कल {loc} का मौसम:**\n\n"
                         f"🌡️ अधिकतम तापमान **{max_temp}°C** रहेगा। "
-                        f"बारिश की संभावना **{rain_probability}%** है और लगभग **{rain_mm} mm** बारिश हो सकती है।\n"
+                        f"बारिश की संभावना **{probability}** है और लगभग **{rain_mm} mm** बारिश हो सकती है।\n"
                         f"{'🚨 ' + farming_advice if farming_advice else '✅ खेत का काम बारिश की संभावना देखकर तय करें।'}\n\n"
                     ),
                     "hinglish": (
                         f"🌦️ **Kal {loc} ka mausam:**\n\n"
                         f"🌡️ Maximum temperature **{max_temp}°C** rahega. "
-                        f"Baarish ki probability **{rain_probability}%** hai aur lagbhag **{rain_mm} mm** rain ho sakti hai.\n"
+                        f"Baarish ki probability **{probability}** hai aur lagbhag **{rain_mm} mm** rain ho sakti hai.\n"
                         "✅ Field work aur irrigation ka decision rain probability dekhkar karein.\n\n"
                     ),
                     "en": (
                         f"🌦️ **Tomorrow in {loc}:**\n\n"
                         f"🌡️ Maximum temperature **{max_temp}°C**. Rain probability is "
-                        f"**{rain_probability}%**, with about **{rain_mm} mm** forecast.\n"
+                        f"**{probability}**, with about **{rain_mm} mm** forecast.\n"
                         "✅ Plan field work and irrigation around the rain probability.\n\n"
                     ),
-                }.get(lang, f"Tomorrow in {loc}: max {max_temp}°C, rain {rain_mm}mm ({rain_probability}%).\n\n")
+                }.get(lang, f"Tomorrow in {loc}: max {max_temp}°C, rain {rain_mm}mm (probability {probability}).\n\n")
             else:
                 resp = {
                 "hi": (
@@ -3974,11 +4038,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
             if forecast_lines:
                 forecast_header = (
-                    "📅 **7 दिन का पूर्वानुमान:**\n"
+                    "📅 **उपलब्ध पूर्वानुमान:**\n"
                     if lang == "hi"
                     else "📅 **Agle dinon ka forecast:**\n"
                     if lang == "hinglish"
-                    else "📅 **7-Day Forecast:**\n"
+                    else "📅 **Available Forecast:**\n"
                 )
                 resp += forecast_header
                 resp += "\n".join(f"• {l.strip()}" for l in forecast_lines[:5]) + "\n\n"

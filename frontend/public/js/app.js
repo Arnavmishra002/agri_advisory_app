@@ -1894,9 +1894,12 @@
             const locLabel = data.location || currentLocation;
             const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
 
-            const liveBadge = data.is_live === false
-                ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#856404;">${data._offline_cache ? '🕒 Cached/stale' : '⚠️ Unavailable'}: ${escapeHtml(data.data_source || 'No weather values available')}</div>`
-                : `<div style="background:#d4edda;border:1px solid #c3e6cb;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#155724;">✅ Live: ${escapeHtml(data.data_source || 'Open-Meteo (Real-time, Free, 1km)')} · Real-time</div>`;
+            const weatherIsLive = data.is_live === true && data.is_stale !== true && !data._offline_cache;
+            const weatherSource = escapeHtml(data.data_source || data.provider || 'Source unavailable');
+            const weatherFreshness = weatherIsLive ? 'Live' : (data._offline_cache || data.is_stale ? 'Cached/stale' : 'Unavailable');
+            const liveBadge = !weatherIsLive
+                ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#856404;">${weatherFreshness}: ${weatherSource}</div>`
+                : `<div style="background:#d4edda;border:1px solid #c3e6cb;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:0.85rem;color:#155724;">✅ Live: ${weatherSource}</div>`;
 
             if (weather && weather.temperature != null) {
                 let html = liveBadge;
@@ -1949,7 +1952,7 @@
                 // 16-day forecast
                 if (forecast && forecast.length > 0) {
                     html += `<div style="background:white;border-radius:15px;padding:25px;box-shadow:0 4px 15px rgba(0,0,0,0.08);">
-                        <h5 style="color:#2d5016;margin-bottom:15px;">📅 ${forecast.length}-दिन पूर्वानुमान <span style="font-size:0.78rem;color:#888;font-weight:400;">(Open-Meteo, real-time)</span></h5>
+                        <h5 style="color:#2d5016;margin-bottom:15px;">📅 ${Math.min(forecast.length, 16)}-${lang === 'en' ? 'day forecast' : 'दिन पूर्वानुमान'} <span style="font-size:0.78rem;color:#888;font-weight:400;">(${weatherSource} · ${weatherFreshness})</span></h5>
                         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;">`;
 
                     forecast.slice(0, 16).forEach(day => {
@@ -2385,6 +2388,7 @@
                         </div>
                     </div>
                     ${(data.factors_analyzed||[]).length ? `<div style="margin-top:10px;opacity:0.8;font-size:0.78rem;">${data.factors_analyzed.slice(0,5).map(f => '• ' + f).join('  ')}</div>` : ''}
+                    ${Object.values(data.input_provenance || {}).includes('regional_assumption') ? `<div style="margin-top:8px;font-size:0.85rem;">${lang === 'hi' ? 'मिट्टी या सिंचाई की जानकारी क्षेत्रीय अनुमान पर आधारित है। अपने खेत की जानकारी भरें।' : 'Soil or irrigation details use regional assumptions. Add your own field details.'}</div>` : ''}
                 </div>`;
 
                 // Weather snapshot if available
@@ -2392,10 +2396,10 @@
                 if (ws && ws.temperature != null) {
                     html += `<div style="background:white;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
                         <span style="font-size:0.85rem;color:#555;">🌡️ <b>${ws.temperature}°C</b></span>
-                        <span style="font-size:0.85rem;color:#555;">💧 <b>${ws.humidity}%</b></span>
-                        <span style="font-size:0.85rem;color:#555;">💨 <b>${ws.wind_speed} km/h</b></span>
+                        ${ws.humidity != null ? `<span style="font-size:0.85rem;color:#555;">💧 <b>${escapeHtml(String(ws.humidity))}%</b></span>` : ''}
+                        ${ws.wind_speed != null ? `<span style="font-size:0.85rem;color:#555;">💨 <b>${escapeHtml(String(ws.wind_speed))} km/h</b></span>` : ''}
                         <span style="font-size:0.85rem;color:#555;">${escapeHtml(ws.condition_local || ws.condition || '')}</span>
-                        <span style="font-size:0.78rem;color:#888;margin-left:auto;">Open-Meteo · Real-time</span>
+                        <span style="font-size:0.78rem;color:#888;margin-left:auto;">${escapeHtml(data.weather_data_source || 'Provider unavailable')} · ${data._offline_cache ? 'Cached/stale' : data.weather_is_live ? 'Live weather' : 'Weather unavailable'}</span>
                     </div>`;
                 }
 
@@ -2448,7 +2452,7 @@
                         </div>
                         ${crop.market_price && crop.market_is_live ? `<div style="font-size:0.78rem;color:#2e7d32;margin-bottom:6px;">📊 आधिकारिक मंडी${crop.market_price_reported_date ? ' ('+escapeHtml(crop.market_price_reported_date)+')' : ''}: ₹${crop.market_price}/q</div>` : ''}
                         ${hint ? `<div style="background:#fff9c4;border-radius:8px;padding:8px 10px;font-size:0.82rem;color:#333;border-left:3px solid #ffc107;">💡 ${escapeHtml(hint)}</div>` : ''}
-                        <div style="margin-top:8px;font-size:0.75rem;color:#777;">${escapeHtml(crop.duration_days||120)} days · ${escapeHtml(String(crop.temperature_range||''))} · profile coverage ${(Number(crop.prediction_data?.data_completeness || 0) * 100).toFixed(0)}%</div>
+                        <div style="margin-top:8px;font-size:0.75rem;color:#777;">${escapeHtml(crop.duration_days||120)} days · ${escapeHtml(String(crop.temperature_range||''))}${crop.prediction_data?.data_completeness_basis === 'farmer_inputs_and_live_sources_v1' ? ` · ${lang === 'hi' ? 'जानकारी उपलब्ध' : 'Input coverage'} ${(Number(crop.prediction_data.data_completeness || 0) * 100).toFixed(0)}%` : ''}</div>
                         <div style="margin-top:4px;font-size:0.68rem;color:#999;">लागत/लाभ स्थानीय सत्यापन के लिए संकेतात्मक अनुमान हैं</div>
                     </div>`;
                 });

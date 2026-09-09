@@ -22,6 +22,7 @@ from advisory.services.chat_intelligence_service import (
     farmer_location_label,
 )
 from advisory.services.location_context import LocationContext
+from advisory.services.market_data_quality import INDIA_TZ
 
 
 class ChatbotFarmerQualityTests(SimpleTestCase):
@@ -677,7 +678,7 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
 
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
     def test_hinglish_tomorrow_weather_is_detected_and_answered_directly(self, weather):
-        tomorrow = (datetime.now(tz=timezone.utc) + timedelta(days=1)).date().isoformat()
+        tomorrow = (datetime.now(tz=INDIA_TZ) + timedelta(days=1)).date().isoformat()
         weather.return_value = {
             "status": "success",
             "is_live": True,
@@ -712,7 +713,7 @@ class ChatbotFarmerQualityTests(SimpleTestCase):
 
     @patch("advisory.services.chat_intelligence_service.weather_service.get_weather")
     def test_weather_question_directly_answers_irrigation_decision(self, weather):
-        tomorrow = (datetime.now(tz=timezone.utc) + timedelta(days=1)).date().isoformat()
+        tomorrow = (datetime.now(tz=INDIA_TZ) + timedelta(days=1)).date().isoformat()
         weather.return_value = {
             "status": "success",
             "is_live": True,
