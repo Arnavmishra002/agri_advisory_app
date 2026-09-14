@@ -83,8 +83,9 @@ _render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
 if _render_host and _render_host not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_render_host)
 
-# Trust the X-Forwarded-Host header from Render's proxy
-USE_X_FORWARDED_HOST = True
+# External rewrites send the public frontend in X-Forwarded-Host. Validate
+# the actual API Host instead; clients must not control absolute URL origins.
+USE_X_FORWARDED_HOST = False
 
 # Build / one-off management commands (collectstatic, migrate, …) run during
 # the deploy build before runtime-only env vars (e.g. a linked REDIS_URL) are
