@@ -553,6 +553,7 @@ jobs:
           npm audit --audit-level=high
           node --check public/js/app.js
           npm run test:ui
+          npm run test:i18n
           npm run build
 
       - name: Install Playwright browser
@@ -562,6 +563,20 @@ jobs:
       - name: Farmer browser journeys
         working-directory: frontend
         run: npm run test:e2e
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Real Django browser journey (isolated SMS boundary)
+        env:
+          PYTHON_DOTENV_DISABLED: '1'
+        run: |
+          pip install -r backend/requirements.txt
+          cd backend
+          python manage.py test advisory.tests.browser_journeys --noinput
 
       - name: Upload browser failure evidence
         if: failure()
@@ -771,6 +786,7 @@ jobs:
         env:
           LAUNCH_CHECK: ${{ vars.LAUNCH_CHECK }}
           LAUNCH_READINESS_URL: ${{ vars.LAUNCH_READINESS_URL }}
+          LAUNCH_READINESS_TOKEN: ${{ secrets.LAUNCH_READINESS_TOKEN }}
         run: |
           if [ "$LAUNCH_CHECK" != "true" ]; then
             echo "Launch check is in development mode; Docker readiness is enforced by the Docker job."
@@ -778,7 +794,8 @@ jobs:
             exit 0
           fi
           test -n "$LAUNCH_READINESS_URL"
-          curl -fsS "${LAUNCH_READINESS_URL%/}/api/health/launch-readiness/?strict=true"
+          test -n "$LAUNCH_READINESS_TOKEN"
+          curl -fsS -H "Authorization: Bearer $LAUNCH_READINESS_TOKEN" "${LAUNCH_READINESS_URL%/}/api/health/launch-readiness/?strict=true"
 
   # ── Code Quality ─────────────────────────────────────────────
   lint:
