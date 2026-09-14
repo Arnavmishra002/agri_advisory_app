@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:ui": "node scripts/check-ui-contract.mjs",
+    "test:i18n": "node scripts/check-translations.mjs",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

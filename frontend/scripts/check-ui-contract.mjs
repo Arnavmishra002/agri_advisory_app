@@ -49,7 +49,7 @@ for (const id of ['voiceBtn', 'chatNewBtn', 'chatHistoryBtn', 'chatSendBtn']) {
 
 check(!/\balert\s*\(/.test(app), 'Farmer UI must use inline/toast feedback instead of alert()');
 check(!app.includes('&_t=${Date.now()}'), 'Strict API queries must not include the unsupported _t field');
-check(html.includes('data-count="202"'), 'Home crop count must match the 202-profile database');
+check(html.includes('202 भारतीय फसल प्रोफाइल'), 'Crop catalog must retain the 202-profile coverage label');
 check(!html.includes('MSP 2024-25'), 'Home must not display stale MSP-year copy');
 check(!/python manage\.py|DATA_GOV_IN_API_KEY|Server restart/.test(app), 'Farmer-facing JavaScript contains operator-only setup instructions');
 check(!/22\s*(?:भाषाएं|भारतीय भाषाएं|languages?)/i.test(html), 'Farmer UI must not advertise unverified language-count claims');

@@ -111,8 +111,11 @@ class CropRecommendationPersonalizationTests(SimpleTestCase):
     def test_regional_defaults_are_not_reported_as_farmer_measurements(self):
         with patch.object(self.engine, "_fetch_realtime_context", return_value=self.realtime):
             result = self.engine.recommend("Delhi", 28.6139, 77.2090, state="Delhi", language="en")
-        self.assertEqual(result["input_provenance"]["soil_type"], "regional_assumption")
-        self.assertEqual(result["input_provenance"]["irrigation"], "regional_assumption")
+        self.assertEqual(result["input_provenance"]["soil_type"], "unknown")
+        self.assertEqual(result["input_provenance"]["irrigation"], "unknown")
+        self.assertIsNone(result['soil_type'])
+        self.assertIsNone(result['irrigation'])
+        self.assertEqual(set(result['clarification_required']), {'soil_type', 'irrigation'})
 
     def test_complete_inputs_include_measured_zero_and_have_higher_confidence(self):
         engine = crop_recommendation_engine

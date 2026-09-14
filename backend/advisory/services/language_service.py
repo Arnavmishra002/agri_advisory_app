@@ -41,7 +41,7 @@ SUPPORTED_LANGUAGES: Dict[str, Dict[str, str]] = {
     "mni": {"bcp47": "mni",   "name_english": "Manipuri",   "name_native": "মৈতৈলোন্",   "script": "Bengali",      "gemini": "Manipuri"},
     "sd":  {"bcp47": "sd",    "name_english": "Sindhi",     "name_native": "سنڌي",        "script": "Arabic",       "gemini": "Sindhi"},
     "ks":  {"bcp47": "ks",    "name_english": "Kashmiri",   "name_native": "کشمیری",      "script": "Arabic",       "gemini": "Kashmiri"},
-    "bo":  {"bcp47": "bo",    "name_english": "Bodo",       "name_native": "बड़ो",         "script": "Devanagari",   "gemini": "Bodo"},
+    "brx": {"bcp47": "brx",    "name_english": "Bodo",       "name_native": "बड़ो",         "script": "Devanagari",   "gemini": "Bodo"},
     "doi": {"bcp47": "doi",   "name_english": "Dogri",      "name_native": "डोगरी",       "script": "Devanagari",   "gemini": "Dogri"},
     "sat": {"bcp47": "sat",   "name_english": "Santali",    "name_native": "ᱥᱟᱱᱛᱟᱲᱤ",   "script": "Ol Chiki",     "gemini": "Santali"},
     # Aliases / shortcuts
@@ -114,7 +114,7 @@ CROP_NAMES: Dict[str, Dict[str, str]] = {
 
 def get_language_info(code: str) -> Dict[str, str]:
     """Return language metadata dict for a code; falls back to Hindi."""
-    code = (code or "hi").strip().lower()
+    code = normalise_language_code(code)
     return SUPPORTED_LANGUAGES.get(code, SUPPORTED_LANGUAGES["hi"])
 
 
@@ -130,7 +130,7 @@ def normalise_language_code(code: Optional[str]) -> str:
         "kannada": "kn", "malayalam": "ml", "punjabi": "pa", "odia": "or",
         "odiya": "or", "assamese": "as", "urdu": "ur", "maithili": "mai",
         "nepali": "ne", "konkani": "kok", "manipuri": "mni", "sindhi": "sd",
-        "kashmiri": "ks", "bodo": "bo", "dogri": "doi", "santali": "sat",
+        "kashmiri": "ks", "bodo": "brx", "bo": "brx", "dogri": "doi", "santali": "sat",
     }
     code = aliases.get(code, code)
     if code in SUPPORTED_LANGUAGES:
@@ -174,7 +174,7 @@ def detect_query_language(query: str, fallback: str = "hi") -> str:
     if any("\u0600" <= char <= "\u06ff" for char in text):
         return fallback if fallback in {"ur", "sd", "ks"} else "ur"
     if any("\u0900" <= char <= "\u097f" for char in text):
-        devanagari_languages = {"hi", "mr", "mai", "sa", "ne", "kok", "doi", "bo"}
+        devanagari_languages = {"hi", "mr", "mai", "sa", "ne", "kok", "doi", "brx"}
         return fallback if fallback in devanagari_languages else "hi"
 
     latin_text = text.lower()

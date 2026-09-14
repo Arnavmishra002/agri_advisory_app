@@ -1508,6 +1508,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         context_block, sources = self._build_official_context(
             ctx, query, intent, crops_mentioned, lang=lang,
             _weather=weather_data, _prices=prices_data,
+            farmer_profile=farmer_profile,
         )
 
         # Weather and mandi answers are factual data lookups. Once their live
@@ -3380,6 +3381,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         lang: str = "hi",
         _weather: Optional[Dict[str, Any]] = None,
         _prices: Optional[Dict[str, Any]] = None,
+        farmer_profile: Optional[Dict[str, Any]] = None,
     ) -> Tuple[str, List[str]]:
         """Fetch and format live official data for this farmer's location.
 
@@ -3551,11 +3553,22 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # 3. Crop recommendations (for crop/general queries)
         if intent in (INTENT_CROP_RECOMMENDATION, INTENT_GENERAL, INTENT_CROP_INFO):
             try:
-                rec = crop_recommendation_engine.recommend_from_context(ctx, language=lang)
+                field_profile = farmer_profile or {}
+                agronomic_inputs = {
+                    "soil_type": field_profile.get("soil_type"),
+                    "soil_ph": field_profile.get("soil_ph"),
+                    "irrigation": field_profile.get("irrigation_type"),
+                }
+                rec = crop_recommendation_engine.recommend_from_context(
+                    ctx, language=lang,
+                    agronomic_inputs={key: value for key, value in agronomic_inputs.items() if value is not None and value != ""},
+                )
                 sources.append(rec.get("data_source", "Crop engine"))
                 season_lbl = rec.get("season", "")
                 zone = rec.get("agro_zone") or rec.get("region") or ""
                 lines.append(f"[CROP RECOMMENDATIONS for {ctx.display_name}] season: {season_lbl}, zone: {zone}")
+                if rec.get("clarification_required"):
+                    lines.append("[MISSING FIELD DETAILS] Ask the farmer for soil type and reliable irrigation access. The following rankings are general guidance, not field-specific predictions.")
                 for r in (rec.get("recommendations") or [])[:5]:
                     local = r.get("crop_name_local") or r.get("crop_name_hindi") or r.get("crop_name", "")
                     profit_value = r.get("profit_per_hectare")
@@ -3573,7 +3586,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     reason = r.get("reason") or r.get("reason_hindi", "")
                     lines.append(
                         f"  {r.get('crop_name')} ({local}): "
-                        f"suitability {r.get('suitability_score')}%, "
+                        f"ranking {r.get('suitability_score')}/100, "
                         f"profit {profit_label}, "
                         f"{msp_label}, "
                         f"reason: {reason}"
@@ -3853,7 +3866,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "mni": "ꯈꯨꯔꯨꯝꯖꯔꯤ",
                 "sd": "سلام هاري",
                 "ks": "آداب کسان",
-                "bo": "नमस्कार आबादार",
+                "brx": "नमस्कार आबादार",
                 "doi": "नमस्कार किसान जी",
                 "sat": "ᱡᱚᱦᱟᱨ ᱪᱟᱥᱤ",
             }
@@ -4081,7 +4094,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # ── CROP RECOMMENDATION ──────────────────────────────────
         if intent == INTENT_CROP_RECOMMENDATION:
-            rec_lines = [l for l in context_block.splitlines() if "suitability" in l]
+            rec_lines = [l for l in context_block.splitlines() if "ranking" in l or "suitability" in l]
+            if not rec_lines or "[MISSING FIELD DETAILS]" in context_block:
+                return {
+                    "hi": "आपके खेत के लिए फसल चुनने से पहले मिट्टी का प्रकार और सिंचाई की उपलब्धता बताएं। क्या खेत केवल बारिश पर निर्भर है? मिट्टी जाँच नहीं हुई हो तो बताएं; मैं सामान्य विकल्प समझा सकता हूँ, लेकिन उन्हें आपके खेत का निश्चित सुझाव नहीं कहूँगा।",
+                    "hinglish": "Aapke khet ke liye crop chunne se pehle soil type aur irrigation availability batayein. Kya khet sirf baarish par depend karta hai? Soil test nahi hua ho to batayein; main general options samjha sakta hoon, guaranteed field advice nahi.",
+                }.get(lang, "Before choosing crops for your field, please tell me your soil type and irrigation availability. Does the field depend only on rainfall? If you have no soil test, say so; I can explain general options, but cannot treat them as a field-specific recommendation.")
 
             header = {
                 "hi": f"🌾 **{loc}** के लिए फसल सुझाव — {season}\n\n🌡️ मौसम: {temp}°C, {cond}\n\n",
@@ -4092,7 +4110,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 body = ""
                 for i, line in enumerate(rec_lines[:5], 1):
                     m = re.search(
-                        r"\s*([^(:]+)\s*(?:\(([^)]*)\))?:\s*suitability\s*([\d]+)%,"
+                        r"\s*([^(:]+)\s*(?:\(([^)]*)\))?:\s*(?:ranking|suitability)\s*([\d]+)(?:/100|%),"
                         r"\s*profit\s*([^,]+),\s*((?:MSP reference|no central MSP)[^,]*),\s*reason:\s*(.*)",
                         line,
                     )
@@ -4120,23 +4138,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             )
                             msp = msp.replace("MSP reference", "MSP reference").replace("no central MSP", "central MSP nahi")
                         body += (
-                            f"{i}. {bar} **{crop_name}{local_desc}** — {score}% suitability\n"
+                            f"{i}. {bar} **{crop_name}{local_desc}** — {score}/100 ranking points (not a probability)\n"
                             f"   {economics} | {msp}\n"
                             + (f"   Why: {reason}\n" if lang != "hi" else f"   कारण: {reason}\n")
                         )
                     else:
                         body += f"• {line.strip().lstrip('- ')}\n"
-            else:
-                body = (
-                    f"• 🟢 **गेहूँ** — रबी सीजन, MSP ₹{MSP_2024_25['wheat']:,}/q\n"
-                    f"• 🟢 **सरसों** — कम पानी, MSP ₹{MSP_2024_25['mustard']:,}/q\n"
-                    f"• 🟡 **चना** — हल्की मिट्टी, MSP ₹{MSP_2024_25['gram']:,}/q\n"
-                    if lang == "hi" else
-                    f"• 🟢 **Wheat** — Rabi season, MSP ₹{MSP_2024_25['wheat']:,}/q\n"
-                    f"• 🟢 **Mustard** — low water, MSP ₹{MSP_2024_25['mustard']:,}/q\n"
-                    f"• 🟡 **Gram** — light soil, MSP ₹{MSP_2024_25['gram']:,}/q\n"
-                )
-
             footer = {
                 "hi": f"\n\n💡 {farming_advice or 'बुवाई से पहले मिट्टी जांच करवाएं।'}\n📞 ICAR: 1800-180-1551",
                 "en": f"\n\n💡 {farming_advice or 'Get soil tested before sowing.'}\n📞 ICAR: 1800-180-1551",

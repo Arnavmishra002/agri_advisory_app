@@ -18,10 +18,10 @@
         return `${base}${p}`;
     }
 
-    async function apiGetJson(path) {
+    async function apiGetJson(path, personalized = false) {
         const response = await fetch(apiFetch(path), {
             cache: 'no-store',
-            headers: { 'Accept': 'application/json' },
+            headers: { 'Accept': 'application/json', ...(personalized && window.KM_Auth?.isLoggedIn() ? KM_Auth.getAuthHeaders() : {}) },
         });
         if (!response.ok) {
             let detail = '';
@@ -435,9 +435,8 @@
         const searchInput = document.getElementById('locationSearchInput');
         if (searchInput) searchInput.value = locationName;
 
-        // Auto-upsert farmer profile on every location change — stores location
-        // for personalised AI advisory ("Last Rabi you grew wheat in Jaipur...")
-        _upsertFarmerProfile({ location_name: locationName, state: stateName || '' });
+        // Browsing another district must not move the saved farm measurements.
+        // Persist farm coordinates only when the farmer saves profile details.
 
         console.log('🔄 Reloading all services for new location...');
         // Bug #5 fix: debounce service reloads to prevent parallel API floods
@@ -447,7 +446,33 @@
     }
 
     // ── Farmer profile helpers ────────────────────────────────────────────────
-    function _upsertFarmerProfile(extraData = {}) {
+    let profileLoadVersion = 0;
+    async function _restoreFarmerProfile() {
+        const version = ++profileLoadVersion;
+        const fields = { fp_crop: 'current_crop', fp_size: 'farm_size_bigha', fp_ph: 'soil_ph', fp_pmkisan: 'has_pm_kisan' };
+        Object.keys(fields).forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        if (!window.KM_Auth?.isLoggedIn()) return;
+        try {
+            const response = await fetch(apiFetch('/api/farmer-profile/me/'), { headers: KM_Auth.getAuthHeaders(), cache: 'no-store' });
+            if (!response.ok) throw new Error('Profile unavailable');
+            const { profile } = await response.json();
+            if (version !== profileLoadVersion || !KM_Auth.isLoggedIn()) return;
+            Object.entries(fields).forEach(([id, key]) => {
+                const el = document.getElementById(id);
+                if (el && document.activeElement !== el) el.value = key === 'has_pm_kisan'
+                    ? (profile?.[key] ? 'active' : '') : (profile?.[key] ?? '');
+            });
+        } catch (_) {
+            const indicator = document.getElementById('profileSaveIndicator');
+            if (indicator && version === profileLoadVersion) {
+                indicator.setAttribute('role', 'alert');
+                indicator.textContent = window.t('profile_load_failed');
+            }
+        }
+    }
+
+    async function _upsertFarmerProfile(extraData = {}) {
+        const version = profileLoadVersion;
         try {
             if (!(window.KM_Auth && KM_Auth.isLoggedIn())) return;
             const authHeaders = KM_Auth.getAuthHeaders();
@@ -460,24 +485,29 @@
             if (currentLongitude) payload.longitude = currentLongitude;
             if (currentLocation)  payload.location_name = currentLocation;
             if (currentState)     payload.state = currentState;
-            // Link to logged-in user if available
-            if (window.KM_Auth && KM_Auth.isLoggedIn() && KM_Auth._user) {
-                payload.user_id = KM_Auth._user.id;
-            }
-            // Fire-and-forget — never blocks the UI
-            fetch(apiFetch('/api/farmer-profile/'), {
+            Object.keys(payload).forEach(key => { if (payload[key] === null) delete payload[key]; });
+            const response = await fetch(apiFetch('/api/farmer-profile/'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
                 body: JSON.stringify(payload),
-            }).then(() => {
-                // Show save indicator briefly
+            });
+            if (!response.ok) throw new Error('Profile save rejected');
+            const result = await response.json();
+            if (!result.profile) throw new Error('Profile save was not confirmed');
+            if (version !== profileLoadVersion) return result;
                 const ind = document.getElementById('profileSaveIndicator');
                 if (ind) {
-                    ind.textContent = '✓ Saved';
+                    ind.setAttribute('role', 'status');
+                    ind.textContent = window.t('profile_saved');
                     setTimeout(() => { ind.textContent = ''; }, 2000);
                 }
-            }).catch(() => {}); // silent failure
-        } catch (e) {}
+            return result;
+        } catch (e) {
+            if (version !== profileLoadVersion) return null;
+            const ind = document.getElementById('profileSaveIndicator');
+            if (ind) { ind.setAttribute('role', 'alert'); ind.textContent = window.t('profile_not_saved'); }
+            return null;
+        }
     }
 
     function saveFarmerCropHistory(crop, season, issue = '') {
@@ -679,6 +709,9 @@
 
     function _offlineCacheKey(service, variant) {
         if (!hasConfirmedLocation()) return '';
+        // Saved field inputs are private; never persist authenticated crop
+        // responses in the shared guest/offline cache.
+        if (service === 'crops' && window.KM_Auth?.isLoggedIn()) return '';
         const lat = Number(currentLatitude).toFixed(3);
         const lon = Number(currentLongitude).toFixed(3);
         const suffix = String(variant || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
@@ -686,6 +719,7 @@
     }
 
     function _saveOfflineResult(service, variant, data) {
+        if (service === 'crops' && Object.values(data?.field_input_sources || {}).includes('saved_farmer_profile')) return;
         const key = _offlineCacheKey(service, variant);
         if (!key || !data) return;
         try {
@@ -1034,7 +1068,11 @@
                 if (el.classList.contains('service-card')) {
                     el.setAttribute('role', 'button');
                     el.setAttribute('tabindex', '0');
-                    el.setAttribute('aria-label', `${el.querySelector('.service-title')?.textContent || 'सेवा'} खोलें`);
+                    const title = el.querySelector('.service-title');
+                    if (title) {
+                        title.id = `service-title-${serviceName}`;
+                        el.setAttribute('aria-labelledby', title.id);
+                    }
                     el.addEventListener('keydown', function (event) {
                         if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
@@ -2346,7 +2384,7 @@
             const cropQuery = buildCropRecommendationQuery();
             let data;
             try {
-                data = await apiGetJson(`/api/advisories/?${cropQuery}`);
+                data = await apiGetJson(`/api/advisories/?${cropQuery}`, true);
                 if ((data.recommendations || data.top_4_recommendations || []).length) {
                     _saveOfflineResult('crops', cropQuery, data);
                 }
@@ -2387,8 +2425,10 @@
                             </span>
                         </div>
                     </div>
-                    ${(data.factors_analyzed||[]).length ? `<div style="margin-top:10px;opacity:0.8;font-size:0.78rem;">${data.factors_analyzed.slice(0,5).map(f => '• ' + f).join('  ')}</div>` : ''}
-                    ${Object.values(data.input_provenance || {}).includes('regional_assumption') ? `<div style="margin-top:8px;font-size:0.85rem;">${lang === 'hi' ? 'मिट्टी या सिंचाई की जानकारी क्षेत्रीय अनुमान पर आधारित है। अपने खेत की जानकारी भरें।' : 'Soil or irrigation details use regional assumptions. Add your own field details.'}</div>` : ''}
+                    ${(data.factors_analyzed||[]).length ? `<div style="margin-top:10px;font-size:0.85rem;">${data.factors_analyzed.slice(0,5).map(f => escapeHtml(f)).join(' · ')}</div>` : ''}
+                    ${(data.clarification_required || []).length ? `<p role="status">${lang === 'hi' ? 'ये सामान्य सुझाव हैं। फसल चुनने से पहले ऊपर मिट्टी और सिंचाई की जानकारी भरें। अंक सफलता की संभावना नहीं हैं।' : 'General guidance only. Enter your soil and irrigation above before choosing a crop. Scores are ranking points, not success probabilities.'}</p>` : ''}
+                    ${data.reference_district ? `<p>${lang === 'hi' ? 'जिला संदर्भ, खेत की माप नहीं:' : 'District reference, not field measurements:'} ${escapeHtml(data.reference_district)}</p>` : ''}
+                    ${Object.values(data.input_provenance || {}).includes('regional_assumption') ? `<p role="status">${lang === 'hi' ? 'क्षेत्रीय अनुमान हैं, आपके खेत की माप नहीं। पहले मिट्टी और सिंचाई की जानकारी दें।' : 'These are regional assumptions, not measurements of your field. Confirm soil and irrigation before using the ranking.'}</p>` : ''}
                 </div>`;
 
                 // Weather snapshot if available
@@ -2427,8 +2467,8 @@
                                 <div style="font-size:0.8rem;color:#888;">${escapeHtml(crop.crop_name)} ${icon} ${escapeHtml(crop.category)}</div>
                             </div>
                             <div style="text-align:center;min-width:50px;">
-                                <div style="font-size:1.4rem;font-weight:800;color:${scoreColor(sc)};">${sc}%</div>
-                                <div style="font-size:0.65rem;color:#aaa;">suitability</div>
+                                <div style="font-size:1.4rem;font-weight:800;color:${scoreColor(sc)};">${sc}/100</div>
+                                <div style="font-size:0.8rem;color:#555;">${lang === 'hi' ? 'रैंकिंग अंक' : 'Ranking points'}</div>
                             </div>
                         </div>
                         ${scoreBar(sc)}
@@ -2822,6 +2862,7 @@
     window.addEventListener('km:auth-changed', event => {
         const detail = event.detail || {};
         _switchChatOwner(detail.user || null, detail.guestSessionMigrated === true);
+        _restoreFarmerProfile();
     });
 
     function _persistArchivedChats() {
@@ -3482,6 +3523,7 @@
         if (footerYear) footerYear.textContent = String(new Date().getFullYear());
         console.log('📊 Page loaded, initializing...');
         setupServiceCards();
+        _restoreFarmerProfile();
         buildChatLanguageSwitcher();
         // Restore chat history from localStorage on page load
         setTimeout(_restoreChatHistory, 300);

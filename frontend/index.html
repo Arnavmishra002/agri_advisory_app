@@ -47,6 +47,7 @@
     </style>
 </head>
 <body>
+<a class="skip-link" href="#mainContent" data-i18n="skip_content">मुख्य जानकारी पर जाएं</a>
 
 <!-- ══════════════════════════════════════════════════════════
      NAVBAR
@@ -64,7 +65,7 @@
             </button>
             <!-- Auth: Login button (logged-out state) -->
             <button class="btn btn-login-pill" id="navLoginBtn"
-                onclick="window.KM_Auth && KM_Auth.openModal('phone')"
+                onclick="window.KM_Auth && KM_Auth.openModal('phone', this)"
                 aria-label="Login / Register">
                 <i class="fas fa-user-circle me-1"></i>
                 <span data-i18n="auth_login">लॉगिन</span>
@@ -113,13 +114,15 @@
 <!-- ══════════════════════════════════════════════════════════
      HERO
      ══════════════════════════════════════════════════════════ -->
+<main id="mainContent" tabindex="-1">
 <div class="hero-section" id="appHero">
     <div class="container">
 
         <div class="hero-copy">
-            <span class="hero-kicker"><i class="fas fa-shield-heart"></i> भरोसेमंद डिजिटल कृषि सहायक</span>
+            <span class="hero-kicker" data-i18n="workspace_intro">आपके खेत के लिए जानकारी</span>
             <h1 class="hero-title">KrishiMitra AI</h1>
-            <p class="hero-subtitle">मौसम, मंडी, फसल और रोग सलाह — आपके स्थान और खेत के अनुसार</p>
+            <p class="hero-subtitle" data-i18n="workspace_help">पहले अपना स्थान चुनें। मौसम और मंडी की जानकारी उसी स्थान के लिए दिखाई जाएगी।</p>
+            <p id="languageSupportNotice" role="status" hidden></p>
         </div>
 
         <!-- Live Weather Mini-Widget -->
@@ -144,6 +147,7 @@
             <div class="search-box">
                 <i class="fas fa-map-marker-alt"></i>
                 <input type="text" id="locationSearchInput"
+                    aria-label="गाँव या जिला खोजें" data-i18n-aria="location_label"
                     placeholder="शहर, जिला या गाँव खोजें..."
                     data-i18n="location_placeholder" data-i18n-target="placeholder"
                     onkeyup="searchLocations(event)"
@@ -188,26 +192,7 @@
                 <span class="section-eyebrow" data-i18n="services_eyebrow">काम चुनें</span>
                 <h2 data-i18n="services_heading">आज आपको किस काम में मदद चाहिए?</h2>
             </div>
-            <p>बड़े और साफ बटन दबाएं। हर सेवा आपके चुने हुए स्थान का उपयोग करती है।</p>
-        </div>
-
-        <div class="stats-bar mb-4" id="statsBar" aria-label="KrishiMitra की सुविधाएं">
-            <div class="stat-item" data-count="202" data-prefix="" data-suffix="">
-                <div class="stat-value" id="stat-crops">202</div>
-                <div class="stat-label">फसल प्रोफाइल</div>
-            </div>
-            <div class="stat-item" data-count="3" data-prefix="" data-suffix="">
-                <div class="stat-value" id="stat-langs">3</div>
-                <div class="stat-label">लॉन्च भाषाएं</div>
-            </div>
-            <div class="stat-item" data-count="16" data-prefix="" data-suffix=" दिन">
-                <div class="stat-value">16 दिन</div>
-                <div class="stat-label">मौसम पूर्वानुमान</div>
-            </div>
-            <div class="stat-item stat-source-item">
-                <div class="stat-value"><i class="fas fa-circle-check"></i></div>
-                <div class="stat-label">लाइव और fallback साफ चिन्हित</div>
-            </div>
+            <p data-i18n="public_access">बिना लॉगिन सेवाएं देखें। खेत की जानकारी खाते में सहेजने के लिए लॉगिन करें।</p>
         </div>
 
         <!-- Service Cards -->
@@ -216,10 +201,9 @@
             <!-- Government Schemes -->
             <div class="col-xl-4 col-md-6">
                 <div class="service-card" onclick="showService('government-schemes')">
-                    <div class="status-indicator"></div>
-                    <div class="service-icon">🏛️</div>
+                    <div class="service-icon" aria-hidden="true"><i class="fas fa-landmark"></i></div>
                     <h3 class="service-title" data-i18n="service_schemes">सरकारी योजनाएं</h3>
-                    <p class="service-description">केंद्र और राज्य सरकार की कृषि योजनाएं — पात्रता जांचें</p>
+                    <p class="service-description" data-i18n="desc_schemes">केंद्र और राज्य सरकार की कृषि योजनाएं — पात्रता जांचें</p>
                     <div class="service-info-panel" style="border-left-color:#28a745;">
                         <div class="service-info-panel-label" style="color:#155724;">📌 प्रमुख योजनाएं</div>
                         <div class="service-info-panel-body">
@@ -229,17 +213,16 @@
                             ☀️ PM-KUSUM — <strong>केंद्र + राज्य सहायता</strong>
                         </div>
                     </div>
-                    <span class="service-button">योजनाएं देखें <i class="fas fa-arrow-right"></i></span>
+                    <span class="service-button"><span data-i18n="action_schemes">योजनाएं देखें</span> <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
             <!-- Crop Recommendations -->
             <div class="col-xl-4 col-md-6">
                 <div class="service-card" onclick="showService('crop-recommendations')">
-                    <div class="status-indicator"></div>
-                    <div class="service-icon">🌾</div>
+                    <div class="service-icon" aria-hidden="true"><i class="fas fa-seedling"></i></div>
                     <h3 class="service-title" data-i18n="service_crops">फसल सुझाव</h3>
-                    <p class="service-description">202 फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
+                    <p class="service-description" data-i18n="desc_crops">202 फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत</p>
                     <div class="service-info-panel" style="border-left-color:#388e3c;">
                         <div class="service-info-panel-label" style="color:#1b5e20;">🌱 Multi-Factor Score</div>
                         <div class="service-info-panel-body">
@@ -249,17 +232,16 @@
                             📅 सीजन + सिंचाई विश्लेषण
                         </div>
                     </div>
-                    <span class="service-button">फसल सुझाव <i class="fas fa-arrow-right"></i></span>
+                    <span class="service-button"><span data-i18n="action_crops">फसल सुझाव</span> <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
             <!-- Weather -->
             <div class="col-xl-4 col-md-6">
                 <div class="service-card" onclick="showService('weather')">
-                    <div class="status-indicator"></div>
-                    <div class="service-icon">🌤️</div>
+                    <div class="service-icon" aria-hidden="true"><i class="fas fa-cloud-sun"></i></div>
                     <h3 class="service-title" data-i18n="service_weather">मौसम पूर्वानुमान</h3>
-                    <p class="service-description">16-दिन पूर्वानुमान + ET₀ सिंचाई शेड्यूल + कृषि चेतावनी</p>
+                    <p class="service-description" data-i18n="desc_weather">16-दिन पूर्वानुमान + ET₀ सिंचाई शेड्यूल + कृषि चेतावनी</p>
                     <div class="service-info-panel" style="border-left-color:#0277bd;">
                         <div class="service-info-panel-label" style="color:#01579b;">🛰️ Open-Meteo (Free, 1km)</div>
                         <div class="service-info-panel-body">
@@ -269,17 +251,16 @@
                             ⚠️ लू / बाढ़ / पाला अलर्ट
                         </div>
                     </div>
-                    <span class="service-button">मौसम देखें <i class="fas fa-arrow-right"></i></span>
+                    <span class="service-button"><span data-i18n="action_weather">मौसम देखें</span> <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
             <!-- Market Prices -->
             <div class="col-xl-4 col-md-6">
                 <div class="service-card" onclick="showService('market-prices')">
-                    <div class="status-indicator"></div>
-                    <div class="service-icon">💰</div>
+                    <div class="service-icon" aria-hidden="true"><i class="fas fa-indian-rupee-sign"></i></div>
                     <h3 class="service-title" data-i18n="service_market">बाजार कीमतें</h3>
-                    <p class="service-description">GPS के हिसाब से Agmarknet 2.0 + data.gov.in मंडी भाव</p>
+                    <p class="service-description" data-i18n="desc_market">GPS के हिसाब से Agmarknet 2.0 + data.gov.in मंडी भाव</p>
                     <div class="service-info-panel" style="border-left-color:#f57f17;">
                         <div class="service-info-panel-label" style="color:#e65100;">📊 Live Mandi Data</div>
                         <div class="service-info-panel-body">
@@ -289,17 +270,16 @@
                             🔄 हर 3 मिनट अपडेट
                         </div>
                     </div>
-                    <span class="service-button">मंडी भाव <i class="fas fa-arrow-right"></i></span>
+                    <span class="service-button"><span data-i18n="action_market">मंडी भाव</span> <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
             <!-- KrishiRaksha -->
             <div class="col-xl-4 col-md-6">
                 <div class="service-card" onclick="showService('pest-control')">
-                    <div class="status-indicator"></div>
-                    <div class="service-icon">🩺</div>
+                    <div class="service-icon" aria-hidden="true"><i class="fas fa-camera"></i></div>
                     <h3 class="service-title" data-i18n="service_pest">KrishiRaksha 2.0</h3>
-                    <p class="service-description">EfficientNet-B3 तैयार होने पर AI पहचान · अभी सुरक्षित advisory fallback</p>
+                    <p class="service-description" data-i18n="desc_disease">EfficientNet-B3 तैयार होने पर AI पहचान · अभी सुरक्षित advisory fallback</p>
                     <div class="service-info-panel" style="border-left-color:#c62828;">
                         <div class="service-info-panel-label" style="color:#b71c1c;">🔬 AI-Powered Diagnosis</div>
                         <div class="service-info-panel-body">
@@ -309,17 +289,16 @@
                             📞 ICAR: 1800-180-1551
                         </div>
                     </div>
-                    <span class="service-button">जांच शुरू <i class="fas fa-arrow-right"></i></span>
+                    <span class="service-button"><span data-i18n="action_disease">जांच शुरू</span> <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
             <!-- AI Assistant -->
             <div class="col-xl-4 col-md-6">
                 <div class="service-card" onclick="showService('ai-assistant')">
-                    <div class="status-indicator"></div>
-                    <div class="service-icon">🤖</div>
+                    <div class="service-icon" aria-hidden="true"><i class="fas fa-comments"></i></div>
                     <h3 class="service-title" data-i18n="service_ai">AI सहायक</h3>
-                    <p class="service-description">हिंदी, Hinglish और English में कृषि सलाह</p>
+                    <p class="service-description" data-i18n="desc_ai">हिंदी, Hinglish और English में कृषि सलाह</p>
                     <div class="service-info-panel" style="border-left-color:#6a1b9a;">
                         <div class="service-info-panel-label" style="color:#4a148c;">💬 किसी भी भाषा में पूछें</div>
                         <div class="service-info-panel-body">
@@ -329,17 +308,16 @@
                             🌤️ "आज खेत में क्या करें?"
                         </div>
                     </div>
-                    <span class="service-button">बात करें <i class="fas fa-arrow-right"></i></span>
+                    <span class="service-button"><span data-i18n="action_ai">बात करें</span> <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
             <!-- Field Advisory -->
             <div class="col-xl-4 col-md-6">
                 <div class="service-card" onclick="showService('field-advisory')">
-                    <div class="status-indicator" style="background:#ff6f00;"></div>
-                    <div class="service-icon">🧪</div>
+                    <div class="service-icon" aria-hidden="true"><i class="fas fa-flask"></i></div>
                     <h3 class="service-title" data-i18n="service_field">खेत-स्तरीय सलाह</h3>
-                    <p class="service-description">IoT NPK सेंसर + Open-Meteo मिट्टी + ICAR खाद योजना</p>
+                    <p class="service-description" data-i18n="desc_field">IoT NPK सेंसर + Open-Meteo मिट्टी + ICAR खाद योजना</p>
                     <div class="service-info-panel" style="border-left-color:#e65100;background:#fff8f5;">
                         <div class="service-info-panel-label" style="color:#bf360c;">📡 Field-Level Precision</div>
                         <div class="service-info-panel-body">
@@ -349,7 +327,7 @@
                             📊 ICAR fertiliser gaps
                         </div>
                     </div>
-                    <span class="service-button">खेत जांचें <i class="fas fa-arrow-right"></i></span>
+                    <span class="service-button"><span data-i18n="action_field">खेत जांचें</span> <i class="fas fa-arrow-right"></i></span>
                 </div>
             </div>
 
@@ -357,44 +335,44 @@
 
         <!-- Farming Calendar -->
         <div class="farming-calendar mt-2">
-            <h4 style="color:#1a3a0a;font-weight:800;text-align:center;margin-bottom:20px;">📅 कृषि मौसम कैलेंडर</h4>
+            <h4 style="color:#1a3a0a;font-weight:800;text-align:center;margin-bottom:20px;"><span data-i18n="calendar_title">📅 कृषि मौसम कैलेंडर</span></h4>
             <div class="row g-3">
                 <div class="col-md-3 col-6">
                     <div class="calendar-season" style="background:#fff3cd;border-left-color:#ffc107;">
-                        <strong style="color:#856404;">☀️ खरीफ</strong><small style="color:#a0780f;display:block;margin-bottom:6px;">जून–नवंबर</small>
+                        <strong style="color:#856404;"><span data-i18n="calendar_kharif">☀️ खरीफ</span></strong><small style="color:#a0780f;display:block;margin-bottom:6px;"><span data-i18n="calendar_kharif_months">जून–नवंबर</span></small>
                         <ul style="list-style:none;padding:0;margin:0;font-size:0.85rem;color:#555;line-height:2;">
-                            <li>🍚 धान — जून-जुलाई</li>
-                            <li>🌽 मक्का — जून</li>
-                            <li>🫘 सोयाबीन — जुलाई</li>
-                            <li>🌿 कपास — मई-जून</li>
+                            <li><span data-i18n="cal_rice">🍚 धान — जून-जुलाई</span></li>
+                            <li><span data-i18n="cal_maize">🌽 मक्का — जून</span></li>
+                            <li><span data-i18n="cal_soy">🫘 सोयाबीन — जुलाई</span></li>
+                            <li><span data-i18n="cal_cotton">🌿 कपास — मई-जून</span></li>
                         </ul>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
                     <div class="calendar-season" style="background:#d1ecf1;border-left-color:#17a2b8;">
-                        <strong style="color:#0c5460;">❄️ रबी</strong><small style="color:#0e7384;display:block;margin-bottom:6px;">अक्टूबर–मार्च</small>
+                        <strong style="color:#0c5460;"><span data-i18n="calendar_rabi">❄️ रबी</span></strong><small style="color:#0e7384;display:block;margin-bottom:6px;"><span data-i18n="calendar_rabi_months">अक्टूबर–मार्च</span></small>
                         <ul style="list-style:none;padding:0;margin:0;font-size:0.85rem;color:#555;line-height:2;">
-                            <li>🌾 गेहूँ — नवंबर</li>
-                            <li>🌼 सरसों — अक्टूबर</li>
-                            <li>🫘 चना — नवंबर</li>
-                            <li>🟢 मटर — अक्टूबर</li>
+                            <li><span data-i18n="cal_wheat">🌾 गेहूँ — नवंबर</span></li>
+                            <li><span data-i18n="cal_mustard">🌼 सरसों — अक्टूबर</span></li>
+                            <li><span data-i18n="cal_gram">🫘 चना — नवंबर</span></li>
+                            <li><span data-i18n="cal_peas">🟢 मटर — अक्टूबर</span></li>
                         </ul>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
                     <div class="calendar-season" style="background:#d4edda;border-left-color:#28a745;">
-                        <strong style="color:#155724;">🌸 जायद</strong><small style="color:#1e7e34;display:block;margin-bottom:6px;">मार्च–जून</small>
+                        <strong style="color:#155724;"><span data-i18n="calendar_zaid">🌸 जायद</span></strong><small style="color:#1e7e34;display:block;margin-bottom:6px;"><span data-i18n="calendar_zaid_months">मार्च–जून</span></small>
                         <ul style="list-style:none;padding:0;margin:0;font-size:0.85rem;color:#555;line-height:2;">
-                            <li>🫘 मूंग — मार्च</li>
-                            <li>🍉 तरबूज — फरवरी</li>
-                            <li>🥒 खीरा — मार्च</li>
-                            <li>🌿 भिंडी — मार्च-अप्रैल</li>
+                            <li><span data-i18n="cal_mung">🫘 मूंग — मार्च</span></li>
+                            <li><span data-i18n="cal_melon">🍉 तरबूज — फरवरी</span></li>
+                            <li><span data-i18n="cal_cucumber">🥒 खीरा — मार्च</span></li>
+                            <li><span data-i18n="cal_okra">🌿 भिंडी — मार्च-अप्रैल</span></li>
                         </ul>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
                     <div class="calendar-season" style="background:#f8d7da;border-left-color:#dc3545;">
-                        <strong style="color:#721c24;">📞 हेल्पलाइन</strong><small style="color:#a01c26;display:block;margin-bottom:6px;">निःशुल्क 24×7</small>
+                        <strong style="color:#721c24;"><span data-i18n="calendar_helplines">📞 हेल्पलाइन</span></strong><small style="color:#a01c26;display:block;margin-bottom:6px;"><span data-i18n="calendar_hours">निःशुल्क 24×7</span></small>
                         <ul style="list-style:none;padding:0;margin:0;font-size:0.85rem;color:#555;line-height:2;">
                             <li>Kisan <strong>1800-180-1551</strong></li>
                             <li>PM-Kisan <strong>155261</strong></li>
@@ -461,7 +439,7 @@
                 </label>
                 <label class="form-label mb-0">मिट्टी / Soil
                     <select id="cropRecSoil" class="form-select form-select-sm mt-1">
-                        <option value="">Auto</option><option value="alluvial">Alluvial</option>
+                        <option value="">Unknown / पता नहीं</option><option value="alluvial">Alluvial</option>
                         <option value="loamy">Loamy</option><option value="sandy_loam">Sandy loam</option>
                         <option value="clay_loam">Clay loam</option><option value="black">Black</option>
                         <option value="red">Red</option><option value="laterite">Laterite</option>
@@ -470,7 +448,7 @@
                 </label>
                 <label class="form-label mb-0">सिंचाई / Irrigation
                     <select id="cropRecIrrigation" class="form-select form-select-sm mt-1">
-                        <option value="">Auto</option><option value="rainfed">Rainfed</option>
+                        <option value="">Unknown / पता नहीं</option><option value="rainfed">Rainfed</option>
                         <option value="drip">Drip</option><option value="sprinkler">Sprinkler</option>
                         <option value="flood">Flood</option>
                     </select>
@@ -861,7 +839,7 @@
                 <div class="col-6 col-md-3">
                     <label style="font-size:0.78rem;color:#555;font-weight:600;">💳 PM-Kisan</label>
                     <select id="fp_pmkisan" class="form-select form-select-sm"
-                        onchange="_upsertFarmerProfile({has_pm_kisan: this.value==='yes', pm_kisan_status: this.value})" style="font-size:0.82rem;">
+                        onchange="_upsertFarmerProfile({has_pm_kisan: this.value==='active', pm_kisan_status: this.value})" style="font-size:0.82rem;">
                         <option value="" data-i18n="opt_choose_short">चुनें</option>
                         <option value="active">✅ Enrolled (Active)</option>
                         <option value="pending">⏳ Applied (Pending)</option>
@@ -984,6 +962,7 @@
 </div>
 
 <!-- Mobile Bottom Navigation Bar -->
+</main>
 <nav class="bottom-nav" id="bottomNav" aria-label="Bottom navigation">
     <button class="bottom-nav-item active" id="bnav-home" onclick="showService('home')" aria-label="Home">
         <i class="fas fa-home"></i>
