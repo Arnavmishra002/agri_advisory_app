@@ -1,0 +1,226 @@
+[
+  {
+    "width": 320,
+    "service": "home",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 320,
+    "service": "weather",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 320,
+    "service": "market-prices",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 320,
+    "service": "crop-recommendations",
+    "overflow": 47,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 320,
+    "service": "pest-control",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 320,
+    "service": "government-schemes",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 320,
+    "service": "ai-assistant",
+    "overflow": 4,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 320,
+    "service": "field-advisory",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 360,
+    "service": "home",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 360,
+    "service": "weather",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 360,
+    "service": "market-prices",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 360,
+    "service": "crop-recommendations",
+    "overflow": 13,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 360,
+    "service": "pest-control",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 360,
+    "service": "government-schemes",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 360,
+    "service": "ai-assistant",
+    "overflow": 4,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 360,
+    "service": "field-advisory",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 768,
+    "service": "home",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 768,
+    "service": "weather",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 768,
+    "service": "market-prices",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 768,
+    "service": "crop-recommendations",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 768,
+    "service": "pest-control",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 768,
+    "service": "government-schemes",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 768,
+    "service": "ai-assistant",
+    "overflow": 4,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 768,
+    "service": "field-advisory",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 1440,
+    "service": "home",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 1440,
+    "service": "weather",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 1440,
+    "service": "market-prices",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 1440,
+    "service": "crop-recommendations",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 1440,
+    "service": "pest-control",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 1440,
+    "service": "government-schemes",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 1440,
+    "service": "ai-assistant",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  },
+  {
+    "width": 1440,
+    "service": "field-advisory",
+    "overflow": 0,
+    "main": 0,
+    "title": "🌾 KrishiMitra AI — किसानों का डिजिटल सहायक"
+  }
+]

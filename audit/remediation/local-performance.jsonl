@@ -1,0 +1,2 @@
+{"label":"cold","navigation":121.79999999981374,"paint":[{"name":"first-paint","ms":100},{"name":"first-contentful-paint","ms":100}],"requests":17,"transferBytes":1282437}
+{"label":"repeat","navigation":46.700000000186265,"paint":[{"name":"first-paint","ms":40},{"name":"first-contentful-paint","ms":40}],"requests":17,"transferBytes":5102}
