@@ -2914,6 +2914,16 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         ):
             return INTENT_PEST_DISEASE, crops_mentioned
 
+        # A crop-management explanation mentioning rain is not a request for
+        # local observations. Keep actual forecast questions location-aware.
+        explains_drainage = (
+            re.search(r"\b(why|explain|kyun|kyon|kyu)\b|क्यों|समझा", q)
+            and re.search(r"\b(drainage|waterlogging|waterlogged)\b|जल\s*निकासी|जलभराव", q)
+            and not re.search(r"\b(today|tomorrow|forecast|tonight|aaj|kal)\b|आज|कल|पूर्वानुमान", q)
+        )
+        if explains_drainage:
+            return INTENT_CROP_INFO, crops_mentioned
+
         # "barish ke baad [X me] sinchai" → IRRIGATION (not WEATHER)
         # Allow up to ~5 words between "barish ke baad" and "sinchai/pani"
         if re.search(
