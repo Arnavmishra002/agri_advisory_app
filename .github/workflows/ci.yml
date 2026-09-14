@@ -311,13 +311,9 @@ jobs:
           assert djson["status"] in {"advisory_fallback", "not_plant", "success", "low_confidence"}, djson
           assert {"crop", "disease", "response", "recommendation"}.issubset(djson), djson
 
-          delhi = client.get("/api/advisories/", {"location": "Delhi", "latitude": "28.6139", "longitude": "77.2090"}).json()
-          mumbai = client.get("/api/advisories/", {"location": "Mumbai", "latitude": "19.0760", "longitude": "72.8777"}).json()
-          delhi_top = [r["crop_name"] for r in delhi["top_4_recommendations"]]
-          mumbai_top = [r["crop_name"] for r in mumbai["top_4_recommendations"]]
-          assert delhi_top != mumbai_top, (delhi_top, mumbai_top)
-          assert delhi.get("coordinates") and mumbai.get("coordinates")
-          assert "realtime_status" in delhi and "weather_status" in delhi and "market_data_source" in delhi
+          # Different locations need not have different rankings when field
+          # inputs and providers are unavailable. Assert provenance instead.
+          call_command("test", "advisory.tests.test_crop_release_contract", verbosity=1, interactive=False)
 
           print("✅ Farmer-critical APIs verified")
           PY
@@ -483,10 +479,11 @@ jobs:
           e = CropRecommendationEngine()
           for loc, state in [('delhi','Delhi'),('nashik','Maharashtra'),('kochi','Kerala')]:
               p = e._resolve_location_profile(loc, state)
-              assert p.get('soil'), f'No soil for {loc}'
+              assert p.get('soil') is None, f'Invented field soil for {loc}'
+              assert p.get('irrigation') is None, f'Invented irrigation for {loc}'
               scored = e._score_all_crops(p, _current_season(), {'temperature':28,'humidity':65}, [], {})
               assert len(scored) >= 20, f'{loc}: only {len(scored)} crops scored'
-              print(f'  ✅ {loc}: {len(scored)} crops, top={scored[0][1]}({int(scored[0][0])}%)')
+              print(f'  ✅ {loc}: {len(scored)} crops, top={scored[0][1]} (ranking points: {int(scored[0][0])})')
           "
 
       # ── Field sensor ─────────────────────────────────────────
