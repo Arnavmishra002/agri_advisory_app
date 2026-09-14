@@ -5158,43 +5158,38 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # ── ORGANIC FARMING ──────────────────────────────────────
         if intent == INTENT_ORGANIC:
-            crop_hint = f" for {crops[0]['name']}" if crops else ""
-            body = {
-                "hi": (
-                    f"🌿 **जैविक खेती{crop_hint} — {loc}**\n\n"
-                    f"**जैविक खाद (घर पर बनाएं):**\n"
-                    f"• **वर्मीकम्पोस्ट:** 30-40 दिन | 5-10 टन/हे. | ₹2000-3000/टन बचत\n"
-                    f"• **जीवामृत:** 200L पानी + 10kg गोबर + 2kg बेसन + 2kg गुड़ + 2L गोमूत्र — 48 घंटे\n"
-                    f"• **FYM (गोबर खाद):** 10-15 टन/हे. — बुवाई से 15-20 दिन पहले\n\n"
-                    f"**जैविक कीट नियंत्रण:**\n"
-                    f"• नीम तेल 5ml/L — माहू, सफेद मक्खी\n"
-                    f"• Trichoderma viride 2.5kg/ha — जड़ सड़न\n"
-                    f"• Beauveria bassiana — Stem borer, थ्रिप्स\n"
-                    f"• पीला sticky trap — सफेद मक्खी monitor\n\n"
-                    f"**प्रमाणन:**\n"
-                    f"• PGS India (Participatory Guarantee System) — free, 3 साल\n"
-                    f"• NPOP — export के लिए | APEDA: 1800-425-9111\n\n"
-                    f"💡 जैविक प्रीमियम: 20-50% अधिक दाम — Big Basket, Organic India\n"
-                    f"📞 ICAR-NIAP: 011-25843377"
-                ),
-                "en": (
-                    f"🌿 **Organic Farming{crop_hint} — {loc}**\n\n"
-                    f"**Organic inputs (make at home):**\n"
-                    f"• **Vermicompost:** 30-40 days | 5-10 t/ha | saves ₹2000-3000/t\n"
-                    f"• **Jeevamrit:** 200L water + 10kg dung + 2kg chickpea flour + 2kg jaggery + 2L cow urine — 48 hrs\n"
-                    f"• **FYM:** 10-15 t/ha — apply 15-20 days before sowing\n\n"
-                    f"**Biopesticides:**\n"
-                    f"• Neem oil 5ml/L — aphids, whitefly\n"
-                    f"• Trichoderma viride 2.5kg/ha — root rot\n"
-                    f"• Beauveria bassiana — stem borers, thrips\n"
-                    f"• Yellow sticky traps — whitefly monitoring\n\n"
-                    f"**Certification:**\n"
-                    f"• PGS India — free, 3-year process\n"
-                    f"• NPOP — for export | APEDA: 1800-425-9111\n\n"
-                    f"💡 Organic premium: 20-50% higher price\n📞 ICAR: 1800-180-1551"
-                ),
-            }.get(lang, "Organic farming: use vermicompost, jeevamrit, neem oil, Trichoderma. PGS certification free.")
-            return alert_prefix + body
+            compare_compost = bool(re.search(
+                r"vermi|वर्मी|केंचुआ", query, re.I
+            ) and re.search(r"compar|difference|versus|\bvs\b|far[aq]k|तुलना|अंतर|फर्क", query, re.I))
+            if compare_compost:
+                body = {
+                    "en": (
+                        "**Compost and vermicompost differ mainly in how you manage them:**\n\n"
+                        "1. Compost needs aeration and moisture control; vermicompost also needs living worms.\n"
+                        "2. Hot composting can reduce pathogens when properly managed; worm composting alone does not reliably sanitize waste.\n"
+                        "3. Worm beds need protection from heat and drying. Choose based on the care and materials you can provide, not a promised price premium."
+                    ),
+                    "hi": (
+                        "**कम्पोस्ट और वर्मीकम्पोस्ट में मुख्य अंतर देखभाल का है:**\n\n"
+                        "1. कम्पोस्ट में हवा और नमी संभालनी होती है; वर्मीकम्पोस्ट में जीवित केंचुए भी चाहिए।\n"
+                        "2. सही गर्म कम्पोस्टिंग रोगाणु कम कर सकती है; केवल केंचुआ खाद बनाने से कचरा रोगाणुमुक्त नहीं माना जा सकता।\n"
+                        "3. केंचुआ बेड को गर्मी और सूखने से बचाएं। उपलब्ध सामग्री और देखभाल के अनुसार चुनें, अधिक बिक्री भाव की गारंटी मानकर नहीं।"
+                    ),
+                    "hinglish": (
+                        "**Compost aur vermicompost mein care ka farq hai:**\n\n"
+                        "1. Compost mein hawa aur moisture manage karein; vermicompost mein live worms bhi chahiye.\n"
+                        "2. Sahi hot composting pathogens kam kar sakti hai; worm composting alone waste ko reliably sanitize nahi karti.\n"
+                        "3. Worm bed ko heat aur drying se bachayein. Apni materials aur care capacity se choose karein, guaranteed higher price sochkar nahi."
+                    ),
+                }
+            else:
+                body = {
+                    "en": "Start by assessing your crop, soil test and available compost materials. I cannot give a field-specific application rate, pesticide dose, certification timeline or financial return from the information supplied. What crop are you growing, and are you asking about making compost or using it?",
+                    "hi": "पहले फसल, मिट्टी जांच और उपलब्ध खाद सामग्री देखें। दी गई जानकारी से खेत की खाद मात्रा, कीटनाशक खुराक, प्रमाणन अवधि या कमाई तय नहीं की जा सकती। आपकी फसल कौन सी है और आप खाद बनाना चाहते हैं या उसका उपयोग जानना चाहते हैं?",
+                    "hinglish": "Pehle crop, soil test aur available compost materials dekhein. Di hui information se field ki application rate, pesticide dose, certification time ya income tay nahi kar sakta. Kaunsi crop hai, aur compost banana hai ya use karna hai?",
+                }
+            reference = "\n\n[FAO: On-farm composting methods](https://www.fao.org/4/y5104e/y5104e00.htm)"
+            return alert_prefix + body.get(lang, body["en"]) + reference
 
         # ── SEED ─────────────────────────────────────────────────
         if intent == INTENT_SEED:
