@@ -10,12 +10,13 @@ import logging
 import os
 import re
 import time
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from .market_data_quality import INDIA_TZ
 
 logger = logging.getLogger(__name__)
 
@@ -248,7 +249,7 @@ class AgmarknetClient:
             )
             candidate_dates = [latest_date] if latest_date else []
             candidate_dates.extend(
-                (date.today() - timedelta(days=offset)).isoformat()
+                (datetime.now(INDIA_TZ).date() - timedelta(days=offset)).isoformat()
                 for offset in range(4)
             )
             seen_dates = set()
@@ -281,7 +282,7 @@ class AgmarknetClient:
             }
             # Omitting date asks Agmarknet for its latest published trading day.
             payloads = [base_payload] + [
-                {**base_payload, "date": (date.today() - timedelta(days=offset)).isoformat()}
+                {**base_payload, "date": (datetime.now(INDIA_TZ).date() - timedelta(days=offset)).isoformat()}
                 for offset in range(4)
             ]
 
@@ -335,12 +336,17 @@ class AgmarknetClient:
             if now - self._filters_cache_at < self._filters_ttl:
                 return self._filters_cache
 
+        if time.monotonic() < self._rate_limited_until:
+            return None
+
         try:
             resp = self.session.get(
                 f"{AGMARKNET_BASE}/dashboard-filters/",
                 params={"dashboard_name": DASHBOARD_NAME},
                 timeout=DEFAULT_TIMEOUT,
             )
+            if resp.status_code in (401, 403, 429):
+                self._rate_limited_until = time.monotonic() + 60
             if resp.status_code != 200:
                 logger.warning("Agmarknet filters HTTP %s", resp.status_code)
                 return None
@@ -362,7 +368,7 @@ class AgmarknetClient:
             return None
         try:
             resp = self.session.post(url, json=payload, timeout=DEFAULT_TIMEOUT)
-            if resp.status_code == 429:
+            if resp.status_code in (401, 403, 429):
                 try:
                     retry_after = max(10, min(int(resp.headers.get("Retry-After", "60")), 300))
                 except (TypeError, ValueError):
@@ -615,7 +621,7 @@ class AgmarknetClient:
                     or rec.get("arrival_date")
                     or rec.get("Arrival_Date")
                     or rec.get("date")
-                    or date.today().strftime("%d/%m/%Y")
+                    or ""
                 ),
                 "reported_date": (
                     rec.get("reported_date")

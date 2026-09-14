@@ -44,3 +44,7 @@ class ReviewedLearningExportTests(TestCase):
         self.assertFalse(record["training_eligible"])
         self.assertFalse(manifest["training_eligible"])
         self.assertTrue(manifest["review_required"])
+        self.assertTrue(manifest["privacy_review_required"])
+        self.assertEqual(manifest["contains_raw_pii"], "unknown_until_privacy_review")
+        self.assertFalse(record["privacy_review_passed"])
+        self.assertFalse(record["consent_verified"])

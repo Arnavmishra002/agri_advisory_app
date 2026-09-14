@@ -18,6 +18,32 @@ from ...services.crop_recommendation_engine import crop_recommendation_engine
 from ...services.unified_realtime_service import market_service
 from ..serializers import CropRecommendationQuerySerializer, LocationQuerySerializer
 
+
+def automatic_crop_inputs(user, ctx, explicit):
+    """Reuse owned field facts only at the same stored coordinate, not a nearby farm."""
+    inputs = {}
+    sources = {}
+    if getattr(user, "is_authenticated", False):
+        from ...models import FarmerProfile
+        profile = FarmerProfile.objects.filter(session_id=f"user:{user.pk}").first()
+        # Profiles without an explicit account binding or field coordinates need
+        # confirmation before their measurements can influence this location.
+        if profile and all(value is not None for value in (
+            profile.latitude, profile.longitude, ctx.latitude, ctx.longitude,
+        )) and abs(profile.latitude - ctx.latitude) < 0.000001 and abs(profile.longitude - ctx.longitude) < 0.000001:
+            for target, field in {
+                "soil_type": "soil_type", "ph": "soil_ph",
+                "irrigation": "irrigation_type",
+            }.items():
+                value = getattr(profile, field)
+                if value is not None and value != "":
+                    inputs[target] = value
+                    sources[target] = "saved_farmer_profile"
+    inputs.update(explicit)
+    sources.update({key: "request" for key in explicit})
+    return inputs, sources
+
+
 class CropAdvisoryViewSet(viewsets.ViewSet):
     """Crop advisory — multi-factor scoring with live weather + mandi data."""
 
@@ -38,16 +64,21 @@ class CropAdvisoryViewSet(viewsets.ViewSet):
                 ctx.query_label, ctx.latitude, ctx.longitude,
             )
 
+            inputs, sources = automatic_crop_inputs(request.user, ctx, serializer.recommendation_inputs)
             recommendations = crop_recommendation_engine.recommend_from_context(
                 ctx,
                 language=language,
-                agronomic_inputs=serializer.recommendation_inputs,
+                agronomic_inputs=inputs,
             )
+            recommendations["field_input_sources"] = sources
 
-            return Response(
+            response = Response(
                 attach_location_metadata(recommendations, ctx),
                 status=status.HTTP_200_OK,
             )
+            response["Cache-Control"] = "private, no-store"
+            response["Vary"] = "Authorization, Cookie"
+            return response
 
         except Exception as e:
             logger.error(f"Crop advisory error: {e}")

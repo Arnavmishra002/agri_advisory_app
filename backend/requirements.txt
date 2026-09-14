@@ -81,3 +81,10 @@ joblib>=1.4.0
 # TensorFlow (requirements-ml.txt); production only ever runs the .tflite
 # export produced by the same training run.
 tflite-runtime>=2.14.0; python_version < "3.12"
+
+# ── CI/CD workflow contract tests ───────────────────────────────
+# test_deploy_pipeline_honesty.py parses .github/workflows/deploy.yml to assert
+# the pipeline reports what it actually shipped. PyYAML arrives transitively
+# today; pinning it keeps that test from disappearing if the transitive path
+# changes -- a missing parser must fail loudly, not skip.
+PyYAML>=6.0

@@ -109,7 +109,7 @@ def _send_otp_sms(phone: str, otp: str) -> bool:
         if settings.DEBUG:
             logger.info("📱 OTP for %s: %s  (Twilio not configured — dev console fallback)", phone, otp)
         else:
-            logger.warning("Twilio not configured; OTP not sent for %s", phone)
+            logger.warning("Twilio not configured; OTP not sent")
         return False  # dev mode
 
     try:
@@ -130,14 +130,14 @@ def _send_otp_sms(phone: str, otp: str) -> bool:
             method="POST",
         )
         with _urllib_request.urlopen(req, timeout=8):
-            logger.info("📱 OTP SMS sent to %s", phone)
+            logger.info("OTP SMS accepted by provider; delivery not confirmed")
             return True
     except Exception as exc:
-        logger.warning("Twilio SMS failed for %s: %s — falling back to console", phone, exc)
+        logger.warning("OTP provider request failed (%s)", type(exc).__name__)
         if settings.DEBUG:
             logger.info("📱 OTP for %s: %s  (SMS failed — dev console fallback)", phone, otp)
         else:
-            logger.warning("OTP delivery failed for %s; code suppressed outside DEBUG", phone)
+            logger.warning("OTP delivery failed; code suppressed outside DEBUG")
         return False
 
 
@@ -236,7 +236,11 @@ class AuthViewSet(viewsets.ViewSet):
         # Send SMS
         sms_sent = _send_otp_sms(phone, otp)
 
-        resp: dict = {"success": True, "expires_in": 600, "sms_sent": sms_sent}
+        resp: dict = {
+            "success": True, "expires_in": 600, "sms_sent": sms_sent,
+            "delivery_status": "accepted" if sms_sent else "unavailable",
+            "delivery_confirmed": False,
+        }
 
         # In DEBUG mode, include the OTP in the response for easier dev/testing
         if settings.DEBUG:
@@ -324,7 +328,7 @@ class AuthViewSet(viewsets.ViewSet):
         if created:
             user.set_unusable_password()
             user.save(update_fields=["password"])
-            logger.info("New farmer account created via OTP: %s", phone)
+            logger.info("New farmer account created via OTP")
 
         # Get or create FarmerProfile + migrate guest session
         profile_name = ""
@@ -345,7 +349,7 @@ class AuthViewSet(viewsets.ViewSet):
                 profile.session_id = verified_guest_session
             profile.save()
             if verified_guest_session:
-                logger.info("Verified guest session migrated to phone account %s", phone)
+                logger.info("Verified guest session migrated to phone account")
             profile_name = profile.location_name or ""
         except Exception as exc:
             logger.warning("FarmerProfile OTP link failed: %s", exc)

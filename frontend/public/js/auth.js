@@ -67,16 +67,20 @@
         authModal.addEventListener('hidden.bs.modal', function () {
           self._resetAuthUi();
           self.switchTab('phone');
+          if (self._returnFocus && self._returnFocus.isConnected && self._returnFocus.offsetParent !== null) {
+            self._returnFocus.focus({ preventScroll: true });
+          }
         });
       }
     },
 
     /* ── openModal ───────────────────────────────────────────── */
-    openModal: function (tab) {
+    openModal: function (tab, trigger) {
       tab = tab || 'phone';
       if (['phone', 'password', 'register'].indexOf(tab) === -1) tab = 'phone';
       var el = document.getElementById('authModal');
       if (!el) return;
+      this._returnFocus = trigger || document.activeElement;
       if (!this._bsModal) {
         this._bsModal = new bootstrap.Modal(el, { backdrop: true });
       }
@@ -117,6 +121,7 @@
     /* ── requestOtp ──────────────────────────────────────────── */
     requestOtp: function () {
       var self = this;
+      if ((document.getElementById('btnSendOtp') || {}).disabled) return;
       var phone = (document.getElementById('authPhoneInput') || {}).value || '';
       phone = phone.replace(/\D/g, '').slice(0, 10);
 
@@ -129,7 +134,7 @@
 
       self._post('/api/users/otp/request/', { phone_number: phone })
         .then(function (data) {
-          if (data.success) {
+          if (data.success && data.sms_sent === true) {
             self._currentPhone = phone;
             // Show OTP step
             var step1 = document.getElementById('otpStep1');
@@ -140,21 +145,19 @@
             if (disp) disp.textContent = '+91 ' + phone;
             // Focus first digit
             var first = document.querySelector('#otpInputGroup .otp-digit');
-            if (first) setTimeout(function () { first.focus(); }, 100);
+            if (first) first.focus();
             // Clear digits
             document.querySelectorAll('#otpInputGroup .otp-digit').forEach(function (i) { i.value = ''; });
-            // Dev OTP hint
-            if (data.dev_otp) {
-              self._setSuccess('otpVerifySuccess', '🛠️ Dev OTP: ' + data.dev_otp);
-            }
+            self._setSuccess('otpVerifySuccess', window.t('auth_sms_accepted'));
             // Start resend countdown
             self._startResendCountdown();
           } else {
-            self._setError('otpPhoneError', data.error || 'OTP भेजने में समस्या');
+            self._currentPhone = null;
+            self._setError('otpPhoneError', window.t('auth_sms_unavailable'));
           }
         })
         .catch(function (err) {
-          self._setError('otpPhoneError', err.error_hi || err.error || 'नेटवर्क समस्या');
+          self._setError('otpPhoneError', self._otpError(err));
         })
         .finally(function () {
           self._setLoading('btnSendOtp', 'spinnerSendOtp', false);
@@ -164,6 +167,7 @@
     /* ── verifyOtp ───────────────────────────────────────────── */
     verifyOtp: function () {
       var self = this;
+      if ((document.getElementById('btnVerifyOtp') || {}).disabled) return;
       var digits = '';
       document.querySelectorAll('#otpInputGroup .otp-digit').forEach(function (i) {
         digits += i.value || '';
@@ -187,11 +191,23 @@
           self._onLoginSuccess(data);
         })
         .catch(function (err) {
-          self._setError('otpVerifyError', err.error_hi || err.error || 'गलत OTP। दोबारा जांचें।');
+          self._setError('otpVerifyError', self._otpError(err));
         })
         .finally(function () {
           self._setLoading('btnVerifyOtp', 'spinnerVerifyOtp', false);
         });
+    },
+
+    _otpError: function (err) {
+      var key = {
+        RATE_LIMITED: 'auth_error_rate_limit',
+        OTP_VERIFY_RATE_LIMITED: 'auth_error_rate_limit',
+        OTP_EXPIRED: 'auth_error_expired_otp',
+        INVALID_OTP: 'auth_error_invalid_otp',
+      }[(err || {}).error_code];
+      if (key) return window.t(key);
+      var hi = window.getCurrentLang() === 'hi';
+      return (hi && err.error_hi) || (typeof err.error === 'string' && err.error) || window.t('auth_error_network');
     },
 
     /* ── loginPassword ───────────────────────────────────────── */
@@ -482,7 +498,7 @@
     /* ── _setError ───────────────────────────────────────────── */
     _setError: function (id, msg) {
       var el = document.getElementById(id);
-      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+      if (el) { el.setAttribute('role', 'alert'); el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
     },
 
     /* ── _setSuccess ─────────────────────────────────────────── */
@@ -577,16 +593,19 @@
     /* ── _post ───────────────────────────────────────────────── */
     _post: function (path, body) {
       var url = (window.apiFetch ? window.apiFetch(path) : path);
+      var controller = new AbortController();
+      var timeout = setTimeout(function () { controller.abort(); }, 15000);
       return fetch(url, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(body),
+        signal: controller.signal,
       }).then(function (res) {
         return res.json().then(function (data) {
           if (!res.ok) return Promise.reject(data);
           return data;
         });
-      });
+      }).finally(function () { clearTimeout(timeout); });
     },
 
     /* ── _get ────────────────────────────────────────────────── */

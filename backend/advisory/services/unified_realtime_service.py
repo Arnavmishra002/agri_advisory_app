@@ -2360,9 +2360,9 @@ class GeminiService:
         user_query: str = None,
         temperature: float = 0.7,
     ) -> str:
-        """Generate response with pro → flash fallback"""
+        """Return model-generated text only; the caller owns labeled fallback."""
         if not _is_valid_gemini_key(self.api_key):
-            return self._rule_based_response(user_query or prompt)
+            return ""
 
         # Walk the full verified chain: a 503 ("high demand") or 429 (quota) on
         # one model should move to the next, not abandon Gemini altogether.
@@ -2376,7 +2376,7 @@ class GeminiService:
             except Exception as e:
                 logger.warning(f"Gemini {model} failed: {e}")
 
-        return self._rule_based_response(user_query or prompt)
+        return ""
 
     def _call_api(
         self,

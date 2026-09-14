@@ -1,5 +1,21 @@
 import { expect, test } from '@playwright/test';
 
+test('OTP request timeout preserves phone and never enters code step', async ({ page }) => {
+  await page.clock.install();
+  await page.route('**/api/**', route => {
+    if (route.request().url().includes('/otp/request/')) return;
+    return route.fulfill({ contentType: 'application/json', body: '{}' });
+  });
+  await page.goto('/');
+  await page.locator('#navLoginBtn').click();
+  await page.locator('#authPhoneInput').fill('9000000099');
+  await page.locator('#btnSendOtp').click();
+  await page.clock.fastForward(16000);
+  await expect(page.locator('#btnSendOtp')).toBeEnabled();
+  await expect(page.locator('#otpStep2')).toBeHidden();
+  await expect(page.locator('#authPhoneInput')).toHaveValue('9000000099');
+});
+
 const user = {
   id: 7,
   username: 'beta_farmer',
@@ -124,10 +140,11 @@ test('password login accepts email and refresh rotates only the access token', a
 
 test('expired OTP stays logged out and shows a farmer-safe error', async ({ page }) => {
   await preparePage(page);
+  await page.evaluate(() => window.setLanguage('hi'));
   await page.route('**/api/users/otp/request/', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: '{"success":true}',
+    body: '{"success":true,"sms_sent":true,"delivery_status":"accepted"}',
   }));
   await page.route('**/api/users/otp/verify/', route => route.fulfill({
     status: 400,
@@ -145,4 +162,19 @@ test('expired OTP stays logged out and shows a farmer-safe error', async ({ page
   }
   await expect(page.locator('#otpVerifyError')).toContainText('OTP समाप्त हो गया');
   expect(await page.evaluate(() => window.KM_Auth.isLoggedIn())).toBe(false);
+});
+
+test('ISSUE-02: an unsent SMS never opens code entry or starts countdown', async ({ page }) => {
+  await preparePage(page);
+  await page.route('**/api/users/otp/request/', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ success: true, sms_sent: false }),
+  }));
+  await openAuth(page, 'phone');
+  await page.locator('#authPhoneInput').fill('9876543210');
+  await page.locator('#btnSendOtp').click();
+  await expect(page.locator('#otpPhoneError')).toBeVisible();
+  await expect(page.locator('#otpStep2')).toBeHidden();
+  expect(await page.evaluate(() => window.KM_Auth._countdownTimer)).toBeNull();
+  await expect(page.locator('#authPhoneInput')).toHaveValue('9876543210');
 });

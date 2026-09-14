@@ -106,6 +106,10 @@ class StrictSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"non_field_errors": [f"Unexpected field: {field}" for field in sorted(unknown)]}
             )
+        data = data.copy()
+        for key in ('language', 'preferred_language'):
+            if data.get(key) == 'bo':
+                data[key] = 'brx'  # Compatibility with previously stored Bodo preferences.
         return super().to_internal_value(data)
 
 
@@ -674,7 +678,7 @@ class FarmerProfileInputSerializer(StrictSerializer):
     )
     preferred_language = serializers.ChoiceField(
         required=False,
-        choices=("hi", "en", "hinglish"),
+        choices=tuple(SUPPORTED_LANGUAGES),
     )
     has_pm_kisan = serializers.BooleanField(required=False)
     has_kcc = serializers.BooleanField(required=False)

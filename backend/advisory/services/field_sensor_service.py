@@ -606,9 +606,8 @@ class FieldSensorService:
         )
 
         season_key   = _current_season()
-        curr_temp    = (weather.get("current_temp") or
-                        soil.get("soil_temp_c") or 28)
-        weather_risk = weather.get("risk", "None")
+        curr_temp    = weather.get("current_temp")
+        weather_risk = weather.get("risk", "Unavailable")
         rain_7d      = weather.get("rain_7d_mm", 0)
 
         results = []
@@ -796,7 +795,9 @@ class FieldSensorService:
         # ── Temperature (7 pts) ───────────────────────────────────────
         t_min = crop.get("temperature_min", 10)
         t_max = crop.get("temperature_max", 38)
-        if t_min <= curr_temp <= t_max:
+        if curr_temp is None:
+            reasons.append("Temperature unavailable; suitability is provisional")
+        elif t_min <= curr_temp <= t_max:
             score += 7; reasons.append(f"✅ Temp {curr_temp}°C optimal")
         elif abs(curr_temp - (t_min + t_max) / 2) <= 5:
             score += 4
@@ -956,11 +957,27 @@ class FieldSensorService:
 
     def _analyse_weather_for_farming(self, forecast: List[Dict], current: Dict) -> Dict[str, Any]:
         """Analyse 16-day forecast for farming decisions."""
-        if not forecast:
-            return {"risk": "None", "alerts": [], "irrigation_schedule": [], "planting_window": ""}
+        def valid_number(value):
+            import math
+            return type(value) in (int, float) and math.isfinite(value)
+
+        complete_week = len(forecast) >= 7 and all(
+            valid_number(day.get(key))
+            for day in forecast[:7]
+            for key in ("rainfall_mm", "max_temp", "et0_mm")
+        )
+        if not complete_week:
+            return {
+                "risk": "Unavailable", "alerts": [], "irrigation_schedule": [],
+                "planting_window": "", "current_temp": current.get("temperature"),
+            }
 
         total_rain   = sum(d.get("rainfall_mm", 0) for d in forecast[:7])
-        rain_14d     = sum(d.get("rainfall_mm", 0) for d in forecast[:14])
+        rain_14d     = (
+            sum(d["rainfall_mm"] for d in forecast[:14])
+            if len(forecast) >= 14 and all(valid_number(d.get("rainfall_mm")) for d in forecast[:14])
+            else None
+        )
         max_temps    = [d.get("max_temp") for d in forecast[:7] if d.get("max_temp")]
         avg_max      = sum(max_temps) / len(max_temps) if max_temps else 28
         total_et0    = sum(d.get("et0_mm", 0) for d in forecast[:7])
@@ -1007,7 +1024,7 @@ class FieldSensorService:
         return {
             "risk":               risk,
             "rain_7d_mm":         round(total_rain, 1),
-            "rain_14d_mm":        round(rain_14d, 1),
+            "rain_14d_mm":        round(rain_14d, 1) if rain_14d is not None else None,
             "avg_max_temp_7d":    round(avg_max, 1),
             "total_et0_7d_mm":    round(total_et0, 1),
             "alerts":             alerts,
@@ -1119,6 +1136,18 @@ class FieldSensorService:
 
         top = top3[0]
         risk = weather.get("risk", "None")
+        if weather.get("rain_7d_mm") is None or weather.get("avg_max_temp_7d") is None:
+            if lang == "hi":
+                return (
+                    f"फसल का प्रारंभिक सुझाव: {top['crop_name_hindi']} "
+                    f"({top['suitability_score']}% अनुकूलता)। "
+                    "पूरा मौसम पूर्वानुमान उपलब्ध नहीं है। सिंचाई या बुवाई से पहले स्थानीय मौसम और मिट्टी जांचें।"
+                )
+            return (
+                f"Provisional crop suggestion: {top['crop_name']} "
+                f"({top['suitability_score']}% suitability). "
+                "Complete weather forecast unavailable. Check local weather and soil before irrigation or sowing."
+            )
 
         summaries = {
             "hi": (

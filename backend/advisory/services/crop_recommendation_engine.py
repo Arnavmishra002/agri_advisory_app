@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import re
 import atexit
@@ -12,6 +13,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from .location_context import LocationContext
+from .market_data_quality import filter_fresh_live_rows
 from .unified_realtime_service import market_service, weather_service
 try:
     from .comprehensive_crop_database import ALL_CROP_DATA
@@ -107,6 +109,11 @@ class CropRecommendationEngine:
       4. Generic India defaults
     """
 
+    CONFIDENCE_FARMER_INPUTS = (
+        "soil_type", "irrigation", "previous_crop", "ph", "budget_per_hectare",
+        "nitrogen_kg_ha", "phosphorus_kg_ha", "potassium_kg_ha",
+    )
+
     # ── Public API ─────────────────────────────────────────────────────
 
     def recommend(
@@ -129,8 +136,20 @@ class CropRecommendationEngine:
         weather, live_market, realtime_status = self._fetch_realtime_context(
             location, latitude, longitude, state, language
         )
+        raw_market_rows = live_market.get("top_crops") or []
+        fresh_market_rows, _, _ = filter_fresh_live_rows(
+            raw_market_rows if live_market.get("is_live") is True else [],
+        )
+        live_market = {
+            **live_market,
+            "top_crops": fresh_market_rows,
+            "is_live": bool(fresh_market_rows),
+            "status": live_market.get("status", "success") if fresh_market_rows else "unavailable",
+        }
+        if not fresh_market_rows:
+            realtime_status = {**realtime_status, "market": "unavailable"}
         current_weather = weather.get("current") or {}
-        forecast = weather.get("forecast_7day") or weather.get("forecast_7_days") or []
+        forecast = weather.get("forecast_7day") or weather.get("forecast_7_days") or weather.get("forecast") or []
 
         # 3. Build live market signal map
         market_price_map = self._build_market_price_map(live_market)
@@ -176,8 +195,13 @@ class CropRecommendationEngine:
             "agro_zone": profile.get("agro_zone", ""),
             "season": _season_label(season_key),
             "season_key": season_key,
-            "soil_type": profile.get("soil", "Loamy"),
-            "irrigation": profile.get("irrigation", "Medium"),
+            "soil_type": profile.get("soil"),
+            "irrigation": profile.get("irrigation"),
+            "reference_profile": profile.get("reference_profile"),
+            "reference_district": profile.get("reference_district"),
+            "guidance_mode": "general_guidance" if any(k not in inputs for k in ("soil_type", "irrigation")) else "field_inputs_supplied",
+            "clarification_required": [k for k in ("soil_type", "irrigation") if k not in inputs],
+            "score_interpretation": "Ranking points, not a probability of success",
             "recommendations": recommendations,
             "top_4_recommendations": recommendations[:4],
             "weather_snapshot": current_weather,
@@ -202,6 +226,10 @@ class CropRecommendationEngine:
             "crop_profile_version": "2026.07-beta1",
             "confidence_inputs_missing": missing_confidence_inputs,
             "input_parameters": inputs,
+            "input_provenance": {
+                key: "farmer_supplied" if key in inputs else "unknown"
+                for key in ("soil_type", "irrigation")
+            },
             "factors_analyzed": self._factors_analyzed(
                 profile,
                 season_key,
@@ -219,7 +247,7 @@ class CropRecommendationEngine:
         inputs: Dict[str, Any], weather_is_live: bool, market_is_live: bool
     ) -> List[str]:
         missing = [
-            key for key in ("soil_type", "irrigation", "previous_crop")
+            key for key in CropRecommendationEngine.CONFIDENCE_FARMER_INPUTS
             if inputs.get(key) in (None, "")
         ]
         if not weather_is_live:
@@ -336,9 +364,9 @@ class CropRecommendationEngine:
         )
         factors = [
                 f"Season: {_season_label(season_key)}",
-                f"Soil: {profile.get('soil', 'Loamy')}",
-                f"Rainfall: {profile.get('rainfall', 'Medium')}",
-                f"Irrigation: {profile.get('irrigation', 'Medium')}",
+                f"Farmer soil: {profile.get('soil') or 'unknown'}",
+                f"District reference rainfall: {profile.get('rainfall') or 'unknown'}",
+                f"Farmer irrigation: {profile.get('irrigation') or 'unknown'}",
                 weather_factor,
                 market_factor,
                 f"{len(ALL_CROP_DATA)} crop agro-climatic profiles",
@@ -530,273 +558,36 @@ class CropRecommendationEngine:
     # ── Location profile resolution ────────────────────────────────────
 
     def _resolve_location_profile(
-        self,
-        location: str,
-        state: Optional[str],
-        latitude: Optional[float] = None,
-        longitude: Optional[float] = None,
+        self, location: str, state: Optional[str],
+        latitude: Optional[float] = None, longitude: Optional[float] = None,
     ) -> Dict[str, Any]:
-        """Return the best agro-climatic profile for the location.
+        """District references are not observations of this farmer's field.
 
-        Priority order (v4.0 — GPS-first):
-          1. Exact district match in DISTRICT_PROFILES
-          2. Fuzzy district match
-          3. GPS coordinate → nearest district (haversine, < 100 km radius)
-          4. State-level match (first district in state)
-          5. Keyword fallback
+        Never assign another district's soil/water through a fuzzy, GPS or
+        state-first fallback. Retain exact district context separately.
         """
-        try:
-            from .district_data import DISTRICT_PROFILES
-        except ImportError:
-            DISTRICT_PROFILES = {}
+        from .district_data import DISTRICT_PROFILES
+        import re
 
-        loc_lower = location.lower().strip()
-
-        # 1. Exact district match
-        if loc_lower in DISTRICT_PROFILES:
-            p = dict(DISTRICT_PROFILES[loc_lower])
-            p["_source"] = "district_exact"
-            p["region"] = p.get("state", "India")
-            return p
-
-        # 2. Partial district match
-        for district_key, profile in DISTRICT_PROFILES.items():
-            if district_key in loc_lower or loc_lower in district_key:
-                p = dict(profile)
-                p["_source"] = "district_fuzzy"
-                p["region"] = p.get("state", "India")
-                return p
-
-        # 3. GPS coordinate → nearest district (NEW — uses lat/lon passed from recommend())
-        if latitude is not None and longitude is not None:
-            best_key, best_dist = None, float("inf")
-            # District coordinate centroids (lat, lon) for closest-district lookup
-            _DISTRICT_CENTROIDS = {
-                # Punjab
-                "amritsar": (31.634, 74.872), "ludhiana": (30.901, 75.857),
-                "jalandhar": (31.326, 75.576), "patiala": (30.339, 76.386),
-                "bathinda": (30.211, 74.946), "firozpur": (30.925, 74.614),
-                # Haryana
-                "karnal": (29.686, 76.990), "hisar": (29.151, 75.722),
-                "rohtak": (28.895, 76.607), "gurgaon": (28.459, 77.027),
-                "sirsa": (29.533, 75.022),
-                # Uttar Pradesh
-                "lucknow": (26.847, 80.946), "kanpur": (26.450, 80.332),
-                "agra": (27.176, 78.008), "varanasi": (25.318, 82.974),
-                "allahabad": (25.435, 81.846), "meerut": (28.984, 77.706),
-                "moradabad": (28.839, 78.777), "bareilly": (28.367, 79.430),
-                "gorakhpur": (26.760, 83.373), "noida": (28.535, 77.391),
-                "mathura": (27.492, 77.673), "ayodhya": (26.795, 82.195),
-                "jhansi": (25.448, 78.568), "sitapur": (27.564, 80.682),
-                # Rajasthan
-                "jaipur": (26.912, 75.787), "jodhpur": (26.239, 73.024),
-                "barmer": (25.745, 71.395), "bikaner": (28.013, 73.312),
-                "kota": (25.183, 75.838), "ajmer": (26.453, 74.639),
-                "udaipur": (24.571, 73.691), "chittorgarh": (24.879, 74.623),
-                "alwar": (27.554, 76.597), "sikar": (27.614, 75.140),
-                # Madhya Pradesh
-                "bhopal": (23.260, 77.413), "indore": (22.719, 75.858),
-                "jabalpur": (23.181, 79.987), "gwalior": (26.214, 78.183),
-                "rewa": (24.531, 81.296), "sagar": (23.838, 78.739),
-                "ujjain": (23.182, 75.783), "dewas": (22.963, 76.053),
-                "satna": (24.601, 80.832), "chhindwara": (22.057, 78.934),
-                # Maharashtra
-                "pune": (18.520, 73.857), "nashik": (19.998, 73.790),
-                "nagpur": (21.146, 79.088), "aurangabad": (19.877, 75.343),
-                "solapur": (17.686, 75.905), "kolhapur": (16.705, 74.243),
-                "amravati": (20.933, 77.757), "latur": (18.400, 76.560),
-                "nanded": (19.160, 77.317), "jalgaon": (21.000, 75.563),
-                "satara": (17.686, 74.000), "ratnagiri": (17.000, 73.300),
-                # Karnataka
-                "bangalore": (12.972, 77.595), "mysore": (12.296, 76.638),
-                "hubli": (15.364, 75.124), "gulbarga": (17.329, 76.820),
-                "shimoga": (13.930, 75.568), "bellary": (15.139, 76.920),
-                "mangalore": (12.870, 74.843), "tumkur": (13.342, 77.102),
-                "dharwad": (15.458, 75.007), "davangere": (14.466, 75.921),
-                # Andhra Pradesh
-                "guntur": (16.307, 80.437), "vijayawada": (16.507, 80.648),
-                "visakhapatnam": (17.686, 83.218), "kakinada": (16.946, 82.237),
-                "nellore": (14.443, 79.987), "tirupati": (13.629, 79.420),
-                "kurnool": (15.828, 78.037), "anantapur": (14.683, 77.601),
-                "chittoor": (13.212, 79.100), "kadapa": (14.474, 78.824),
-                # Telangana
-                "hyderabad": (17.385, 78.487), "warangal": (17.977, 79.598),
-                "karimnagar": (18.438, 79.129), "nizamabad": (18.672, 78.094),
-                "khammam": (17.247, 80.152), "adilabad": (19.664, 78.531),
-                # Tamil Nadu
-                "chennai": (13.083, 80.271), "coimbatore": (11.017, 76.956),
-                "madurai": (9.925, 78.119), "salem": (11.664, 78.147),
-                "tirunelveli": (8.729, 77.702), "tiruchirappalli": (10.805, 78.687),
-                "vellore": (12.916, 79.133), "erode": (11.341, 77.717),
-                "dindigul": (10.362, 77.972), "thoothukudi": (8.764, 78.135),
-                # Kerala
-                "thiruvananthapuram": (8.524, 76.937), "kochi": (9.931, 76.267),
-                "kozhikode": (11.258, 75.780), "thrissur": (10.527, 76.214),
-                "palakkad": (10.776, 76.654), "malappuram": (11.040, 76.076),
-                "kannur": (11.869, 75.370), "kollam": (8.887, 76.587),
-                # West Bengal
-                "kolkata": (22.573, 88.364), "howrah": (22.595, 88.258),
-                "bardhaman": (23.233, 87.851), "midnapore": (22.423, 87.324),
-                "siliguri": (26.726, 88.427), "murshidabad": (24.177, 88.249),
-                "nadia": (23.462, 88.560), "north 24 parganas": (22.775, 88.400),
-                # Bihar
-                "patna": (25.594, 85.138), "muzaffarpur": (26.121, 85.391),
-                "gaya": (24.797, 85.001), "bhagalpur": (25.253, 87.014),
-                "darbhanga": (26.152, 85.896), "purnia": (25.778, 87.477),
-                # Odisha
-                "bhubaneswar": (20.296, 85.825), "cuttack": (20.463, 85.883),
-                "berhampur": (19.314, 84.791), "sambalpur": (21.467, 83.975),
-                "rourkela": (22.260, 84.853),
-                # Assam
-                "guwahati": (26.145, 91.736), "silchar": (24.827, 92.793),
-                "dibrugarh": (27.484, 94.909), "jorhat": (26.751, 94.207),
-                "nagaon": (26.346, 92.686), "tezpur": (26.633, 92.801),
-                # Gujarat
-                "ahmedabad": (23.023, 72.571), "surat": (21.170, 72.831),
-                "rajkot": (22.291, 70.794), "vadodara": (22.307, 73.181),
-                "bhavnagar": (21.765, 72.143), "jamnagar": (22.471, 70.057),
-                "junagadh": (21.521, 70.457), "anand": (22.557, 72.951),
-                "surendranagar": (22.728, 71.648), "amreli": (21.600, 71.217),
-                # Himachal Pradesh
-                "shimla": (31.105, 77.173), "dharamsala": (32.219, 76.324),
-                "mandi": (31.708, 76.932), "kullu": (31.958, 77.110),
-                "kangra": (32.099, 76.268), "solan": (30.908, 77.099),
-                # Uttarakhand
-                "dehradun": (30.317, 78.032), "haridwar": (29.946, 78.163),
-                "nainital": (29.380, 79.463), "roorkee": (29.852, 77.889),
-                # Jharkhand
-                "ranchi": (23.344, 85.310), "jamshedpur": (22.805, 86.203),
-                "dhanbad": (23.798, 86.434), "bokaro": (23.666, 85.996),
-                # Chhattisgarh
-                "raipur": (21.251, 81.630), "bilaspur": (22.090, 82.148),
-                "durg": (21.190, 81.283), "korba": (22.365, 82.686),
-                # Goa
-                "panaji": (15.491, 73.828), "margao": (15.274, 73.957),
-                # Northeast
-                "imphal": (24.818, 93.944), "kohima": (25.667, 94.108),
-                "aizawl": (23.727, 92.718), "agartala": (23.831, 91.287),
-                "shillong": (25.578, 91.883), "gangtok": (27.331, 88.614),
-                "itanagar": (27.084, 93.605), "dispur": (26.145, 91.736),
+        label = re.sub(r"\s+district\b", "", (location or "").lower()).strip()
+        aliases = {"prayagraj": "allahabad", "bengaluru": "bangalore", "gurugram": "gurgaon"}
+        parts = [aliases.get(part.strip(), part.strip()) for part in label.split(',')]
+        matches = [(key, DISTRICT_PROFILES[key]) for key in parts if key in DISTRICT_PROFILES]
+        matches = [(key, value) for key, value in matches
+                   if not state or value.get('state', '').casefold() == state.strip().casefold()]
+        if len(matches) == 1:
+            key, reference = matches[0]
+            return {
+                **reference, 'soil': None, 'irrigation': None,
+                '_source': 'district_exact', 'region': reference.get('state', 'India'),
+                'reference_district': key, 'reference_profile': dict(reference),
             }
-            for dist_key, (dlat, dlon) in _DISTRICT_CENTROIDS.items():
-                if dist_key not in DISTRICT_PROFILES:
-                    continue
-                # Haversine approximation (fast, no imports needed)
-                import math
-                dlat_r = math.radians(abs(latitude - dlat))
-                dlon_r = math.radians(abs(longitude - dlon))
-                a = math.sin(dlat_r/2)**2 + math.cos(math.radians(latitude)) * math.cos(math.radians(dlat)) * math.sin(dlon_r/2)**2
-                dist_km = 6371 * 2 * math.asin(math.sqrt(a))
-                if dist_km < best_dist:
-                    best_dist = dist_km
-                    best_key = dist_key
-            if best_key and best_dist < 120:  # within 120 km → use that district
-                p = dict(DISTRICT_PROFILES[best_key])
-                p["_source"] = f"gps_nearest_district_{int(best_dist)}km"
-                p["region"] = p.get("state", "India")
-                logger.info("GPS zone: %s → nearest district %s (%.0f km)", f"{latitude},{longitude}", best_key, best_dist)
-                return p
-
-        # 4. State-level match
-        state_name = state or ""
-        state_lower = state_name.lower()
-        for district_key, profile in DISTRICT_PROFILES.items():
-            if profile.get("state", "").lower() == state_lower:
-                p = dict(profile)
-                p["_source"] = "state_first_district"
-                p["region"] = p.get("state", "India")
-                return p
-
-        # 5. Keyword fallback
-        return self._state_keyword_profile(loc_lower, state_lower)
-
-    def _state_keyword_profile(self, loc: str, state: str) -> Dict[str, Any]:
-        """Fallback profile inferred from state/location keywords."""
-        combined = f"{loc} {state}"
-
-        if any(k in combined for k in ["punjab", "haryana", "delhi"]):
-            return {"state": "Punjab/Haryana", "soil": "Alluvial", "rainfall": "Medium", "irrigation": "High",
-                    "agro_zone": "northwest", "priority_crops": ["wheat","rice","cotton","mustard","potato"],
-                    "region": "North India", "_source": "keyword"}
-        if any(k in combined for k in ["uttar pradesh", "up ", "lucknow", "kanpur", "agra", "varanasi"]):
-            return {"state": "Uttar Pradesh", "soil": "Alluvial", "rainfall": "Medium", "irrigation": "High",
-                    "agro_zone": "indo_gangetic", "priority_crops": ["wheat","sugarcane","rice","potato","mustard"],
-                    "region": "North India", "_source": "keyword"}
-        if any(k in combined for k in ["rajasthan", "jaipur", "jodhpur", "bikaner"]):
-            return {"state": "Rajasthan", "soil": "Sandy Loam", "rainfall": "Low", "irrigation": "Low",
-                    "agro_zone": "thar_desert", "priority_crops": ["bajra","mustard","gram","wheat","cumin"],
-                    "region": "North India", "_source": "keyword"}
-        if any(k in combined for k in ["madhya pradesh", "mp ", "bhopal", "indore"]):
-            return {"state": "Madhya Pradesh", "soil": "Black", "rainfall": "Medium", "irrigation": "Medium",
-                    "agro_zone": "central", "priority_crops": ["soybean","wheat","gram","cotton","onion"],
-                    "region": "Central India", "_source": "keyword"}
-        if any(k in combined for k in ["maharashtra", "pune", "mumbai", "nagpur", "nashik"]):
-            return {"state": "Maharashtra", "soil": "Black", "rainfall": "Medium", "irrigation": "Medium",
-                    "agro_zone": "deccan", "priority_crops": ["cotton","soybean","sugarcane","onion","tur"],
-                    "region": "West India", "_source": "keyword"}
-        if any(k in combined for k in ["gujarat", "ahmedabad", "surat", "rajkot"]):
-            return {"state": "Gujarat", "soil": "Sandy Loam", "rainfall": "Low", "irrigation": "Medium",
-                    "agro_zone": "gujarat", "priority_crops": ["groundnut","cotton","wheat","castor","bajra"],
-                    "region": "West India", "_source": "keyword"}
-        if any(k in combined for k in ["karnataka", "bangalore", "mysore", "hubli"]):
-            return {"state": "Karnataka", "soil": "Red", "rainfall": "Medium", "irrigation": "Medium",
-                    "agro_zone": "peninsular", "priority_crops": ["ragi","maize","cotton","sunflower","groundnut"],
-                    "region": "South India", "_source": "keyword"}
-        if any(k in combined for k in ["andhra pradesh", "ap ", "vijayawada", "guntur"]):
-            return {"state": "Andhra Pradesh", "soil": "Black", "rainfall": "Medium", "irrigation": "Medium",
-                    "agro_zone": "peninsular", "priority_crops": ["rice","chilli","cotton","tobacco","groundnut"],
-                    "region": "South India", "_source": "keyword"}
-        if any(k in combined for k in ["telangana", "hyderabad", "warangal"]):
-            return {"state": "Telangana", "soil": "Red", "rainfall": "Medium", "irrigation": "Medium",
-                    "agro_zone": "peninsular", "priority_crops": ["rice","cotton","maize","turmeric","chilli"],
-                    "region": "South India", "_source": "keyword"}
-        if any(k in combined for k in ["tamil", "chennai", "coimbatore", "madurai"]):
-            return {"state": "Tamil Nadu", "soil": "Red", "rainfall": "Medium", "irrigation": "High",
-                    "agro_zone": "peninsular", "priority_crops": ["rice","sugarcane","groundnut","cotton","banana"],
-                    "region": "South India", "_source": "keyword"}
-        if any(k in combined for k in ["kerala", "kochi", "thiruvananthapuram", "kozhikode"]):
-            return {"state": "Kerala", "soil": "Laterite", "rainfall": "Very High", "irrigation": "Medium",
-                    "agro_zone": "coastal", "priority_crops": ["coconut","rubber","rice","black_pepper","banana"],
-                    "region": "South India", "_source": "keyword"}
-        if any(k in combined for k in ["west bengal", "kolkata", "bengal"]):
-            return {"state": "West Bengal", "soil": "Alluvial", "rainfall": "High", "irrigation": "High",
-                    "agro_zone": "indo_gangetic", "priority_crops": ["rice","jute","potato","mustard","mango"],
-                    "region": "East India", "_source": "keyword"}
-        if any(k in combined for k in ["bihar", "patna", "muzaffarpur"]):
-            return {"state": "Bihar", "soil": "Alluvial", "rainfall": "Medium", "irrigation": "High",
-                    "agro_zone": "indo_gangetic", "priority_crops": ["rice","wheat","maize","litchi","potato"],
-                    "region": "East India", "_source": "keyword"}
-        if any(k in combined for k in ["odisha", "bhubaneswar", "cuttack"]):
-            return {"state": "Odisha", "soil": "Red", "rainfall": "High", "irrigation": "Medium",
-                    "agro_zone": "coastal", "priority_crops": ["rice","jute","turmeric","ginger","cashew"],
-                    "region": "East India", "_source": "keyword"}
-        if any(k in combined for k in ["assam", "guwahati", "northeast"]):
-            return {"state": "Assam", "soil": "Alluvial", "rainfall": "Very High", "irrigation": "Low",
-                    "agro_zone": "northeast", "priority_crops": ["rice","tea","jute","pineapple","ginger"],
-                    "region": "Northeast India", "_source": "keyword"}
-        if any(k in combined for k in ["himachal", "shimla", "kullu", "manali"]):
-            return {"state": "Himachal Pradesh", "soil": "Loamy", "rainfall": "High", "irrigation": "Low",
-                    "agro_zone": "himalayan", "priority_crops": ["apple","potato","rajma","peas","strawberry"],
-                    "region": "North India", "_source": "keyword"}
-        if any(k in combined for k in ["uttarakhand", "dehradun", "haridwar"]):
-            return {"state": "Uttarakhand", "soil": "Alluvial", "rainfall": "High", "irrigation": "Medium",
-                    "agro_zone": "himalayan", "priority_crops": ["rice","wheat","litchi","sugarcane","lemongrass"],
-                    "region": "North India", "_source": "keyword"}
-        if any(k in combined for k in ["chhattisgarh", "raipur"]):
-            return {"state": "Chhattisgarh", "soil": "Red", "rainfall": "High", "irrigation": "Medium",
-                    "agro_zone": "central", "priority_crops": ["rice","maize","soybean","vegetables","sesame"],
-                    "region": "Central India", "_source": "keyword"}
-        if any(k in combined for k in ["jharkhand", "ranchi"]):
-            return {"state": "Jharkhand", "soil": "Red", "rainfall": "High", "irrigation": "Low",
-                    "agro_zone": "peninsular", "priority_crops": ["rice","maize","potato","vegetables","tomato"],
-                    "region": "East India", "_source": "keyword"}
-
-        # Ultimate fallback — generic India
         return {
-            "state": "India", "soil": "Alluvial", "rainfall": "Medium", "irrigation": "Medium",
-            "agro_zone": "indo_gangetic", "priority_crops": ["wheat","rice","maize","mustard","potato","gram"],
-            "region": "India", "_source": "default",
+            '_source': 'unknown', 'state': state or '', 'region': state or location or 'India',
+            'soil': None, 'irrigation': None, 'rainfall': None,
+            'priority_crops': [], 'agro_zone': '', 'reference_profile': None,
         }
+
 
     # ── Scoring engine ─────────────────────────────────────────────────
 
@@ -818,9 +609,9 @@ class CropRecommendationEngine:
             from .ultra_dynamic_government_api import _builtin_crop_database
             ALL_CROP_DATA = _builtin_crop_database()
 
-        soil          = profile.get("soil", "Loamy")
-        rainfall_band = profile.get("rainfall", "Medium")
-        irrigation    = _irrigation_level(profile.get("irrigation", "Medium"))
+        soil          = profile.get("soil")
+        rainfall_band = profile.get("rainfall")
+        irrigation    = _irrigation_level(profile['irrigation']) if profile.get('irrigation') else None
         priority_list = [c.lower() for c in profile.get("priority_crops", [])]
         agro_zone     = profile.get("agro_zone", "")
 
@@ -903,8 +694,10 @@ class CropRecommendationEngine:
 
         # 2. Soil texture.
         crop_soils = [s.lower() for s in crop.get("soil_preference", [])]
-        soil_lower = soil.lower()
-        if soil_lower in crop_soils or any(soil_lower in s for s in crop_soils):
+        soil_lower = (soil or '').lower()
+        if not soil_lower:
+            factor("soil", 0, 15, "unknown", "Ask farmer for soil type; not inferred from district")
+        elif soil_lower in crop_soils or any(soil_lower in s for s in crop_soils):
             factor("soil", 15, 15, "ideal", f"Ideal {soil}")
             reasons.append(f"Ideal soil ({soil})")
         elif any(s in soil_lower for s in crop_soils):
@@ -920,7 +713,9 @@ class CropRecommendationEngine:
         available_rain = (rain_range[0] + min(rain_range[1], 2500)) / 2
         required_rain = max(float(crop.get("rainfall_mm", 800)), 1)
         rain_ratio = available_rain / required_rain
-        if 0.6 <= rain_ratio <= 1.8:
+        if not rainfall_band:
+            factor("rainfall", 0, 8, "unknown", "No district rainfall reference available")
+        elif 0.6 <= rain_ratio <= 1.8:
             factor("rainfall", 8, 8, "good", f"Regional rainfall fits {required_rain:.0f} mm need")
         elif 0.35 <= rain_ratio <= 2.4:
             factor("rainfall", 3, 8, "conditional", "Irrigation/drainage may be needed")
@@ -960,7 +755,10 @@ class CropRecommendationEngine:
             water_source = "irrigation"
         min_val = irr_levels.get(irr_min, 0)
 
-        if effective_water >= min_val:
+        if irrigation is None:
+            factor("water", 0, 12, "unknown", "Ask farmer about irrigation before choosing a crop")
+            reasons.append("Irrigation unknown; confirm water availability before planting")
+        elif effective_water >= min_val:
             if water_req == "Low" and effective_water >= 2:
                 factor("water", 6, 12, "compatible", "Drainage needed with abundant water")
                 reasons.append("Water abundant (drought-resistant crop)")
@@ -1200,20 +998,23 @@ class CropRecommendationEngine:
 
     def _assess_weather_risk(self, forecast: List[Dict], current: Dict) -> Dict[str, Any]:
         """Assess 7-day weather risk for crop scoring."""
-        if not forecast:
-            return {"risk": "Unavailable", "description": "No live forecast data"}
+        if len(forecast) < 7 or not all(
+            type(day.get(key)) in (int, float) and math.isfinite(day[key])
+            for day in forecast[:7] for key in ("rainfall_mm", "max_temp")
+        ):
+            return {"risk": "Unavailable", "description": "Complete seven-day forecast unavailable"}
 
-        total_rain = sum(d.get("rainfall_mm", 0) or 0 for d in forecast[:7])
-        max_temps  = [d.get("max_temp") for d in forecast[:7] if d.get("max_temp")]
-        avg_max    = sum(max_temps) / len(max_temps) if max_temps else 28
+        total_rain = sum(d["rainfall_mm"] for d in forecast[:7])
+        max_temps  = [d["max_temp"] for d in forecast[:7]]
+        avg_max    = sum(max_temps) / len(max_temps)
 
-        # Use real soil moisture from Open-Meteo if available
-        humidity = current.get("humidity") or 65
+        # Air humidity is not a measurement of root-zone soil moisture.
+        humidity = current.get("humidity")
 
         if total_rain > 150:
             return {"risk": "High Rainfall", "description": f"Heavy rain expected ({total_rain:.0f}mm / 7 days)"}
-        if total_rain < 5 and humidity < 30:
-            return {"risk": "Drought", "description": "Dry spell — very low moisture"}
+        if total_rain < 5 and type(humidity) in (int, float) and 0 <= humidity < 30:
+            return {"risk": "Drought", "description": "Low rainfall and dry air; check soil moisture before irrigation"}
         if avg_max > 42:
             return {"risk": "Heatwave", "description": f"Heatwave expected ({avg_max:.1f}°C avg max)"}
         if avg_max < 8:
@@ -1229,6 +1030,7 @@ class CropRecommendationEngine:
         if not market_data.get("is_live"):
             return price_map
         crops = market_data.get("top_crops") or []
+        crops, _, _ = filter_fresh_live_rows(crops)
         for row in crops:
             name = str(row.get("crop_name", "")).lower().strip().replace(" ", "_")
             modal_price = row.get("modal_price", 0)
@@ -1329,7 +1131,7 @@ class CropRecommendationEngine:
         inputs = agronomic_inputs or {}
         season_key = inputs.get("season") or _current_season()
         missing_farmer_inputs = [
-            key for key in ("soil_type", "irrigation", "previous_crop")
+            key for key in self.CONFIDENCE_FARMER_INPUTS
             if inputs.get(key) in (None, "")
         ]
         out = []
@@ -1378,15 +1180,20 @@ class CropRecommendationEngine:
                 value for value in factor_rows
                 if value.get("status") not in {"uncertain", "neutral", "unavailable"}
             ]
-            data_completeness = round(
+            score_factor_coverage = round(
                 len(supported_rows) / max(len(factor_rows), 1), 2
             )
+            missing_inputs = self._missing_confidence_inputs(
+                inputs, weather_is_live, bool(mkt.get("is_live")),
+            )
+            input_count = len(self.CONFIDENCE_FARMER_INPUTS) + 2
+            data_completeness = round((input_count - len(missing_inputs)) / input_count, 2)
 
             input_quality = max(0.55, 1.0 - (0.1 * len(missing_farmer_inputs)))
             if not weather_is_live:
                 input_quality = max(0.45, input_quality - 0.12)
             if not mkt.get("is_live", False):
-                input_quality = max(0.5, input_quality - 0.08)
+                input_quality = max(0.45, input_quality - 0.08)
             confidence = min(
                 (score / 100.0) * (0.7 + 0.3 * data_completeness) * input_quality,
                 0.98,
@@ -1402,9 +1209,8 @@ class CropRecommendationEngine:
                 "season_key": crop.get("season", season_key),
                 "suitability_score": int(min(score, 99)),
                 "confidence": round(confidence, 2),
-                "confidence_inputs_missing": missing_farmer_inputs
-                + ([] if weather_is_live else ["live_weather"])
-                + ([] if mkt.get("is_live", False) else ["verified_market_price"]),
+                "confidence_kind": "heuristic_not_calibrated_probability",
+                "confidence_inputs_missing": missing_inputs,
                 "reason": " | ".join(priority_reasons[:3]),
                 "reason_hindi": reason_local,
                 "factors": reasons,
@@ -1451,6 +1257,8 @@ class CropRecommendationEngine:
                     "method": "multi_factor_scoring_v5",
                     "score_breakdown": breakdown,
                     "data_completeness": data_completeness,
+                    "score_factor_coverage": score_factor_coverage,
+                    "data_completeness_basis": "farmer_inputs_and_live_sources_v1",
                     "farmer_inputs_used": sorted(inputs),
                 },
                 "outlook": profile.get("_source", ""),

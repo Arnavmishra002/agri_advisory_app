@@ -1,0 +1,84 @@
+Feature or route,User role,Expected behavior,Test scenario,Test layer,Status,Evidence,Related issue
+POST /api/users/otp/request/,anonymous,"Issue 6-digit code, cache 10min, report sms_sent","Request OTP, assert 200 + sms_sent present",API,PASS,test_audit_journeys.OtpLoginJourneyTests::test_otp_request_succeeds_and_reports_sms_delivery_state,
+POST /api/users/otp/verify/,anonymous,"Verify code, create User, issue JWT",Full journey; assert User row exists,API,PASS,test_full_login_journey_creates_a_user_and_issues_usable_tokens,
+POST /api/users/otp/verify/,anonymous,OTP is single-use,Reuse consumed code; assert non-200,API,PASS,test_an_otp_cannot_be_used_twice,
+POST /api/users/otp/verify/,anonymous,Lock out brute force,6 wrong codes; assert 429 appears,API,PASS,test_wrong_codes_are_locked_out_before_brute_force_succeeds,
+POST /api/users/otp/request/,anonymous,3 requests/hour per phone,5 requests; assert 429 appears,API,PASS,test_otp_requests_are_rate_limited_per_phone,
+OTP login UI flow,farmer,Tell the user when SMS was not sent,Inspect auth.js branch on data.success,Code review,FAIL,auth.js:130-152 ignores sms_sent; advances to step 2,ISSUE-02
+POST /api/users/register/,anonymous,Create account + auto-login,Not exercised,API,NOT RUN,Deferred; OTP path prioritised,
+POST /api/users/logout/,authenticated,Return 200 so client clears storage,Not exercised,API,NOT RUN,,
+GET /api/users/me/,anonymous,Reject anonymous,Assert 401/403,API,PASS,test_audit_authz_probe.UnauthenticatedAccessTests,
+GET /api/farmer-profile/me/,anonymous,Reject anonymous,Assert 401/403,API,PASS,same,
+GET /api/farmer-profile/context/,anonymous,Reject anonymous,Assert 401/403,API,PASS,same,
+GET /api/farmer-profile/me/,farmer A vs B,Each user sees only their own record,Two authenticated clients; compare payloads,API,PASS,CrossAccountAccessTests::test_farmer_profile_me_returns_only_the_callers_own_record,
+GET /api/farmer-profile/,farmer A,List scoped to caller,Assert no other user's row present,API,PASS,test_profile_list_is_scoped_to_the_caller,
+POST /api/rate-limits/reset/,anonymous,Anonymous must not clear limiter buckets,POST unauthenticated; assert rejected,API,PASS,RateLimitResetExposureTests,
+POST /api/chatbot/query/,anonymous,Reject oversized input,5000-char query; assert 400,API,PASS,ChatInputHandlingTests::test_oversized_query_is_rejected_not_processed,
+POST /api/chatbot/query/,anonymous,Reject empty/whitespace,3 empty variants; assert 400,API,PASS,test_empty_and_whitespace_queries_are_rejected,
+POST /api/chatbot/query/,anonymous,Reject unknown language code,language=xx; assert 400,API,PASS,test_unknown_language_code_is_rejected,
+POST /api/chatbot/query/,anonymous,Strict serializer rejects unknown fields,is_admin=true; assert 400,API,PASS,test_unknown_fields_are_rejected_by_the_strict_serializer,
+POST /api/chatbot/query/,anonymous,Reflected input stays inert,Assert application/json + nosniff,API,PASS,test_reflected_markup_is_served_as_inert_json,ISSUE-12
+POST /api/chatbot/query/,anonymous,Require confirmed location before advice,Query without location; assert location prompt,API,PASS,Manual probe: returns location-selection message,
+POST /api/chatbot/query/,anonymous,District named in text should resolve,"Query 'East Godavari, Andhra Pradesh'",API,FAIL,Returns 'choose location' prompt; typed district not resolved,ISSUE-03
+Crop recommendation engine,farmer,Use the farmer's own district profile,_resolve_location_profile for 6 districts,Unit,FAIL,East Godavari/Kakinada/Rajahmundry all return Vijayawada profile via state_first_district,ISSUE-03
+Crop recommendation rendering,farmer,Do not state borrowed data as fact,Inspect rendered Hindi answer,Manual,FAIL,"'Ideal soil (Alluvial) | Water needs met (High, from irrigation)' with no provenance",ISSUE-03
+GET /api/market-prices/,anonymous,Never invent a price when upstreams fail,All providers 403; assert freshness label on any price,API,PASS,MarketHonestyTests,
+GET /api/market-prices/mandi-prices/,anonymous,mandi param required,Call without mandi; assert 400,API,PASS,Contract confirmed; frontend only calls with mandi selected,
+build_dated_official_reference,n/a,Keep rows 24h-7d old as dated reference,Existing project test,Unit,FAIL,AssertionError 0 != 2 - fixture date expired 13-09-2026,ISSUE-04
+build_dated_official_reference,n/a,Function itself is correct,Bisect with injected now= 07..15 Sep,Unit,PASS,"rows=2 for 07-12 Sep, 0 from 13 Sep - production code correct",
+GET /api/health/,anonymous,Liveness 200,curl,API,PASS,HTTP 200,
+GET /api/health/launch-readiness/,anonymous,Should not enumerate disabled controls,Request under DEBUG=False,API,FAIL,Returns full checks+blockers to anonymous caller,ISSUE-11
+GET /api/monitoring/metrics/,anonymous,Gated outside DEBUG,Request under DEBUG=False,API,PASS,HTTP 403,
+GET /api/monitoring/system_health/,anonymous,Gated outside DEBUG,Inspect _staff_or_debug guard,Code review,PASS,Guard present at monitoring_views.py:103,
+Monitoring endpoints,anonymous,No secrets or host paths in responses,Scan 5 endpoints for value markers,API,PASS,MonitoringExposureTests - 0 offenders after marker correction,
+Settings fail-fast,operator,Refuse to boot misconfigured,STRICT_PRODUCTION_CONFIG=true without REDIS_URL,Integration,PASS,ImproperlyConfigured raised at settings.py:486,
+Security headers (production),anonymous,"DENY, nosniff, CSP enforced",Existing ProductionSecurityHeaderTests,Unit,PASS,In 357-test baseline; skipped=1 only,
+XSS sinks in app.js,farmer,Server data escaped before innerHTML,Scan 60 innerHTML sites for unescaped interpolation,Code review,PASS,"3 interpolating sites, all escaped; renderChatText escapes before markdown",
+Layout 320x568,farmer,No horizontal overflow,Playwright measure scrollWidth vs clientWidth,Browser,PASS,"0px overflow, 0 offending elements",
+Layout 360x640,farmer,No horizontal overflow,same,Browser,PASS,0px overflow,
+Layout 768x1024,farmer,No horizontal overflow,same,Browser,PASS,0px overflow,
+Layout 1440x900,farmer,No horizontal overflow,same,Browser,PASS,0px overflow,
+Tap targets,farmer,>=24x24 px,"Measure all interactive elements, 4 viewports",Browser,PASS,0 undersized targets,
+Language switcher - 9 languages,farmer,Translate UI into correct script,Select each; check Unicode block of nav text,Browser,PASS,hi bn te mr ta gu kn ml pa - 31/34 to 40/43 chars in range,
+Language switcher - 8 languages,farmer,Translate UI,Select each; inspect nav text,Browser,FAIL,mai kok doi bo sat fall back to Hindi; mni sd ks fall back to English,ISSUE-05
+Language switcher - 4 languages,farmer,Translate all nav keys,Select each; inspect nav text,Browser,FAIL,or as ur ne translate 'My Profile' but not 'Logout',ISSUE-06
+lang attribute,screen-reader user,Track selected language,Read documentElement lang for 22 options,Browser,PASS,Tracks correctly for all 22,
+lang code for Bodo,screen-reader user,Use a correct ISO code,Inspect option value,Browser,FAIL,bo is ISO 639-1 Tibetan; Bodo is brx,ISSUE-05a
+RTL - ur / sd / ks,farmer,dir=rtl applied,Select each; read dir + computed direction,Browser,PASS,"dir=rtl, computed rtl, text-align right",
+main landmark,screen-reader user,Content in a main landmark,Count landmarks at runtime,Browser,FAIL,"main=0 (nav=2, header=0)",ISSUE-07
+Form labels,screen-reader user,Every input has an accessible name,Check labels/aria-label on visible inputs,Browser,FAIL,#languageSwitcher and #locationSearchInput unlabelled,ISSUE-08
+Keyboard focus visibility,keyboard user,Visible focus on every stop,Tab 18 stops; check outline/box-shadow,Browser,FAIL,"3 of 18 invisible: #themeToggle, #locationSearchInput, Search button",ISSUE-09
+Heading structure,screen-reader user,"One h1, no skipped levels",Enumerate headings,Browser,PASS,"1 h1, 0 skips",
+Image alt text,screen-reader user,All images have alt,Enumerate visible img,Browser,PASS,0 missing,
+Accessible names on controls,screen-reader user,No nameless buttons/links,Enumerate interactive elements,Browser,PASS,0 nameless,
+Google Fonts import,farmer,No blocked external requests,"Capture failed requests, 4 viewports",Browser,FAIL,styles.css:7 @import fonts.googleapis.com blocked by prod CSP,ISSUE-13
+Page weight,farmer on slow link,Reasonable payload,"Measure transfer, cold cache, localhost",Browser,PASS,"17 requests, 1070KB uncompressed, FCP 500ms. Production gzips via WhiteNoise - not a production measurement",
+Frontend build,developer,vite build succeeds,npm run build in clean clone,Build,PASS,"exit 0, built in 219ms (ENV-B)",
+Frontend build,developer,vite build succeeds,npm run build on user's machine,Build,BLOCKED,"@rollup/rollup-linux-arm64-gnu missing - arch-mismatched node_modules, not a repo defect",
+UI contract check,developer,IDs/services/handlers consistent,npm run test:ui,Static,PASS,"169 IDs, 7 services, 22 handlers (both envs)",
+e2e suite (22 specs),farmer,Frontend flows behave,npx playwright test with available browser,E2E,PASS,"22 passed, 2 skipped, 49.2s",
+e2e suite,developer,Runs on the pinned browser,"npx playwright test, unmodified config",E2E,BLOCKED,Expects chromium 1228; container has 1194; downloads disallowed,
+e2e backend coverage,developer,Exercise the real API,Observe network during e2e run,E2E,NOT APPLICABLE,Every spec mocks **/api/**; suite green with no backend running,GAP-02
+CD deploy reporting,developer,Summary states what shipped,Read CD #93 and #94 job logs,Pipeline,FAIL,"Deploy skipped, summary printed 'Render: success'",ISSUE-10
+Render deployment,farmer,Commits reach the live service,Read GitHub Deployments + live /js/i18n.js,Pipeline,FAIL,13 consecutive failures; live build predates current fixes,ISSUE-01
+Agmarknet live prices,farmer,Fetch live mandi rows,Network blocked in both environments,Integration,BLOCKED,Proxy 403 to api.agmarknet.gov.in,
+Open-Meteo / MET Norway weather,farmer,Fetch forecast,Network blocked,Integration,BLOCKED,Proxy 403,
+Twilio SMS delivery,farmer,Deliver OTP,Network blocked; credentials not entered,Integration,BLOCKED,Never attempted against the real service by design,
+Gemini / Ollama / Phase1 RAG,farmer,LLM narration,Unreachable,Integration,BLOCKED,chatbot_diagnostics: rule_based_fallback throughout,
+Disease diagnosis (TFLite),farmer,Classify a leaf photo,Not exercised,Integration,NOT RUN,disease_mode=advisory_fallback; model serving untested,
+POST /api/diagnostics/predict/,anonymous,Predict from image,Not exercised,API,NOT RUN,,
+POST /api/diagnostics/feedback/,authenticated,Ownership enforced,Not exercised beyond project e2e mocks,API,NOT RUN,Project e2e covers the mocked contract only,
+GET /api/schemes/eligibility/,anonymous,Return eligible schemes,Not exercised,API,NOT RUN,,
+GET /api/weather/*,anonymous,Forecast endpoints,Failure path only,API,BLOCKED,No upstream reachable,
+GET /api/field-advisory/* (6 actions),anonymous,Sensor/soil/weather advisory,Not exercised,API,NOT RUN,,
+GET /api/iot-blockchain/sensor_data/,anonymous,Sensor ingest/readback,Not exercised,API,NOT RUN,,
+GET /api/tts/advisory-audio/,anonymous,Text-to-speech output,Not exercised,API,NOT RUN,,
+GET /api/trending-crops/,anonymous,Trending list,Not exercised,API,NOT RUN,,
+GET /api/languages/detect/,anonymous,Detect query language,Not exercised directly,API,NOT RUN,Covered indirectly by project tests,
+POST /api/token/ + /refresh/,authenticated,JWT issue and rotate,Not exercised directly,API,NOT RUN,Project e2e covers the mocked contract,
+Django admin /admin/,staff,Staff-only,Not exercised,Web,NOT RUN,No staff account created; no production access,
+PostgreSQL behaviour,operator,"Constraints, indexes, migrations",Not exercised,DB,NOT RUN,Both environments used SQLite,
+Redis-backed limiters and cache,operator,Shared across workers,Not exercised,Integration,NOT RUN,No Redis; locmem fallback only,
+Celery / MQTT background jobs,operator,"Retry, dedupe, recovery",Not exercised,Integration,NOT RUN,No broker; MQTT worker commented out in render.yaml,
+"Cross-browser (Firefox, WebKit)",farmer,Consistent rendering,Not exercised,Browser,NOT RUN,Only Chromium 1194 available,
+Load / concurrency / soak,operator,Stable under load,Not exercised,Perf,NOT RUN,No representative workload; single machine,

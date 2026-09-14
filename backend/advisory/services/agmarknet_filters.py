@@ -54,6 +54,8 @@ DASHBOARD = "marketwise_price_arrival"
 
 _CACHE_KEY = "agmarknet:filters:v1"
 _CACHE_TTL = 24 * 60 * 60          # the filter space changes very rarely
+_FAILURE_CACHE_KEY = "agmarknet:filters:unavailable:v1"
+_FAILURE_TTL = 60
 _HTTP_TIMEOUT = (5, 20)            # connect, read
 
 _REFERENCE_PATH = Path(__file__).resolve().parent.parent / "data" / "agmarknet_reference.json"
@@ -150,14 +152,21 @@ class AgmarknetFilterRegistry:
             cached = cache.get(_CACHE_KEY)
             if cached:
                 return cached
+        if cache.get(_FAILURE_CACHE_KEY):
+            return None
         with self._lock:
             if not force_refresh:
                 cached = cache.get(_CACHE_KEY)
                 if cached:
                     return cached
+            if cache.get(_FAILURE_CACHE_KEY):
+                return None
             payload = self._fetch()
             if payload:
                 cache.set(_CACHE_KEY, payload, _CACHE_TTL)
+                cache.delete(_FAILURE_CACHE_KEY)
+            else:
+                cache.set(_FAILURE_CACHE_KEY, True, _FAILURE_TTL)
             return payload
 
     # ── resolution ────────────────────────────────────────────────────────
