@@ -447,8 +447,14 @@
 
     // ── Farmer profile helpers ────────────────────────────────────────────────
     let profileLoadVersion = 0;
+    let profileSaveQueue = Promise.resolve();
+    let profileSaveBlocked = false;
+    let profileSaveNoticeTimer;
     async function _restoreFarmerProfile() {
         const version = ++profileLoadVersion;
+        profileSaveQueue = Promise.resolve();
+        profileSaveBlocked = false;
+        clearTimeout(profileSaveNoticeTimer);
         const fields = { fp_crop: 'current_crop', fp_size: 'farm_size_bigha', fp_ph: 'soil_ph', fp_pmkisan: 'has_pm_kisan' };
         Object.keys(fields).forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         if (!window.KM_Auth?.isLoggedIn()) return;
@@ -471,25 +477,39 @@
         }
     }
 
-    async function _upsertFarmerProfile(extraData = {}) {
+    function _upsertFarmerProfile(extraData = {}) {
         const version = profileLoadVersion;
+        const snapshot = { ...extraData };
+        if (hasConfirmedLocation()) {
+            Object.assign(snapshot, { latitude: currentLatitude, longitude: currentLongitude,
+                location_name: currentLocation, state: currentState || '' });
+        }
+        const save = profileSaveQueue.then(() => {
+            if (version !== profileLoadVersion || !window.KM_Auth?.isLoggedIn()) return null;
+            return _performProfileSave(snapshot, version);
+        });
+        profileSaveQueue = save.catch(() => null);
+        return save;
+    }
+
+    async function _performProfileSave(extraData, version) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
         try {
             if (!(window.KM_Auth && KM_Auth.isLoggedIn())) return;
+            if (profileSaveBlocked) throw new Error('Reload profile before retrying an uncertain save');
             const authHeaders = KM_Auth.getAuthHeaders();
             const lang = (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'hi';
             const payload = {
                 preferred_language: lang,
                 ...extraData,
             };
-            if (currentLatitude)  payload.latitude  = currentLatitude;
-            if (currentLongitude) payload.longitude = currentLongitude;
-            if (currentLocation)  payload.location_name = currentLocation;
-            if (currentState)     payload.state = currentState;
             Object.keys(payload).forEach(key => { if (payload[key] === null) delete payload[key]; });
             const response = await fetch(apiFetch('/api/farmer-profile/'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
                 body: JSON.stringify(payload),
+                signal: controller.signal,
             });
             if (!response.ok) throw new Error('Profile save rejected');
             const result = await response.json();
@@ -499,14 +519,23 @@
                 if (ind) {
                     ind.setAttribute('role', 'status');
                     ind.textContent = window.t('profile_saved');
-                    setTimeout(() => { ind.textContent = ''; }, 2000);
+                    clearTimeout(profileSaveNoticeTimer);
+                    profileSaveNoticeTimer = setTimeout(() => {
+                        if (version === profileLoadVersion) ind.textContent = '';
+                    }, 2000);
                 }
             return result;
         } catch (e) {
             if (version !== profileLoadVersion) return null;
+            // Aborting a request cannot undo a server write. Do not send a
+            // later edit until the farmer reloads this uncertain profile.
+            if (e.name === 'AbortError') profileSaveBlocked = true;
+            clearTimeout(profileSaveNoticeTimer);
             const ind = document.getElementById('profileSaveIndicator');
             if (ind) { ind.setAttribute('role', 'alert'); ind.textContent = window.t('profile_not_saved'); }
             return null;
+        } finally {
+            clearTimeout(timeout);
         }
     }
 
