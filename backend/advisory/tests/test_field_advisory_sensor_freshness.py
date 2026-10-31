@@ -27,7 +27,7 @@ class FieldAdvisorySensorFreshnessTests(TestCase):
     @patch("advisory.api.viewsets.field_advisory.field_sensor_service.get_field_recommendation")
     def test_stale_saved_sensor_reading_is_not_used_as_realtime_input(self, mock_recommend):
         reading = IoTSensorReading.objects.create(
-            field_id="field-1",
+            field_id=f"user:{self.user.pk}:field-1",
             latitude=26.8467,
             longitude=80.9462,
             location_name="Lucknow",
@@ -61,7 +61,7 @@ class FieldAdvisorySensorFreshnessTests(TestCase):
         self.assertIsNone(mock_recommend.call_args.kwargs["sensor_data"])
         freshness = response.data["sensor_freshness"]
         self.assertEqual(freshness["status"], "stale_ignored")
-        self.assertEqual(freshness["field_id"], "field-1")
+        self.assertEqual(freshness["field_id"], f"user:{self.user.pk}:field-1")
         self.assertGreaterEqual(freshness["age_minutes"], 180)
         self.assertIn("Sensor reading is stale", freshness["message"])
 
@@ -69,7 +69,7 @@ class FieldAdvisorySensorFreshnessTests(TestCase):
     @patch("advisory.api.viewsets.field_advisory.field_sensor_service.get_field_recommendation")
     def test_fresh_saved_sensor_reading_is_used_with_age_metadata(self, mock_recommend):
         reading = IoTSensorReading.objects.create(
-            field_id="field-2",
+            field_id=f"user:{self.user.pk}:field-2",
             latitude=26.8467,
             longitude=80.9462,
             location_name="Lucknow",

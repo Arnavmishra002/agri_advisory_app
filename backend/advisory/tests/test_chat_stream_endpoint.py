@@ -217,3 +217,84 @@ class ChatStreamKeepAliveTests(SimpleTestCase):
         self.assertTrue(frames.startswith(": keepalive\n\n"), frames[:80])
         self.assertIn('"token": "checked answer"', frames)
         self.assertNotIn("__heartbeat__", frames)
+
+
+@override_settings(RATE_LIMIT_ENABLED=False)
+class LongHistoryTests(SimpleTestCase):
+    """A long earlier answer must not make every later question fail with 400."""
+
+    @patch("advisory.api.viewsets.chatbot._dispatch_writes")
+    @patch("advisory.api.viewsets.chatbot._load_farmer_context", return_value={})
+    @patch("advisory.api.viewsets.chatbot.chat_intelligence_service.answer_stream")
+    def test_long_assistant_turn_is_shortened_not_rejected(self, answer_stream, *_):
+        answer_stream.return_value = iter([
+            "ok",
+            {"__done__": True, "intent": "general", "language": "hi", "data_source": "x"},
+        ])
+        long_answer = "गेहूं की सिंचाई " * 400  # about 6,000 characters
+
+        response = Client().post(
+            "/api/chatbot/stream/",
+            data=json.dumps({"query": "aur kya karein", "language": "hi", "location": "Lucknow",
+                             "latitude": 26.8467, "longitude": 80.9462,
+                             "history": [{"role": "user", "content": "gehu ki sinchai"},
+                                         {"role": "assistant", "content": long_answer}]}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        b"".join(response.streaming_content)
+        history = answer_stream.call_args.kwargs["history"]
+        self.assertTrue(history)
+        self.assertTrue(all(len(turn["content"]) <= 2000 for turn in history))
+
+    @patch("advisory.api.viewsets.chatbot._dispatch_writes")
+    @patch("advisory.api.viewsets.chatbot._load_farmer_context", return_value={})
+    @patch("advisory.api.viewsets.chatbot.chat_intelligence_service.answer_stream")
+    def test_turn_cut_inside_an_emoji_is_accepted(self, answer_stream, *_):
+        # An older client cut long turns by UTF-16 units, leaving half of 🌾.
+        answer_stream.return_value = iter([
+            "ok",
+            {"__done__": True, "intent": "general", "language": "hi", "data_source": "x"},
+        ])
+        cut_answer = "क" * 1999 + "\ud83c"
+
+        response = Client().post(
+            "/api/chatbot/stream/",
+            data=json.dumps({"query": "aur kya karein", "language": "hi", "location": "Lucknow",
+                             "latitude": 26.8467, "longitude": 80.9462,
+                             "history": [{"role": "assistant", "content": cut_answer}]}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        b"".join(response.streaming_content)
+        history = answer_stream.call_args.kwargs["history"]
+        self.assertEqual(history[-1]["content"], "क" * 1999)
+
+    @patch("advisory.api.viewsets.chatbot._dispatch_writes")
+    @patch("advisory.api.viewsets.chatbot._load_farmer_context", return_value={})
+    @patch("advisory.api.viewsets.chatbot.chat_intelligence_service.answer")
+    def test_json_endpoint_uses_the_cleaned_history(self, answer, *_):
+        # The non-streaming fallback must use validated history too: a lone
+        # surrogate reaching the model made the request fail with 500.
+        answer.return_value = {
+            "response": "ok", "intent": "general", "language": "hi",
+            "sources": [], "data_source": "x",
+        }
+        cut_answer = "क" * 1999 + "\ud83c"  # the half emoji survives the 2,000 cut
+
+        response = Client().post(
+            "/api/chatbot/query/",
+            data=json.dumps({"query": "aur kya karein", "language": "hi", "location": "Lucknow",
+                             "latitude": 26.8467, "longitude": 80.9462,
+                             "history": [{"role": "assistant", "content": cut_answer}]}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        history = answer.call_args.kwargs["history"]
+        self.assertTrue(history)
+        for turn in history:
+            self.assertLessEqual(len(turn["content"]), 2000)
+            self.assertFalse(any("\ud800" <= ch <= "\udfff" for ch in turn["content"]))

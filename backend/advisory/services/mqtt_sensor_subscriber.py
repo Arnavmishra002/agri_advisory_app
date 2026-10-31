@@ -149,6 +149,11 @@ class BatchedSensorIngestor:
 
             readings = []
             for p in payloads:
+                if str(p.get("field_id", "")).lower().startswith("user:"):
+                    # "user:<id>" ids belong to farmer accounts; a device
+                    # payload cannot claim one.
+                    logger.warning("Rejected sensor payload claiming an account field id")
+                    continue
                 try:
                     readings.append(
                         IoTSensorReading(
@@ -182,7 +187,9 @@ class BatchedSensorIngestor:
                 if now_time - _last_trim_time >= TRIM_INTERVAL:
                     _last_trim_time = now_time
                     try:
-                        field_ids = {p.get("field_id") for p in payloads if p.get("field_id")}
+                        # Only fields this batch actually wrote: a rejected
+                        # payload must not trim another field's history.
+                        field_ids = {r.field_id for r in readings}
                         for f_id in field_ids:
                             old_ids = list(
                                 IoTSensorReading.objects

@@ -2726,6 +2726,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     from ..models import IoTSensorReading
 
                     cutoff = timezone.now() - timedelta(minutes=30)
+                    # Device readings only: readings a farmer submitted through
+                    # the API ("user:<id>") describe that farmer's own field
+                    # and must not steer anyone else's advice.
                     reading = (
                         IoTSensorReading.objects
                         .filter(
@@ -2733,6 +2736,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             longitude__range=(ctx.longitude - 0.15, ctx.longitude + 0.15),
                             created_at__gte=cutoff,
                         )
+                        .exclude(field_id__startswith="user:")
                         .order_by("-created_at")
                         .first()
                     )

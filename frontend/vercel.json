@@ -15,8 +15,23 @@
       { "key": "Cache-Control", "value": "private, no-store" }
     ] }
   ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://agri-advisory-web.onrender.com/api/$1",
+      "headers": { "Cache-Control": "private, no-store" },
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "set",
+          "target": { "key": "x-origin-secret" },
+          "args": "$ORIGIN_SECRET",
+          "env": ["ORIGIN_SECRET"]
+        }
+      ]
+    }
+  ],
   "rewrites": [
-    { "source": "/api/:path(.*)", "destination": "https://agri-advisory-web.onrender.com/api/:path" },
     { "source": "/media/:path(.*)", "destination": "https://agri-advisory-web.onrender.com/media/:path" }
   ]
 }

@@ -22,16 +22,31 @@ class VercelWebContractTests(SimpleTestCase):
         self.assertNotIn("unsafe-eval", headers["Content-Security-Policy"])
         self.assertIn("geolocation=(self)", headers["Permissions-Policy"])
         self.assertEqual(rules["/api/:path(.*)"]["Cache-Control"], "private, no-store")
-        self.assertEqual(config["rewrites"][0]["destination"], "https://agri-advisory-web.onrender.com/api/:path")
+        route = config["routes"][0]
+        self.assertEqual(route["dest"], "https://agri-advisory-web.onrender.com/api/$1")
+        self.assertEqual(route["headers"]["Cache-Control"], "private, no-store")
 
     def test_api_proxy_preserves_django_trailing_slashes(self):
         config = json.loads((Path(__file__).resolve().parents[3] / "frontend/vercel.json").read_text())
-        rule = config["rewrites"][0]
-        self.assertEqual(rule["source"], "/api/:path(.*)")
+        route = config["routes"][0]
+        self.assertEqual(route["src"], "/api/(.*)")
         for path in ("/api/health/", "/api/weather/", "/api/chatbot/", "/api/health"):
-            captured = re.fullmatch(r"/api/(.*)", path).group(1)
-            self.assertEqual(rule["destination"].replace(":path", captured),
+            captured = re.fullmatch(route["src"], path).group(1)
+            self.assertEqual(route["dest"].replace("$1", captured),
                              "https://agri-advisory-web.onrender.com" + path)
+        self.assertNotIn("/api/:path(.*)", [rule["source"] for rule in config.get("rewrites", [])])
+
+    def test_api_proxy_sends_edge_secret_from_environment(self):
+        # Django trusts one more X-Forwarded-For hop only for requests carrying
+        # ORIGIN_SECRET; the value must come from Vercel's environment, never
+        # from this public file.
+        config = json.loads((Path(__file__).resolve().parents[3] / "frontend/vercel.json").read_text())
+        transform = config["routes"][0]["transforms"][0]
+        self.assertEqual(transform["type"], "request.headers")
+        self.assertEqual(transform["op"], "set")
+        self.assertEqual(transform["target"]["key"], "x-origin-secret")
+        self.assertEqual(transform["args"], "$ORIGIN_SECRET")
+        self.assertEqual(transform["env"], ["ORIGIN_SECRET"])
 
     @override_settings(ALLOWED_HOSTS=["agri-advisory-web.onrender.com"])
     def test_proxy_does_not_trust_client_forwarded_host(self):

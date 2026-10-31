@@ -13,13 +13,14 @@ import hmac
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Generator, List, Optional
 
 import sentry_sdk
 from django.core import signing
 from django.db.models import Q
 from django.http import StreamingHttpResponse
+from django.utils import timezone as django_timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from rest_framework import status, viewsets
@@ -28,7 +29,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from ...models import FarmerInteractionLog, FarmerProfile, IoTSensorReading
+from ...models import FarmerInteractionLog, FarmerProfile
 from ..errors import safe_error_message
 from ..location_utils import attach_location_metadata, resolve_request_location
 from ..validation import MAX_CHAT_QUERY_LENGTH, query_too_long
@@ -40,7 +41,8 @@ from ...services.chat_intelligence_service import (
 from ...services.session_memory_service import session_memory
 from ...services.guest_session_service import is_reserved_session_id, make_guest_session_token
 from ..auth_utils import _cors_for_request, _resolve_user_id
-from ..serializers import ChatbotFeedbackSerializer, ChatbotRequestSerializer
+from ..serializers import CHAT_HISTORY_ENTRY_CHARS, ChatbotFeedbackSerializer, ChatbotRequestSerializer
+from .field_advisory import _iot_sensor_max_age_minutes, _owned_readings
 
 logger = logging.getLogger(__name__)
 
@@ -239,12 +241,18 @@ def _parse_request(request) -> Dict[str, Any]:
         "session_id": _client_session_id(parsed.get("session_id")),
         "fast_mode": parsed.get("fast_mode", False),
         "sensor_context": parsed.get("sensor_context"),
+        # Validated history: the serializer drops lone surrogates that a
+        # client left when it cut an emoji in half.
+        "history": parsed.get("history") or [],
     }
 
 
-def _build_history_and_context(request, session_id, language):
-    """Load and merge client + server-side conversation history."""
-    client_history: List[Dict[str, Any]] = request.data.get("history") or []
+def _build_history_and_context(request, session_id, language, client_history):
+    """Load and merge client + server-side conversation history.
+
+    client_history must be the serializer-validated list, never raw request data.
+    """
+    client_history = client_history or []
     if not isinstance(client_history, list):
         client_history = []
 
@@ -254,7 +262,7 @@ def _build_history_and_context(request, session_id, language):
             continue
         entry: Dict[str, Any] = {
             "role":    str(h.get("role", "user")),
-            "content": str(h.get("content", "")),
+            "content": str(h.get("content", ""))[:CHAT_HISTORY_ENTRY_CHARS],
         }
         if entry["role"] == "assistant" and h.get("intent"):
             entry["intent"] = str(h["intent"])
@@ -324,17 +332,22 @@ def _load_farmer_context(request, session_id, session_ctx) -> dict:
         if profile.current_crop and not session_ctx.get("last_crop"):
             session_ctx["last_crop"] = profile.current_crop
         try:
-            iot_reading = None
-            if profile.session_id:
-                iot_reading = (
-                    IoTSensorReading.objects
-                    .filter(field_id=profile.session_id)
-                    .order_by("-created_at").first()
-                )
+            # Only the signed-in farmer's own readings ("user:<id>" namespace):
+            # a reading another account submitted near this farm is not this
+            # farmer's soil data. Labelled readings ("user:<id>:<field>") may
+            # be for another plot, so they count only near the profile's farm,
+            # and a reading older than the field-advisory limit is not used as
+            # the farmer's current moisture or soil status.
+            cutoff = django_timezone.now() - timedelta(minutes=_iot_sensor_max_age_minutes())
+            owned_readings = _owned_readings(user).filter(created_at__gte=cutoff)
+            iot_reading = (
+                owned_readings.filter(field_id=f"user:{user.pk}")
+                .order_by("-created_at").first()
+            )
             if not iot_reading and profile.latitude and profile.longitude:
                 _BBOX = 0.002
                 iot_reading = (
-                    IoTSensorReading.objects
+                    owned_readings
                     .filter(
                         latitude__gte=profile.latitude  - _BBOX,
                         latitude__lte=profile.latitude  + _BBOX,
@@ -487,7 +500,7 @@ class ChatbotViewSet(viewsets.ViewSet):
         ctx = _resolve_chat_location(request, query)
 
         history, session_ctx, language = _build_history_and_context(
-            request, session_id, language
+            request, session_id, language, parsed["history"]
         )
         farmer_ctx = _load_farmer_context(request, session_id, session_ctx)
 
@@ -753,7 +766,7 @@ def stream_chat(request):
 
     ctx = _resolve_chat_location(request, query)
     history, session_ctx, language = _build_history_and_context(
-        request, session_id, language
+        request, session_id, language, body.get("history")
     )
     farmer_ctx = _load_farmer_context(request, session_id, session_ctx)
     user_id = _resolve_user_id(request)

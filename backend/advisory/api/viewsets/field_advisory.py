@@ -133,17 +133,24 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
             # f"{round(lat,4)}_{round(lon,4)}" (derived from coordinates, not
             # secret) and the fallback matches any reading in a ~55 m box, so
             # an anonymous caller could read another farmer's soil profile.
-            # IoTSensorReading has no owner column; requiring authentication is
-            # the correct interim boundary until an owner FK lands.
+            # IoTSensorReading has no owner column, so readings are looked up
+            # only in the signed-in farmer's own "user:<id>" namespace.
             _may_read_saved = bool(getattr(request.user, "is_authenticated", False))
             if not sensor_data and data.get("use_saved_sensor", True) and _may_read_saved:
                 try:
-                    from ...models import IoTSensorReading
+                    # Only this farmer's own readings: another account's
+                    # reading near the same coordinates is not this field.
+                    owned = _owned_readings(request.user).order_by("-created_at")
                     iot_reading = None
                     if field_id:
-                        iot_reading = IoTSensorReading.objects.filter(field_id=field_id).first()
+                        try:
+                            iot_reading = owned.filter(
+                                field_id=_owned_field_id(request.user, field_id)
+                            ).first()
+                        except ForeignFieldError:
+                            iot_reading = None
                     if not iot_reading and ctx.latitude and ctx.longitude:
-                        iot_reading = IoTSensorReading.objects.filter(
+                        iot_reading = owned.filter(
                             latitude__gte=ctx.latitude - 0.0005,
                             latitude__lte=ctx.latitude + 0.0005,
                             longitude__gte=ctx.longitude - 0.0005,
@@ -243,6 +250,14 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
                 )
 
             sensors_clean = _parse_sensor_floats(raw_sensors)
+            try:
+                owned_field_id = _owned_field_id(request.user, data.get("field_id"))
+            except ForeignFieldError:
+                return Response(
+                    {"status": "error", "error_code": "FIELD_NOT_OWNED",
+                     "message": "You can only submit readings for your own fields."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
             # Quick soil classification
             from ...services.field_sensor_service import (
@@ -257,7 +272,7 @@ class FieldAdvisoryViewSet(viewsets.ViewSet):
             if sensors_clean.get("ec_ds_m")          is not None: soil_status["salinity"]    = _band(sensors_clean["ec_ds_m"],          EC_BANDS)
 
             # Save to DB if model available
-            _save_sensor_reading(ctx, sensors_clean, data.get("field_id"))
+            _save_sensor_reading(ctx, sensors_clean, owned_field_id)
 
             return Response(attach_location_metadata({
                 "status": "success",
@@ -531,6 +546,38 @@ def _sensor_freshness_from_reading(reading) -> dict:
             else "Sensor reading is stale and was ignored for crop scoring."
         ),
     }
+
+class ForeignFieldError(ValueError):
+    """A request named a field that belongs to another account."""
+
+
+def _owned_field_id(user, requested=None) -> str:
+    """The field id a signed-in farmer may write and read.
+
+    IoTSensorReading has no owner column, so ownership lives in the id: every
+    reading submitted through the API is stored under "user:<id>" or
+    "user:<id>:<label>". Without this, any account could write a reading for
+    another farmer's field (or plant one near their farm) and the chatbot
+    would treat it as that farmer's soil data.
+    """
+    base = f"user:{user.pk}"
+    label = str(requested or "").strip()
+    if not label or label == base:
+        return base
+    if label.startswith(base + ":"):
+        return label[:100]
+    if label.lower().startswith("user:"):
+        raise ForeignFieldError(label)
+    return f"{base}:{label}"[:100]
+
+
+def _owned_readings(user):
+    from django.db.models import Q
+    from ...models import IoTSensorReading
+
+    base = f"user:{user.pk}"
+    return IoTSensorReading.objects.filter(Q(field_id=base) | Q(field_id__startswith=base + ":"))
+
 
 def _save_sensor_reading(ctx, sensors: dict, field_id=None):
     """Persist sensor reading to IoT sensor model if available."""

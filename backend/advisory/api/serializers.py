@@ -519,9 +519,29 @@ class RegistrationInputSerializer(StrictSerializer):
     guest_session_token = serializers.CharField(required=False, allow_blank=True, max_length=4096)
 
 
+CHAT_HISTORY_ENTRY_CHARS = 2000
+_LONE_SURROGATE = re.compile(r"[\ud800-\udfff]")
+
+
+class HistoryTextField(serializers.CharField):
+    """Earlier chat text resent by a client.
+
+    A client that shortened a long answer by UTF-16 units can cut an emoji in
+    half. The lone surrogate left behind is dropped here; DRF would otherwise
+    reject it and fail every later question until the turn left the history.
+    """
+
+    def to_internal_value(self, data):
+        return _LONE_SURROGATE.sub("", super().to_internal_value(data))
+
+
 class ChatHistoryEntrySerializer(StrictSerializer):
     role = serializers.ChoiceField(choices=("user", "assistant"), default="user")
-    content = serializers.CharField(max_length=2000, allow_blank=False)
+    # Clients resend earlier answers verbatim and a model answer can exceed
+    # 2,000 characters, so a long turn is shortened when the history is built
+    # instead of failing every later question with 400. Only absurd sizes are
+    # rejected here.
+    content = HistoryTextField(max_length=20000, allow_blank=False)
     intent = serializers.CharField(required=False, allow_blank=True, max_length=80)
 
 

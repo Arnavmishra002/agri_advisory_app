@@ -3118,7 +3118,9 @@
             // Preserve the prior turns for context; `query` already carries this message.
             const priorHistory = conversationHistory.slice(-8).map(message => ({
                 role: message.role,
-                content: message.content,
+                // The server keeps the first 2,000 characters of each turn.
+                // Cut by code point so an emoji is never split in half.
+                content: Array.from(String(message.content || '')).slice(0, 2000).join(''),
             }));
             _pushHistory('user', message);
 

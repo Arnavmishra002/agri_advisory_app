@@ -111,9 +111,19 @@
       var authModal = document.getElementById('authModal');
       if (authModal && !authModal.dataset.authResetBound) {
         authModal.dataset.authResetBound = 'true';
+        authModal.addEventListener('hide.bs.modal', function () {
+          self._modalClosing = true;
+        });
         authModal.addEventListener('hidden.bs.modal', function () {
+          self._modalClosing = false;
           self._resetAuthUi();
           self.switchTab('phone');
+          var pendingTab = self._pendingOpenTab;
+          self._pendingOpenTab = null;
+          if (pendingTab) {
+            self.openModal(pendingTab, self._returnFocus);
+            return;
+          }
           if (self._returnFocus && self._returnFocus.isConnected && self._returnFocus.offsetParent !== null) {
             self._returnFocus.focus({ preventScroll: true });
           }
@@ -128,6 +138,12 @@
       var el = document.getElementById('authModal');
       if (!el) return;
       this._returnFocus = trigger || document.activeElement;
+      if (this._modalClosing) {
+        // Bootstrap ignores show() while the closing fade runs (for example
+        // right after sign-in closed the modal); open once it has finished.
+        this._pendingOpenTab = tab;
+        return;
+      }
       if (!this._bsModal) {
         this._bsModal = new bootstrap.Modal(el, { backdrop: true });
       }
