@@ -49,8 +49,10 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-# ── Nutrient thresholds (ICAR recommended ranges) ──────────────────────────
-N_BANDS = {"Low": (0, 120), "Medium": (120, 280), "High": (280, 9999)}
+# ── Soil-test classes (Soil Health Card ratings, available nutrient kg/ha) ──
+# These rate the nutrient stock already in the soil. They are not fertiliser
+# doses and must never be subtracted from a crop's dose.
+N_BANDS = {"Low": (0, 280), "Medium": (280, 560), "High": (560, 9999)}
 P_BANDS = {"Low": (0, 10),  "Medium": (10, 25),   "High": (25, 9999)}
 K_BANDS = {"Low": (0, 108), "Medium": (108, 280),  "High": (280, 9999)}
 PH_BANDS = {
@@ -100,6 +102,27 @@ def _band(value: float, bands: Dict[str, Tuple[float, float]]) -> str:
         if lo <= value < hi:
             return label
     return list(bands.keys())[-1]
+
+
+NUTRIENT_BANDS = {"N": N_BANDS, "P": P_BANDS, "K": K_BANDS}
+SOIL_CLASS_GUIDANCE = {
+    "Low": "use the upper end of the dose recommended for this crop",
+    "Medium": "use the standard dose recommended for this crop",
+    "High": "the lower end of the dose recommended for this crop is usually enough",
+}
+SOIL_TEST_DOSE_BASIS = (
+    "Take the exact dose from your Soil Health Card or the crop's package of "
+    "practices, or ask your KVK."
+)
+
+
+def _soil_test_class(nutrient: str, soil_value: float) -> str:
+    """Soil Health Card class of an available-nutrient soil test.
+
+    A soil test is the stock already in the soil; a crop dose is what to
+    apply. The two are never subtracted, and no dose is computed here.
+    """
+    return _band(soil_value, NUTRIENT_BANDS[nutrient])
 
 
 class FieldSensorService:
@@ -702,55 +725,24 @@ class FieldSensorService:
         else:
             score += 8  # no pH data — neutral
 
-        # ── Nitrogen (15 pts) ──────────────────────────────────────────
-        n = soil.get("nitrogen_kg_ha")
-        if n is not None and req.get("N"):
-            n_min, n_max = req["N"]
-            if n >= n_min:
-                score += 15
-                npk_match["N"] = {"status": "Sufficient", "value": n, "required": (n_min, n_max)}
-                reasons.append(f"✅ N {n} kg/ha ≥ min {n_min}")
-            elif n >= n_min * 0.7:
-                score += 10
-                gap = n_min - n
-                npk_match["N"] = {"status": "Low", "value": n, "deficit_kg_ha": round(gap, 1)}
-                reasons.append(f"⚠️ N low ({n} kg/ha) — add {round(gap,0)} kg/ha")
-            else:
-                score += 4
-                npk_match["N"] = {"status": "Very Low", "value": n, "deficit_kg_ha": round(n_min - n, 1)}
-                reasons.append(f"❌ N very low ({n} kg/ha)")
-        else:
-            score += 8
-
-        # ── Phosphorus (10 pts) ────────────────────────────────────────
-        p = soil.get("phosphorus_kg_ha")
-        if p is not None and req.get("P"):
-            p_min, p_max = req["P"]
-            if p >= p_min:
-                score += 10
-                npk_match["P"] = {"status": "Sufficient", "value": p}
-                reasons.append(f"✅ P {p} kg/ha ≥ min {p_min}")
-            else:
-                score += 5
-                npk_match["P"] = {"status": "Low", "value": p, "deficit_kg_ha": round(p_min - p, 1)}
-                reasons.append(f"⚠️ P low — add {round(p_min-p,0)} kg/ha as DAP")
-        else:
-            score += 5
-
-        # ── Potassium (8 pts) ──────────────────────────────────────────
-        k = soil.get("potassium_kg_ha")
-        if k is not None and req.get("K"):
-            k_min, _ = req["K"]
-            if k >= k_min:
-                score += 8
-                npk_match["K"] = {"status": "Sufficient", "value": k}
-                reasons.append(f"✅ K {k} kg/ha sufficient")
-            else:
-                score += 4
-                npk_match["K"] = {"status": "Low", "value": k, "deficit_kg_ha": round(k_min - k, 1)}
-                reasons.append(f"⚠️ K low — add MOP {round((k_min-k)/0.6,0)} kg/ha")
-        else:
-            score += 4
+        # ── N (15 pts), P (10 pts), K (8 pts) by Soil Health Card class ──
+        class_points = {"N": (15, 10, 4), "P": (10, 7, 5), "K": (8, 6, 4)}
+        neutral_points = {"N": 8, "P": 5, "K": 4}
+        for nutrient, soil_key in (("N", "nitrogen_kg_ha"), ("P", "phosphorus_kg_ha"), ("K", "potassium_kg_ha")):
+            value = soil.get(soil_key)
+            if value is None or not req.get(nutrient):
+                score += neutral_points[nutrient]
+                continue
+            soil_class = _soil_test_class(nutrient, value)
+            high_pts, medium_pts, low_pts = class_points[nutrient]
+            score += {"High": high_pts, "Medium": medium_pts, "Low": low_pts}[soil_class]
+            npk_match[nutrient] = {
+                "status": {"High": "Sufficient", "Medium": "Medium", "Low": "Low"}[soil_class],
+                "value": value,
+                "soil_class": soil_class,
+            }
+            icon = {"High": "✅", "Medium": "●", "Low": "⚠️"}[soil_class]
+            reasons.append(f"{icon} {nutrient} {value} kg/ha — {soil_class} (Soil Health Card class)")
 
         # ── Moisture (10 pts) ──────────────────────────────────────────
         moisture = soil.get("moisture_pct")
@@ -873,73 +865,49 @@ class FieldSensorService:
             ph = soil.get("ph")
             oc = soil.get("organic_carbon")
 
-            if n is not None and req.get("N"):
-                n_min = req["N"][0]
-                if n < n_min:
-                    deficit = n_min - n
-                    urea_kg = round(deficit / 0.46, 1)
-                    recommendations_list.append({
-                        "nutrient": "Nitrogen (N)",
-                        "current_kg_ha": round(n, 1),
-                        "required_min_kg_ha": n_min,
-                        "deficit_kg_ha": round(deficit, 1),
-                        "amendment": f"Apply {urea_kg} kg/ha Urea (46% N) or {round(deficit/0.21,1)} kg/ha CAN",
-                        "timing": "Split: 50% basal + 25% at tillering + 25% at ear emergence",
-                    })
+            nutrient_rows = (
+                ("N", n, "Nitrogen (N)", "urea or CAN"),
+                ("P", p, "Phosphorus (P₂O₅)", "DAP or SSP"),
+                ("K", k, "Potassium (K₂O)", "MOP"),
+            )
+            for nutrient, value, label, sources in nutrient_rows:
+                if value is None:
+                    continue
+                soil_class = _soil_test_class(nutrient, value)
+                if soil_class == "High":
+                    continue
+                recommendations_list.append({
+                    "nutrient": label,
+                    "current_kg_ha": round(value, 1),
+                    "soil_class": soil_class,
+                    "amendment": f"{soil_class} soil {nutrient} — {SOIL_CLASS_GUIDANCE[soil_class]} ({sources}).",
+                    "timing": SOIL_TEST_DOSE_BASIS,
+                })
 
-            if p is not None and req.get("P"):
-                p_min = req["P"][0]
-                if p < p_min:
-                    deficit = p_min - p
-                    dap_kg = round(deficit / 0.46, 1)
-                    recommendations_list.append({
-                        "nutrient": "Phosphorus (P₂O₅)",
-                        "current_kg_ha": round(p, 1),
-                        "required_min_kg_ha": p_min,
-                        "deficit_kg_ha": round(deficit, 1),
-                        "amendment": f"Apply {dap_kg} kg/ha DAP (46% P₂O₅) or {round(deficit/0.16,1)} kg/ha SSP",
-                        "timing": "Apply full dose as basal (at sowing)",
-                    })
-
-            if k is not None and req.get("K"):
-                k_min = req["K"][0]
-                if k < k_min:
-                    deficit = k_min - k
-                    mop_kg = round(deficit / 0.60, 1)
-                    recommendations_list.append({
-                        "nutrient": "Potassium (K₂O)",
-                        "current_kg_ha": round(k, 1),
-                        "required_min_kg_ha": k_min,
-                        "deficit_kg_ha": round(deficit, 1),
-                        "amendment": f"Apply {mop_kg} kg/ha MOP (60% K₂O)",
-                        "timing": "50% basal + 50% at first irrigation",
-                    })
-
+            # Lime and gypsum requirements depend on buffer pH and exchangeable
+            # sodium, which these readings do not include, so no quantity is given.
             if ph is not None:
                 if ph < 5.5:
-                    lime_t = round((6.5 - ph) * 1.5, 1)
                     recommendations_list.append({
                         "nutrient": "Soil pH correction",
-                        "current": ph, "target": "6.5",
-                        "amendment": f"Apply {lime_t} tonne/ha Agricultural Lime (CaCO₃)",
-                        "timing": "Apply 3-4 weeks before sowing and incorporate",
+                        "current": ph, "soil_class": "Acidic",
+                        "amendment": "Strongly acidic soil — liming is usually needed (agricultural lime).",
+                        "timing": "Get the lime requirement from a soil-testing lab or your Soil Health Card.",
                     })
                 elif ph > 8.0:
-                    gyp_t = round((ph - 7.5) * 2.0, 1)
                     recommendations_list.append({
                         "nutrient": "Soil pH correction",
-                        "current": ph, "target": "7.5",
-                        "amendment": f"Apply {gyp_t} tonne/ha Gypsum (CaSO₄)",
-                        "timing": "Broadcast and incorporate before sowing",
+                        "current": ph, "soil_class": "Alkaline",
+                        "amendment": "Alkaline soil — gypsum is commonly used to reclaim it.",
+                        "timing": "Get the gypsum requirement from a soil-testing lab or your Soil Health Card.",
                     })
 
             if oc is not None and oc < 0.5:
-                fym_t = round((0.75 - oc) * 20, 1)
                 recommendations_list.append({
                     "nutrient": "Organic Carbon",
-                    "current_pct": oc, "target_pct": "0.75",
-                    "amendment": f"Apply {fym_t} tonne/ha FYM / Vermicompost",
-                    "timing": "Incorporate 4 weeks before sowing",
+                    "current_pct": oc, "soil_class": "Low",
+                    "amendment": "Low organic carbon — add well-decomposed FYM, compost or vermicompost.",
+                    "timing": "Incorporate before sowing; take the quantity from your Soil Health Card or KVK.",
                 })
 
             if recommendations_list:
@@ -948,7 +916,6 @@ class FieldSensorService:
                     "crop_hindi": crop_rec.get("crop_name_hindi", ""),
                     "total_amendments": len(recommendations_list),
                     "amendments": recommendations_list,
-                    "estimated_extra_cost_inr": len(recommendations_list) * 1500,  # rough estimate
                 })
 
         return gaps
@@ -1071,12 +1038,12 @@ class FieldSensorService:
         n = soil.get("nitrogen_kg_ha")
         p = soil.get("phosphorus_kg_ha")
         k = soil.get("potassium_kg_ha")
-        if n is not None and req.get("N") and n < req["N"][0]:
-            hints.append(f"N deficient — add {round((req['N'][0]-n)/0.46,0)} kg Urea/ha")
-        if p is not None and req.get("P") and p < req["P"][0]:
-            hints.append(f"P deficient — add {round((req['P'][0]-p)/0.46,0)} kg DAP/ha")
-        if k is not None and req.get("K") and k < req["K"][0]:
-            hints.append(f"K deficient — add {round((req['K'][0]-k)/0.60,0)} kg MOP/ha")
+        for nutrient, value in (("N", n), ("P", p), ("K", k)):
+            if value is None or not req.get(nutrient):
+                continue
+            soil_class = _soil_test_class(nutrient, value)
+            if soil_class == "Low":
+                hints.append(f"Soil {nutrient} is Low — {SOIL_CLASS_GUIDANCE['Low']}. {SOIL_TEST_DOSE_BASIS}")
         return hints
 
     def _list_data_sources(self, sensor_data, govt_soil, om_data) -> List[str]:

@@ -191,3 +191,29 @@ class ChatStreamEndpointTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("language", response.json()["details"])
+
+
+@override_settings(RATE_LIMIT_ENABLED=False)
+class ChatStreamKeepAliveTests(SimpleTestCase):
+    @patch("advisory.api.viewsets.chatbot._dispatch_writes")
+    @patch("advisory.api.viewsets.chatbot._load_farmer_context", return_value={})
+    @patch("advisory.api.viewsets.chatbot._build_history_and_context", return_value=([], {}, "en"))
+    @patch("advisory.api.viewsets.chatbot.chat_intelligence_service.answer_stream")
+    def test_heartbeat_becomes_an_sse_comment(self, answer_stream, *_):
+        answer_stream.return_value = iter([
+            {"__heartbeat__": True},
+            "checked answer",
+            {"__done__": True, "intent": "general", "language": "en", "data_source": "x"},
+        ])
+
+        response = Client().post(
+            "/api/chatbot/stream/",
+            data=json.dumps({"query": "hello there farmer", "language": "en", "location": "Lucknow",
+                             "latitude": 26.8467, "longitude": 80.9462, "session_id": "sess_keepalive"}),
+            content_type="application/json",
+        )
+
+        frames = "".join(part.decode("utf-8") for part in response.streaming_content)
+        self.assertTrue(frames.startswith(": keepalive\n\n"), frames[:80])
+        self.assertIn('"token": "checked answer"', frames)
+        self.assertNotIn("__heartbeat__", frames)

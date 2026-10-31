@@ -14,7 +14,7 @@ import logging
 import os
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, Generator, List
+from typing import Any, Dict, Generator, List, Optional
 
 import sentry_sdk
 from django.core import signing
@@ -38,7 +38,7 @@ from ...services.chat_intelligence_service import (
     chat_intelligence_service,
 )
 from ...services.session_memory_service import session_memory
-from ...services.guest_session_service import make_guest_session_token
+from ...services.guest_session_service import is_reserved_session_id, make_guest_session_token
 from ..auth_utils import _cors_for_request, _resolve_user_id
 from ..serializers import ChatbotFeedbackSerializer, ChatbotRequestSerializer
 
@@ -211,6 +211,19 @@ def _dispatch_writes(
 
 
 # ── Shared request-parsing helper ────────────────────────────
+def _client_session_id(value) -> Optional[str]:
+    """A client-chosen chat session id, or None.
+
+    Ids in the server's own namespaces ("user:<id>", "wa_<phone>") key another
+    farmer's memory, so a client cannot name them; such a request is answered
+    without server-side history.
+    """
+    session_id = str(value or "").strip()
+    if not session_id or is_reserved_session_id(session_id):
+        return None
+    return session_id
+
+
 def _parse_request(request) -> Dict[str, Any]:
     """
     Parse and validate request body shared by both the JSON and SSE paths.
@@ -223,7 +236,7 @@ def _parse_request(request) -> Dict[str, Any]:
     return {
         "query": parsed["query"],
         "language": parsed.get("language", "hi"),
-        "session_id": parsed.get("session_id") or None,
+        "session_id": _client_session_id(parsed.get("session_id")),
         "fast_mode": parsed.get("fast_mode", False),
         "sensor_context": parsed.get("sensor_context"),
     }
@@ -286,17 +299,8 @@ def _authenticated_user_for_profile(request):
 
 
 def _phone_candidates_for_user(user) -> set[str]:
-    username = (getattr(user, "username", "") or "").strip()
-    digits = "".join(ch for ch in username if ch.isdigit())
-    candidates = {username} if username else set()
-    if digits:
-        candidates.add(digits)
-        candidates.add(f"+{digits}")
-        if len(digits) == 10:
-            candidates.add(f"+91{digits}")
-        elif len(digits) == 12 and digits.startswith("91"):
-            candidates.add(f"+{digits}")
-    return {c for c in candidates if c}
+    from .farmer_profile import FarmerProfileViewSet
+    return FarmerProfileViewSet._phone_candidates(user)
 
 
 def _owned_farmer_filter(user) -> Q:
@@ -612,6 +616,11 @@ def _stream_generator(
                 if isinstance(chunk, dict) and chunk.get("__done__"):
                     result_meta = chunk
                     break
+                # Keep-alive while the answer is checked: an SSE comment line,
+                # which clients ignore but which resets their idle timers.
+                if isinstance(chunk, dict) and chunk.get("__heartbeat__"):
+                    yield ": keepalive\n\n"
+                    continue
                 # Plain string token chunk
                 token = chunk if isinstance(chunk, str) else str(chunk)
                 if token:
@@ -727,7 +736,7 @@ def stream_chat(request):
 
     query      = body.get("query", "")
     language   = body.get("language", "hi")
-    session_id = (body.get("session_id") or "").strip() or None
+    session_id = _client_session_id(body.get("session_id"))
     fast_mode  = body.get("fast_mode", False)
     sensor_context = body.get("sensor_context")
 

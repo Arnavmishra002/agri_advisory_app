@@ -918,8 +918,9 @@ class CropRecommendationEngine:
         }
         measured_nutrients = {key: value for key, value in nutrient_values.items() if value is not None}
         if measured_nutrients:
-            thresholds = {"N": 120, "P": 20, "K": 120}
-            low = [key for key, value in measured_nutrients.items() if float(value) < thresholds[key]]
+            from .field_sensor_service import _soil_test_class
+            low = [key for key, value in measured_nutrients.items()
+                   if _soil_test_class(key, float(value)) == "Low"]
             demand_level = crop.get("nutrient_demand", "Medium")
             if not low:
                 factor("nutrients", 6, 6, "good", "Measured NPK is not low")

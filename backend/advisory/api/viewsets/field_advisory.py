@@ -557,46 +557,33 @@ def _save_sensor_reading(ctx, sensors: dict, field_id=None):
 def _quick_soil_advice(soil_status: dict, lang: str) -> list:
     """Return immediate action items based on soil status."""
     advice = []
+    # No fertiliser, lime, gypsum or manure quantities: the readings alone do
+    # not determine them, so the farmer is pointed to the Soil Health Card.
     advice_map = {
         "nitrogen": {
             "Low": {
-                "hi": "🌱 नाइट्रोजन कम — यूरिया 50 किग्रा/एकड़ डालें",
-                "en": "🌱 Low Nitrogen — apply 50 kg/acre Urea",
-                "ta": "🌱 நைட்ரஜன் குறைவு — 50 கிலோ/ஏக்கர் யூரியா போடுங்கள்",
-                "te": "🌱 నత్రజని తక్కువ — 50 కిలో/ఎకరా యూరియా వేయండి",
-                "mr": "🌱 नत्र कमी — 50 किलो/एकर युरिया द्या",
-                "gu": "🌱 નાઇટ્રોજન ઓછો — 50 કિ.ગ્રા./એકર યુરિયા નાખો",
-                "kn": "🌱 ಸಾರಜನಕ ಕಡಿಮೆ — 50 ಕಿ.ಗ್ರಾ/ಎಕರೆ ಯೂರಿಯಾ ಹಾಕಿ",
-                "ml": "🌱 നൈട്രജൻ കുറവ് — 50 കി.ഗ്രാം/ഏക്കർ യൂറിയ ഇടുക",
-                "pa": "🌱 ਨਾਈਟ੍ਰੋਜਨ ਘੱਟ — 50 ਕਿਲੋ/ਏਕੜ ਯੂਰੀਆ ਪਾਓ",
-                "bn": "🌱 নাইট্রোজেন কম — ৫০ কেজি/একর ইউরিয়া দিন",
+                "hi": "🌱 मिट्टी में नाइट्रोजन कम (मृदा स्वास्थ्य कार्ड श्रेणी) — फसल की अनुशंसित नाइट्रोजन मात्रा का ऊपरी स्तर दें; मात्रा मृदा स्वास्थ्य कार्ड या KVK से लें।",
+                "en": "🌱 Low soil nitrogen (Soil Health Card class) — use the upper end of your crop's recommended nitrogen dose; take the dose from your Soil Health Card or KVK.",
             },
         },
         "phosphorus": {
             "Low": {
-                "hi": "🔴 फास्फोरस कम — DAP 25 किग्रा/एकड़ बुवाई के समय",
-                "en": "🔴 Low Phosphorus — apply 25 kg/acre DAP at sowing",
-                "ta": "🔴 பாஸ்பரஸ் குறைவு — விதைப்பு நேரத்தில் 25 கிலோ DAP",
-                "te": "🔴 భాస్వరం తక్కువ — 25 కిలో DAP విత్తు సమయంలో",
-                "mr": "🔴 स्फुरद कमी — पेरणीच्यावेळी 25 किलो DAP",
-                "gu": "🔴 ફોસ્ફરસ ઓછો — વાવણી વખતે 25 કિ.ગ્રા DAP",
-                "pa": "🔴 ਫਾਸਫੋਰਸ ਘੱਟ — ਬਿਜਾਈ ਸਮੇਂ 25 ਕਿਲੋ DAP ਪਾਓ",
+                "hi": "🔴 मिट्टी में फास्फोरस कम — बुवाई के समय फास्फोरस (DAP या SSP) अनुशंसित मात्रा के ऊपरी स्तर पर दें; मात्रा मृदा स्वास्थ्य कार्ड या KVK से लें।",
+                "en": "🔴 Low soil phosphorus — apply phosphorus (DAP or SSP) at sowing at the upper end of your crop's recommended dose; take the dose from your Soil Health Card or KVK.",
             },
         },
         "ph": {
             "Acidic": {
-                "hi": "⚠️ मिट्टी अम्लीय — 2 क्विंटल/एकड़ चूना मिलाएं",
-                "en": "⚠️ Acidic soil — apply 2 quintal/acre agricultural lime",
-                "ta": "⚠️ அமில மண் — 2 குவிண்டால்/ஏக்கர் சுண்ணாம்பு",
-                "te": "⚠️ ఆమ్ల నేల — 2 క్వింటాల్/ఎకరా సున్నం వేయండి",
+                "hi": "⚠️ अम्लीय मिट्टी — आमतौर पर चूना देना पड़ता है; चूने की मात्रा मृदा परीक्षण प्रयोगशाला या मृदा स्वास्थ्य कार्ड से लें।",
+                "en": "⚠️ Acidic soil — liming is usually needed; get the lime requirement from a soil-testing lab or your Soil Health Card.",
             },
             "Alkaline": {
-                "hi": "⚠️ मिट्टी क्षारीय — 3 क्विंटल/एकड़ जिप्सम डालें",
-                "en": "⚠️ Alkaline soil — apply 3 quintal/acre gypsum",
+                "hi": "⚠️ क्षारीय मिट्टी — सुधार के लिए आमतौर पर जिप्सम दिया जाता है; जिप्सम की मात्रा मृदा परीक्षण प्रयोगशाला से लें।",
+                "en": "⚠️ Alkaline soil — gypsum is commonly used to reclaim it; get the gypsum requirement from a soil-testing lab.",
             },
             "Highly Alkaline": {
-                "hi": "🚨 अत्यधिक क्षारीय — 5 क्विंटल जिप्सम + सल्फर उपचार",
-                "en": "🚨 Highly alkaline — apply 5 quintal gypsum + sulphur",
+                "hi": "🚨 अत्यधिक क्षारीय मिट्टी — सोडियम (सोडिसिटी) की जाँच कराएं; जिप्सम की मात्रा मृदा परीक्षण प्रयोगशाला से ही लें।",
+                "en": "🚨 Highly alkaline soil — have it tested for sodicity; the gypsum quantity must come from the soil-testing lab.",
             },
         },
         "salinity": {
@@ -611,9 +598,8 @@ def _quick_soil_advice(soil_status: dict, lang: str) -> list:
         },
         "organic_carbon": {
             "Low": {
-                "hi": "🌿 जैव कार्बन कम — 2 टन/एकड़ वर्मीकम्पोस्ट डालें",
-                "en": "🌿 Low organic carbon — apply 2 tonne/acre vermicompost",
-                "ta": "🌿 கரிம கார்பன் குறைவு — 2 டன்/ஏக்கர் மண்புழு உரம்",
+                "hi": "🌿 जैविक कार्बन कम — अच्छी सड़ी गोबर खाद, कम्पोस्ट या वर्मीकम्पोस्ट डालें; मात्रा मृदा स्वास्थ्य कार्ड या KVK से लें।",
+                "en": "🌿 Low organic carbon — add well-decomposed FYM, compost or vermicompost; take the quantity from your Soil Health Card or KVK.",
             },
         },
         "moisture": {

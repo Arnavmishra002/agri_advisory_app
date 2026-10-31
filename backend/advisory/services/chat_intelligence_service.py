@@ -147,16 +147,213 @@ def _usable_text(value: Any) -> Optional[str]:
     return value
 
 
-_PESTICIDE_DOSE_PATTERN = re.compile(
-    r"\b\d+(?:\.\d+)?\s*(?:%|m?l\s*/\s*l|g\s*/\s*l|kg\s*/\s*ha|g\s*/\s*ha|m?l\s*/\s*ha)\b",
+# ── Dose claims ──────────────────────────────────────────────────────────────
+# A dose is a quantity with a product unit (ml, g, kg, litre, quintal, tonne,
+# bag) tied to the base it applies to (per litre, acre, hectare, bigha, tank,
+# kg of seed, plant), written in either order and in English, Hindi or
+# Hinglish, or a formulation strength such as "75% WP" or "2% urea". Generated
+# text may state a dose only when the same dose occurs in the evidence
+# assembled for the request; a citation alone is not evidence, since a model
+# can invent one.
+_DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
+_LETTER = r"A-Za-zऀ-ॿ"
+_NOT_LETTER_BEFORE = rf"(?<![{_LETTER}])"
+_NOT_LETTER_AFTER = rf"(?![{_LETTER}])"
+
+_DOSE_UNITS = {
+    "ml": "ml", "mls": "ml", "millilitre": "ml", "millilitres": "ml", "milliliter": "ml",
+    "milliliters": "ml", "cc": "ml", "मिलीलीटर": "ml", "मिली": "ml", "मिलि": "ml",
+    "मि.ली.": "ml", "मि.ली": "ml", "एम.एल.": "ml", "एमएल": "ml",
+    "l": "l", "lt": "l", "ltr": "l", "lit": "l", "litre": "l", "litres": "l", "liter": "l",
+    "liters": "l", "लीटर": "l", "लिटर": "l", "ली.": "l",
+    "g": "g", "gm": "g", "gms": "g", "gram": "g", "grams": "g", "ग्राम": "g", "ग्रा.": "g",
+    "kg": "kg", "kgs": "kg", "kilo": "kg", "kilos": "kg", "kilogram": "kg", "kilograms": "kg",
+    "किलो": "kg", "किलोग्राम": "kg", "किग्रा": "kg", "कि.ग्रा.": "kg",
+    "q": "q", "qtl": "q", "quintal": "q", "quintals": "q", "क्विंटल": "q",
+    "t": "t", "tonne": "t", "tonnes": "t", "ton": "t", "tons": "t", "टन": "t",
+    "bag": "bag", "bags": "bag", "बोरी": "bag", "बैग": "bag",
+}
+_NUMBER_WORDS = {
+    "half": 0.5, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+    "eight": 8, "nine": 9, "ten": 10, "twelve": 12, "fifteen": 15, "twenty": 20,
+    "aadha": 0.5, "ek": 1, "do": 2, "teen": 3, "char": 4, "chaar": 4, "paanch": 5, "panch": 5,
+    "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10, "bees": 20,
+    "आधा": 0.5, "एक": 1, "दो": 2, "तीन": 3, "चार": 4, "पांच": 5, "पाँच": 5, "छह": 6,
+    "सात": 7, "आठ": 8, "नौ": 9, "दस": 10, "बीस": 20,
+}
+_FRACTIONS = {"½": 0.5, "¼": 0.25, "¾": 0.75}
+_QTY = (
+    r"(?<![\w.,/])("
+    r"\d{1,3}(?:,\d{2,3})+(?:\.\d+)?|\d+\s*/\s*\d+|\d+(?:\.\d+)?|\.\d+|[½¼¾]|"
+    + "|".join(sorted((re.escape(w) for w in _NUMBER_WORDS), key=len, reverse=True))
+    + r")"
+)
+_UNIT = (
+    r"\s*(" + "|".join(sorted((re.escape(u) for u in _DOSE_UNITS), key=len, reverse=True)) + r")"
+    + _NOT_LETTER_AFTER
+)
+_RANGE_SEP = r"\s*(?:-|–|to|से)\s*"
+_DOSE_QTY_RE = re.compile(rf"{_QTY}(?:{_RANGE_SEP}{_QTY})?{_UNIT}", re.IGNORECASE)
+_DOSE_BASES = (
+    (r"kg\s*(?:of\s*)?seeds?|kg\s*बीज|किलो\s*बीज|beej|बीज|seeds?", "kgseed"),
+    (r"acres?|एकड़|ekad|ekar", "acre"),
+    (r"hectares?|ha|हेक्टेयर", "ha"),
+    (r"bigha|बीघा|guntha|गुंठा|katha|कट्ठा|kanal|कनाल|marla", "bigha"),
+    (r"tanks?|टंकी|tanki|pumps?|पंप", "tank"),
+    (r"litres?|liters?|ltr|lit|lt|l|लीटर|लिटर|ली\.?", "l"),
+    (r"plants?|trees?|पौध[ाे]|पेड़|paudh[ae]", "plant"),
+    (r"kg|किलो", "kgseed"),  # "2 g per kg" means per kg of seed
+)
+_DOSE_BASE_RE = [
+    (re.compile(rf"{_NOT_LETTER_BEFORE}(?:{pattern}){_NOT_LETTER_AFTER}", re.IGNORECASE), base)
+    for pattern, base in _DOSE_BASES
+]
+# Hindi ends sentences with "।"; a "." only ends one before a capital letter
+# or the end of the text, so abbreviations such as "एम.एल." stay intact.
+_SENTENCE_END_RE = re.compile(r"[।?!;\n]|\.(?=\s+[A-Z]|\s*$)")
+_CARRIER_RE = re.compile(r"^\s*(?:of\s+)?(?:water|pani|पानी|जल|soil|mitti|मिट्टी|sample)", re.IGNORECASE)
+_YIELD_RE = re.compile(r"yield|upaj|उपज|पैदावार|production|उत्पादन|harvest|milta|मिलता|average", re.IGNORECASE)
+_FORMULATION_RE = re.compile(
+    r"(?<![\d.])(\d+(?:\.\d+)?)\s*%?\s*(wp|ec|sc|sl|wg|wdg|dp|gr|cs|fs|od|ew|zc)(?![A-Za-z])",
     re.IGNORECASE,
 )
-_ATTRIBUTABLE_PESTICIDE_SOURCE = re.compile(
-    r"(?:https?://[^\s]*(?:icar|ppqs|cibrc)[^\s]*|"
-    r"(?:icar|ppqs|cib&rc|cibrc).{0,80}(?:document|package of practices|label|registration)"
-    r".{0,40}(?:title|number|no\.?|https?://))",
-    re.IGNORECASE | re.DOTALL,
+_CONCENTRATION_RE = re.compile(
+    r"(?<![\d.])(\d+(?:\.\d+)?)\s*%\s*(?:[\wऀ-ॿ]+\s+){0,2}?"
+    r"(solution|घोल|ghol|spray|स्प्रे|छिड़काव|urea|यूरिया)",
+    re.IGNORECASE,
 )
+
+
+def _parse_quantity(raw: str) -> Optional[float]:
+    raw = raw.strip().lower()
+    if raw in _NUMBER_WORDS:
+        return float(_NUMBER_WORDS[raw])
+    if raw in _FRACTIONS:
+        return _FRACTIONS[raw]
+    if "/" in raw:
+        num, den = (part.strip() for part in raw.split("/", 1))
+        return float(num) / float(den) if float(den) else None
+    try:
+        return float(raw.replace(",", ""))
+    except ValueError:
+        return None
+
+
+_NUMBER_WORD_RE = "|".join(sorted((re.escape(w) for w in _NUMBER_WORDS), key=len, reverse=True))
+_BASE_AMOUNT_RE = re.compile(rf"(?<![\w.,/])(\d+(?:\.\d+)?|{_NUMBER_WORD_RE})\s*$", re.IGNORECASE)
+_CLAUSE_BREAK_RE = re.compile(r"[,;|—]")
+_PRODUCT_WORD_RE = re.compile(r"[A-Za-zऀ-ॿ][A-Za-zऀ-ॿ\-]{2,}")
+# Words that never name a product: verbs, connectors, units and bases.
+_NOT_PRODUCT = {
+    "spray", "sprays", "spraying", "apply", "applied", "use", "used", "mix", "mixed", "add", "give",
+    "dose", "doses", "with", "and", "the", "for", "per", "each", "every", "into", "from", "about",
+    "around", "then", "after", "before", "day", "days", "week", "weeks", "time", "times", "evening",
+    "morning", "solution", "treat", "treatment", "should", "please", "also", "only", "recommended",
+    "label", "water", "seed", "seeds", "plant", "plants", "field", "crop", "crops", "advised",
+    "package", "practices", "dissolve", "repeat", "spray", "drench", "broadcast", "basal", "split",
+    "splits", "two", "three", "equal", "interval", "need", "needed", "you", "your", "can", "may",
+    "dalein", "daalo", "dalo", "daale", "milao", "milaye", "milayen", "karein", "karo", "kare",
+    "chhidkav", "pani", "dawa", "beej", "ghol", "mein", "prati", "har", "liye", "dena", "dein",
+    "डालें", "डाले", "मिलाएं", "मिलाएँ", "करें", "छिड़काव", "पानी", "दवा", "प्रति", "में", "बीज",
+    "घोल", "घोलें", "दें", "लिए", "हर", "का", "की", "के", "और",
+}
+_NOT_PRODUCT |= {w.lower() for w in _DOSE_UNITS} | {w.lower() for w in _NUMBER_WORDS}
+
+
+def _product_words(text: str) -> frozenset:
+    words = set()
+    for word in _PRODUCT_WORD_RE.findall(text):
+        word = word.lower()
+        if word in _NOT_PRODUCT or any(p.fullmatch(word) for p, _ in _DOSE_BASE_RE):
+            continue
+        words.add(word)
+    return frozenset(words)
+
+
+def _base_amount(prefix: str) -> float:
+    """Amount written just before the base word ("per 10 litre"), else 1."""
+    match = _BASE_AMOUNT_RE.search(prefix)
+    amount = _parse_quantity(match.group(1)) if match else None
+    return amount if amount else 1.0
+
+
+def _dose_base(forward: str, backward: str):
+    """(base, amount of base) for a dose: the nearest base after the unit, else before it."""
+    found = [(m.start(), base, m) for pattern, base in _DOSE_BASE_RE for m in [pattern.search(forward)] if m]
+    if found:
+        _, base, m = min(found, key=lambda item: item[0])
+        return base, _base_amount(forward[:m.start()])
+    before = [(m.end(), base, m) for pattern, base in _DOSE_BASE_RE for m in pattern.finditer(backward)]
+    if before:
+        _, base, m = max(before, key=lambda item: item[0])
+        return base, _base_amount(backward[:m.start()])
+    return "?", 1.0
+
+
+def _dose_records(text: str) -> list:
+    """Dose claims as ``(rate, unit, base, product_words)``.
+
+    ``rate`` is per one unit of the base, so "25 g per 10 litre" and "2.5 g
+    per litre" agree. ``product_words`` are the words naming what the dose is
+    for, taken from the dose's own clause (before it, or after it when the
+    sentence puts the product last); an empty set means no product was named.
+    """
+    text = str(text or "").translate(_DEVANAGARI_DIGITS)
+    records = []
+    for sentence in _SENTENCE_END_RE.split(text):
+        yield_context = bool(_YIELD_RE.search(sentence))
+        matches = list(_DOSE_QTY_RE.finditer(sentence))
+        for index, match in enumerate(matches):
+            unit = _DOSE_UNITS[match.group(3).lower()]
+            after = sentence[match.end():match.end() + 40]
+            if unit in ("l", "g", "kg") and _CARRIER_RE.match(after):
+                continue  # water or soil volume, not a product dose
+            if unit in ("q", "t", "kg") and yield_context:
+                continue  # a yield, not an application rate
+            base, base_amount = _dose_base(after, sentence[max(0, match.start() - 40):match.start()])
+            if unit == "l" and base == "?":
+                continue  # a bare volume with nothing it is applied to
+            clause_start = matches[index - 1].end() if index else 0
+            clause_end = matches[index + 1].start() if index + 1 < len(matches) else len(sentence)
+            before_text = _CLAUSE_BREAK_RE.split(sentence[clause_start:match.start()])[-1]
+            after_text = _CLAUSE_BREAK_RE.split(sentence[match.end():clause_end])[0]
+            products = _product_words(before_text) or _product_words(after_text)
+            for raw in filter(None, (match.group(1), match.group(2))):
+                qty = _parse_quantity(raw)
+                if qty is not None:
+                    records.append((f"{qty / base_amount:g}", unit, base, products))
+        for match in _FORMULATION_RE.finditer(sentence):
+            records.append((f"{float(match.group(1)):g}", "%" + match.group(2).lower(), "-", frozenset()))
+        for match in _CONCENTRATION_RE.finditer(sentence):
+            records.append((f"{float(match.group(1)):g}", "%", "-", frozenset()))
+    return records
+
+
+def _extract_dose_claims(text: str) -> set:
+    """Normalised dose claims ``(rate, unit, base)``; base is "?" when absent."""
+    return {record[:3] for record in _dose_records(text)}
+
+
+def _unsupported_doses(text: str, evidence: str) -> set:
+    """Dose claims in ``text`` that the evidence does not contain.
+
+    A claim is supported by an evidence dose with the same rate and unit, the
+    same base (or no base on either side), and a shared product word when both
+    sides name a product. So "imidacloprid 5 ml per litre" is not supported by
+    "neem oil 5 ml per litre", and "25 g per litre" is not supported by "25 g
+    per 10 litre".
+    """
+    evidence_records = _dose_records(evidence)
+    unsupported = set()
+    for rate, unit, base, products in _dose_records(text):
+        if not any(
+            rate == e_rate and unit == e_unit
+            and (base == e_base or "?" in (base, e_base))
+            and (not products or not e_products or products & e_products)
+            for e_rate, e_unit, e_base, e_products in evidence_records
+        ):
+            unsupported.add((rate, unit, base))
+    return unsupported
 
 
 def _language_signal_count(text: str) -> int:
@@ -183,8 +380,15 @@ def _safe_model_text(
     value: Any,
     intent: str,
     expected_language: str = "",
+    evidence: str = "",
 ) -> Optional[str]:
-    """Reject generated claims that need evidence the response does not provide."""
+    """Reject generated claims that the request's evidence does not support.
+
+    ``evidence`` is the grounded material the model was given (verified
+    advisory text, knowledge-base grounding, market string). The farmer's own
+    question must not be part of it, so a number planted in the question
+    cannot vouch for itself.
+    """
     text = _usable_text(value)
     if not text:
         return None
@@ -192,8 +396,10 @@ def _safe_model_text(
         logger.warning("Rejected generated answer that did not match the requested language")
         _set_chat_meta(fallback_reason="response_language_mismatch")
         return None
-    if _PESTICIDE_DOSE_PATTERN.search(text) and not _ATTRIBUTABLE_PESTICIDE_SOURCE.search(text):
-        logger.warning("Rejected generated answer with unattributed pesticide dose")
+    unsupported_doses = _unsupported_doses(text, evidence)
+    if unsupported_doses:
+        logger.warning("Rejected generated answer with %d dose(s) absent from the evidence",
+                       len(unsupported_doses))
         _set_chat_meta(fallback_reason="unattributed_pesticide_dose_rejected")
         return None
     if intent == "pest_disease" and re.search(
@@ -205,6 +411,23 @@ def _safe_model_text(
         _set_chat_meta(fallback_reason="unverified_disease_claim_rejected")
         return None
     return text
+
+
+_GUARD_REJECTIONS = {
+    "unattributed_pesticide_dose_rejected",
+    "unverified_market_claim_rejected",
+    "unverified_disease_claim_rejected",
+}
+
+
+def _guard_rejected() -> bool:
+    """True once a model answer for this request was rejected for an unsupported claim.
+
+    Asking the remaining tiers the same grounded question would reproduce the
+    same unsupported claim at the cost of more model calls, so the request goes
+    straight to the deterministic answer instead.
+    """
+    return _chat_meta().get("fallback_reason") in _GUARD_REJECTIONS
 
 
 def _has_unverified_market_claim(
@@ -237,6 +460,30 @@ def _has_unverified_market_claim(
     return intent != INTENT_MARKET_PRICE and bool(
         re.search(r"\b(?:msp|minimum\s+support\s+price)\b", text, re.IGNORECASE)
     )
+
+_PRICE_FIGURE_RE = re.compile(
+    r"(?:₹|rs\.?|inr)\s*(\d[\d,]*(?:\.\d+)?)"
+    r"|(\d[\d,]*(?:\.\d+)?)\s*(?:per\s+quintal|/\s*q(?:uintal)?\b|per\s+kg|/\s*kg|प्रति\s*क्विंटल|रुपये)",
+    re.IGNORECASE,
+)
+
+
+def _price_figures(text: str) -> set:
+    figures = set()
+    for match in _PRICE_FIGURE_RE.finditer(str(text or "").translate(_DEVANAGARI_DIGITS)):
+        raw = (match.group(1) or match.group(2) or "").replace(",", "")
+        try:
+            figures.add(f"{float(raw):g}")
+        except ValueError:
+            continue
+    return figures
+
+
+def _price_figures_supported(text: str, evidence: str) -> bool:
+    """True when the answer quotes prices and every one of them is in the evidence."""
+    figures = _price_figures(text)
+    return bool(figures) and figures <= _price_figures(evidence)
+
 
 def _env_float(name: str, default: float) -> float:
     try:
@@ -284,6 +531,10 @@ _PHASE1_STREAM_IDLE_TIMEOUT_S: float = _env_float(
     "PHASE1_STREAM_IDLE_TIMEOUT_S",
     _PHASE1_STREAM_READ_TIMEOUT_S,
 )
+# While a streamed answer is held back for the output guard, send a keep-alive
+# at this interval; the web client gives up after 20 s and the mobile app
+# after 25 s without bytes.
+_STREAM_HEARTBEAT_S: float = _env_float("CHAT_STREAM_HEARTBEAT_S", 5.0)
 _PHASE1_CB_MAX_FAILS:    int   = 3   # open circuit after 3 consecutive failures
 _PHASE1_CB_RESET_S:      int   = 60  # retry after 60 s cooldown
 
@@ -1653,6 +1904,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             lang=lang,
             wc=wc,
         )
+        # What the model was given to ground on; the farmer's question is not evidence.
+        guard_evidence = "\n".join(part for part in (kb_grounding, market_str) if part)
 
         # Hybrid brain: cloud LLMs are PRIMARY (most capable, question-aware),
         # local Qwen is the offline fallback, rules are the last resort. Every
@@ -1676,7 +1929,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 response_text = _safe_model_text(claude_service.generate(
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
-                ), intent, lang)
+                ), intent, lang, evidence=guard_evidence)
                 if response_text and _has_unverified_market_claim(
                     response_text, intent, prices_data
                 ):
@@ -1691,7 +1944,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         has_gemini = model_composition_allowed and _is_valid_gemini_key(
             gemini_service.api_key
         )
-        if not response_text and has_gemini and model_composition_allowed:
+        if not response_text and has_gemini and model_composition_allowed and not _guard_rejected():
             try:
                 rendered = self._render_grounded_prompt(
                     query=query, ctx=ctx, sc=sc, wc=wc, rag=rag,
@@ -1701,7 +1954,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 response_text = _safe_model_text(gemini_service.generate(
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
-                ), intent, lang)
+                ), intent, lang, evidence=guard_evidence)
                 if response_text and _has_unverified_market_claim(
                     response_text, intent, prices_data
                 ):
@@ -1722,7 +1975,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             and open_llm_service is not None
             and _is_valid_open_llm_key(getattr(open_llm_service, "api_key", ""))
         )
-        if not response_text and has_open_llm:
+        if not response_text and has_open_llm and not _guard_rejected():
             try:
                 rendered = self._render_grounded_prompt(
                     query=query, ctx=ctx, sc=sc, wc=wc, rag=rag,
@@ -1732,7 +1985,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 response_text = _safe_model_text(open_llm_service.generate(
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
-                ), intent, lang)
+                ), intent, lang, evidence=guard_evidence)
                 if response_text and _has_unverified_market_claim(
                     response_text, intent, prices_data
                 ):
@@ -1744,12 +1997,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 logger.warning("Open LLM failed: %s — trying local Ollama", exc)
 
         # Tier 4: Local krishimitra-llm (Qwen/Ollama) — on-box / self-hosted
-        if not response_text and model_composition_allowed:
+        if not response_text and model_composition_allowed and not _guard_rejected():
             response_text = _safe_model_text(self._qwen_rag_answer(
                 query=query, ctx=ctx, lang=lang, history=history,
                 sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
                 local_kb_context=kb_grounding, include_weather=needs_weather,
-            ), intent, lang)
+            ), intent, lang, evidence=guard_evidence)
             if response_text and _has_unverified_market_claim(
                 response_text, intent, prices_data
             ):
@@ -1796,6 +2049,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 fast_mode
                 or intent == INTENT_SOWING
                 or intent == INTENT_STORAGE
+                or _guard_rejected()
             )
             narrated = "" if _deterministic_only else self._narrate_structured_answer(
                 query=query, structured=response_text, intent=intent,
@@ -2080,15 +2334,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             else "Acidic — add lime" if ph < 6.5
                             else "Alkaline — add gypsum")
                 s_lines.append(f"Soil pH: {ph:.1f} — {ph_label}")
-            if n_val is not None:
-                n_flag = "✅ OK" if n_val >= 120 else "❌ Deficient — add N fertiliser"
-                s_lines.append(f"Nitrogen: {n_val:.0f} kg/ha — {n_flag}")
-            if p_val is not None:
-                p_flag = "✅ OK" if p_val >= 10 else "❌ Deficient — add DAP/SSP"
-                s_lines.append(f"Phosphorus: {p_val:.0f} kg/ha — {p_flag}")
-            if k_val is not None:
-                k_flag = "✅ OK" if k_val >= 108 else "❌ Deficient — add MOP"
-                s_lines.append(f"Potassium: {k_val:.0f} kg/ha — {k_flag}")
+            from .field_sensor_service import _soil_test_class
+            for label, nutrient, value in (("Nitrogen", "N", n_val), ("Phosphorus", "P", p_val),
+                                           ("Potassium", "K", k_val)):
+                if value is not None:
+                    soil_class = _soil_test_class(nutrient, value)
+                    s_lines.append(f"{label}: {value:.0f} kg/ha — {soil_class} (Soil Health Card class)")
             if ec_val is not None:
                 ec_flag = "✅ Safe" if ec_val < 2.0 else "⚠️ Saline — leach salts"
                 s_lines.append(f"EC (salinity): {ec_val:.2f} dS/m — {ec_flag}")
@@ -2715,12 +2966,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         def _fmt(val, fallback: str = "N/A") -> str:
             return str(val) if val is not None else fallback
 
-        def _npk_status(val: Optional[float], low: float, high: float) -> str:
+        def _npk_status(val: Optional[float], nutrient: str) -> str:
             if val is None:
                 return "unknown"
-            if val < low:
-                return "⚠️ Low"
-            return "✅ Adequate"
+            from .field_sensor_service import _soil_test_class
+            return f"{_soil_test_class(nutrient, val)} (Soil Health Card class)"
 
         def _ph_status(ph: Optional[float]) -> str:
             if ph is None:
@@ -2746,11 +2996,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 air_temp_c              = _fmt(sc.air_temp_c, "N/A") + ("°C" if sc.air_temp_c is not None else ""),
                 humidity_pct            = _fmt(sc.humidity_pct, "N/A") + ("%" if sc.humidity_pct is not None else ""),
                 nitrogen_kg_ha          = _fmt(sc.nitrogen_kg_ha) + (" kg/ha" if sc.nitrogen_kg_ha is not None else ""),
-                nitrogen_status         = _npk_status(sc.nitrogen_kg_ha, 150, 250),
+                nitrogen_status         = _npk_status(sc.nitrogen_kg_ha, "N"),
                 phosphorus_kg_ha        = _fmt(sc.phosphorus_kg_ha) + (" kg/ha" if sc.phosphorus_kg_ha is not None else ""),
-                phosphorus_status       = _npk_status(sc.phosphorus_kg_ha, 10, 25),
+                phosphorus_status       = _npk_status(sc.phosphorus_kg_ha, "P"),
                 potassium_kg_ha         = _fmt(sc.potassium_kg_ha) + (" kg/ha" if sc.potassium_kg_ha is not None else ""),
-                potassium_status        = _npk_status(sc.potassium_kg_ha, 100, 200),
+                potassium_status        = _npk_status(sc.potassium_kg_ha, "K"),
                 soil_ph                 = _fmt(sc.soil_ph),
                 ph_status               = _ph_status(sc.soil_ph),
                 soil_health_score       = sc.soil_health_score if sc.soil_health_score is not None else "—",
@@ -3699,7 +3949,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 out = _safe_model_text(
                     svc.generate(prompt=prompt, system_prompt=system,
                                  max_tokens=1200, user_query=query, temperature=0.25),
-                    intent, lang,
+                    intent, lang, evidence=f"{structured}\n{market_price_str or ''}",
                 )
                 if not out or not out.strip():
                     continue
@@ -5898,7 +6148,6 @@ def _answer_stream(
     if not fast_mode:
         stream_slot_held = False
         partial_stream_text: List[str] = []
-        buffered_stream_tokens: List[str] = []
         try:
             PHASE1_STREAM_URL = _phase1_endpoint("/chat/stream")
             crop_hint = crops_mentioned[0].get("name") if crops_mentioned else None
@@ -5934,6 +6183,7 @@ def _answer_stream(
                 resp.raise_for_status()
                 phase1_started = _time.monotonic()
                 last_token_at = phase1_started
+                last_heartbeat_at = phase1_started
                 first_token_seen = False
                 full_text: List[str] = []
                 # Phase 1 emits very small NDJSON token frames. The requests
@@ -5972,38 +6222,37 @@ def _answer_stream(
                             _set_chat_meta(first_token_ms=int((now_mono - phase1_started) * 1000))
                             first_token_seen = True
                         last_token_at = now_mono
+                        # Nothing reaches the farmer until the whole answer has
+                        # passed the same guards as the JSON endpoint: a dose or
+                        # price cannot be checked from a partial stream.
                         full_text.append(token)
-                        if not partial_stream_text:
-                            buffered_stream_tokens.append(token)
-                            prefix = "".join(buffered_stream_tokens)
-                            if _language_signal_count(prefix) < 8:
-                                continue
-                            if not _model_language_matches(prefix, lang):
-                                raise ValueError("Phase1 response language mismatch")
-                            for buffered_token in buffered_stream_tokens:
-                                partial_stream_text.append(buffered_token)
-                                yield buffered_token
-                            buffered_stream_tokens.clear()
-                        else:
-                            partial_stream_text.append(token)
-                            yield token
+                        if now_mono - last_heartbeat_at >= _STREAM_HEARTBEAT_S:
+                            # Keep clients and proxies from timing out while
+                            # the answer is held back for checking.
+                            last_heartbeat_at = now_mono
+                            yield {"__heartbeat__": True}
                 if full_text:
-                    if not partial_stream_text:
-                        completed_text = "".join(buffered_stream_tokens)
-                        if not _model_language_matches(completed_text, lang):
-                            raise ValueError("Phase1 response language mismatch")
-                        for buffered_token in buffered_stream_tokens:
-                            partial_stream_text.append(buffered_token)
-                            yield buffered_token
-                        buffered_stream_tokens.clear()
+                    # Generation is finished: free the local model for other
+                    # farmers before checking and sending this answer.
+                    _release_local_ai_slot()
+                    stream_slot_held = False
+                    completed_text = _safe_model_text(
+                        "".join(full_text), intent, lang, evidence=verified_knowledge,
+                    )
+                    if not completed_text:
+                        raise ValueError("Phase1 response rejected by the output guard")
+                    if (_has_unverified_market_claim(completed_text, intent, None)
+                            and not _price_figures_supported(completed_text, verified_knowledge)):
+                        raise ValueError("Phase1 response made an unverified market claim")
                     _set_chat_meta(
                         selected_tier="phase1_rag_ollama_stream",
                         fallback_reason="",
                         phase1_latency_ms=int((_time.monotonic() - phase1_started) * 1000),
                         total_llm_ms=int((_time.monotonic() - stream_started) * 1000),
                     )
-                    _release_local_ai_slot()
-                    stream_slot_held = False
+                    for chunk in _yield_answer_chunks(completed_text):
+                        partial_stream_text.append(chunk)
+                        yield chunk
                     yield _done_payload("KrishiMitra local RAG (stream)")
                     return
             if stream_slot_held:
@@ -6031,6 +6280,12 @@ def _answer_stream(
                 yield _done_payload("KrishiMitra local RAG (partial)")
                 return
             logger.debug("Phase1 stream unavailable (%s) — non-stream fallback", exc)
+        finally:
+            # A client that disconnects closes this generator with
+            # GeneratorExit, which the handler above does not catch.
+            if stream_slot_held:
+                _release_local_ai_slot()
+                stream_slot_held = False
 
     # A failed Phase 1 stream can leave the same host Ollama generation running
     # after the HTTP client disconnects. Retrying direct Ollama here queues a

@@ -499,6 +499,14 @@ class RegistrationInputSerializer(StrictSerializer):
         max_length=64,
     )
     password = serializers.CharField(min_length=8, max_length=128, trim_whitespace=False)
+
+    def validate_username(self, value):
+        # Phone-number usernames belong to OTP-verified accounts only.
+        if re.search(r"\d{10,}", value):
+            raise serializers.ValidationError(
+                "Usernames that contain a phone number are reserved for OTP login."
+            )
+        return value
     phone_number = serializers.CharField(required=False, allow_blank=True, max_length=16)
     name = serializers.CharField(required=False, allow_blank=True, max_length=120)
     state = serializers.CharField(required=False, allow_blank=True, max_length=100)

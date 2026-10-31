@@ -2305,24 +2305,22 @@
             // Input gaps / fertiliser plan
             if (gaps.length) {
                 html += `<div style="background:white;border-radius:12px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                    <h6 style="color:#2d5016;margin-bottom:12px;">📋 खाद/उर्वरक योजना (ICAR Based)</h6>`;
+                    <h6 style="color:#2d5016;margin-bottom:12px;">📋 खाद/उर्वरक सलाह (Soil Health Card श्रेणी अनुसार)</h6>`;
                 gaps.forEach(g => {
                     html += `<div style="margin-bottom:14px;border-bottom:1px solid #f0f0f0;padding-bottom:14px;">
                         <strong style="color:#2d5016;">🌾 ${escapeHtml(g.crop)}</strong>
                         <div style="overflow-x:auto;margin-top:8px;"><table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
                         <thead><tr style="background:#e8f5e9;">
                             <th style="padding:5px 8px;text-align:left;">पोषक</th>
-                            <th style="padding:5px;text-align:center;">वर्तमान</th>
-                            <th style="padding:5px;text-align:center;">न्यूनतम</th>
-                            <th style="padding:5px;text-align:center;color:#dc3545;">कमी</th>
-                            <th style="padding:5px;text-align:left;">उपाय</th>
-                            <th style="padding:5px;text-align:left;color:#888;">समय</th>
+                            <th style="padding:5px;text-align:center;">मिट्टी जाँच</th>
+                            <th style="padding:5px;text-align:center;color:#dc3545;">श्रेणी</th>
+                            <th style="padding:5px;text-align:left;">सलाह</th>
+                            <th style="padding:5px;text-align:left;color:#888;">मात्रा कहाँ से लें</th>
                         </tr></thead><tbody>
                         ${(g.amendments||[]).map(a=>`<tr style="border-bottom:1px solid #f5f5f5;">
                             <td style="padding:5px 8px;font-weight:600;color:#2d5016;">${escapeHtml(a.nutrient||'')}</td>
-                            <td style="padding:5px;text-align:center;">${a.current_kg_ha??a.current_pct??'-'}</td>
-                            <td style="padding:5px;text-align:center;">${a.required_min_kg_ha??a.target_pct??'-'}</td>
-                            <td style="padding:5px;text-align:center;color:#dc3545;font-weight:700;">${a.deficit_kg_ha??'-'}</td>
+                            <td style="padding:5px;text-align:center;">${escapeHtml(String(a.current_kg_ha??a.current_pct??a.current??'-'))}</td>
+                            <td style="padding:5px;text-align:center;color:#dc3545;font-weight:700;">${escapeHtml(a.soil_class||'-')}</td>
                             <td style="padding:5px;color:#1565c0;font-size:0.72rem;">${escapeHtml(a.amendment||'')}</td>
                             <td style="padding:5px;color:#888;font-size:0.68rem;">${escapeHtml(a.timing||'')}</td>
                         </tr>`).join('')}
