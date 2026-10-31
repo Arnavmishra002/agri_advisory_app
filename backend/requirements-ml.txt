@@ -5,6 +5,6 @@
 
 tensorflow>=2.18.0,<2.19
 opencv-python-headless>=4.10.0,<4.12
-Pillow>=10.0.0,<13
+Pillow>=13.0.0,<14
 matplotlib>=3.7.0,<4
 seaborn>=0.13.0,<0.14

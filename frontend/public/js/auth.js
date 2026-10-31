@@ -16,7 +16,8 @@
  *   POST /api/users/otp/verify/   { phone_number, otp_code, session_id }
  *   POST /api/token/              { username, password }  (simplejwt)
  *   POST /api/token/refresh/      { refresh }
- *   POST /api/users/register/     { username, password, name, phone_number, state, language }
+ *   POST /api/users/register/     { username, password, name, state, language }
+ *     (a mobile number is linked only by OTP login, which proves ownership)
  *   POST /api/users/logout/       { refresh }
  *   GET  /api/users/me/
  */
@@ -27,10 +28,41 @@
   /* ── Constants ──────────────────────────────────────────────── */
   var LS_ACCESS  = 'km_access_token';
   var LS_USER    = 'km_user';
+  var LS_RECEIVED = 'km_access_received_at'; // device time when the access token arrived
   var SS_REFRESH = 'km_refresh_token';
   var LEGACY_LS_REFRESH = 'km_refresh_token';
-  var REFRESH_MS = 55 * 60 * 1000;   // refresh 5 min before 60-min expiry
+  var FALLBACK_REFRESH_MS = 25 * 60 * 1000; // backend access tokens live 30 min
+  var REFRESH_MARGIN_MS = 60 * 1000;         // refresh 1 min before the token's exp
   var OTP_RESEND_S = 60;              // resend OTP countdown seconds
+
+  // Lifetime of an access token in ms, from its server-issued iat and exp
+  // claims. Returns null when the token cannot be decoded.
+  function tokenLifetimeMs(token) {
+    try {
+      var payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (payload.length % 4) payload += '=';
+      var claims = JSON.parse(atob(payload));
+      if (typeof claims.exp !== 'number' || typeof claims.iat !== 'number') return null;
+      return (claims.exp - claims.iat) * 1000;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Milliseconds until the access token expires. Both ends of the elapsed
+  // time are read from the device clock, so a phone whose clock is hours off
+  // still schedules correctly; comparing exp with Date.now() would not.
+  // Returns null when the token or its arrival time is unknown.
+  function msUntilExpiry(token, receivedAt) {
+    var lifetime = tokenLifetimeMs(token);
+    if (lifetime === null || !receivedAt) return null;
+    var elapsed = Math.max(0, Date.now() - receivedAt);
+    return lifetime - elapsed;
+  }
+
+  function storedReceivedAt() {
+    try { return Number(localStorage.getItem(LS_RECEIVED)) || null; } catch (e) { return null; }
+  }
 
   /* ── KM_Auth object ─────────────────────────────────────────── */
   var KM_Auth = {
@@ -38,6 +70,7 @@
     _accessToken:   null,
     _refreshToken:  null,
     _refreshTimer:  null,
+    _accessReceivedAt: null,
     _countdownTimer: null,
     _currentPhone:  null,   // phone used in ongoing OTP flow
     _bsModal:       null,   // Bootstrap modal instance
@@ -50,11 +83,25 @@
         var user = localStorage.getItem(LS_USER);
         localStorage.removeItem(LEGACY_LS_REFRESH);
         if (tok && user) {
-          this._accessToken  = tok;
-          this._refreshToken = ref;
-          this._user         = JSON.parse(user);
-          this._updateNavbar();
-          this._scheduleRefresh();
+          this._accessReceivedAt = storedReceivedAt();
+          var remaining = msUntilExpiry(tok, this._accessReceivedAt);
+          if (remaining !== null && remaining <= REFRESH_MARGIN_MS && !ref) {
+            // Expired access token and no refresh token (tab was closed): the
+            // session cannot be resumed, so do not pretend the farmer is logged in.
+            this._clearStoredSession();
+          } else {
+            this._accessToken  = tok;
+            this._refreshToken = ref;
+            this._user         = JSON.parse(user);
+            this._updateNavbar();
+            if (remaining === null && ref) {
+              // Session stored before arrival times were recorded: its age is
+              // unknown, so refresh once now instead of risking an expired token.
+              this.refreshToken();
+            } else {
+              this._scheduleRefresh();
+            }
+          }
         }
       } catch (e) { /* ignore parse errors */ }
 
@@ -64,19 +111,39 @@
       var authModal = document.getElementById('authModal');
       if (authModal && !authModal.dataset.authResetBound) {
         authModal.dataset.authResetBound = 'true';
+        authModal.addEventListener('hide.bs.modal', function () {
+          self._modalClosing = true;
+        });
         authModal.addEventListener('hidden.bs.modal', function () {
+          self._modalClosing = false;
           self._resetAuthUi();
           self.switchTab('phone');
+          var pendingTab = self._pendingOpenTab;
+          self._pendingOpenTab = null;
+          if (pendingTab) {
+            self.openModal(pendingTab, self._returnFocus);
+            return;
+          }
+          if (self._returnFocus && self._returnFocus.isConnected && self._returnFocus.offsetParent !== null) {
+            self._returnFocus.focus({ preventScroll: true });
+          }
         });
       }
     },
 
     /* ── openModal ───────────────────────────────────────────── */
-    openModal: function (tab) {
+    openModal: function (tab, trigger) {
       tab = tab || 'phone';
       if (['phone', 'password', 'register'].indexOf(tab) === -1) tab = 'phone';
       var el = document.getElementById('authModal');
       if (!el) return;
+      this._returnFocus = trigger || document.activeElement;
+      if (this._modalClosing) {
+        // Bootstrap ignores show() while the closing fade runs (for example
+        // right after sign-in closed the modal); open once it has finished.
+        this._pendingOpenTab = tab;
+        return;
+      }
       if (!this._bsModal) {
         this._bsModal = new bootstrap.Modal(el, { backdrop: true });
       }
@@ -117,6 +184,7 @@
     /* ── requestOtp ──────────────────────────────────────────── */
     requestOtp: function () {
       var self = this;
+      if ((document.getElementById('btnSendOtp') || {}).disabled) return;
       var phone = (document.getElementById('authPhoneInput') || {}).value || '';
       phone = phone.replace(/\D/g, '').slice(0, 10);
 
@@ -129,7 +197,7 @@
 
       self._post('/api/users/otp/request/', { phone_number: phone })
         .then(function (data) {
-          if (data.success) {
+          if (data.success && data.sms_sent === true) {
             self._currentPhone = phone;
             // Show OTP step
             var step1 = document.getElementById('otpStep1');
@@ -140,21 +208,19 @@
             if (disp) disp.textContent = '+91 ' + phone;
             // Focus first digit
             var first = document.querySelector('#otpInputGroup .otp-digit');
-            if (first) setTimeout(function () { first.focus(); }, 100);
+            if (first) first.focus();
             // Clear digits
             document.querySelectorAll('#otpInputGroup .otp-digit').forEach(function (i) { i.value = ''; });
-            // Dev OTP hint
-            if (data.dev_otp) {
-              self._setSuccess('otpVerifySuccess', '🛠️ Dev OTP: ' + data.dev_otp);
-            }
+            self._setSuccess('otpVerifySuccess', window.t('auth_sms_accepted'));
             // Start resend countdown
             self._startResendCountdown();
           } else {
-            self._setError('otpPhoneError', data.error || 'OTP भेजने में समस्या');
+            self._currentPhone = null;
+            self._setError('otpPhoneError', window.t('auth_sms_unavailable'));
           }
         })
         .catch(function (err) {
-          self._setError('otpPhoneError', err.error_hi || err.error || 'नेटवर्क समस्या');
+          self._setError('otpPhoneError', self._otpError(err));
         })
         .finally(function () {
           self._setLoading('btnSendOtp', 'spinnerSendOtp', false);
@@ -164,6 +230,7 @@
     /* ── verifyOtp ───────────────────────────────────────────── */
     verifyOtp: function () {
       var self = this;
+      if ((document.getElementById('btnVerifyOtp') || {}).disabled) return;
       var digits = '';
       document.querySelectorAll('#otpInputGroup .otp-digit').forEach(function (i) {
         digits += i.value || '';
@@ -187,11 +254,23 @@
           self._onLoginSuccess(data);
         })
         .catch(function (err) {
-          self._setError('otpVerifyError', err.error_hi || err.error || 'गलत OTP। दोबारा जांचें।');
+          self._setError('otpVerifyError', self._otpError(err));
         })
         .finally(function () {
           self._setLoading('btnVerifyOtp', 'spinnerVerifyOtp', false);
         });
+    },
+
+    _otpError: function (err) {
+      var key = {
+        RATE_LIMITED: 'auth_error_rate_limit',
+        OTP_VERIFY_RATE_LIMITED: 'auth_error_rate_limit',
+        OTP_EXPIRED: 'auth_error_expired_otp',
+        INVALID_OTP: 'auth_error_invalid_otp',
+      }[(err || {}).error_code];
+      if (key) return window.t(key);
+      var hi = window.getCurrentLang() === 'hi';
+      return (hi && err.error_hi) || (typeof err.error === 'string' && err.error) || window.t('auth_error_network');
     },
 
     /* ── loginPassword ───────────────────────────────────────── */
@@ -235,7 +314,6 @@
       var username  = ((document.getElementById('regUsernameInput') || {}).value || '').trim();
       var password  = ((document.getElementById('regPasswordInput') || {}).value || '').trim();
       var name      = ((document.getElementById('regNameInput')     || {}).value || '').trim();
-      var phone     = ((document.getElementById('regPhoneInput')    || {}).value || '').replace(/\D/g, '');
       var state     = ((document.getElementById('regStateInput')    || {}).value || '').trim();
       var sessionId = (window._getSessionId && window._getSessionId()) || '';
       var guestSessionToken = (window._getGuestSessionToken && window._getGuestSessionToken()) || '';
@@ -250,7 +328,6 @@
         username:     username,
         password:     password,
         name:         name,
-        phone_number: phone,
         state:        state,
         language:     (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'hi'),
         session_id:   sessionId,
@@ -302,17 +379,7 @@
       if (self._refreshToken) {
         self._post('/api/users/logout/', { refresh: self._refreshToken }).catch(function () {});
       }
-      // Clear local state
-      self._accessToken  = null;
-      self._refreshToken = null;
-      self._user         = null;
-      try {
-        localStorage.removeItem(LS_ACCESS);
-        localStorage.removeItem(LEGACY_LS_REFRESH);
-        localStorage.removeItem(LS_USER);
-      } catch (e) {}
-      try { sessionStorage.removeItem(SS_REFRESH); } catch (e) {}
-      if (self._refreshTimer) { clearTimeout(self._refreshTimer); self._refreshTimer = null; }
+      self._clearStoredSession();
       self._resetAuthUi();
       self.closeModal();
       self._updateNavbar();
@@ -325,16 +392,30 @@
     /* ── refreshToken ────────────────────────────────────────── */
     refreshToken: function () {
       var self = this;
-      if (!self._refreshToken) return;
-      self._post('/api/token/refresh/', { refresh: self._refreshToken })
+      var sent = self._refreshToken;
+      if (!sent) return;
+      self._post('/api/token/refresh/', { refresh: sent })
         .then(function (data) {
+          // The farmer logged out or logged in again while this was in flight.
+          if (self._refreshToken !== sent) return;
           if (data.access) {
             self._accessToken = data.access;
-            try { localStorage.setItem(LS_ACCESS, data.access); } catch (e) {}
+            self._accessReceivedAt = Date.now();
+            try {
+              localStorage.setItem(LS_ACCESS, data.access);
+              localStorage.setItem(LS_RECEIVED, String(self._accessReceivedAt));
+            } catch (e) {}
+            // The backend rotates refresh tokens and blacklists the old one,
+            // so the next refresh must use the new token.
+            if (data.refresh) {
+              self._refreshToken = data.refresh;
+              try { sessionStorage.setItem(SS_REFRESH, data.refresh); } catch (e) {}
+            }
             self._scheduleRefresh();
           }
         })
         .catch(function () {
+          if (self._refreshToken !== sent) return;
           // Refresh token expired — silent logout
           self.logout();
           self.openModal('phone');
@@ -372,8 +453,10 @@
       this._accessToken  = data.access;
       this._refreshToken = data.refresh;
       this._user         = data.user;
+      this._accessReceivedAt = Date.now();
       try {
         localStorage.setItem(LS_ACCESS,  data.access);
+        localStorage.setItem(LS_RECEIVED, String(this._accessReceivedAt));
         localStorage.setItem(LS_USER,    JSON.stringify(data.user));
         localStorage.removeItem(LEGACY_LS_REFRESH);
       } catch (e) {}
@@ -422,9 +505,29 @@
     _scheduleRefresh: function () {
       var self = this;
       if (self._refreshTimer) clearTimeout(self._refreshTimer);
+      var remaining = self._accessToken ? msUntilExpiry(self._accessToken, self._accessReceivedAt) : null;
+      var delay = remaining === null
+        ? FALLBACK_REFRESH_MS
+        : Math.min(Math.max(0, remaining - REFRESH_MARGIN_MS), 0x7fffffff);
       self._refreshTimer = setTimeout(function () {
         self.refreshToken();
-      }, REFRESH_MS);
+      }, delay);
+    },
+
+    /* ── _clearStoredSession ─────────────────────────────────── */
+    _clearStoredSession: function () {
+      this._accessToken  = null;
+      this._refreshToken = null;
+      this._user         = null;
+      this._accessReceivedAt = null;
+      try {
+        localStorage.removeItem(LS_ACCESS);
+        localStorage.removeItem(LS_RECEIVED);
+        localStorage.removeItem(LEGACY_LS_REFRESH);
+        localStorage.removeItem(LS_USER);
+      } catch (e) {}
+      try { sessionStorage.removeItem(SS_REFRESH); } catch (e) {}
+      if (this._refreshTimer) { clearTimeout(this._refreshTimer); this._refreshTimer = null; }
     },
 
     /* ── _startResendCountdown ───────────────────────────────── */
@@ -482,7 +585,7 @@
     /* ── _setError ───────────────────────────────────────────── */
     _setError: function (id, msg) {
       var el = document.getElementById(id);
-      if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+      if (el) { el.setAttribute('role', 'alert'); el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
     },
 
     /* ── _setSuccess ─────────────────────────────────────────── */
@@ -507,7 +610,7 @@
       [
         'authPhoneInput', 'authUsernameInput', 'authPasswordInput',
         'regNameInput', 'regUsernameInput', 'regPasswordInput',
-        'regPhoneInput', 'regStateInput'
+        'regStateInput'
       ].forEach(function (id) {
         var input = document.getElementById(id);
         if (input) input.value = '';
@@ -577,16 +680,19 @@
     /* ── _post ───────────────────────────────────────────────── */
     _post: function (path, body) {
       var url = (window.apiFetch ? window.apiFetch(path) : path);
+      var controller = new AbortController();
+      var timeout = setTimeout(function () { controller.abort(); }, 15000);
       return fetch(url, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(body),
+        signal: controller.signal,
       }).then(function (res) {
         return res.json().then(function (data) {
           if (!res.ok) return Promise.reject(data);
           return data;
         });
-      });
+      }).finally(function () { clearTimeout(timeout); });
     },
 
     /* ── _get ────────────────────────────────────────────────── */

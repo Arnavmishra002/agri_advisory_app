@@ -106,6 +106,10 @@ class StrictSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"non_field_errors": [f"Unexpected field: {field}" for field in sorted(unknown)]}
             )
+        data = data.copy()
+        for key in ('language', 'preferred_language'):
+            if data.get(key) == 'bo':
+                data[key] = 'brx'  # Compatibility with previously stored Bodo preferences.
         return super().to_internal_value(data)
 
 
@@ -495,6 +499,14 @@ class RegistrationInputSerializer(StrictSerializer):
         max_length=64,
     )
     password = serializers.CharField(min_length=8, max_length=128, trim_whitespace=False)
+
+    def validate_username(self, value):
+        # Phone-number usernames belong to OTP-verified accounts only.
+        if re.search(r"\d{10,}", value):
+            raise serializers.ValidationError(
+                "Usernames that contain a phone number are reserved for OTP login."
+            )
+        return value
     phone_number = serializers.CharField(required=False, allow_blank=True, max_length=16)
     name = serializers.CharField(required=False, allow_blank=True, max_length=120)
     state = serializers.CharField(required=False, allow_blank=True, max_length=100)
@@ -507,9 +519,29 @@ class RegistrationInputSerializer(StrictSerializer):
     guest_session_token = serializers.CharField(required=False, allow_blank=True, max_length=4096)
 
 
+CHAT_HISTORY_ENTRY_CHARS = 2000
+_LONE_SURROGATE = re.compile(r"[\ud800-\udfff]")
+
+
+class HistoryTextField(serializers.CharField):
+    """Earlier chat text resent by a client.
+
+    A client that shortened a long answer by UTF-16 units can cut an emoji in
+    half. The lone surrogate left behind is dropped here; DRF would otherwise
+    reject it and fail every later question until the turn left the history.
+    """
+
+    def to_internal_value(self, data):
+        return _LONE_SURROGATE.sub("", super().to_internal_value(data))
+
+
 class ChatHistoryEntrySerializer(StrictSerializer):
     role = serializers.ChoiceField(choices=("user", "assistant"), default="user")
-    content = serializers.CharField(max_length=2000, allow_blank=False)
+    # Clients resend earlier answers verbatim and a model answer can exceed
+    # 2,000 characters, so a long turn is shortened when the history is built
+    # instead of failing every later question with 400. Only absurd sizes are
+    # rejected here.
+    content = HistoryTextField(max_length=20000, allow_blank=False)
     intent = serializers.CharField(required=False, allow_blank=True, max_length=80)
 
 
@@ -674,7 +706,7 @@ class FarmerProfileInputSerializer(StrictSerializer):
     )
     preferred_language = serializers.ChoiceField(
         required=False,
-        choices=("hi", "en", "hinglish"),
+        choices=tuple(SUPPORTED_LANGUAGES),
     )
     has_pm_kisan = serializers.BooleanField(required=False)
     has_kcc = serializers.BooleanField(required=False)

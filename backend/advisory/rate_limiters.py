@@ -20,6 +20,7 @@ import time
 import logging
 import functools
 import hashlib
+import hmac
 import ipaddress
 from typing import Optional
 
@@ -39,23 +40,66 @@ def _cache_key(prefix: str, client_id: str) -> str:
     return f"km:security:{prefix}:{digest}"
 
 
+def from_web_edge(request) -> bool:
+    """True when the web edge (the Vercel /api proxy) forwarded this request.
+
+    The edge sets X-Origin-Secret to ORIGIN_SECRET on every request it proxies.
+    A client calling the API directly does not know the secret, so it cannot
+    claim the extra trusted hop below.
+    """
+    from django.conf import settings
+
+    secret = str(getattr(settings, "ORIGIN_SECRET", "") or "")
+    supplied = request.META.get("HTTP_X_ORIGIN_SECRET", "")
+    if not secret or not supplied:
+        return False
+    return hmac.compare_digest(supplied.encode("utf-8"), secret.encode("utf-8"))
+
+
 def client_ip_from_request(request) -> str:
-    """Resolve the client IP using only configured trusted proxy hops."""
+    """Resolve the client IP from the hops added by trusted proxies.
+
+    Each trusted proxy appends the address it received the request from, so
+    with N trusted proxies the client is the N-th entry from the right (the
+    same rule as DRF's NUM_PROXIES). Entries further left were written by the
+    client itself and are never used: picking one of them let anyone choose
+    their rate-limit identity, including a whitelisted 127.0.0.1.
+
+    Web traffic passes one more proxy: Vercel writes the visitor's address
+    into X-Forwarded-For and the API host then appends Vercel's own. Without
+    counting that hop every web farmer would share Vercel's address, so it is
+    trusted for requests that carry the edge secret.
+    """
     from django.conf import settings
 
     trusted = max(0, int(getattr(settings, "RATE_LIMIT_TRUSTED_PROXIES", 0)))
     remote = request.META.get("REMOTE_ADDR", "0.0.0.0")
     if trusted == 0:
         return remote
+    if from_web_edge(request):
+        trusted += 1
     entries = [value.strip() for value in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",") if value.strip()]
-    if len(entries) <= trusted:
+    if not entries:
         return remote
-    candidate = entries[-trusted - 1]
+    candidate = entries[-min(trusted, len(entries))]
     try:
         ipaddress.ip_address(candidate)
         return candidate
     except ValueError:
         return remote
+
+
+def is_local_request(request) -> bool:
+    """True only for a request made on this host, not one forwarded by a proxy.
+
+    The rate-limit whitelist exists for local health checks. It is checked
+    against the socket address, never against a forwarded header.
+    """
+    from django.conf import settings
+
+    if request.META.get("HTTP_X_FORWARDED_FOR"):
+        return False
+    return request.META.get("REMOTE_ADDR", "") in getattr(settings, "RATE_LIMIT_WHITELIST", [])
 
 
 class SharedRateLimiter:

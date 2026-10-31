@@ -115,6 +115,8 @@ jobs:
     name: Build Docker image
     runs-on: ubuntu-latest
     needs: pre-deploy-check
+    outputs:
+      mode: ${{ steps.docker_meta.outputs.push_image == 'true' && 'pushed to Docker Hub' || 'built only (no registry credentials)' }}
     env:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -171,13 +173,18 @@ jobs:
     needs:
       - pre-deploy-check
       - publish-docker
+    outputs:
+      deploy: ${{ steps.trigger.outputs.deploy }}
+      health: ${{ steps.health.outputs.health }}
     env:
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
       RENDER_SERVICE_URL: ${{ secrets.RENDER_SERVICE_URL }}
     steps:
       - name: Trigger Render deploy if configured
+        id: trigger
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "deploy=NOT DEPLOYED (RENDER_DEPLOY_HOOK_URL secret is not set)" >> "$GITHUB_OUTPUT"
             echo "RENDER_DEPLOY_HOOK_URL is not set; skipping Render deploy."
             exit 0
           fi
@@ -190,15 +197,19 @@ jobs:
             echo "Render deploy hook failed with HTTP $status"
             exit 1
           fi
+          echo "deploy=deploy hook accepted (HTTP $status)" >> "$GITHUB_OUTPUT"
           echo "Render deploy hook accepted with HTTP $status"
 
       - name: Verify Render health if configured
+        id: health
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "health=not checked (no deploy was triggered)" >> "$GITHUB_OUTPUT"
             echo "Render deploy was skipped; skipping post-deploy health check."
             exit 0
           fi
           if [ -z "$RENDER_SERVICE_URL" ]; then
+            echo "health=NOT VERIFIED (RENDER_SERVICE_URL secret is not set)" >> "$GITHUB_OUTPUT"
             echo "RENDER_SERVICE_URL is not set; skipping live health check."
             exit 0
           fi
@@ -206,6 +217,7 @@ jobs:
           for attempt in $(seq 1 20); do
             status=$(curl -sS -o /dev/null -w "%{http_code}" "$url" --max-time 10 || echo "000")
             if [ "$status" = "200" ]; then
+              echo "health=HTTP health passed; revision NOT VERIFIED at $url" >> "$GITHUB_OUTPUT"
               echo "Render service healthy at $url"
               exit 0
             fi
@@ -226,17 +238,32 @@ jobs:
     if: always()
     steps:
       - name: Print results
+        env:
+          RENDER_DEPLOY: ${{ needs.deploy-render.outputs.deploy }}
+          RENDER_HEALTH: ${{ needs.deploy-render.outputs.health }}
+          DOCKER_MODE: ${{ needs.publish-docker.outputs.mode }}
         run: |
-          echo "Guard:       ${{ needs.guard.result }}"
-          echo "Pre-deploy:  ${{ needs.pre-deploy-check.result }}"
-          echo "Docker:      ${{ needs.publish-docker.result }}"
-          echo "Render:      ${{ needs.deploy-render.result }}"
           echo "Branch:      ${{ github.ref_name }}"
           echo "Commit:      ${{ github.sha }}"
+          echo "Guard:       ${{ needs.guard.result }}"
+          echo "Pre-deploy:  ${{ needs.pre-deploy-check.result }}"
+          echo "Docker job:  ${{ needs.publish-docker.result }} - ${DOCKER_MODE:-unknown}"
+          echo "Render job:  ${{ needs.deploy-render.result }}"
+          echo "  deploy:    ${RENDER_DEPLOY:-did not run}"
+          echo "  health:    ${RENDER_HEALTH:-did not run}"
           if [ "${{ needs.pre-deploy-check.result }}" = "failure" ] || \
              [ "${{ needs.publish-docker.result }}" = "failure" ] || \
              [ "${{ needs.deploy-render.result }}" = "failure" ]; then
             echo "Deployment failed."
             exit 1
           fi
+          case "$RENDER_DEPLOY" in
+            "NOT DEPLOYED"*)
+              echo
+              echo "WARNING: this workflow shipped nothing to Render via a deploy hook."
+              echo "Render GitHub App auto-deploy may run independently; its outcome is unknown here."
+              echo "Check Render Events for commit ${{ github.sha }} and verify the running revision."
+              echo "RENDER_DEPLOY_HOOK_URL is optional when platform auto-deploy is configured."
+              ;;
+          esac
           echo "Deployment workflow completed."

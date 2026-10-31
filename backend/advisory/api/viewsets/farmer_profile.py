@@ -36,17 +36,21 @@ class FarmerProfileViewSet(viewsets.ViewSet):
 
     @staticmethod
     def _phone_candidates(user) -> set[str]:
-        username = (getattr(user, "username", "") or "").strip()
-        digits = "".join(ch for ch in username if ch.isdigit())
-        candidates = {username} if username else set()
-        if digits:
-            candidates.add(digits)
-            candidates.add(f"+{digits}")
-            if len(digits) == 10:
-                candidates.add(f"+91{digits}")
-            elif len(digits) == 12 and digits.startswith("91"):
-                candidates.add(f"+{digits}")
-        return {c for c in candidates if c}
+        """Phone numbers this account has proven it owns.
+
+        Only accounts created by OTP login own a phone number: their username
+        is the verified number (``91XXXXXXXXXX``) and they have no usable
+        password. A password account cannot claim a farmer's phone by putting
+        its digits in the username.
+        """
+        username = (getattr(user, "username", "") or "").strip().lstrip("+")
+        if not username.isdigit() or user.has_usable_password():
+            return set()
+        if len(username) == 10:
+            username = f"91{username}"
+        if len(username) != 12 or not username.startswith("91"):
+            return set()
+        return {username, f"+{username}", username[2:]}
 
     @classmethod
     def _owned_filter(cls, user) -> Q:

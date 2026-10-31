@@ -145,7 +145,7 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         return_value=_FakeInterruptedStreamingResponse(),
     )
     @patch("advisory.services.knowledge_base.knowledge_base.answer")
-    def test_partial_stream_does_not_append_a_second_fallback_answer(
+    def test_interrupted_stream_shows_no_unchecked_text_and_falls_back(
         self,
         kb_answer,
         requests_post,
@@ -155,11 +155,11 @@ class ChatStreamSourceOrderTests(SimpleTestCase):
         chunks = list(self.service.answer_stream("rice crop management advice", self.ctx, language="en"))
 
         text = "".join(chunk for chunk in chunks if isinstance(chunk, str))
-        self.assertIn("grounded start", text)
-        self.assertIn("response was interrupted", text)
-        self.assertNotIn("Kisan Helpline", text)
-        self.assertEqual(chunks[-1]["chatbot_diagnostics"]["selected_tier"], "phase1_partial_stream")
-        self.assertEqual(chunks[-1]["data_source"], "KrishiMitra local RAG (partial)")
+        # A partial model answer cannot be checked for doses or prices, so it
+        # is never shown; the farmer gets the grounded fallback instead.
+        self.assertNotIn("grounded start", text)
+        self.assertTrue(text.strip())
+        self.assertEqual(chunks[-1]["chatbot_diagnostics"]["selected_tier"], "rule_based_fallback")
         requests_post.assert_called_once()
 
     @patch("advisory.services.chat_intelligence_service.gemini_service")

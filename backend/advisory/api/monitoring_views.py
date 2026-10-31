@@ -57,6 +57,14 @@ def _staff_or_debug(request) -> bool:
     if settings.DEBUG:
         return True
     user = getattr(request, "user", None)
+    if not (user and user.is_authenticated):
+        from rest_framework_simplejwt.authentication import JWTAuthentication
+        from rest_framework.exceptions import AuthenticationFailed
+        try:
+            authenticated = JWTAuthentication().authenticate(request)
+            user = authenticated[0] if authenticated else None
+        except AuthenticationFailed:
+            return False
     return bool(user and user.is_authenticated and user.is_staff)
 
 
@@ -203,6 +211,13 @@ def simple_health_check(request):
 @require_GET
 def readiness_check(request):
     """Readiness probe — checks DB, cache, Phase 1 AI server, and Ollama."""
+    if not _staff_or_debug(request):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            return JsonResponse({"status": "available"})
+        except Exception:
+            return JsonResponse({"status": "unavailable"}, status=503)
     checks: Dict[str, str] = {}
     overall_ok = True
 
@@ -385,6 +400,9 @@ def _configured_env(name: str) -> bool:
 def launch_readiness_check(request):
     """Production launch gate with explicit, non-secret remediation details."""
     import json
+
+    if not _staff_or_debug(request):
+        return JsonResponse({"error": "Forbidden"}, status=403)
 
     readiness_response = readiness_check(request)
     try:

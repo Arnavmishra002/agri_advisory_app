@@ -25,12 +25,13 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from .market_data_quality import INDIA_TZ
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +143,18 @@ class AgmarknetDirectClient:
         })
         self._cache:    Dict[str, Any]   = {}
         self._cache_ts: Dict[str, float] = {}
+        self._unavailable_until = 0.0
+
+    def _access_unavailable(self, response) -> bool:
+        if response.status_code not in (401, 403, 429):
+            return False
+        try:
+            delay = max(10, min(int(response.headers.get("Retry-After", "60")), 300))
+        except (TypeError, ValueError):
+            delay = 60
+        self._unavailable_until = time.monotonic() + delay
+        logger.warning("Agmarknet access unavailable (HTTP %s); pausing requests for %ss", response.status_code, delay)
+        return True
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -188,13 +201,15 @@ class AgmarknetDirectClient:
 
     def _fetch_live(self) -> Optional[List[Dict[str, Any]]]:
         """Try the live API. Returns records list or None on any failure."""
+        if time.monotonic() < self._unavailable_until:
+            return None
         try:
             # These are Agmarknet's documented "All" selector IDs. Sending the
             # complete dashboard contract mirrors the official web request and
             # avoids relying on implicit backend defaults.
             payload = {
                 "dashboard": DASHBOARD,
-                "date": date.today().isoformat(),
+                "date": datetime.now(INDIA_TZ).date().isoformat(),
                 "group": [100000],
                 "commodity": [100001],
                 "state": 100006,
@@ -210,6 +225,8 @@ class AgmarknetDirectClient:
                 json=payload,
                 timeout=REQUEST_TIMEOUT,
             )
+            if self._access_unavailable(resp):
+                return None
             resp.raise_for_status()
             raw = resp.json()
             # API returns "status": "success" (string) or status: true (bool) — handle both
@@ -269,9 +286,11 @@ class AgmarknetDirectClient:
                                       "market": [ALL["market"]]}))
 
         for coverage, scope in attempts:
+            if time.monotonic() < self._unavailable_until:
+                break
             payload = {
                 "dashboard": DASHBOARD,
-                "date": date.today().isoformat(),
+                "date": datetime.now(INDIA_TZ).date().isoformat(),
                 "group": [100000],
                 "commodity": [commodity_id or ALL["commodity"]],
                 "variety": 100021,
@@ -282,6 +301,8 @@ class AgmarknetDirectClient:
             payload.update(scope)
             try:
                 resp = self.session.post(AGMARKNET_API_URL, json=payload, timeout=REQUEST_TIMEOUT)
+                if self._access_unavailable(resp):
+                    break
                 resp.raise_for_status()
                 raw = resp.json()
             except Exception as exc:

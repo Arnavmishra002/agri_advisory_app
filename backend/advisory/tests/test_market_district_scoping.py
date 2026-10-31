@@ -21,7 +21,7 @@ properties that make that safe:
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
@@ -235,7 +235,8 @@ class DatedOfficialReferenceSurvivesLiveFilterTests(SimpleTestCase):
 
         out = self._formatted()
         rows, _age, reported = build_dated_official_reference(
-            out["unfiltered_rows"], response_date="06-09-2026"
+            out["unfiltered_rows"], response_date="06-09-2026",
+            now=datetime(2026, 9, 8, tzinfo=timezone.utc),
         )
         self.assertEqual(len(rows), 2)
         self.assertEqual(reported, "06-09-2026")
