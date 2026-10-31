@@ -81,7 +81,7 @@ class _RaceDetectingInterpreter:
         # Encode which input produced this output so a crossed response is
         # detectable by the caller.
         marker = self._pending or 0.0
-        probs = np.array([[0.02, 0.95, 0.03]], dtype=np.float32)
+        probs = np.array([[0.04999999, 0.95, 1e-8]], dtype=np.float32)
         probs[0][1] = 0.95
         self._leave()
         self._last_marker = marker

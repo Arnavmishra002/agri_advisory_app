@@ -32,6 +32,15 @@ SEED = 42
 
 # Inference
 CONFIDENCE_THRESHOLD = float(os.getenv("ML_CONFIDENCE_THRESHOLD", "0.75"))
+# Out-of-scope gate (theta): the largest unknown-class probability a released
+# label may have. 5.11e-6 is the 99th percentile on validation plant images, so
+# 99% of in-scope leaves pass while field photos and leaves of crops the model
+# was never trained on (e.g. rice) are mostly refused.
+UNKNOWN_PROB_THRESHOLD = float(os.getenv("ML_UNKNOWN_PROB_THRESHOLD", "5.11e-6"))
+OUT_OF_SCOPE_MESSAGE = (
+    "This leaf does not match the crops and diseases the model knows well enough "
+    "to give a label. Please answer a few symptom questions or show it to your KVK."
+)
 TOP_K = 3
 UNKNOWN_LABEL = "unknown__unknown"
 UNKNOWN_DISPLAY = "Unknown"
