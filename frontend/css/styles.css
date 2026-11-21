@@ -2492,7 +2492,25 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
+  /* The hero is light now; the widget's original white text (written for the
+     old dark hero) was invisible in light mode. Theme colours work in both. */
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  backdrop-filter: none;
 }
+.hero-weather-widget:hover {
+  background: var(--bg-surface);
+  border-color: var(--green-600);
+}
+.hero-weather-divider { background: var(--border-color); }
+.hero-weather-sub { color: var(--text-secondary); opacity: 1; }
+.location-accuracy-badge {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+.location-accuracy-badge.accuracy-good  { background: rgba(40,167,69,0.18); }
+.location-accuracy-badge.accuracy-medium { background: rgba(255,193,7,0.28); }
 .hero-quick-actions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

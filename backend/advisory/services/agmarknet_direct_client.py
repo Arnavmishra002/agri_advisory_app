@@ -40,6 +40,45 @@ DASHBOARD         = "marketwise_price_arrival"
 REQUEST_TIMEOUT   = (8, 25)    # connect 8s, read 25s — API is sometimes slow
 CACHE_TTL_SECS    = 3600       # 1 hour
 
+# Since November 2026 the price endpoints answer automated calls with HTTP 400
+# and {"status": false, "message": "Captcha key and captcha value are
+# required."}. The CAPTCHA is there to stop automated clients, so it is never
+# worked around: each client stops calling for a while and the live price
+# comes from data.gov.in instead. The module-level timestamp only reports that
+# the refusal was seen (for the operator note); each client keeps its own pause.
+CAPTCHA_PAUSE_SECS = 3600
+_captcha_seen_at: Optional[float] = None
+
+
+def is_captcha_wall(response: Any) -> bool:
+    """True when Agmarknet refused a request because it wants a CAPTCHA."""
+    if getattr(response, "status_code", None) not in (400, 401, 403):
+        return False
+    try:
+        body = str(response.text or "")[:500].lower()
+    except Exception:
+        return False
+    return "captcha" in body
+
+
+def note_captcha_wall() -> None:
+    global _captcha_seen_at
+    if not captcha_wall_active():
+        logger.warning(
+            "Agmarknet now requires a CAPTCHA for automated requests; pausing "
+            "Agmarknet calls for %ss. Live mandi prices need DATA_GOV_IN_API_KEY.",
+            CAPTCHA_PAUSE_SECS,
+        )
+    _captcha_seen_at = time.monotonic()
+
+
+def captcha_wall_active() -> bool:
+    """True when an Agmarknet CAPTCHA refusal was seen in the last pause window."""
+    return (
+        _captcha_seen_at is not None
+        and time.monotonic() - _captcha_seen_at < CAPTCHA_PAUSE_SECS
+    )
+
 # ── Commodity name → our canonical crop IDs ───────────────────────────────────
 _AGMARKNET_TO_CROP_ID: Dict[str, str] = {
     "wheat":                         "wheat",
@@ -146,6 +185,10 @@ class AgmarknetDirectClient:
         self._unavailable_until = 0.0
 
     def _access_unavailable(self, response) -> bool:
+        if is_captcha_wall(response):
+            note_captcha_wall()
+            self._unavailable_until = time.monotonic() + CAPTCHA_PAUSE_SECS
+            return True
         if response.status_code not in (401, 403, 429):
             return False
         try:

@@ -14,9 +14,12 @@ Why this is better than scraping Agmarknet directly:
   - Supports: commodity filter, state filter, market filter, date filter, pagination
 
 Live source chain:
-  1. data.gov.in OGD API (if DATA_GOV_IN_API_KEY set and not a placeholder)
-  2. Agmarknet direct dashboard API (no key needed — 25 commodities)
-  3. Unavailable response with no price rows
+  1. data.gov.in OGD daily feed (if DATA_GOV_IN_API_KEY set and not a placeholder)
+  2. data.gov.in OGD history feed: the latest earlier trading day, live only
+     while inside the freshness window, otherwise a dated official reference
+  3. Agmarknet direct dashboard API (since Nov 2026 it demands a CAPTCHA from
+     automated clients, so in practice this step no longer returns rows)
+  4. Unavailable response with no price rows
 
 Redis caching:
   - With REDIS_URL: 1-hour TTL, shared across all Gunicorn workers
@@ -34,7 +37,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -45,10 +48,16 @@ logger = logging.getLogger(__name__)
 
 from .msp_data import MSP_2024_25 as _CANONICAL_MSP
 from .api_keys import is_real_key
+from .market_data_quality import INDIA_TZ
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 _DATA_GOV_BASE    = "https://api.data.gov.in/resource"
-_RESOURCE_ID      = "9ef84268-d588-465a-a308-a864a43d0070"  # Agmarknet daily prices
+_RESOURCE_ID      = "9ef84268-d588-465a-a308-a864a43d0070"  # Agmarknet daily prices (current day only)
+# "Variety-wise Daily Market Prices Data of Commodity": the dated history of
+# the same Agmarknet reports, refreshed overnight.
+_HISTORY_RESOURCE_ID = "35985678-0d79-46b4-9ed6-6f13308a1d24"
+# Days to look back in the history feed, one request each.
+_HISTORY_MAX_DAYS = max(1, min(int(os.getenv("MANDI_HISTORY_LOOKBACK_DAYS", "4")), 7))
 _CACHE_TTL_SECS   = 3600   # 1 hour — prices update once daily at ~9 AM IST
 _REQUEST_TIMEOUT  = (
     max(0.5, float(os.getenv("MANDI_HTTP_CONNECT_TIMEOUT_S", "2"))),
@@ -71,6 +80,38 @@ def _is_valid_key(key: str) -> bool:
 def _get_api_key() -> Optional[str]:
     key = os.getenv("DATA_GOV_IN_API_KEY", "")
     return key if _is_valid_key(key) else None
+
+
+# Agmarknet's own state spellings, which both OGD feeds keep. Checked against
+# the feeds on 21 Nov 2026: "Chhattisgarh", "Puducherry" and "Delhi" match
+# nothing there; these spellings do.
+_OGD_STATE_SPELLINGS: Dict[str, Tuple[str, ...]] = {
+    "chhattisgarh": ("Chattisgarh", "Chhattisgarh"),
+    "chattisgarh": ("Chattisgarh", "Chhattisgarh"),
+    "uttarakhand": ("Uttarakhand", "Uttrakhand"),
+    "uttrakhand": ("Uttarakhand", "Uttrakhand"),
+    "uttaranchal": ("Uttarakhand", "Uttrakhand"),
+    "puducherry": ("Pondicherry", "Puducherry"),
+    "pondicherry": ("Pondicherry", "Puducherry"),
+    "delhi": ("NCT of Delhi",),
+    "new delhi": ("NCT of Delhi",),
+    "nct of delhi": ("NCT of Delhi",),
+    "orissa": ("Odisha",),
+}
+
+
+def ogd_state_spellings(state: Optional[str]) -> Tuple[str, ...]:
+    """Names to try for *state* in the OGD feeds, most likely first."""
+    name = " ".join(str(state or "").split())
+    if not name:
+        return ()
+    return _OGD_STATE_SPELLINGS.get(name.lower(), (name,))
+
+
+def _row_in_state(record: Dict[str, Any], spellings: Tuple[str, ...]) -> bool:
+    wanted = {s.lower() for s in spellings}
+    value = " ".join(str(record.get("state") or record.get("State") or "").split()).lower()
+    return value in wanted
 
 
 # ── Canonical crop ID maps ────────────────────────────────────────────────────
@@ -172,8 +213,13 @@ class DataGovMandiClient:
                 logger.debug("data_gov_mandi: mem cache hit for %s", cache_key)
                 return data
 
-        # 3. Try data.gov.in OGD API
+        # 3. Try data.gov.in OGD API: today's feed first, then the dated history
+        # feed. The daily feed only holds the current day, and states report
+        # through the day (measured 21 Nov 2026, ~10:00 IST: Tamil Nadu 5,233
+        # rows, Rajasthan, Karnataka and Delhi none), so the history feed is
+        # what gives most farmers their latest official price in the morning.
         api_key = _get_api_key()
+        dated_candidate: Optional[Dict[str, Any]] = None
         if api_key:
             result = self._fetch_data_gov(api_key, commodity=commodity, state=state)
             if result and result.get("top_crops"):
@@ -183,7 +229,19 @@ class DataGovMandiClient:
                 )
                 self._cache_set(cache_key, result)
                 return result
-            logger.warning("data_gov_mandi: data.gov.in returned no records — trying Agmarknet")
+            if result and result.get("unfiltered_rows"):
+                dated_candidate = result
+            history = self._fetch_data_gov_history(api_key, commodity=commodity, state=state)
+            if history and history.get("top_crops"):
+                logger.info(
+                    "data_gov_mandi: data.gov.in history returned %d crops for %s (commodity=%s state=%s)",
+                    len(history["top_crops"]), history.get("reported_date"), commodity, state,
+                )
+                self._cache_set(cache_key, history)
+                return history
+            if history and history.get("unfiltered_rows"):
+                dated_candidate = history
+            logger.warning("data_gov_mandi: data.gov.in has no current rows — trying Agmarknet")
 
         # 4. Try Agmarknet's national dashboard only for national requests.
         # It cannot satisfy a state filter and must never be presented as local.
@@ -224,12 +282,16 @@ class DataGovMandiClient:
             commodity,
             state,
         )
+        dated = dated_candidate or {}
         return {
             "status": "unavailable",
             "is_live": False,
-            "data_source": "Agmarknet/data.gov.in live feeds",
+            # The caller turns these into a dated official reference, shown
+            # with its own date and never as today's price.
+            "data_source": dated.get("data_source") or "Agmarknet/data.gov.in live feeds",
             "data_source_short": "Live feed unavailable",
-            "reported_date": "",
+            "reported_date": dated.get("reported_date", ""),
+            "unfiltered_rows": dated.get("unfiltered_rows", []),
             "top_crops": [],
             "total_records": 0,
             "message": "No current official mandi price rows are available.",
@@ -252,42 +314,104 @@ class DataGovMandiClient:
         commodity: Optional[str] = None,
         state: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Fetch from official OGD Platform API."""
-        params: Dict[str, Any] = {
-            "api-key": api_key,
-            "format":  "json",
-            "limit":   _MAX_RECORDS,
-            "offset":  0,
-        }
-        if commodity:
-            params["filters[commodity]"] = commodity.title()
-        if state:
-            params["filters[state]"] = state
+        """Fetch today's rows from the official OGD daily feed.
 
+        ``filters[state]`` on this feed is a full-text match, so "Uttar
+        Pradesh" also returned Madhya, Andhra and Himachal Pradesh rows (129
+        rows against 6 exact ones on 21 Nov 2026). ``state.keyword`` is the
+        exact match, and rows are checked again after the fetch.
+        """
         url = f"{_DATA_GOV_BASE}/{_RESOURCE_ID}"
+        spellings = ogd_state_spellings(state)
+        for spelling in spellings or (None,):
+            params: Dict[str, Any] = {
+                "api-key": api_key,
+                "format":  "json",
+                "limit":   _MAX_RECORDS,
+                "offset":  0,
+            }
+            if commodity:
+                params["filters[commodity]"] = commodity.title()
+            if spelling:
+                params["filters[state.keyword]"] = spelling
+            records = self._get_records(url, params, "daily feed")
+            if records is None:
+                return None
+            if state:
+                records = [r for r in records if _row_in_state(r, spellings)]
+            if records:
+                return self._format_datagov_response(records, state=state, is_live=True)
+        logger.warning("data.gov.in: no daily rows for commodity=%s state=%s", commodity, state)
+        return None
 
+    def _fetch_data_gov_history(
+        self,
+        api_key: str,
+        commodity: Optional[str] = None,
+        state: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Latest earlier trading day from the OGD history feed.
+
+        The history feed is refreshed overnight, so the newest day it can hold
+        is yesterday. Each day is one request; the first failed request ends
+        the search so a slow feed costs one timeout, not several.
+        """
+        url = f"{_DATA_GOV_BASE}/{_HISTORY_RESOURCE_ID}"
+        spellings = ogd_state_spellings(state)
+        today = datetime.now(INDIA_TZ).date()
+        for days_back in range(1, _HISTORY_MAX_DAYS + 1):
+            day = (today - timedelta(days=days_back)).strftime("%d/%m/%Y")
+            for spelling in spellings or (None,):
+                # This feed's field names are capitalised, and its State filter
+                # is already an exact match.
+                params: Dict[str, Any] = {
+                    "api-key": api_key,
+                    "format": "json",
+                    "limit": _MAX_RECORDS,
+                    "offset": 0,
+                    "filters[Arrival_Date]": day,
+                }
+                if spelling:
+                    params["filters[State]"] = spelling
+                if commodity:
+                    params["filters[Commodity]"] = commodity.title()
+                records = self._get_records(url, params, "history feed")
+                if records is None:
+                    return None
+                if state:
+                    records = [r for r in records if _row_in_state(r, spellings)]
+                if records:
+                    formatted = self._format_datagov_response(records, state=state, is_live=True)
+                    if formatted:
+                        formatted["data_source"] = "data.gov.in Official API (Agmarknet daily price history)"
+                        formatted["data_source_short"] = "data.gov.in (latest reported day)"
+                    return formatted
+        return None
+
+    def _get_records(
+        self, url: str, params: Dict[str, Any], label: str
+    ) -> Optional[List[Dict[str, Any]]]:
+        """GET one page. [] means no rows; None means the request failed.
+
+        The key travels in the query string, so exception text (which carries
+        the full URL) is never logged.
+        """
         try:
             resp = self._session.get(url, params=params, timeout=_REQUEST_TIMEOUT)
-            resp.raise_for_status()
-            raw = resp.json()
-
-            records = raw.get("records") or raw.get("data") or []
-            if not records:
-                logger.warning("data.gov.in: empty records for commodity=%s state=%s", commodity, state)
+            if resp.status_code != 200:
+                logger.warning("data.gov.in %s: HTTP %s", label, resp.status_code)
                 return None
-
-            return self._format_datagov_response(records, state=state, is_live=True)
-
+            raw = resp.json()
+            records = raw.get("records") or raw.get("data") or []
+            return records if isinstance(records, list) else []
         except requests.exceptions.Timeout:
-            logger.warning("data.gov.in: request timed out")
-        except requests.exceptions.HTTPError as exc:
-            logger.warning("data.gov.in: HTTP %s — %s", exc.response.status_code, exc)
-        except requests.exceptions.ConnectionError as exc:
-            logger.warning("data.gov.in: connection error: %s", exc)
-        except (ValueError, KeyError) as exc:
-            logger.warning("data.gov.in: parse error: %s", exc)
+            logger.warning("data.gov.in %s: request timed out", label)
+        except requests.exceptions.ConnectionError:
+            logger.warning("data.gov.in %s: connection error", label)
+        except (ValueError, KeyError):
+            logger.warning("data.gov.in %s: response was not valid JSON", label)
         except Exception as exc:
-            logger.error("data.gov.in: unexpected error: %s", exc)
+            logger.error("data.gov.in %s: unexpected %s", label, type(exc).__name__)
         return None
 
     def _format_datagov_response(
@@ -299,7 +423,6 @@ class DataGovMandiClient:
         """Normalise data.gov.in OGD records to our standard shape."""
         # OGD field names: commodity, state, district, market, min_price, max_price, modal_price, arrival_date
         top_crops: List[Dict[str, Any]] = []
-        seen: Dict[str, bool] = {}  # deduplicate by crop_id
 
         for r in records:
             raw_name   = (r.get("commodity") or r.get("Commodity") or "").lower().strip()
@@ -331,15 +454,6 @@ class DataGovMandiClient:
                 # Never manufacture a current date for an undated upstream row.
                 continue
 
-            # For national view: deduplicate crop_id, keep highest modal_price record
-            if crop_id in seen:
-                existing = next((c for c in top_crops if c["crop_id"] == crop_id), None)
-                if existing and modal_price > existing["modal_price"]:
-                    top_crops.remove(existing)
-                else:
-                    continue
-
-            seen[crop_id] = True
             top_crops.append({
                 "crop_name":       (r.get("commodity") or r.get("Commodity") or crop_id).title(),
                 "crop_name_hindi": _CROP_HINDI.get(crop_id, ""),
@@ -362,15 +476,40 @@ class DataGovMandiClient:
         if not top_crops:
             return {}
 
+        # One real row per crop: the mandi in the middle of the reported
+        # prices. The old rule kept the highest-priced mandi, which put the
+        # state's best price in front of the farmer as if it were typical.
+        by_crop: Dict[str, List[Dict[str, Any]]] = {}
+        for row in top_crops:
+            by_crop.setdefault(row["crop_id"], []).append(row)
+        top_crops = []
+        for rows in by_crop.values():
+            rows.sort(key=lambda x: x["modal_price"])
+            chosen = dict(rows[(len(rows) - 1) // 2])
+            chosen["mandis_reporting"] = len(rows)
+            top_crops.append(chosen)
+
         # Sort: highest modal price first within category
         top_crops.sort(key=lambda x: x["modal_price"], reverse=True)
 
         if is_live:
             from .market_data_quality import filter_fresh_live_rows
 
+            parsed_rows = list(top_crops)
             top_crops, age_minutes, newest_date = filter_fresh_live_rows(top_crops)
             if not top_crops:
-                return {}
+                # Too old to call live. Hand the dated rows back so the caller
+                # can show them as an official reference with their own date.
+                return {
+                    "status": "unavailable",
+                    "is_live": False,
+                    "data_source": "data.gov.in Official API (Agmarknet OGD)",
+                    "reported_date": parsed_rows[0].get("reported_date", ""),
+                    "unfiltered_rows": parsed_rows,
+                    "top_crops": [],
+                    "total_records": 0,
+                    "coverage": "state" if state else "national",
+                }
         else:
             age_minutes, newest_date = None, ""
 

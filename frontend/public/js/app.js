@@ -1332,6 +1332,12 @@
         loadMarketPrices();
     }
 
+    // data.gov.in rows are single mandis' prices; Agmarknet's dashboard rows are
+    // state or district averages. Only the second may be called an average.
+    function isPerMandiSource(source) {
+        return /data\.gov\.in/i.test(String(source || ''));
+    }
+
     function updateMandiSelectionStatus(data) {
         const badge = document.getElementById('mandiStatusBadge');
         if (!badge || !data) return;
@@ -1350,10 +1356,12 @@
 
         if (data.is_live === true && rowCount > 0) {
             const stateName = data.state || currentState || 'राज्य';
-            badge.textContent = `🟢 ${stateName} · ${rowCount} नवीनतम आधिकारिक औसत भाव`;
+            const kind = isPerMandiSource(data.data_source) ? 'मंडी भाव' : 'औसत भाव';
+            badge.textContent = `🟢 ${stateName} · ${rowCount} नवीनतम आधिकारिक ${kind}`;
         } else if ((data.latest_official_rows || []).length > 0) {
             const stateName = data.state || currentState || 'राज्य';
-            badge.textContent = `📅 ${stateName} · ${data.latest_official_reported_date || ''} का आधिकारिक औसत संदर्भ`;
+            const kind = isPerMandiSource(data.latest_official_source) ? 'मंडी संदर्भ' : 'औसत संदर्भ';
+            badge.textContent = `📅 ${stateName} · ${data.latest_official_reported_date || ''} का आधिकारिक ${kind}`;
         } else {
             badge.textContent = '🔴 राज्य का आधिकारिक मंडी डेटा अभी उपलब्ध नहीं';
         }
@@ -1640,7 +1648,8 @@
             banner.innerHTML = `🔴 ${escapeHtml(data.selected_mandi || currentMandi || 'चुनी मंडी')} में अभी ताजा आधिकारिक आवक नहीं मिली। कोई दूसरी मंडी का भाव इसके नाम पर नहीं दिखाया गया है।`;
         } else if (isUnavailable && datedOfficialRows.length) {
             banner.className = 'market-live-banner market-live-banner--partial';
-            banner.innerHTML = `📅 आज का सत्यापित भाव उपलब्ध नहीं है। ${escapeHtml(data.latest_official_reported_date || '')} का नवीनतम आधिकारिक औसत संदर्भ नीचे दिया गया है।`;
+            const refKind = isPerMandiSource(data.latest_official_source) ? 'मंडी भाव' : 'औसत संदर्भ';
+            banner.innerHTML = `📅 आज का सत्यापित भाव उपलब्ध नहीं है। ${escapeHtml(data.latest_official_reported_date || '')} का नवीनतम आधिकारिक ${refKind} नीचे दिया गया है।`;
         } else if (isUnavailable && data.api_key_registered === false) {
             banner.className = 'market-live-banner market-live-banner--warn';
             banner.innerHTML = '🔴 इस स्थान के लिए आधिकारिक मंडी पंक्तियां अभी उपलब्ध नहीं हैं। कोई अनुमानित कीमत नहीं दिखाई जा रही।';
@@ -1739,7 +1748,9 @@
         });
 
         const selectedMandi = data.coverage === 'state'
-            ? `${data.state || currentState || 'State'} Agmarknet average`
+            ? (isPerMandiSource(data.data_source)
+                ? `${data.state || currentState || 'State'} · official mandi prices`
+                : `${data.state || currentState || 'State'} Agmarknet average`)
             : data.selected_mandi || data.mandi_filter || currentMandi || data.location || currentLocation;
         const isLive = data.is_live === true && data.status !== 'fallback';
         const isPartial = data.status === 'partial';
@@ -1798,9 +1809,12 @@
             }
             let datedOfficialHtml = '';
             if (datedOfficialRows.length) {
-                const scopeLabel = data.latest_official_coverage === 'national'
-                    ? 'अखिल भारतीय औसत'
-                    : `${escapeHtml(data.state || currentState || 'राज्य')} औसत`;
+                const perMandiRef = isPerMandiSource(data.latest_official_source);
+                const scopeLabel = perMandiRef
+                    ? `${escapeHtml(data.state || currentState || 'राज्य')} की मंडियों के भाव`
+                    : data.latest_official_coverage === 'national'
+                        ? 'अखिल भारतीय औसत'
+                        : `${escapeHtml(data.state || currentState || 'राज्य')} औसत`;
                 datedOfficialHtml = `<div class="dated-official-prices" style="margin-top:18px;text-align:left;border-top:1px solid #e5e7eb;padding-top:14px;">
                     <strong style="display:block;color:#7c5a00;margin-bottom:4px;">📅 नवीनतम आधिकारिक संदर्भ · ${escapeHtml(data.latest_official_reported_date || '')}</strong>
                     <small style="display:block;color:#6b7280;margin-bottom:10px;">${scopeLabel}; यह आज का लाइव टिक या चुनी मंडी का सटीक भाव नहीं है। स्रोत: ${escapeHtml(data.latest_official_source || 'Agmarknet')}</small>
@@ -1811,6 +1825,7 @@
                     datedOfficialHtml += `<div style="border:1px solid #f0d58a;background:#fffaf0;border-radius:6px;padding:10px;">
                         <span style="display:block;font-weight:700;color:#5f4500;">${escapeHtml(row.crop_name_hindi || row.crop_name || 'फसल')}</span>
                         <span style="display:block;font-size:1rem;font-weight:700;margin-top:3px;">₹${price.toLocaleString('hi-IN')}/क्विंटल</span>
+                        ${perMandiRef && row.mandi_name ? `<span style="display:block;font-size:0.72rem;color:#6b7280;margin-top:2px;">${escapeHtml(row.mandi_name)}${row.district ? `, ${escapeHtml(row.district)}` : ''}</span>` : ''}
                         ${arrival > 0 ? `<span style="display:block;font-size:0.72rem;color:#6b7280;margin-top:2px;">आवक: ${arrival.toLocaleString('hi-IN')} टन</span>` : ''}
                     </div>`;
                 });

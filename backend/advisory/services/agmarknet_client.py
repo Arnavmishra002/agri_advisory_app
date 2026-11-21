@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from .agmarknet_direct_client import CAPTCHA_PAUSE_SECS, is_captcha_wall, note_captcha_wall
 from .market_data_quality import INDIA_TZ
 
 logger = logging.getLogger(__name__)
@@ -345,6 +346,10 @@ class AgmarknetClient:
                 params={"dashboard_name": DASHBOARD_NAME},
                 timeout=DEFAULT_TIMEOUT,
             )
+            if is_captcha_wall(resp):
+                note_captcha_wall()
+                self._rate_limited_until = time.monotonic() + CAPTCHA_PAUSE_SECS
+                return None
             if resp.status_code in (401, 403, 429):
                 self._rate_limited_until = time.monotonic() + 60
             if resp.status_code != 200:
@@ -368,6 +373,10 @@ class AgmarknetClient:
             return None
         try:
             resp = self.session.post(url, json=payload, timeout=DEFAULT_TIMEOUT)
+            if is_captcha_wall(resp):
+                note_captcha_wall()
+                self._rate_limited_until = time.monotonic() + CAPTCHA_PAUSE_SECS
+                return None
             if resp.status_code in (401, 403, 429):
                 try:
                     retry_after = max(10, min(int(resp.headers.get("Retry-After", "60")), 300))

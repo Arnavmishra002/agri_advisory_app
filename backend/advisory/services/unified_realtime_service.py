@@ -24,6 +24,7 @@ from typing import Dict, List, Any, Optional, Tuple
 
 from .location_context import _haversine_km
 from .api_keys import env_key
+from .data_gov_mandi_client import ogd_state_spellings
 from .language_service import (
     get_language_info,
     normalise_language_code,
@@ -1199,10 +1200,20 @@ class MarketPricesService:
         # without any key, so blaming a missing DATA_GOV_IN_API_KEY when the
         # real cause is simply that the source has not published a newer row
         # sends the operator chasing the wrong problem.
+        from .agmarknet_direct_client import captcha_wall_active
+
         if registered:
             operator_note = (
                 "No mandi row inside the current freshness window. The official "
                 "source has not published a newer figure yet."
+            )
+        elif captcha_wall_active():
+            operator_note = (
+                "No mandi row inside the current freshness window: "
+                "DATA_GOV_IN_API_KEY is not set, so the data.gov.in feeds are "
+                "skipped, and Agmarknet now refuses automated requests without "
+                "a CAPTCHA. Set DATA_GOV_IN_API_KEY (free from data.gov.in) to "
+                "restore live prices."
             )
         else:
             operator_note = (
@@ -2009,6 +2020,14 @@ class MarketPricesService:
 
             if records is None:
                 break
+            # filters[state] is a full-text match on the daily feed: "Uttar
+            # Pradesh" also returns Madhya and Andhra Pradesh rows. Keep only
+            # rows from the state that was asked for.
+            allowed = {s.lower() for s in ogd_state_spellings(state_name)}
+            records = [
+                r for r in records
+                if " ".join(str(r.get("state", r.get("State", ""))).split()).lower() in allowed
+            ]
             if records:
                 formatted = self._format_data_gov_response(
                     records, location, resource_key, selected_mandi=mandi
