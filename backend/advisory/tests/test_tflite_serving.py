@@ -128,7 +128,8 @@ class TFLiteServingTests(SimpleTestCase):
         self.assertEqual(predictor._input_size(), (224, 224))
 
     def test_confident_prediction_is_returned(self):
-        predictor, stub = self._predictor([0.02, 0.95, 0.03])
+        # In-scope leaves give an unknown-class probability far below theta.
+        predictor, stub = self._predictor([0.04999999, 0.95, 1e-8])
         with self.settings():
             with patch.dict("os.environ", {"DISEASE_CLASSIFICATION_ENABLED": "true"}):
                 result = predictor.predict(self.leaf)
@@ -138,6 +139,17 @@ class TFLiteServingTests(SimpleTestCase):
         # The interpreter must receive a correctly shaped float32 batch.
         self.assertEqual(stub.received.dtype, np.float32)
         self.assertEqual(tuple(stub.received.shape), (1, 224, 224, 3))
+
+    def test_confident_but_out_of_scope_leaf_is_refused(self):
+        """High confidence is not enough: a rice leaf or field photo raises p(unknown)."""
+        predictor, _ = self._predictor([0.02, 0.95, 0.03])
+        with patch.dict("os.environ", {"DISEASE_CLASSIFICATION_ENABLED": "true"}):
+            result = predictor.predict(self.leaf)
+        self.assertEqual(result["status"], "low_confidence")
+        self.assertEqual(result["refusal_reason"], "out_of_scope")
+        self.assertIsNone(result["disease_name"])
+        self.assertIsNone(result["crop_name"])
+        self.assertAlmostEqual(result["unknown_probability"], 0.03, places=6)
 
     def test_non_plant_class_is_refused(self):
         """A photo the model calls unknown must never surface as a disease."""
@@ -185,3 +197,22 @@ class TFLiteServingTests(SimpleTestCase):
             result = predictor.predict(self.leaf)
         self.assertEqual(result["status"], "model_unverified")
         self.assertIsNone(result["disease_name"])
+
+
+class RefusalLeakTests(TFLiteServingTests):
+    """A refused label must not come back through the list of top guesses."""
+
+    def test_refusals_carry_no_top_predictions(self):
+        for probs in ([0.40, 0.35, 0.25], [0.02, 0.95, 0.03], [0.05, 0.05, 0.90]):
+            predictor, _ = self._predictor(probs)
+            with patch.dict("os.environ", {"DISEASE_CLASSIFICATION_ENABLED": "true"}):
+                result = predictor.predict(self.leaf)
+            self.assertEqual(result["status"], "low_confidence", probs)
+            self.assertEqual(result["top_predictions"], [], probs)
+
+    def test_released_label_lists_only_plausible_alternatives(self):
+        predictor, _ = self._predictor([0.04999999, 0.95, 1e-8])
+        with patch.dict("os.environ", {"DISEASE_CLASSIFICATION_ENABLED": "true"}):
+            result = predictor.predict(self.leaf)
+        self.assertEqual(result["status"], "success")
+        self.assertTrue(all(p["probability"] >= 0.05 for p in result["top_predictions"]))

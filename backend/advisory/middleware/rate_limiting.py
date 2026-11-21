@@ -11,7 +11,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 
-from ..rate_limiters import AtomicWindowRateLimiter, client_ip_from_request
+from ..rate_limiters import AtomicWindowRateLimiter, client_ip_from_request, is_local_request
 
 logger = logging.getLogger(__name__)
 
@@ -80,9 +80,9 @@ class RateLimitMiddleware(MiddlewareMixin):
         if request.path != "/api/chatbot/stream/" or request.path in SKIP_PATHS:
             return None
 
-        client_ip = client_ip_from_request(request)
-        if client_ip in getattr(settings, "RATE_LIMIT_WHITELIST", []):
+        if is_local_request(request):
             return None
+        client_ip = client_ip_from_request(request)
         limiter = _stream_limiter()
         if limiter.is_allowed(f"ip:{client_ip}"):
             return None

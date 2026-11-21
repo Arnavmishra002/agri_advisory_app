@@ -83,8 +83,9 @@ _render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
 if _render_host and _render_host not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_render_host)
 
-# Trust the X-Forwarded-Host header from Render's proxy
-USE_X_FORWARDED_HOST = True
+# External rewrites send the public frontend in X-Forwarded-Host. Validate
+# the actual API Host instead; clients must not control absolute URL origins.
+USE_X_FORWARDED_HOST = False
 
 # Build / one-off management commands (collectstatic, migrate, …) run during
 # the deploy build before runtime-only env vars (e.g. a linked REDIS_URL) are
@@ -555,12 +556,30 @@ RATE_LIMIT_WHITELIST_NETWORKS = (
     ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'] if DEBUG else []
 )
 
-# Bug 1 fix: number of infrastructure proxies between the internet and Django.
-# Render.com passes requests through exactly 1 proxy (its edge).
-# Set to 0 for local dev (no proxy), 1 for Render/Railway/Heroku.
-# The rate limiter reads the XFF header right-to-left, peeling this many
-# infra-appended entries to find the true client IP.
+# Number of infrastructure proxies between the internet and Django that append
+# to X-Forwarded-For: 0 for local dev, 1 behind one edge (Render, nginx). Each
+# appends the address it received the request from, so the client is the N-th
+# entry from the right; anything further left was written by the client.
 RATE_LIMIT_TRUSTED_PROXIES = int(os.environ.get('RATE_LIMIT_TRUSTED_PROXIES', '1' if not DEBUG else '0'))
+
+# Shared secret the Vercel web edge sends as X-Origin-Secret on the /api
+# requests it proxies (frontend/vercel.json). Requests carrying it pass one more
+# proxy, so one more X-Forwarded-For hop is trusted for them. Set the same value
+# on Vercel and here; leave it empty for deployments without that edge.
+ORIGIN_SECRET = os.environ.get('ORIGIN_SECRET', '')
+# With no ORIGIN_SECRET, still trust the edge hop so web farmers keep their own
+# rate limits (see advisory.rate_limiters._edge_hop_assumed_without_secret).
+RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET = os.environ.get(
+    'RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET', 'true'
+).strip().lower() in ('1', 'true', 'yes', 'on')
+if not DEBUG and not ORIGIN_SECRET and RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET:
+    import warnings
+    warnings.warn(
+        "ORIGIN_SECRET is not set: rate limits trust the web edge's X-Forwarded-For "
+        "hop without proof, so a direct API caller can choose its rate-limit "
+        "identity. Set the same ORIGIN_SECRET on Vercel and on this service.",
+        RuntimeWarning,
+    )
 
 # Performance Monitoring Configuration
 PERFORMANCE_MONITORING = {
@@ -597,6 +616,8 @@ if SENTRY_DSN and sentry_sdk and DjangoIntegration:
         ]
     except ImportError:
         _sentry_integrations = [DjangoIntegration()]
+    from sentry_sdk.scrubber import DEFAULT_DENYLIST as _SENTRY_DENYLIST
+    from sentry_sdk.scrubber import EventScrubber as _SentryEventScrubber
 
     sentry_sdk.init(
         dsn=SENTRY_DSN,
@@ -609,6 +630,8 @@ if SENTRY_DSN and sentry_sdk and DjangoIntegration:
         release=os.environ.get('RENDER_GIT_COMMIT', 'local'),
         # Scrub PII from breadcrumbs & request bodies
         send_default_pii=False,
+        # The web edge's shared secret arrives as a request header.
+        event_scrubber=_SentryEventScrubber(denylist=_SENTRY_DENYLIST + ["x-origin-secret", "x_origin_secret"]),
     )
 
 # Static files — single definition (production-style, leading slash)

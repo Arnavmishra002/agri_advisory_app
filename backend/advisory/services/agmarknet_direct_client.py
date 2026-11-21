@@ -25,12 +25,13 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from .market_data_quality import INDIA_TZ
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,45 @@ AGMARKNET_API_URL = "https://api.agmarknet.gov.in/v1/dashboard-data/"
 DASHBOARD         = "marketwise_price_arrival"
 REQUEST_TIMEOUT   = (8, 25)    # connect 8s, read 25s — API is sometimes slow
 CACHE_TTL_SECS    = 3600       # 1 hour
+
+# Since November 2026 the price endpoints answer automated calls with HTTP 400
+# and {"status": false, "message": "Captcha key and captcha value are
+# required."}. The CAPTCHA is there to stop automated clients, so it is never
+# worked around: each client stops calling for a while and the live price
+# comes from data.gov.in instead. The module-level timestamp only reports that
+# the refusal was seen (for the operator note); each client keeps its own pause.
+CAPTCHA_PAUSE_SECS = 3600
+_captcha_seen_at: Optional[float] = None
+
+
+def is_captcha_wall(response: Any) -> bool:
+    """True when Agmarknet refused a request because it wants a CAPTCHA."""
+    if getattr(response, "status_code", None) not in (400, 401, 403):
+        return False
+    try:
+        body = str(response.text or "")[:500].lower()
+    except Exception:
+        return False
+    return "captcha" in body
+
+
+def note_captcha_wall() -> None:
+    global _captcha_seen_at
+    if not captcha_wall_active():
+        logger.warning(
+            "Agmarknet now requires a CAPTCHA for automated requests; pausing "
+            "Agmarknet calls for %ss. Live mandi prices need DATA_GOV_IN_API_KEY.",
+            CAPTCHA_PAUSE_SECS,
+        )
+    _captcha_seen_at = time.monotonic()
+
+
+def captcha_wall_active() -> bool:
+    """True when an Agmarknet CAPTCHA refusal was seen in the last pause window."""
+    return (
+        _captcha_seen_at is not None
+        and time.monotonic() - _captcha_seen_at < CAPTCHA_PAUSE_SECS
+    )
 
 # ── Commodity name → our canonical crop IDs ───────────────────────────────────
 _AGMARKNET_TO_CROP_ID: Dict[str, str] = {
@@ -142,6 +182,22 @@ class AgmarknetDirectClient:
         })
         self._cache:    Dict[str, Any]   = {}
         self._cache_ts: Dict[str, float] = {}
+        self._unavailable_until = 0.0
+
+    def _access_unavailable(self, response) -> bool:
+        if is_captcha_wall(response):
+            note_captcha_wall()
+            self._unavailable_until = time.monotonic() + CAPTCHA_PAUSE_SECS
+            return True
+        if response.status_code not in (401, 403, 429):
+            return False
+        try:
+            delay = max(10, min(int(response.headers.get("Retry-After", "60")), 300))
+        except (TypeError, ValueError):
+            delay = 60
+        self._unavailable_until = time.monotonic() + delay
+        logger.warning("Agmarknet access unavailable (HTTP %s); pausing requests for %ss", response.status_code, delay)
+        return True
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -188,13 +244,15 @@ class AgmarknetDirectClient:
 
     def _fetch_live(self) -> Optional[List[Dict[str, Any]]]:
         """Try the live API. Returns records list or None on any failure."""
+        if time.monotonic() < self._unavailable_until:
+            return None
         try:
             # These are Agmarknet's documented "All" selector IDs. Sending the
             # complete dashboard contract mirrors the official web request and
             # avoids relying on implicit backend defaults.
             payload = {
                 "dashboard": DASHBOARD,
-                "date": date.today().isoformat(),
+                "date": datetime.now(INDIA_TZ).date().isoformat(),
                 "group": [100000],
                 "commodity": [100001],
                 "state": 100006,
@@ -210,6 +268,8 @@ class AgmarknetDirectClient:
                 json=payload,
                 timeout=REQUEST_TIMEOUT,
             )
+            if self._access_unavailable(resp):
+                return None
             resp.raise_for_status()
             raw = resp.json()
             # API returns "status": "success" (string) or status: true (bool) — handle both
@@ -269,9 +329,11 @@ class AgmarknetDirectClient:
                                       "market": [ALL["market"]]}))
 
         for coverage, scope in attempts:
+            if time.monotonic() < self._unavailable_until:
+                break
             payload = {
                 "dashboard": DASHBOARD,
-                "date": date.today().isoformat(),
+                "date": datetime.now(INDIA_TZ).date().isoformat(),
                 "group": [100000],
                 "commodity": [commodity_id or ALL["commodity"]],
                 "variety": 100021,
@@ -282,6 +344,8 @@ class AgmarknetDirectClient:
             payload.update(scope)
             try:
                 resp = self.session.post(AGMARKNET_API_URL, json=payload, timeout=REQUEST_TIMEOUT)
+                if self._access_unavailable(resp):
+                    break
                 resp.raise_for_status()
                 raw = resp.json()
             except Exception as exc:

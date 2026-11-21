@@ -147,16 +147,213 @@ def _usable_text(value: Any) -> Optional[str]:
     return value
 
 
-_PESTICIDE_DOSE_PATTERN = re.compile(
-    r"\b\d+(?:\.\d+)?\s*(?:%|m?l\s*/\s*l|g\s*/\s*l|kg\s*/\s*ha|g\s*/\s*ha|m?l\s*/\s*ha)\b",
+# ── Dose claims ──────────────────────────────────────────────────────────────
+# A dose is a quantity with a product unit (ml, g, kg, litre, quintal, tonne,
+# bag) tied to the base it applies to (per litre, acre, hectare, bigha, tank,
+# kg of seed, plant), written in either order and in English, Hindi or
+# Hinglish, or a formulation strength such as "75% WP" or "2% urea". Generated
+# text may state a dose only when the same dose occurs in the evidence
+# assembled for the request; a citation alone is not evidence, since a model
+# can invent one.
+_DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
+_LETTER = r"A-Za-zऀ-ॿ"
+_NOT_LETTER_BEFORE = rf"(?<![{_LETTER}])"
+_NOT_LETTER_AFTER = rf"(?![{_LETTER}])"
+
+_DOSE_UNITS = {
+    "ml": "ml", "mls": "ml", "millilitre": "ml", "millilitres": "ml", "milliliter": "ml",
+    "milliliters": "ml", "cc": "ml", "मिलीलीटर": "ml", "मिली": "ml", "मिलि": "ml",
+    "मि.ली.": "ml", "मि.ली": "ml", "एम.एल.": "ml", "एमएल": "ml",
+    "l": "l", "lt": "l", "ltr": "l", "lit": "l", "litre": "l", "litres": "l", "liter": "l",
+    "liters": "l", "लीटर": "l", "लिटर": "l", "ली.": "l",
+    "g": "g", "gm": "g", "gms": "g", "gram": "g", "grams": "g", "ग्राम": "g", "ग्रा.": "g",
+    "kg": "kg", "kgs": "kg", "kilo": "kg", "kilos": "kg", "kilogram": "kg", "kilograms": "kg",
+    "किलो": "kg", "किलोग्राम": "kg", "किग्रा": "kg", "कि.ग्रा.": "kg",
+    "q": "q", "qtl": "q", "quintal": "q", "quintals": "q", "क्विंटल": "q",
+    "t": "t", "tonne": "t", "tonnes": "t", "ton": "t", "tons": "t", "टन": "t",
+    "bag": "bag", "bags": "bag", "बोरी": "bag", "बैग": "bag",
+}
+_NUMBER_WORDS = {
+    "half": 0.5, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+    "eight": 8, "nine": 9, "ten": 10, "twelve": 12, "fifteen": 15, "twenty": 20,
+    "aadha": 0.5, "ek": 1, "do": 2, "teen": 3, "char": 4, "chaar": 4, "paanch": 5, "panch": 5,
+    "chhe": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10, "bees": 20,
+    "आधा": 0.5, "एक": 1, "दो": 2, "तीन": 3, "चार": 4, "पांच": 5, "पाँच": 5, "छह": 6,
+    "सात": 7, "आठ": 8, "नौ": 9, "दस": 10, "बीस": 20,
+}
+_FRACTIONS = {"½": 0.5, "¼": 0.25, "¾": 0.75}
+_QTY = (
+    r"(?<![\w.,/])("
+    r"\d{1,3}(?:,\d{2,3})+(?:\.\d+)?|\d+\s*/\s*\d+|\d+(?:\.\d+)?|\.\d+|[½¼¾]|"
+    + "|".join(sorted((re.escape(w) for w in _NUMBER_WORDS), key=len, reverse=True))
+    + r")"
+)
+_UNIT = (
+    r"\s*(" + "|".join(sorted((re.escape(u) for u in _DOSE_UNITS), key=len, reverse=True)) + r")"
+    + _NOT_LETTER_AFTER
+)
+_RANGE_SEP = r"\s*(?:-|–|to|से)\s*"
+_DOSE_QTY_RE = re.compile(rf"{_QTY}(?:{_RANGE_SEP}{_QTY})?{_UNIT}", re.IGNORECASE)
+_DOSE_BASES = (
+    (r"kg\s*(?:of\s*)?seeds?|kg\s*बीज|किलो\s*बीज|beej|बीज|seeds?", "kgseed"),
+    (r"acres?|एकड़|ekad|ekar", "acre"),
+    (r"hectares?|ha|हेक्टेयर", "ha"),
+    (r"bigha|बीघा|guntha|गुंठा|katha|कट्ठा|kanal|कनाल|marla", "bigha"),
+    (r"tanks?|टंकी|tanki|pumps?|पंप", "tank"),
+    (r"litres?|liters?|ltr|lit|lt|l|लीटर|लिटर|ली\.?", "l"),
+    (r"plants?|trees?|पौध[ाे]|पेड़|paudh[ae]", "plant"),
+    (r"kg|किलो", "kgseed"),  # "2 g per kg" means per kg of seed
+)
+_DOSE_BASE_RE = [
+    (re.compile(rf"{_NOT_LETTER_BEFORE}(?:{pattern}){_NOT_LETTER_AFTER}", re.IGNORECASE), base)
+    for pattern, base in _DOSE_BASES
+]
+# Hindi ends sentences with "।"; a "." only ends one before a capital letter
+# or the end of the text, so abbreviations such as "एम.एल." stay intact.
+_SENTENCE_END_RE = re.compile(r"[।?!;\n]|\.(?=\s+[A-Z]|\s*$)")
+_CARRIER_RE = re.compile(r"^\s*(?:of\s+)?(?:water|pani|पानी|जल|soil|mitti|मिट्टी|sample)", re.IGNORECASE)
+_YIELD_RE = re.compile(r"yield|upaj|उपज|पैदावार|production|उत्पादन|harvest|milta|मिलता|average", re.IGNORECASE)
+_FORMULATION_RE = re.compile(
+    r"(?<![\d.])(\d+(?:\.\d+)?)\s*%?\s*(wp|ec|sc|sl|wg|wdg|dp|gr|cs|fs|od|ew|zc)(?![A-Za-z])",
     re.IGNORECASE,
 )
-_ATTRIBUTABLE_PESTICIDE_SOURCE = re.compile(
-    r"(?:https?://[^\s]*(?:icar|ppqs|cibrc)[^\s]*|"
-    r"(?:icar|ppqs|cib&rc|cibrc).{0,80}(?:document|package of practices|label|registration)"
-    r".{0,40}(?:title|number|no\.?|https?://))",
-    re.IGNORECASE | re.DOTALL,
+_CONCENTRATION_RE = re.compile(
+    r"(?<![\d.])(\d+(?:\.\d+)?)\s*%\s*(?:[\wऀ-ॿ]+\s+){0,2}?"
+    r"(solution|घोल|ghol|spray|स्प्रे|छिड़काव|urea|यूरिया)",
+    re.IGNORECASE,
 )
+
+
+def _parse_quantity(raw: str) -> Optional[float]:
+    raw = raw.strip().lower()
+    if raw in _NUMBER_WORDS:
+        return float(_NUMBER_WORDS[raw])
+    if raw in _FRACTIONS:
+        return _FRACTIONS[raw]
+    if "/" in raw:
+        num, den = (part.strip() for part in raw.split("/", 1))
+        return float(num) / float(den) if float(den) else None
+    try:
+        return float(raw.replace(",", ""))
+    except ValueError:
+        return None
+
+
+_NUMBER_WORD_RE = "|".join(sorted((re.escape(w) for w in _NUMBER_WORDS), key=len, reverse=True))
+_BASE_AMOUNT_RE = re.compile(rf"(?<![\w.,/])(\d+(?:\.\d+)?|{_NUMBER_WORD_RE})\s*$", re.IGNORECASE)
+_CLAUSE_BREAK_RE = re.compile(r"[,;|—]")
+_PRODUCT_WORD_RE = re.compile(r"[A-Za-zऀ-ॿ][A-Za-zऀ-ॿ\-]{2,}")
+# Words that never name a product: verbs, connectors, units and bases.
+_NOT_PRODUCT = {
+    "spray", "sprays", "spraying", "apply", "applied", "use", "used", "mix", "mixed", "add", "give",
+    "dose", "doses", "with", "and", "the", "for", "per", "each", "every", "into", "from", "about",
+    "around", "then", "after", "before", "day", "days", "week", "weeks", "time", "times", "evening",
+    "morning", "solution", "treat", "treatment", "should", "please", "also", "only", "recommended",
+    "label", "water", "seed", "seeds", "plant", "plants", "field", "crop", "crops", "advised",
+    "package", "practices", "dissolve", "repeat", "spray", "drench", "broadcast", "basal", "split",
+    "splits", "two", "three", "equal", "interval", "need", "needed", "you", "your", "can", "may",
+    "dalein", "daalo", "dalo", "daale", "milao", "milaye", "milayen", "karein", "karo", "kare",
+    "chhidkav", "pani", "dawa", "beej", "ghol", "mein", "prati", "har", "liye", "dena", "dein",
+    "डालें", "डाले", "मिलाएं", "मिलाएँ", "करें", "छिड़काव", "पानी", "दवा", "प्रति", "में", "बीज",
+    "घोल", "घोलें", "दें", "लिए", "हर", "का", "की", "के", "और",
+}
+_NOT_PRODUCT |= {w.lower() for w in _DOSE_UNITS} | {w.lower() for w in _NUMBER_WORDS}
+
+
+def _product_words(text: str) -> frozenset:
+    words = set()
+    for word in _PRODUCT_WORD_RE.findall(text):
+        word = word.lower()
+        if word in _NOT_PRODUCT or any(p.fullmatch(word) for p, _ in _DOSE_BASE_RE):
+            continue
+        words.add(word)
+    return frozenset(words)
+
+
+def _base_amount(prefix: str) -> float:
+    """Amount written just before the base word ("per 10 litre"), else 1."""
+    match = _BASE_AMOUNT_RE.search(prefix)
+    amount = _parse_quantity(match.group(1)) if match else None
+    return amount if amount else 1.0
+
+
+def _dose_base(forward: str, backward: str):
+    """(base, amount of base) for a dose: the nearest base after the unit, else before it."""
+    found = [(m.start(), base, m) for pattern, base in _DOSE_BASE_RE for m in [pattern.search(forward)] if m]
+    if found:
+        _, base, m = min(found, key=lambda item: item[0])
+        return base, _base_amount(forward[:m.start()])
+    before = [(m.end(), base, m) for pattern, base in _DOSE_BASE_RE for m in pattern.finditer(backward)]
+    if before:
+        _, base, m = max(before, key=lambda item: item[0])
+        return base, _base_amount(backward[:m.start()])
+    return "?", 1.0
+
+
+def _dose_records(text: str) -> list:
+    """Dose claims as ``(rate, unit, base, product_words)``.
+
+    ``rate`` is per one unit of the base, so "25 g per 10 litre" and "2.5 g
+    per litre" agree. ``product_words`` are the words naming what the dose is
+    for, taken from the dose's own clause (before it, or after it when the
+    sentence puts the product last); an empty set means no product was named.
+    """
+    text = str(text or "").translate(_DEVANAGARI_DIGITS)
+    records = []
+    for sentence in _SENTENCE_END_RE.split(text):
+        yield_context = bool(_YIELD_RE.search(sentence))
+        matches = list(_DOSE_QTY_RE.finditer(sentence))
+        for index, match in enumerate(matches):
+            unit = _DOSE_UNITS[match.group(3).lower()]
+            after = sentence[match.end():match.end() + 40]
+            if unit in ("l", "g", "kg") and _CARRIER_RE.match(after):
+                continue  # water or soil volume, not a product dose
+            if unit in ("q", "t", "kg") and yield_context:
+                continue  # a yield, not an application rate
+            base, base_amount = _dose_base(after, sentence[max(0, match.start() - 40):match.start()])
+            if unit == "l" and base == "?":
+                continue  # a bare volume with nothing it is applied to
+            clause_start = matches[index - 1].end() if index else 0
+            clause_end = matches[index + 1].start() if index + 1 < len(matches) else len(sentence)
+            before_text = _CLAUSE_BREAK_RE.split(sentence[clause_start:match.start()])[-1]
+            after_text = _CLAUSE_BREAK_RE.split(sentence[match.end():clause_end])[0]
+            products = _product_words(before_text) or _product_words(after_text)
+            for raw in filter(None, (match.group(1), match.group(2))):
+                qty = _parse_quantity(raw)
+                if qty is not None:
+                    records.append((f"{qty / base_amount:g}", unit, base, products))
+        for match in _FORMULATION_RE.finditer(sentence):
+            records.append((f"{float(match.group(1)):g}", "%" + match.group(2).lower(), "-", frozenset()))
+        for match in _CONCENTRATION_RE.finditer(sentence):
+            records.append((f"{float(match.group(1)):g}", "%", "-", frozenset()))
+    return records
+
+
+def _extract_dose_claims(text: str) -> set:
+    """Normalised dose claims ``(rate, unit, base)``; base is "?" when absent."""
+    return {record[:3] for record in _dose_records(text)}
+
+
+def _unsupported_doses(text: str, evidence: str) -> set:
+    """Dose claims in ``text`` that the evidence does not contain.
+
+    A claim is supported by an evidence dose with the same rate and unit, the
+    same base (or no base on either side), and a shared product word when both
+    sides name a product. So "imidacloprid 5 ml per litre" is not supported by
+    "neem oil 5 ml per litre", and "25 g per litre" is not supported by "25 g
+    per 10 litre".
+    """
+    evidence_records = _dose_records(evidence)
+    unsupported = set()
+    for rate, unit, base, products in _dose_records(text):
+        if not any(
+            rate == e_rate and unit == e_unit
+            and (base == e_base or "?" in (base, e_base))
+            and (not products or not e_products or products & e_products)
+            for e_rate, e_unit, e_base, e_products in evidence_records
+        ):
+            unsupported.add((rate, unit, base))
+    return unsupported
 
 
 def _language_signal_count(text: str) -> int:
@@ -183,8 +380,15 @@ def _safe_model_text(
     value: Any,
     intent: str,
     expected_language: str = "",
+    evidence: str = "",
 ) -> Optional[str]:
-    """Reject generated claims that need evidence the response does not provide."""
+    """Reject generated claims that the request's evidence does not support.
+
+    ``evidence`` is the grounded material the model was given (verified
+    advisory text, knowledge-base grounding, market string). The farmer's own
+    question must not be part of it, so a number planted in the question
+    cannot vouch for itself.
+    """
     text = _usable_text(value)
     if not text:
         return None
@@ -192,8 +396,10 @@ def _safe_model_text(
         logger.warning("Rejected generated answer that did not match the requested language")
         _set_chat_meta(fallback_reason="response_language_mismatch")
         return None
-    if _PESTICIDE_DOSE_PATTERN.search(text) and not _ATTRIBUTABLE_PESTICIDE_SOURCE.search(text):
-        logger.warning("Rejected generated answer with unattributed pesticide dose")
+    unsupported_doses = _unsupported_doses(text, evidence)
+    if unsupported_doses:
+        logger.warning("Rejected generated answer with %d dose(s) absent from the evidence",
+                       len(unsupported_doses))
         _set_chat_meta(fallback_reason="unattributed_pesticide_dose_rejected")
         return None
     if intent == "pest_disease" and re.search(
@@ -205,6 +411,23 @@ def _safe_model_text(
         _set_chat_meta(fallback_reason="unverified_disease_claim_rejected")
         return None
     return text
+
+
+_GUARD_REJECTIONS = {
+    "unattributed_pesticide_dose_rejected",
+    "unverified_market_claim_rejected",
+    "unverified_disease_claim_rejected",
+}
+
+
+def _guard_rejected() -> bool:
+    """True once a model answer for this request was rejected for an unsupported claim.
+
+    Asking the remaining tiers the same grounded question would reproduce the
+    same unsupported claim at the cost of more model calls, so the request goes
+    straight to the deterministic answer instead.
+    """
+    return _chat_meta().get("fallback_reason") in _GUARD_REJECTIONS
 
 
 def _has_unverified_market_claim(
@@ -237,6 +460,30 @@ def _has_unverified_market_claim(
     return intent != INTENT_MARKET_PRICE and bool(
         re.search(r"\b(?:msp|minimum\s+support\s+price)\b", text, re.IGNORECASE)
     )
+
+_PRICE_FIGURE_RE = re.compile(
+    r"(?:₹|rs\.?|inr)\s*(\d[\d,]*(?:\.\d+)?)"
+    r"|(\d[\d,]*(?:\.\d+)?)\s*(?:per\s+quintal|/\s*q(?:uintal)?\b|per\s+kg|/\s*kg|प्रति\s*क्विंटल|रुपये)",
+    re.IGNORECASE,
+)
+
+
+def _price_figures(text: str) -> set:
+    figures = set()
+    for match in _PRICE_FIGURE_RE.finditer(str(text or "").translate(_DEVANAGARI_DIGITS)):
+        raw = (match.group(1) or match.group(2) or "").replace(",", "")
+        try:
+            figures.add(f"{float(raw):g}")
+        except ValueError:
+            continue
+    return figures
+
+
+def _price_figures_supported(text: str, evidence: str) -> bool:
+    """True when the answer quotes prices and every one of them is in the evidence."""
+    figures = _price_figures(text)
+    return bool(figures) and figures <= _price_figures(evidence)
+
 
 def _env_float(name: str, default: float) -> float:
     try:
@@ -284,6 +531,10 @@ _PHASE1_STREAM_IDLE_TIMEOUT_S: float = _env_float(
     "PHASE1_STREAM_IDLE_TIMEOUT_S",
     _PHASE1_STREAM_READ_TIMEOUT_S,
 )
+# While a streamed answer is held back for the output guard, send a keep-alive
+# at this interval; the web client gives up after 20 s and the mobile app
+# after 25 s without bytes.
+_STREAM_HEARTBEAT_S: float = _env_float("CHAT_STREAM_HEARTBEAT_S", 5.0)
 _PHASE1_CB_MAX_FAILS:    int   = 3   # open circuit after 3 consecutive failures
 _PHASE1_CB_RESET_S:      int   = 60  # retry after 60 s cooldown
 
@@ -1207,6 +1458,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             }
         ):
             for msg in reversed((history or [])[-6:]):
+                if msg.get("role") != "user":
+                    continue
                 past = msg.get("content") or msg.get("message_content") or ""
                 if past:
                     past_crops = self._detect_crops(past)
@@ -1506,6 +1759,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         context_block, sources = self._build_official_context(
             ctx, query, intent, crops_mentioned, lang=lang,
             _weather=weather_data, _prices=prices_data,
+            farmer_profile=farmer_profile,
         )
 
         # Weather and mandi answers are factual data lookups. Once their live
@@ -1650,6 +1904,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             lang=lang,
             wc=wc,
         )
+        # What the model was given to ground on; the farmer's question is not evidence.
+        guard_evidence = "\n".join(part for part in (kb_grounding, market_str) if part)
 
         # Hybrid brain: cloud LLMs are PRIMARY (most capable, question-aware),
         # local Qwen is the offline fallback, rules are the last resort. Every
@@ -1673,7 +1929,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 response_text = _safe_model_text(claude_service.generate(
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
-                ), intent, lang)
+                ), intent, lang, evidence=guard_evidence)
                 if response_text and _has_unverified_market_claim(
                     response_text, intent, prices_data
                 ):
@@ -1688,7 +1944,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         has_gemini = model_composition_allowed and _is_valid_gemini_key(
             gemini_service.api_key
         )
-        if not response_text and has_gemini and model_composition_allowed:
+        if not response_text and has_gemini and model_composition_allowed and not _guard_rejected():
             try:
                 rendered = self._render_grounded_prompt(
                     query=query, ctx=ctx, sc=sc, wc=wc, rag=rag,
@@ -1698,7 +1954,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 response_text = _safe_model_text(gemini_service.generate(
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
-                ), intent, lang)
+                ), intent, lang, evidence=guard_evidence)
                 if response_text and _has_unverified_market_claim(
                     response_text, intent, prices_data
                 ):
@@ -1719,7 +1975,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             and open_llm_service is not None
             and _is_valid_open_llm_key(getattr(open_llm_service, "api_key", ""))
         )
-        if not response_text and has_open_llm:
+        if not response_text and has_open_llm and not _guard_rejected():
             try:
                 rendered = self._render_grounded_prompt(
                     query=query, ctx=ctx, sc=sc, wc=wc, rag=rag,
@@ -1729,7 +1985,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 response_text = _safe_model_text(open_llm_service.generate(
                     prompt=rendered, system_prompt="",
                     max_tokens=1600, user_query=query, temperature=0.3,
-                ), intent, lang)
+                ), intent, lang, evidence=guard_evidence)
                 if response_text and _has_unverified_market_claim(
                     response_text, intent, prices_data
                 ):
@@ -1741,12 +1997,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 logger.warning("Open LLM failed: %s — trying local Ollama", exc)
 
         # Tier 4: Local krishimitra-llm (Qwen/Ollama) — on-box / self-hosted
-        if not response_text and model_composition_allowed:
+        if not response_text and model_composition_allowed and not _guard_rejected():
             response_text = _safe_model_text(self._qwen_rag_answer(
                 query=query, ctx=ctx, lang=lang, history=history,
                 sc=sc, wc=wc, market_str=market_str, farmer_profile=farmer_profile,
                 local_kb_context=kb_grounding, include_weather=needs_weather,
-            ), intent, lang)
+            ), intent, lang, evidence=guard_evidence)
             if response_text and _has_unverified_market_claim(
                 response_text, intent, prices_data
             ):
@@ -1793,6 +2049,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 fast_mode
                 or intent == INTENT_SOWING
                 or intent == INTENT_STORAGE
+                or _guard_rejected()
             )
             narrated = "" if _deterministic_only else self._narrate_structured_answer(
                 query=query, structured=response_text, intent=intent,
@@ -2077,15 +2334,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             else "Acidic — add lime" if ph < 6.5
                             else "Alkaline — add gypsum")
                 s_lines.append(f"Soil pH: {ph:.1f} — {ph_label}")
-            if n_val is not None:
-                n_flag = "✅ OK" if n_val >= 120 else "❌ Deficient — add N fertiliser"
-                s_lines.append(f"Nitrogen: {n_val:.0f} kg/ha — {n_flag}")
-            if p_val is not None:
-                p_flag = "✅ OK" if p_val >= 10 else "❌ Deficient — add DAP/SSP"
-                s_lines.append(f"Phosphorus: {p_val:.0f} kg/ha — {p_flag}")
-            if k_val is not None:
-                k_flag = "✅ OK" if k_val >= 108 else "❌ Deficient — add MOP"
-                s_lines.append(f"Potassium: {k_val:.0f} kg/ha — {k_flag}")
+            from .field_sensor_service import _soil_test_class
+            for label, nutrient, value in (("Nitrogen", "N", n_val), ("Phosphorus", "P", p_val),
+                                           ("Potassium", "K", k_val)):
+                if value is not None:
+                    soil_class = _soil_test_class(nutrient, value)
+                    s_lines.append(f"{label}: {value:.0f} kg/ha — {soil_class} (Soil Health Card class)")
             if ec_val is not None:
                 ec_flag = "✅ Safe" if ec_val < 2.0 else "⚠️ Saline — leach salts"
                 s_lines.append(f"EC (salinity): {ec_val:.2f} dS/m — {ec_flag}")
@@ -2472,6 +2726,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     from ..models import IoTSensorReading
 
                     cutoff = timezone.now() - timedelta(minutes=30)
+                    # Device readings only: readings a farmer submitted through
+                    # the API ("user:<id>") describe that farmer's own field
+                    # and must not steer anyone else's advice.
                     reading = (
                         IoTSensorReading.objects
                         .filter(
@@ -2479,6 +2736,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             longitude__range=(ctx.longitude - 0.15, ctx.longitude + 0.15),
                             created_at__gte=cutoff,
                         )
+                        .exclude(field_id__startswith="user:")
                         .order_by("-created_at")
                         .first()
                     )
@@ -2712,12 +2970,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         def _fmt(val, fallback: str = "N/A") -> str:
             return str(val) if val is not None else fallback
 
-        def _npk_status(val: Optional[float], low: float, high: float) -> str:
+        def _npk_status(val: Optional[float], nutrient: str) -> str:
             if val is None:
                 return "unknown"
-            if val < low:
-                return "⚠️ Low"
-            return "✅ Adequate"
+            from .field_sensor_service import _soil_test_class
+            return f"{_soil_test_class(nutrient, val)} (Soil Health Card class)"
 
         def _ph_status(ph: Optional[float]) -> str:
             if ph is None:
@@ -2743,11 +3000,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 air_temp_c              = _fmt(sc.air_temp_c, "N/A") + ("°C" if sc.air_temp_c is not None else ""),
                 humidity_pct            = _fmt(sc.humidity_pct, "N/A") + ("%" if sc.humidity_pct is not None else ""),
                 nitrogen_kg_ha          = _fmt(sc.nitrogen_kg_ha) + (" kg/ha" if sc.nitrogen_kg_ha is not None else ""),
-                nitrogen_status         = _npk_status(sc.nitrogen_kg_ha, 150, 250),
+                nitrogen_status         = _npk_status(sc.nitrogen_kg_ha, "N"),
                 phosphorus_kg_ha        = _fmt(sc.phosphorus_kg_ha) + (" kg/ha" if sc.phosphorus_kg_ha is not None else ""),
-                phosphorus_status       = _npk_status(sc.phosphorus_kg_ha, 10, 25),
+                phosphorus_status       = _npk_status(sc.phosphorus_kg_ha, "P"),
                 potassium_kg_ha         = _fmt(sc.potassium_kg_ha) + (" kg/ha" if sc.potassium_kg_ha is not None else ""),
-                potassium_status        = _npk_status(sc.potassium_kg_ha, 100, 200),
+                potassium_status        = _npk_status(sc.potassium_kg_ha, "K"),
                 soil_ph                 = _fmt(sc.soil_ph),
                 ph_status               = _ph_status(sc.soil_ph),
                 soil_health_score       = sc.soil_health_score if sc.soil_health_score is not None else "—",
@@ -2911,6 +3168,16 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         ):
             return INTENT_PEST_DISEASE, crops_mentioned
 
+        # A crop-management explanation mentioning rain is not a request for
+        # local observations. Keep actual forecast questions location-aware.
+        explains_drainage = (
+            re.search(r"\b(why|explain|kyun|kyon|kyu)\b|क्यों|समझा", q)
+            and re.search(r"\b(drainage|waterlogging|waterlogged)\b|जल\s*निकासी|जलभराव", q)
+            and not re.search(r"\b(today|tomorrow|forecast|tonight|aaj|kal)\b|आज|कल|पूर्वानुमान", q)
+        )
+        if explains_drainage:
+            return INTENT_CROP_INFO, crops_mentioned
+
         # "barish ke baad [X me] sinchai" → IRRIGATION (not WEATHER)
         # Allow up to ~5 words between "barish ke baad" and "sinchai/pani"
         if re.search(
@@ -2995,10 +3262,22 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 phrase = " ".join(tokens[i:i + length])
                 if len(phrase) < 2:
                     continue
+                if i and tokens[i - 1] == "not":
+                    continue
+                if i >= 2 and tokens[i - 2:i] == ["instead", "of"]:
+                    continue
                 # Entity extraction must be exact. Autocomplete-style fuzzy
                 # matching turns Hinglish time words such as "kal" into crops
                 # such as Kale/Kalmegh and pollutes weather/mandi answers.
                 norm = crop_catalog.normalize(phrase, allow_fuzzy=False)
+                # Only accept a plural reduction if it resolves exactly to a
+                # catalog entry; never fuzzy-match ordinary conversational words.
+                if not norm and length == 1 and phrase.isascii():
+                    for suffix in ("es", "s"):
+                        if phrase.endswith(suffix) and len(phrase) > len(suffix) + 2:
+                            norm = crop_catalog.normalize(phrase[:-len(suffix)], allow_fuzzy=False)
+                            if norm:
+                                break
                 # FIX: was norm["id"] — crashes when normalize() returns None
                 if norm and norm.get("id") and norm["id"] not in seen:
                     seen.add(norm["id"])
@@ -3366,6 +3645,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         lang: str = "hi",
         _weather: Optional[Dict[str, Any]] = None,
         _prices: Optional[Dict[str, Any]] = None,
+        farmer_profile: Optional[Dict[str, Any]] = None,
     ) -> Tuple[str, List[str]]:
         """Fetch and format live official data for this farmer's location.
 
@@ -3421,7 +3701,9 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
                 lines.append(
                     f"[LIVE WEATHER] {ctx.display_name}: {temp}°C, {cond}, "
-                    f"humidity {humidity}%, wind {wind} km/h, rain {rain}mm/hr"
+                    + (f"humidity {humidity}%, " if humidity is not None else "humidity unavailable, ")
+                    + (f"wind {wind} km/h, " if wind is not None else "wind unavailable, ")
+                    + (f"rain {rain}mm/hr" if rain is not None else "rain unavailable")
                     + (f", ET0 {et0}mm/day" if et0 else "")
                 )
 
@@ -3435,14 +3717,14 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     or []
                 )
                 if forecast:
-                    lines.append("[7-DAY FORECAST]")
+                    lines.append("[AVAILABLE FORECAST]")
                     for day in forecast[:5]:
                         wb  = day.get("water_balance_mm")
                         irr = " (IRRIGATE)" if day.get("irrigation_needed") else ""
                         lines.append(
                             f"  {day.get('date')}: max {day.get('max_temp')}°C, "
                             f"rain {day.get('rainfall_mm', 0)}mm, "
-                            f"prob {day.get('rain_probability', 0)}%"
+                            + (f"prob {day['rain_probability']}%" if day.get('rain_probability') is not None else "prob unavailable")
                             + (f", WB {wb}mm{irr}" if wb is not None else "")
                         )
 
@@ -3535,11 +3817,22 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
         # 3. Crop recommendations (for crop/general queries)
         if intent in (INTENT_CROP_RECOMMENDATION, INTENT_GENERAL, INTENT_CROP_INFO):
             try:
-                rec = crop_recommendation_engine.recommend_from_context(ctx, language=lang)
+                field_profile = farmer_profile or {}
+                agronomic_inputs = {
+                    "soil_type": field_profile.get("soil_type"),
+                    "soil_ph": field_profile.get("soil_ph"),
+                    "irrigation": field_profile.get("irrigation_type"),
+                }
+                rec = crop_recommendation_engine.recommend_from_context(
+                    ctx, language=lang,
+                    agronomic_inputs={key: value for key, value in agronomic_inputs.items() if value is not None and value != ""},
+                )
                 sources.append(rec.get("data_source", "Crop engine"))
                 season_lbl = rec.get("season", "")
                 zone = rec.get("agro_zone") or rec.get("region") or ""
                 lines.append(f"[CROP RECOMMENDATIONS for {ctx.display_name}] season: {season_lbl}, zone: {zone}")
+                if rec.get("clarification_required"):
+                    lines.append("[MISSING FIELD DETAILS] Ask the farmer for soil type and reliable irrigation access. The following rankings are general guidance, not field-specific predictions.")
                 for r in (rec.get("recommendations") or [])[:5]:
                     local = r.get("crop_name_local") or r.get("crop_name_hindi") or r.get("crop_name", "")
                     profit_value = r.get("profit_per_hectare")
@@ -3557,7 +3850,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                     reason = r.get("reason") or r.get("reason_hindi", "")
                     lines.append(
                         f"  {r.get('crop_name')} ({local}): "
-                        f"suitability {r.get('suitability_score')}%, "
+                        f"ranking {r.get('suitability_score')}/100, "
                         f"profit {profit_label}, "
                         f"{msp_label}, "
                         f"reason: {reason}"
@@ -3570,7 +3863,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # 4. Government schemes
         if intent == INTENT_GOVERNMENT_SCHEME or \
-           any(w in query.lower() for w in ("yojana", "scheme", "kisan", "योजना", "subsidy", "sarkaar", "apply", "register")):
+           any(w in query.lower() for w in ("yojana", "scheme", "योजना", "subsidy", "sarkaar", "pm-kisan", "pm kisan")):
             try:
                 schemes = schemes_service.get_schemes(ctx.query_label)
                 sources.append("Government schemes (MoAFW)")
@@ -3660,7 +3953,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 out = _safe_model_text(
                     svc.generate(prompt=prompt, system_prompt=system,
                                  max_tokens=1200, user_query=query, temperature=0.25),
-                    intent, lang,
+                    intent, lang, evidence=f"{structured}\n{market_price_str or ''}",
                 )
                 if not out or not out.strip():
                     continue
@@ -3717,7 +4010,8 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
             farming_advice = fa_line.replace("[FARMING ADVICE]", "").strip()
 
         season = _current_season()
-        now    = datetime.now(tz=timezone.utc)
+        from .market_data_quality import INDIA_TZ
+        now    = datetime.now(tz=INDIA_TZ)
 
         # ── Evaluation Check 1: active weather alerts (prefix all responses) ─
         alert_prefix = ""
@@ -3726,6 +4020,50 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 f"⚠️ **कृषि चेतावनी:** {wc.alerts_text}\n\n"
                 if lang == "hi" else
                 f"⚠️ **Farming Alert:** {wc.alerts_text}\n\n"
+            )
+
+        # A request for checks is not a request for a fertilizer prescription.
+        if intent in {INTENT_FERTILIZER, INTENT_PEST_DISEASE} and re.search(
+            r"fertili[sz]er|khad|खाद|उर्वरक", query, re.I
+        ) and re.search(r"\bbefore\b|\bcheck\b|pehle|पहले|जांच|जाँच", query, re.I):
+            crop_name = crops[0]["name"] if crops else "your crop"
+            older_yellow = bool(re.search(r"older? leaves.*yellow|yellow.*older? leaves", query, re.I))
+            if lang == "hi":
+                return alert_prefix + (
+                    "**खाद डालने से पहले जांचें**\n\n"
+                    "आपके बताए लक्षणों से अकेले पोषक तत्व की कमी या रोग तय नहीं किया जा सकता।\n"
+                    "1. पीलापन पुरानी पत्तियों में है या नई पत्तियों में, और कितने पौधों पर है?\n"
+                    "2. मिट्टी सूखी है, नम है या जलभराव है? आखिरी सिंचाई और बारिश कब हुई?\n"
+                    "3. पिछली खाद का नाम, मात्रा, तारीख और मिट्टी जांच रिपोर्ट देखें।\n"
+                    "4. पत्तियों के दोनों तरफ, तने और पूरे पौधे की फोटो लें।\n\n"
+                    "फसल की उम्र और मिट्टी जांच के बिना मैं मात्रा नहीं बताऊंगा। "
+                    "लक्षण तेजी से फैलें या पौधे मुरझाएं तो स्थानीय KVK से जांच कराएं।"
+                )
+            if lang == "hinglish":
+                return alert_prefix + (
+                    f"**{crop_name}: khad daalne se pehle kya check karein**\n\n"
+                    "Sirf peele patton se nutrient deficiency ya disease confirm nahi hoti.\n"
+                    "1. Purane ya naye patte? Ek paudha ya poora khet?\n"
+                    "2. Mitti dry, moist ya waterlogged hai? Last irrigation/rain kab hui?\n"
+                    "3. Last khad ka naam, matra, date aur soil test report dekhein.\n"
+                    "4. Patton ke dono taraf aur poore plant ki photos lein.\n\n"
+                    "Crop age aur soil test ke bina dose suggest nahi karunga. "
+                    "Wilting ya tezi se failte symptoms par local KVK se jaanch karwaein."
+                )
+            observation = (
+                "You reported yellow older leaves while the newer leaves are green. "
+                if older_yellow and re.search(r"new.*green", query, re.I) else ""
+            )
+            return alert_prefix + (
+                f"**Before adding fertilizer to {crop_name}**\n\n"
+                + observation + "That description alone cannot confirm a nutrient deficiency or disease.\n\n"
+                "1. Note which leaves changed first and whether one plant or the whole plot is affected.\n"
+                "2. Check whether the soil is dry, moist or waterlogged, and note the last irrigation/rain.\n"
+                "3. Check your soil test and record the last fertilizer product, amount and application date.\n"
+                "4. Take clear photos of both leaf surfaces, the stem and the whole plant.\n\n"
+                "How old is the crop, and what did you last apply? I would not prescribe a dose "
+                "without those details and a soil test. If symptoms spread rapidly or plants wilt, "
+                "ask your local KVK to examine them."
             )
 
         # ── Evaluation Check 2: irrigation vs. moisture ───────────
@@ -3792,7 +4130,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "mni": "ꯈꯨꯔꯨꯝꯖꯔꯤ",
                 "sd": "سلام هاري",
                 "ks": "آداب کسان",
-                "bo": "नमस्कार आबादार",
+                "brx": "नमस्कार आबादार",
                 "doi": "नमस्कार किसान जी",
                 "sat": "ᱡᱚᱦᱟᱨ ᱪᱟᱥᱤ",
             }
@@ -3850,33 +4188,36 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 "",
             )
             tomorrow_values = re.search(
-                r"max\s+([\d.]+)°C,\s*rain\s+([\d.]+)mm,\s*prob\s+([\d.]+)%",
+                r"max\s+(-?[\d.]+)°C,\s*rain\s+([\d.]+)mm(?:,\s*prob\s+([\d.]+)%)?",
                 tomorrow_line,
                 re.I,
             )
 
             if wants_tomorrow and tomorrow_values:
                 max_temp, rain_mm, rain_probability = tomorrow_values.groups()
+                probability = f"{rain_probability}%" if rain_probability is not None else {
+                    "hi": "उपलब्ध नहीं", "hinglish": "uplabdh nahi", "en": "unavailable",
+                }.get(lang, "unavailable")
                 resp = {
                     "hi": (
                         f"🌦️ **कल {loc} का मौसम:**\n\n"
                         f"🌡️ अधिकतम तापमान **{max_temp}°C** रहेगा। "
-                        f"बारिश की संभावना **{rain_probability}%** है और लगभग **{rain_mm} mm** बारिश हो सकती है।\n"
+                        f"बारिश की संभावना **{probability}** है और लगभग **{rain_mm} mm** बारिश हो सकती है।\n"
                         f"{'🚨 ' + farming_advice if farming_advice else '✅ खेत का काम बारिश की संभावना देखकर तय करें।'}\n\n"
                     ),
                     "hinglish": (
                         f"🌦️ **Kal {loc} ka mausam:**\n\n"
                         f"🌡️ Maximum temperature **{max_temp}°C** rahega. "
-                        f"Baarish ki probability **{rain_probability}%** hai aur lagbhag **{rain_mm} mm** rain ho sakti hai.\n"
+                        f"Baarish ki probability **{probability}** hai aur lagbhag **{rain_mm} mm** rain ho sakti hai.\n"
                         "✅ Field work aur irrigation ka decision rain probability dekhkar karein.\n\n"
                     ),
                     "en": (
                         f"🌦️ **Tomorrow in {loc}:**\n\n"
                         f"🌡️ Maximum temperature **{max_temp}°C**. Rain probability is "
-                        f"**{rain_probability}%**, with about **{rain_mm} mm** forecast.\n"
+                        f"**{probability}**, with about **{rain_mm} mm** forecast.\n"
                         "✅ Plan field work and irrigation around the rain probability.\n\n"
                     ),
-                }.get(lang, f"Tomorrow in {loc}: max {max_temp}°C, rain {rain_mm}mm ({rain_probability}%).\n\n")
+                }.get(lang, f"Tomorrow in {loc}: max {max_temp}°C, rain {rain_mm}mm (probability {probability}).\n\n")
             else:
                 resp = {
                 "hi": (
@@ -3974,11 +4315,11 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
             if forecast_lines:
                 forecast_header = (
-                    "📅 **7 दिन का पूर्वानुमान:**\n"
+                    "📅 **उपलब्ध पूर्वानुमान:**\n"
                     if lang == "hi"
                     else "📅 **Agle dinon ka forecast:**\n"
                     if lang == "hinglish"
-                    else "📅 **7-Day Forecast:**\n"
+                    else "📅 **Available Forecast:**\n"
                 )
                 resp += forecast_header
                 resp += "\n".join(f"• {l.strip()}" for l in forecast_lines[:5]) + "\n\n"
@@ -4017,7 +4358,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # ── CROP RECOMMENDATION ──────────────────────────────────
         if intent == INTENT_CROP_RECOMMENDATION:
-            rec_lines = [l for l in context_block.splitlines() if "suitability" in l]
+            rec_lines = [l for l in context_block.splitlines() if "ranking" in l or "suitability" in l]
+            if not rec_lines or "[MISSING FIELD DETAILS]" in context_block:
+                return {
+                    "hi": "आपके खेत के लिए फसल चुनने से पहले मिट्टी का प्रकार और सिंचाई की उपलब्धता बताएं। क्या खेत केवल बारिश पर निर्भर है? मिट्टी जाँच नहीं हुई हो तो बताएं; मैं सामान्य विकल्प समझा सकता हूँ, लेकिन उन्हें आपके खेत का निश्चित सुझाव नहीं कहूँगा।",
+                    "hinglish": "Aapke khet ke liye crop chunne se pehle soil type aur irrigation availability batayein. Kya khet sirf baarish par depend karta hai? Soil test nahi hua ho to batayein; main general options samjha sakta hoon, guaranteed field advice nahi.",
+                }.get(lang, "Before choosing crops for your field, please tell me your soil type and irrigation availability. Does the field depend only on rainfall? If you have no soil test, say so; I can explain general options, but cannot treat them as a field-specific recommendation.")
 
             header = {
                 "hi": f"🌾 **{loc}** के लिए फसल सुझाव — {season}\n\n🌡️ मौसम: {temp}°C, {cond}\n\n",
@@ -4028,7 +4374,7 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                 body = ""
                 for i, line in enumerate(rec_lines[:5], 1):
                     m = re.search(
-                        r"\s*([^(:]+)\s*(?:\(([^)]*)\))?:\s*suitability\s*([\d]+)%,"
+                        r"\s*([^(:]+)\s*(?:\(([^)]*)\))?:\s*(?:ranking|suitability)\s*([\d]+)(?:/100|%),"
                         r"\s*profit\s*([^,]+),\s*((?:MSP reference|no central MSP)[^,]*),\s*reason:\s*(.*)",
                         line,
                     )
@@ -4056,23 +4402,12 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
                             )
                             msp = msp.replace("MSP reference", "MSP reference").replace("no central MSP", "central MSP nahi")
                         body += (
-                            f"{i}. {bar} **{crop_name}{local_desc}** — {score}% suitability\n"
+                            f"{i}. {bar} **{crop_name}{local_desc}** — {score}/100 ranking points (not a probability)\n"
                             f"   {economics} | {msp}\n"
                             + (f"   Why: {reason}\n" if lang != "hi" else f"   कारण: {reason}\n")
                         )
                     else:
                         body += f"• {line.strip().lstrip('- ')}\n"
-            else:
-                body = (
-                    f"• 🟢 **गेहूँ** — रबी सीजन, MSP ₹{MSP_2024_25['wheat']:,}/q\n"
-                    f"• 🟢 **सरसों** — कम पानी, MSP ₹{MSP_2024_25['mustard']:,}/q\n"
-                    f"• 🟡 **चना** — हल्की मिट्टी, MSP ₹{MSP_2024_25['gram']:,}/q\n"
-                    if lang == "hi" else
-                    f"• 🟢 **Wheat** — Rabi season, MSP ₹{MSP_2024_25['wheat']:,}/q\n"
-                    f"• 🟢 **Mustard** — low water, MSP ₹{MSP_2024_25['mustard']:,}/q\n"
-                    f"• 🟡 **Gram** — light soil, MSP ₹{MSP_2024_25['gram']:,}/q\n"
-                )
-
             footer = {
                 "hi": f"\n\n💡 {farming_advice or 'बुवाई से पहले मिट्टी जांच करवाएं।'}\n📞 ICAR: 1800-180-1551",
                 "en": f"\n\n💡 {farming_advice or 'Get soil tested before sowing.'}\n📞 ICAR: 1800-180-1551",
@@ -5077,43 +5412,38 @@ Never claim you inspected a photo. Never make up mandi names or today's prices."
 
         # ── ORGANIC FARMING ──────────────────────────────────────
         if intent == INTENT_ORGANIC:
-            crop_hint = f" for {crops[0]['name']}" if crops else ""
-            body = {
-                "hi": (
-                    f"🌿 **जैविक खेती{crop_hint} — {loc}**\n\n"
-                    f"**जैविक खाद (घर पर बनाएं):**\n"
-                    f"• **वर्मीकम्पोस्ट:** 30-40 दिन | 5-10 टन/हे. | ₹2000-3000/टन बचत\n"
-                    f"• **जीवामृत:** 200L पानी + 10kg गोबर + 2kg बेसन + 2kg गुड़ + 2L गोमूत्र — 48 घंटे\n"
-                    f"• **FYM (गोबर खाद):** 10-15 टन/हे. — बुवाई से 15-20 दिन पहले\n\n"
-                    f"**जैविक कीट नियंत्रण:**\n"
-                    f"• नीम तेल 5ml/L — माहू, सफेद मक्खी\n"
-                    f"• Trichoderma viride 2.5kg/ha — जड़ सड़न\n"
-                    f"• Beauveria bassiana — Stem borer, थ्रिप्स\n"
-                    f"• पीला sticky trap — सफेद मक्खी monitor\n\n"
-                    f"**प्रमाणन:**\n"
-                    f"• PGS India (Participatory Guarantee System) — free, 3 साल\n"
-                    f"• NPOP — export के लिए | APEDA: 1800-425-9111\n\n"
-                    f"💡 जैविक प्रीमियम: 20-50% अधिक दाम — Big Basket, Organic India\n"
-                    f"📞 ICAR-NIAP: 011-25843377"
-                ),
-                "en": (
-                    f"🌿 **Organic Farming{crop_hint} — {loc}**\n\n"
-                    f"**Organic inputs (make at home):**\n"
-                    f"• **Vermicompost:** 30-40 days | 5-10 t/ha | saves ₹2000-3000/t\n"
-                    f"• **Jeevamrit:** 200L water + 10kg dung + 2kg chickpea flour + 2kg jaggery + 2L cow urine — 48 hrs\n"
-                    f"• **FYM:** 10-15 t/ha — apply 15-20 days before sowing\n\n"
-                    f"**Biopesticides:**\n"
-                    f"• Neem oil 5ml/L — aphids, whitefly\n"
-                    f"• Trichoderma viride 2.5kg/ha — root rot\n"
-                    f"• Beauveria bassiana — stem borers, thrips\n"
-                    f"• Yellow sticky traps — whitefly monitoring\n\n"
-                    f"**Certification:**\n"
-                    f"• PGS India — free, 3-year process\n"
-                    f"• NPOP — for export | APEDA: 1800-425-9111\n\n"
-                    f"💡 Organic premium: 20-50% higher price\n📞 ICAR: 1800-180-1551"
-                ),
-            }.get(lang, "Organic farming: use vermicompost, jeevamrit, neem oil, Trichoderma. PGS certification free.")
-            return alert_prefix + body
+            compare_compost = bool(re.search(
+                r"vermi|वर्मी|केंचुआ", query, re.I
+            ) and re.search(r"compar|difference|versus|\bvs\b|far[aq]k|तुलना|अंतर|फर्क", query, re.I))
+            if compare_compost:
+                body = {
+                    "en": (
+                        "**Compost and vermicompost differ mainly in how you manage them:**\n\n"
+                        "1. Compost needs aeration and moisture control; vermicompost also needs living worms.\n"
+                        "2. Hot composting can reduce pathogens when properly managed; worm composting alone does not reliably sanitize waste.\n"
+                        "3. Worm beds need protection from heat and drying. Choose based on the care and materials you can provide, not a promised price premium."
+                    ),
+                    "hi": (
+                        "**कम्पोस्ट और वर्मीकम्पोस्ट में मुख्य अंतर देखभाल का है:**\n\n"
+                        "1. कम्पोस्ट में हवा और नमी संभालनी होती है; वर्मीकम्पोस्ट में जीवित केंचुए भी चाहिए।\n"
+                        "2. सही गर्म कम्पोस्टिंग रोगाणु कम कर सकती है; केवल केंचुआ खाद बनाने से कचरा रोगाणुमुक्त नहीं माना जा सकता।\n"
+                        "3. केंचुआ बेड को गर्मी और सूखने से बचाएं। उपलब्ध सामग्री और देखभाल के अनुसार चुनें, अधिक बिक्री भाव की गारंटी मानकर नहीं।"
+                    ),
+                    "hinglish": (
+                        "**Compost aur vermicompost mein care ka farq hai:**\n\n"
+                        "1. Compost mein hawa aur moisture manage karein; vermicompost mein live worms bhi chahiye.\n"
+                        "2. Sahi hot composting pathogens kam kar sakti hai; worm composting alone waste ko reliably sanitize nahi karti.\n"
+                        "3. Worm bed ko heat aur drying se bachayein. Apni materials aur care capacity se choose karein, guaranteed higher price sochkar nahi."
+                    ),
+                }
+            else:
+                body = {
+                    "en": "Start by assessing your crop, soil test and available compost materials. I cannot give a field-specific application rate, pesticide dose, certification timeline or financial return from the information supplied. What crop are you growing, and are you asking about making compost or using it?",
+                    "hi": "पहले फसल, मिट्टी जांच और उपलब्ध खाद सामग्री देखें। दी गई जानकारी से खेत की खाद मात्रा, कीटनाशक खुराक, प्रमाणन अवधि या कमाई तय नहीं की जा सकती। आपकी फसल कौन सी है और आप खाद बनाना चाहते हैं या उसका उपयोग जानना चाहते हैं?",
+                    "hinglish": "Pehle crop, soil test aur available compost materials dekhein. Di hui information se field ki application rate, pesticide dose, certification time ya income tay nahi kar sakta. Kaunsi crop hai, aur compost banana hai ya use karna hai?",
+                }
+            reference = "\n\n[FAO: On-farm composting methods](https://www.fao.org/4/y5104e/y5104e00.htm)"
+            return alert_prefix + body.get(lang, body["en"]) + reference
 
         # ── SEED ─────────────────────────────────────────────────
         if intent == INTENT_SEED:
@@ -5822,7 +6152,6 @@ def _answer_stream(
     if not fast_mode:
         stream_slot_held = False
         partial_stream_text: List[str] = []
-        buffered_stream_tokens: List[str] = []
         try:
             PHASE1_STREAM_URL = _phase1_endpoint("/chat/stream")
             crop_hint = crops_mentioned[0].get("name") if crops_mentioned else None
@@ -5858,6 +6187,7 @@ def _answer_stream(
                 resp.raise_for_status()
                 phase1_started = _time.monotonic()
                 last_token_at = phase1_started
+                last_heartbeat_at = phase1_started
                 first_token_seen = False
                 full_text: List[str] = []
                 # Phase 1 emits very small NDJSON token frames. The requests
@@ -5896,38 +6226,37 @@ def _answer_stream(
                             _set_chat_meta(first_token_ms=int((now_mono - phase1_started) * 1000))
                             first_token_seen = True
                         last_token_at = now_mono
+                        # Nothing reaches the farmer until the whole answer has
+                        # passed the same guards as the JSON endpoint: a dose or
+                        # price cannot be checked from a partial stream.
                         full_text.append(token)
-                        if not partial_stream_text:
-                            buffered_stream_tokens.append(token)
-                            prefix = "".join(buffered_stream_tokens)
-                            if _language_signal_count(prefix) < 8:
-                                continue
-                            if not _model_language_matches(prefix, lang):
-                                raise ValueError("Phase1 response language mismatch")
-                            for buffered_token in buffered_stream_tokens:
-                                partial_stream_text.append(buffered_token)
-                                yield buffered_token
-                            buffered_stream_tokens.clear()
-                        else:
-                            partial_stream_text.append(token)
-                            yield token
+                        if now_mono - last_heartbeat_at >= _STREAM_HEARTBEAT_S:
+                            # Keep clients and proxies from timing out while
+                            # the answer is held back for checking.
+                            last_heartbeat_at = now_mono
+                            yield {"__heartbeat__": True}
                 if full_text:
-                    if not partial_stream_text:
-                        completed_text = "".join(buffered_stream_tokens)
-                        if not _model_language_matches(completed_text, lang):
-                            raise ValueError("Phase1 response language mismatch")
-                        for buffered_token in buffered_stream_tokens:
-                            partial_stream_text.append(buffered_token)
-                            yield buffered_token
-                        buffered_stream_tokens.clear()
+                    # Generation is finished: free the local model for other
+                    # farmers before checking and sending this answer.
+                    _release_local_ai_slot()
+                    stream_slot_held = False
+                    completed_text = _safe_model_text(
+                        "".join(full_text), intent, lang, evidence=verified_knowledge,
+                    )
+                    if not completed_text:
+                        raise ValueError("Phase1 response rejected by the output guard")
+                    if (_has_unverified_market_claim(completed_text, intent, None)
+                            and not _price_figures_supported(completed_text, verified_knowledge)):
+                        raise ValueError("Phase1 response made an unverified market claim")
                     _set_chat_meta(
                         selected_tier="phase1_rag_ollama_stream",
                         fallback_reason="",
                         phase1_latency_ms=int((_time.monotonic() - phase1_started) * 1000),
                         total_llm_ms=int((_time.monotonic() - stream_started) * 1000),
                     )
-                    _release_local_ai_slot()
-                    stream_slot_held = False
+                    for chunk in _yield_answer_chunks(completed_text):
+                        partial_stream_text.append(chunk)
+                        yield chunk
                     yield _done_payload("KrishiMitra local RAG (stream)")
                     return
             if stream_slot_held:
@@ -5955,6 +6284,12 @@ def _answer_stream(
                 yield _done_payload("KrishiMitra local RAG (partial)")
                 return
             logger.debug("Phase1 stream unavailable (%s) — non-stream fallback", exc)
+        finally:
+            # A client that disconnects closes this generator with
+            # GeneratorExit, which the handler above does not catch.
+            if stream_slot_held:
+                _release_local_ai_slot()
+                stream_slot_held = False
 
     # A failed Phase 1 stream can leave the same host Ollama generation running
     # after the HTTP client disconnects. Retrying direct Ollama here queues a

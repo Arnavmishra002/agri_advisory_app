@@ -26,10 +26,12 @@ from .config import (
     LOW_CONFIDENCE_MESSAGE,
     MODEL_FILENAME,
     NOT_PLANT_MESSAGE,
+    OUT_OF_SCOPE_MESSAGE,
     TFLITE_FILENAME,
     TOP_K,
     UNKNOWN_DISPLAY,
     UNKNOWN_LABEL,
+    UNKNOWN_PROB_THRESHOLD,
 )
 from .image_validation import validate_plant_image
 from .labels import load_labels, parse_label
@@ -320,7 +322,7 @@ class CropDiseasePredictor:
                 "model_metrics": self.metadata,
             }
 
-        batch = prepare_for_model(image, remove_bg=True, size=self._input_size())
+        batch = prepare_for_model(image, size=self._input_size())
         batch_pp = self._preprocess_batch(batch)
         import numpy as np
 
@@ -341,6 +343,10 @@ class CropDiseasePredictor:
 
         best = top_predictions[0]
         confidence = best["probability"]
+        unknown_probability = (
+            float(probs[self.class_names.index(UNKNOWN_LABEL)])
+            if UNKNOWN_LABEL in self.class_names else 0.0
+        )
 
         result: Dict[str, Any] = {
             "status": "success",
@@ -353,13 +359,36 @@ class CropDiseasePredictor:
             "model_quality": self.metadata.get("quality", "unknown"),
             "model_metrics": self.metadata,
             "threshold": CONFIDENCE_THRESHOLD,
+            "unknown_probability": unknown_probability,
+            "unknown_threshold": UNKNOWN_PROB_THRESHOLD,
         }
 
-        if confidence < CONFIDENCE_THRESHOLD or best["label"] == UNKNOWN_LABEL:
+        # A label is released only when all three gates pass: the predicted
+        # class is not unknown, the top probability reaches tau, and the
+        # unknown-class probability stays at or below theta.
+        if best["label"] == UNKNOWN_LABEL or confidence < CONFIDENCE_THRESHOLD:
             result["status"] = "low_confidence"
+            result["refusal_reason"] = (
+                "unknown_class" if best["label"] == UNKNOWN_LABEL else "low_confidence"
+            )
             result["message"] = LOW_CONFIDENCE_MESSAGE
             result["crop_name"] = best["crop_name"] if confidence >= 0.4 else None
             result["disease_name"] = None
+        elif unknown_probability > UNKNOWN_PROB_THRESHOLD:
+            # Confident but outside what the model was trained on (a field
+            # photo or an unsupported crop): name neither crop nor disease.
+            result["status"] = "low_confidence"
+            result["refusal_reason"] = "out_of_scope"
+            result["message"] = OUT_OF_SCOPE_MESSAGE
+            result["crop_name"] = None
+            result["disease_name"] = None
+
+        if result["status"] == "success":
+            # Alternatives are shown only when they are plausible.
+            result["top_predictions"] = [p for p in top_predictions if p["probability"] >= 0.05]
+        else:
+            # A withheld label must not reappear as a "top guess".
+            result["top_predictions"] = []
 
         if save_gradcam_to and self.model is not None and self.backend == "keras":
             try:

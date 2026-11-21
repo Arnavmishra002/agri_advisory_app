@@ -1,4 +1,5 @@
 import json
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.http import JsonResponse
@@ -33,6 +34,7 @@ def _runtime_readiness(*, healthy: bool) -> JsonResponse:
 class LaunchReadinessTests(SimpleTestCase):
     def setUp(self):
         self.request = RequestFactory().get("/api/health/launch-readiness/")
+        self.request.user = SimpleNamespace(is_authenticated=True, is_staff=True)
 
     def test_runtime_readiness_is_degraded_when_optional_farmer_services_are_down(self):
         checks = {
@@ -139,7 +141,7 @@ class LaunchReadinessTests(SimpleTestCase):
     @patch("urllib.request.urlopen", side_effect=OSError("upstream secret"))
     def test_readiness_does_not_expose_internal_exception_text(self, _urlopen, connection_mock):
         connection_mock.cursor.side_effect = RuntimeError("db secret path")
-        response = readiness_check(RequestFactory().get("/api/health/readiness/"))
+        response = readiness_check(self.request)
         body = json.loads(response.content)
 
         self.assertEqual(response.status_code, 503)

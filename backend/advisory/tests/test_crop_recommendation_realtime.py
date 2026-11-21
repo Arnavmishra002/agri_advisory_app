@@ -134,12 +134,13 @@ class CropRecommendationRealtimeTests(SimpleTestCase):
         )
 
         crop = result["recommendations"][0]
-        self.assertEqual(result["market_freshness"], "dated_official")
-        self.assertEqual(result["market_reported_date"], "16-07-2026")
-        self.assertIn("official report dated 16-07-2026", result["data_source"])
+        self.assertFalse(result["market_is_live"])
+        self.assertEqual(result["market_freshness"], "unavailable")
+        self.assertEqual(result["market_snapshot"], [])
         self.assertNotIn("live mandi", result["data_source"].lower())
-        self.assertEqual(crop["market_price_reported_date"], "16-07-2026")
-        self.assertEqual(crop["economics_basis"], "official_mandi_modal_price")
+        self.assertIsNone(crop["market_price"])
+        self.assertFalse(crop["market_is_live"])
+        self.assertNotEqual(crop["economics_basis"], "official_mandi_modal_price")
 
     def test_slow_realtime_sources_return_within_caller_budget(self):
         pool = ThreadPoolExecutor(max_workers=2)

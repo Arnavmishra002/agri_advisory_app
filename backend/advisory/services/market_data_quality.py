@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import math
 from datetime import datetime, time, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from zoneinfo import ZoneInfo
@@ -32,7 +33,7 @@ def parse_market_datetime(value: Any) -> Optional[datetime]:
     raw = raw.replace("/", "-")
     for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d-%m-%y"):
         try:
-            day = datetime.strptime(raw[:10], fmt).date()
+            day = datetime.strptime(raw, fmt).date()
             return datetime.combine(day, time(hour=9), tzinfo=INDIA_TZ).astimezone(timezone.utc)
         except ValueError:
             continue
@@ -70,7 +71,8 @@ def filter_fresh_live_rows(
         if row.get("is_live") is not True:
             continue
         try:
-            if float(row.get("modal_price") or 0) <= 0:
+            price = float(row.get("modal_price") or 0)
+            if not math.isfinite(price) or price <= 0:
                 continue
         except (TypeError, ValueError):
             continue
@@ -127,7 +129,8 @@ def build_dated_official_reference(
     for item in rows:
         row = dict(item)
         try:
-            if float(row.get("modal_price") or 0) <= 0:
+            price = float(row.get("modal_price") or 0)
+            if not math.isfinite(price) or price <= 0:
                 continue
         except (TypeError, ValueError):
             continue

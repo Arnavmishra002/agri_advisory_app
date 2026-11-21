@@ -9,8 +9,8 @@ class FarmerProfileSecurityTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         User = get_user_model()
-        self.owner = User.objects.create_user(username="919111111111", password="pass12345")
-        self.other = User.objects.create_user(username="919222222222", password="pass12345")
+        self.owner = User.objects.create_user(username="919111111111")  # OTP account: no password
+        self.other = User.objects.create_user(username="919222222222")  # OTP account: no password
         self.owner_profile = FarmerProfile.objects.create(
             phone_number="+919111111111",
             session_id="sess-owner",

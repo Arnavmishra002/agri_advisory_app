@@ -32,12 +32,66 @@
         { code: 'sd',  name: 'سنڌي',           english: 'Sindhi',     dir: 'rtl' },
         { code: 'ks',  name: 'کشمیری',          english: 'Kashmiri',   dir: 'rtl' },
         { code: 'doi', name: 'डोगरी',           english: 'Dogri',      dir: 'ltr' },
-        { code: 'bo',  name: 'बड़ो',            english: 'Bodo',       dir: 'ltr' },
+        { code: 'brx',  name: 'बड़ो',            english: 'Bodo',       dir: 'ltr' },
         { code: 'sat', name: 'ᱥᱟᱱᱛᱟᱲᱤ',        english: 'Santali',    dir: 'ltr' },
     ];
 
     // ── Translations dictionary ────────────────────────────────────────
     const T = {
+        calendar_title: { hi: "कृषि कैलेंडर: सामान्य संदर्भ, स्थानीय पुष्टि करें", en: "Season calendar: general reference, confirm locally" },
+        calendar_kharif: { hi: "☀️ खरीफ", en: "Kharif" },
+        calendar_kharif_months: { hi: "जून–नवंबर", en: "June-November" },
+        calendar_rabi: { hi: "❄️ रबी", en: "Rabi" },
+        calendar_rabi_months: { hi: "अक्टूबर–मार्च", en: "October-March" },
+        calendar_zaid: { hi: "🌸 जायद", en: "Zaid" },
+        calendar_zaid_months: { hi: "मार्च–जून", en: "March-June" },
+        calendar_helplines: { hi: "📞 हेल्पलाइन", en: "Helplines" },
+        calendar_hours: { hi: "सेवा का समय पुष्टि करें", en: "Confirm service hours" },
+        cal_rice: { hi: "🍚 धान — जून-जुलाई", en: "Rice: June-July" },
+        cal_maize: { hi: "🌽 मक्का — जून", en: "Maize: June" },
+        cal_soy: { hi: "🫘 सोयाबीन — जुलाई", en: "Soybean: July" },
+        cal_cotton: { hi: "🌿 कपास — मई-जून", en: "Cotton: May-June" },
+        cal_wheat: { hi: "🌾 गेहूँ — नवंबर", en: "Wheat: November" },
+        cal_mustard: { hi: "🌼 सरसों — अक्टूबर", en: "Mustard: October" },
+        cal_gram: { hi: "🫘 चना — नवंबर", en: "Gram: November" },
+        cal_peas: { hi: "🟢 मटर — अक्टूबर", en: "Peas: October" },
+        cal_mung: { hi: "🫘 मूंग — मार्च", en: "Mung: March" },
+        cal_melon: { hi: "🍉 तरबूज — फरवरी", en: "Watermelon: February" },
+        cal_cucumber: { hi: "🥒 खीरा — मार्च", en: "Cucumber: March" },
+        cal_okra: { hi: "🌿 भिंडी — मार्च-अप्रैल", en: "Okra: March-April" },
+        profile_load_failed: { hi: 'खाते की जानकारी नहीं खुल सकी। कनेक्शन जांचकर फिर खोलें।', en: 'Could not load your saved farm details. Check your connection and reopen your profile.' },
+        desc_schemes: { hi: "केंद्र और राज्य सरकार की कृषि योजनाएं — पात्रता जांचें", en: "Explore scheme criteria and official sources. Eligibility must be confirmed." },
+        desc_crops: { hi: "202 फसल प्रोफाइल · 126 जिले · लाइव मौसम + सत्यापित मंडी संकेत", en: "Compare crops using your soil, irrigation, season and available weather." },
+        desc_weather: { hi: "16-दिन पूर्वानुमान + ET₀ सिंचाई शेड्यूल + कृषि चेतावनी", en: "Check local forecasts, rainfall outlook and farming alerts." },
+        desc_market: { hi: "GPS के हिसाब से Agmarknet 2.0 + data.gov.in मंडी भाव", en: "Check official market reports with their location, date and source." },
+        desc_disease: { hi: "EfficientNet-B3 तैयार होने पर AI पहचान · अभी सुरक्षित advisory fallback", en: "Share a crop photo and symptoms. Guidance is not a confirmed diagnosis." },
+        desc_ai: { hi: "हिंदी, Hinglish और English में कृषि सलाह", en: "Ask a farming question with your crop and field context." },
+        desc_field: { hi: "IoT NPK सेंसर + Open-Meteo मिट्टी + ICAR खाद योजना", en: "Review your soil readings and clearly separated model estimates." },
+        action_schemes: { hi: "योजनाएं देखें", en: "View schemes" },
+        action_crops: { hi: "फसल सुझाव", en: "Compare crops" },
+        action_weather: { hi: "मौसम देखें", en: "Check weather" },
+        action_market: { hi: "मंडी भाव", en: "View prices" },
+        action_disease: { hi: "जांच शुरू", en: "Check a photo" },
+        action_ai: { hi: "बात करें", en: "Ask a question" },
+        action_field: { hi: "खेत जांचें", en: "Review field" },
+        profile_saved: { hi: 'खाते में सहेजा गया', en: 'Saved to your account' },
+        profile_not_saved: { hi: 'सहेजा नहीं गया। जानकारी यहीं है; कनेक्शन जांचकर फिर कोशिश करें।', en: 'Not saved. Your entry is still here; check your connection and retry.' },
+        language_label: { hi: 'भाषा चुनें', en: 'Choose language' },
+        language_beta: { hi: 'इस भाषा का अनुवाद अधूरा है। कुछ जानकारी हिन्दी या English में दिखेगी।', en: 'Translation is incomplete in this language. Some information uses English or Hindi.' },
+        skip_content: { hi: 'मुख्य जानकारी पर जाएं', en: 'Skip to main content' },
+        location_label: { hi: 'गाँव या जिला खोजें', en: 'Search for your village or district' },
+        workspace_intro: { hi: 'आपके खेत के लिए जानकारी', en: 'Information for your farm' },
+        workspace_help: { hi: 'पहले अपना स्थान चुनें। मौसम और मंडी की जानकारी उसी स्थान के लिए दिखाई जाएगी।', en: 'Choose and confirm your location to see local weather and market reports.' },
+        public_access: { hi: 'बिना लॉगिन सेवाएं देखें। खेत की जानकारी खाते में सहेजने के लिए लॉगिन करें।', en: 'Explore without signing in. Sign in to save your farm details to your account.' },
+        btn_search: { hi: 'खोजें', en: 'Search' },
+        auth_sms_unavailable: {
+            hi: 'अभी SMS नहीं भेजा जा सका। बाद में कोशिश करें, पासवर्ड से लॉगिन करें या बिना लॉगिन जारी रखें।',
+            en: 'SMS could not be sent. Try later, sign in with your password, or continue as a guest.',
+        },
+        auth_sms_accepted: {
+            hi: 'SMS अनुरोध स्वीकार हुआ है; डिलीवरी की पुष्टि अभी नहीं हुई। कोड मिलने पर दर्ज करें।',
+            en: 'The SMS provider accepted the request; delivery is not yet confirmed. Enter the code when it arrives.',
+        },
         // Navigation
         nav_home: {
             hi: 'होम', en: 'Home', bn: 'হোম', te: 'హోమ్', mr: 'मुख्यपृष्ठ',
@@ -357,98 +411,98 @@
             gu: 'લૉગિન', pa: 'ਲੌਗਿਨ', bn: 'লগইন', kn: 'ಲಾಗಿನ್', ml: 'ലോഗിൻ',
             or: 'Login', as: 'Login', ur: 'Login', mai: 'Login', kok: 'Login',
             ne: 'Login', mni: 'Login', sd: 'Login', ks: 'Login', doi: 'Login',
-            bo: 'Login', sat: 'Login'
+            brx: 'Login', sat: 'Login'
         },
         auth_register: {
             hi: 'रजिस्टर', en: 'Register', mr: 'नोंदणी', ta: 'பதிவு', te: 'నమోదు',
             gu: 'નોંધણી', pa: 'ਰਜਿਸਟਰ', bn: 'নিবন্ধন', kn: 'ನೋಂದಣಿ', ml: 'രജിസ്റ്റർ',
             or: 'Register', as: 'Register', ur: 'Register', mai: 'Register', kok: 'Register',
             ne: 'Register', mni: 'Register', sd: 'Register', ks: 'Register', doi: 'Register',
-            bo: 'Register', sat: 'Register'
+            brx: 'Register', sat: 'Register'
         },
         auth_logout: {
             hi: 'लॉगआउट', en: 'Logout', mr: 'लॉगआउट', ta: 'வெளியேறு', te: 'లాగ్అవుట్',
             gu: 'લૉગઆઉટ', pa: 'ਲੌਗਆਉਟ', bn: 'লগআউট', kn: 'ಲಾಗ್ಔಟ್', ml: 'ലോഗ്ഔട്ട്',
-            or: 'Logout', as: 'Logout', ur: 'Logout', mai: 'Logout', kok: 'Logout',
-            ne: 'Logout', mni: 'Logout', sd: 'Logout', ks: 'Logout', doi: 'Logout',
-            bo: 'Logout', sat: 'Logout'
+            or: 'ଲଗ୍ ଆଉଟ୍', as: 'লগ আউট', ur: 'لاگ آؤٹ', mai: 'Logout', kok: 'Logout',
+            ne: 'लग आउट', mni: 'Logout', sd: 'Logout', ks: 'Logout', doi: 'Logout',
+            brx: 'Logout', sat: 'Logout'
         },
         auth_tab_otp: {
             hi: 'OTP लॉगिन', en: 'OTP Login', mr: 'OTP लॉगिन', ta: 'OTP உள்நுழைவு', te: 'OTP లాగిన్',
             gu: 'OTP લૉગિન', pa: 'OTP ਲੌਗਿਨ', bn: 'OTP লগইন', kn: 'OTP ಲಾಗಿನ್', ml: 'OTP ലോഗിൻ',
             or: 'OTP Login', as: 'OTP Login', ur: 'OTP Login', mai: 'OTP Login', kok: 'OTP Login',
             ne: 'OTP Login', mni: 'OTP Login', sd: 'OTP Login', ks: 'OTP Login', doi: 'OTP Login',
-            bo: 'OTP Login', sat: 'OTP Login'
+            brx: 'OTP Login', sat: 'OTP Login'
         },
         auth_tab_password: {
             hi: 'पासवर्ड', en: 'Password', mr: 'पासवर्ड', ta: 'கடவுச்சொல்', te: 'పాస్‌వర్డ్',
             gu: 'પાસવર્ડ', pa: 'ਪਾਸਵਰਡ', bn: 'পাসওয়ার্ড', kn: 'ಪಾಸ್‌ವರ್ಡ್', ml: 'പാസ്‌വേഡ്',
             or: 'Password', as: 'Password', ur: 'Password', mai: 'Password', kok: 'Password',
             ne: 'Password', mni: 'Password', sd: 'Password', ks: 'Password', doi: 'Password',
-            bo: 'Password', sat: 'Password'
+            brx: 'Password', sat: 'Password'
         },
         auth_tab_register: {
             hi: 'रजिस्टर', en: 'Register', mr: 'नोंदणी', ta: 'பதிவு', te: 'నమోదు',
             gu: 'નોંધણી', pa: 'ਰਜਿਸਟਰ', bn: 'নিবন্ধন', kn: 'ನೋಂದಣಿ', ml: 'രജിസ്റ്റർ',
             or: 'Register', as: 'Register', ur: 'Register', mai: 'Register', kok: 'Register',
             ne: 'Register', mni: 'Register', sd: 'Register', ks: 'Register', doi: 'Register',
-            bo: 'Register', sat: 'Register'
+            brx: 'Register', sat: 'Register'
         },
         auth_phone_label: {
             hi: 'मोबाइल नंबर', en: 'Mobile Number', mr: 'मोबाइल नंबर', ta: 'மொபைல் எண்', te: 'మొబైల్ నంబర్',
             gu: 'મોબાઈલ નંબર', pa: 'ਮੋਬਾਈਲ ਨੰਬਰ', bn: 'মোবাইল নম্বর', kn: 'ಮೊಬೈಲ್ ಸಂಖ್ಯೆ', ml: 'മൊബൈൽ നമ്പർ',
             or: 'Mobile Number', as: 'Mobile Number', ur: 'Mobile Number', mai: 'Mobile Number', kok: 'Mobile Number',
             ne: 'Mobile Number', mni: 'Mobile Number', sd: 'Mobile Number', ks: 'Mobile Number', doi: 'Mobile Number',
-            bo: 'Mobile Number', sat: 'Mobile Number'
+            brx: 'Mobile Number', sat: 'Mobile Number'
         },
         auth_otp_label: {
             hi: 'OTP दर्ज करें', en: 'Enter OTP', mr: 'OTP टाका', ta: 'OTP உள்ளிட', te: 'OTP నమోదు',
             gu: 'OTP દાખલ કરો', pa: 'OTP ਦਰਜ ਕਰੋ', bn: 'OTP লিখুন', kn: 'OTP ನಮೂದಿಸಿ', ml: 'OTP നൽകുക',
             or: 'Enter OTP', as: 'Enter OTP', ur: 'Enter OTP', mai: 'Enter OTP', kok: 'Enter OTP',
             ne: 'Enter OTP', mni: 'Enter OTP', sd: 'Enter OTP', ks: 'Enter OTP', doi: 'Enter OTP',
-            bo: 'Enter OTP', sat: 'Enter OTP'
+            brx: 'Enter OTP', sat: 'Enter OTP'
         },
         auth_send_otp: {
             hi: 'OTP भेजें', en: 'Send OTP', mr: 'OTP पाठवा', ta: 'OTP அனுப்பு', te: 'OTP పంపు',
             gu: 'OTP મોકલો', pa: 'OTP ਭੇਜੋ', bn: 'OTP পাঠান', kn: 'OTP ಕಳುಹಿಸಿ', ml: 'OTP അയക്കുക',
             or: 'Send OTP', as: 'Send OTP', ur: 'Send OTP', mai: 'Send OTP', kok: 'Send OTP',
             ne: 'Send OTP', mni: 'Send OTP', sd: 'Send OTP', ks: 'Send OTP', doi: 'Send OTP',
-            bo: 'Send OTP', sat: 'Send OTP'
+            brx: 'Send OTP', sat: 'Send OTP'
         },
         auth_verify_otp: {
             hi: 'OTP सत्यापित करें', en: 'Verify OTP', mr: 'OTP सत्यापित करा', ta: 'OTP சரிபார்', te: 'OTP ధృవీకరించు',
             gu: 'OTP ચકાસો', pa: 'OTP ਜਾਂਚੋ', bn: 'OTP যাচাই করুন', kn: 'OTP ಪರಿಶೀಲಿಸಿ', ml: 'OTP പരിശോധിക്കുക',
             or: 'Verify OTP', as: 'Verify OTP', ur: 'Verify OTP', mai: 'Verify OTP', kok: 'Verify OTP',
             ne: 'Verify OTP', mni: 'Verify OTP', sd: 'Verify OTP', ks: 'Verify OTP', doi: 'Verify OTP',
-            bo: 'Verify OTP', sat: 'Verify OTP'
+            brx: 'Verify OTP', sat: 'Verify OTP'
         },
         auth_password_label: {
             hi: 'पासवर्ड', en: 'Password', mr: 'पासवर्ड', ta: 'கடவுச்சொல்', te: 'పాస్‌వర్డ్',
             gu: 'પાસવર્ડ', pa: 'ਪਾਸਵਰਡ', bn: 'পাসওয়ার্ড', kn: 'ಪಾಸ್‌ವರ್ಡ್', ml: 'പാസ്‌വേഡ്',
             or: 'Password', as: 'Password', ur: 'Password', mai: 'Password', kok: 'Password',
             ne: 'Password', mni: 'Password', sd: 'Password', ks: 'Password', doi: 'Password',
-            bo: 'Password', sat: 'Password'
+            brx: 'Password', sat: 'Password'
         },
         auth_username_label: {
             hi: 'Username', en: 'Username', mr: 'Username', ta: 'பயனர்பெயர்', te: 'వినియోగదారు పేరు',
             gu: 'વપરાશકર્તા નામ', pa: 'ਯੂਜ਼ਰਨੇਮ', bn: 'ব্যবহারকারীর নাম', kn: 'ಬಳಕೆದಾರ ಹೆಸರು', ml: 'ഉപയോക്തൃ നാമം',
             or: 'Username', as: 'Username', ur: 'Username', mai: 'Username', kok: 'Username',
             ne: 'Username', mni: 'Username', sd: 'Username', ks: 'Username', doi: 'Username',
-            bo: 'Username', sat: 'Username'
+            brx: 'Username', sat: 'Username'
         },
         auth_name_label: {
             hi: 'नाम', en: 'Name', mr: 'नाव', ta: 'பெயர்', te: 'పేరు',
             gu: 'નામ', pa: 'ਨਾਮ', bn: 'নাম', kn: 'ಹೆಸರು', ml: 'പേര്',
             or: 'Name', as: 'Name', ur: 'Name', mai: 'Name', kok: 'Name',
             ne: 'Name', mni: 'Name', sd: 'Name', ks: 'Name', doi: 'Name',
-            bo: 'Name', sat: 'Name'
+            brx: 'Name', sat: 'Name'
         },
         auth_state_label: {
             hi: 'राज्य', en: 'State', mr: 'राज्य', ta: 'மாநிலம்', te: 'రాష్ట్రం',
             gu: 'રાજ્ય', pa: 'ਰਾਜ', bn: 'রাজ্য', kn: 'ರಾಜ್ಯ', ml: 'സംസ്ഥാനം',
             or: 'State', as: 'State', ur: 'State', mai: 'State', kok: 'State',
             ne: 'State', mni: 'State', sd: 'State', ks: 'State', doi: 'State',
-            bo: 'State', sat: 'State'
+            brx: 'State', sat: 'State'
         },
         auth_guest_continue: {
             hi: 'Guest के रूप में जारी रखें', en: 'Continue as Guest', mr: 'Guest म्हणून सुरू ठेवा',
@@ -458,7 +512,7 @@
             or: 'Continue as Guest', as: 'Continue as Guest', ur: 'Continue as Guest',
             mai: 'Continue as Guest', kok: 'Continue as Guest', ne: 'Continue as Guest',
             mni: 'Continue as Guest', sd: 'Continue as Guest', ks: 'Continue as Guest',
-            doi: 'Continue as Guest', bo: 'Continue as Guest', sat: 'Continue as Guest'
+            doi: 'Continue as Guest', brx: 'Continue as Guest', sat: 'Continue as Guest'
         },
         auth_welcome_back: {
             hi: 'वापस स्वागत है!', en: 'Welcome back!', mr: 'परत स्वागत!', ta: 'மீண்டும் வரவேற்கிறோம்!',
@@ -467,7 +521,7 @@
             or: 'Welcome back!', as: 'Welcome back!', ur: 'Welcome back!',
             mai: 'Welcome back!', kok: 'Welcome back!', ne: 'Welcome back!',
             mni: 'Welcome back!', sd: 'Welcome back!', ks: 'Welcome back!',
-            doi: 'Welcome back!', bo: 'Welcome back!', sat: 'Welcome back!'
+            doi: 'Welcome back!', brx: 'Welcome back!', sat: 'Welcome back!'
         },
         auth_error_invalid_otp: {
             hi: 'गलत OTP। दोबारा जांचें।', en: 'Invalid OTP. Please check.', mr: 'चुकीचा OTP.',
@@ -477,7 +531,7 @@
             or: 'Invalid OTP.', as: 'Invalid OTP.', ur: 'Invalid OTP.',
             mai: 'Invalid OTP.', kok: 'Invalid OTP.', ne: 'Invalid OTP.',
             mni: 'Invalid OTP.', sd: 'Invalid OTP.', ks: 'Invalid OTP.',
-            doi: 'Invalid OTP.', bo: 'Invalid OTP.', sat: 'Invalid OTP.'
+            doi: 'Invalid OTP.', brx: 'Invalid OTP.', sat: 'Invalid OTP.'
         },
         auth_error_expired_otp: {
             hi: 'OTP समाप्त हो गया। नया OTP भेजें।', en: 'OTP expired. Request a new one.',
@@ -487,7 +541,7 @@
             or: 'OTP expired.', as: 'OTP expired.', ur: 'OTP expired.',
             mai: 'OTP expired.', kok: 'OTP expired.', ne: 'OTP expired.',
             mni: 'OTP expired.', sd: 'OTP expired.', ks: 'OTP expired.',
-            doi: 'OTP expired.', bo: 'OTP expired.', sat: 'OTP expired.'
+            doi: 'OTP expired.', brx: 'OTP expired.', sat: 'OTP expired.'
         },
         auth_error_rate_limit: {
             hi: 'बहुत अधिक प्रयास। 1 घंटे बाद कोशिश करें।', en: 'Too many attempts. Try after 1 hour.',
@@ -497,7 +551,7 @@
             or: 'Too many attempts.', as: 'Too many attempts.', ur: 'Too many attempts.',
             mai: 'Too many attempts.', kok: 'Too many attempts.', ne: 'Too many attempts.',
             mni: 'Too many attempts.', sd: 'Too many attempts.', ks: 'Too many attempts.',
-            doi: 'Too many attempts.', bo: 'Too many attempts.', sat: 'Too many attempts.'
+            doi: 'Too many attempts.', brx: 'Too many attempts.', sat: 'Too many attempts.'
         },
         auth_error_network: {
             hi: 'इंटरनेट कनेक्शन जांचें।', en: 'Check internet connection.', mr: 'इंटरनेट तपासा.',
@@ -507,7 +561,7 @@
             or: 'Check internet connection.', as: 'Check internet connection.', ur: 'Check internet connection.',
             mai: 'Check internet connection.', kok: 'Check internet connection.', ne: 'Check internet connection.',
             mni: 'Check internet connection.', sd: 'Check internet connection.', ks: 'Check internet connection.',
-            doi: 'Check internet connection.', bo: 'Check internet connection.', sat: 'Check internet connection.'
+            doi: 'Check internet connection.', brx: 'Check internet connection.', sat: 'Check internet connection.'
         },
         auth_resend_otp: {
             hi: 'OTP दोबारा भेजें', en: 'Resend OTP', mr: 'OTP पुन्हा पाठवा', ta: 'OTP மீண்டும் அனுப்பு',
@@ -516,14 +570,14 @@
             or: 'Resend OTP', as: 'Resend OTP', ur: 'Resend OTP',
             mai: 'Resend OTP', kok: 'Resend OTP', ne: 'Resend OTP',
             mni: 'Resend OTP', sd: 'Resend OTP', ks: 'Resend OTP',
-            doi: 'Resend OTP', bo: 'Resend OTP', sat: 'Resend OTP'
+            doi: 'Resend OTP', brx: 'Resend OTP', sat: 'Resend OTP'
         },
         auth_or_divider: {
             hi: 'या', en: 'or', mr: 'किंवा', ta: 'அல்லது', te: 'లేదా',
             gu: 'અથવા', pa: 'ਜਾਂ', bn: 'অথবা', kn: 'ಅಥವಾ', ml: 'അല്ലെങ്കിൽ',
             or: 'or', as: 'or', ur: 'or', mai: 'or', kok: 'or',
             ne: 'or', mni: 'or', sd: 'or', ks: 'or', doi: 'or',
-            bo: 'or', sat: 'or'
+            brx: 'or', sat: 'or'
         },
 
         // ── Farmer-facing controls that were hardcoded Hindi in index.html.
@@ -588,9 +642,17 @@
     // ── Current language state ─────────────────────────────────────────
     let _currentLang = 'hi';
 
+    // Coverage measures keys, not linguistic or agronomic validation.
+    window.getTranslationCoverage = () => SUPPORTED_LANGUAGES.map(lang => ({
+        code: lang.code, total: Object.keys(T).length,
+        translated: Object.values(T).filter(entry => Boolean(entry[lang.code])).length,
+        missing: Object.keys(T).filter(key => !T[key][lang.code]),
+        review: 'fluent_speaker_review_required',
+    }));
+
     // Languages written in Devanagari. For these, falling back to Hindi leaves
     // the reader with a script they can actually read.
-    const _DEVANAGARI_LANGS = new Set(['hi', 'mr', 'ne', 'doi', 'kok', 'mai', 'sat', 'bo']);
+    const _DEVANAGARI_LANGS = new Set(['hi', 'mr', 'ne', 'doi', 'kok', 'mai', 'brx']);
 
     /** Translate a key, falling back in a script the reader can actually read.
      *
@@ -616,6 +678,7 @@
     /** Set active language and update the whole UI. */
     window.setLanguage = function (code) {
         code = (code || 'hi').toLowerCase();
+        if (code === 'bo') code = 'brx';
         // Find in supported list; fallback to first 2 chars
         const known = SUPPORTED_LANGUAGES.find(l => l.code === code);
         if (!known) {
@@ -635,6 +698,11 @@
 
         applyTranslations();
         _updateLanguageDropdown(code);
+        const notice = document.getElementById('languageSupportNotice');
+        if (notice) {
+            notice.hidden = ['hi', 'en'].includes(code);
+            notice.textContent = window.t('language_beta');
+        }
     };
 
     /** Apply translations to all [data-i18n] elements. */
@@ -652,6 +720,9 @@
             } else {
                 el.textContent = translated;
             }
+        });
+        document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+            el.setAttribute('aria-label', window.t(el.dataset.i18nAria));
         });
     };
 
@@ -674,6 +745,8 @@
         sel.id = 'languageSwitcher';
         sel.className = 'form-select form-select-sm language-switcher';
         sel.title = 'भाषा / Language';
+        sel.dataset.i18nAria = 'language_label';
+        sel.setAttribute('aria-label', window.t('language_label'));
         sel.style.cssText = (
             'width:auto;min-width:130px;margin:6px 8px;'
             + 'border:1.5px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);'
@@ -683,7 +756,7 @@
         SUPPORTED_LANGUAGES.forEach(lang => {
             const opt = document.createElement('option');
             opt.value = lang.code;
-            opt.textContent = `${lang.name} (${lang.english})`;
+            opt.textContent = `${lang.name} (${lang.english})${['hi', 'en'].includes(lang.code) ? '' : ' · Beta'}`;
             if (lang.code === _currentLang) opt.selected = true;
             sel.appendChild(opt);
         });
@@ -721,10 +794,8 @@
     // ── Initialise on DOM ready ────────────────────────────────────────
     function _init() {
         const lang = window.detectInitialLanguage();
-        _currentLang = lang;
         window.buildLanguageSwitcher();
-        window.applyTranslations();
-        document.documentElement.lang = lang;
+        window.setLanguage(lang);
     }
 
     if (document.readyState === 'loading') {

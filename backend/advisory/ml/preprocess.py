@@ -57,33 +57,64 @@ def remove_background_simple(image: np.ndarray) -> np.ndarray:
     return enhanced
 
 
+def _half_pixel_weights(in_size: int, out_size: int):
+    """Sample positions of TensorFlow's half-pixel-centre bilinear resize.
+
+    TensorFlow's kernel evaluates ``(i + 0.5) * scale - 0.5`` with a fused
+    multiply-add, i.e. one float32 rounding; computing it in float64 and
+    rounding once reproduces that exactly.
+    """
+    scale = np.float64(np.float32(in_size / out_size))
+    pos = ((np.arange(out_size, dtype=np.float64) + 0.5) * scale - 0.5).astype(np.float32)
+    floor = np.floor(pos)
+    lower = np.maximum(floor, 0).astype(np.int64)
+    upper = np.minimum(np.ceil(pos), in_size - 1).astype(np.int64)
+    return lower, upper, (pos - floor).astype(np.float32)
+
+
+def resize_like_training(image: np.ndarray, size: Tuple[int, int] = IMG_SIZE) -> np.ndarray:
+    """Resize exactly as training did: ``tf.image.resize(img, [h, w])``.
+
+    That call is bilinear with half-pixel centres and no antialiasing, and it
+    returns unrounded float32. The confidence and unknown-class thresholds were
+    calibrated on that input, so inference must reproduce it: OpenCV's area
+    resize, Pillow's antialiased bilinear resize and the green-mask background
+    blur all shift the model's output on real photographs. Each lerp is rounded
+    to float32 once, as TensorFlow's fused multiply-adds do, which makes the
+    result bit-identical to ``tf.image.resize``.
+    """
+    out_w, out_h = size
+    img = image.astype(np.float64)
+    y_lo, y_hi, y_lerp = _half_pixel_weights(image.shape[0], out_h)
+    x_lo, x_hi, x_lerp = _half_pixel_weights(image.shape[1], out_w)
+    x_lerp = x_lerp.astype(np.float64)[None, :, None]
+    top = (img[y_lo][:, x_lo] + (img[y_lo][:, x_hi] - img[y_lo][:, x_lo]) * x_lerp).astype(np.float32)
+    bottom = (img[y_hi][:, x_lo] + (img[y_hi][:, x_hi] - img[y_hi][:, x_lo]) * x_lerp).astype(np.float32)
+    step = (bottom - top).astype(np.float64)
+    return (top.astype(np.float64) + step * y_lerp.astype(np.float64)[:, None, None]).astype(np.float32)
+
+
 def resize_and_normalize(
     image: np.ndarray,
     size: Tuple[int, int] = IMG_SIZE,
-    remove_bg: bool = True,
+    remove_bg: bool = False,
 ) -> np.ndarray:
-    """Resize to target size; return float32 [0, 255] RGB for EfficientNet preprocess_input."""
-    if remove_bg:
-        image = remove_background_simple(image)
+    """Resize to target size; return float32 [0, 255] RGB for EfficientNet preprocess_input.
 
-    if HAS_CV2:
-        image = cv2.resize(image, size, interpolation=cv2.INTER_AREA)
-    elif HAS_PIL:
-        image = np.array(
-            Image.fromarray(image).resize(size, Image.Resampling.BILINEAR),
-            dtype=np.uint8,
-        )
-    else:
-        raise RuntimeError("OpenCV or Pillow required for resize")
-
+    ``remove_bg`` is off by default: training never blurred the background,
+    and doing so at inference blurs brown and grey lesions outside the green
+    mask.
+    """
     if image.ndim == 2:
         image = np.stack([image] * IMG_CHANNELS, axis=-1)
-    return image.astype(np.float32)
+    if remove_bg:
+        image = remove_background_simple(image)
+    return resize_like_training(image, size)
 
 
 def prepare_for_model(
     image: Union[np.ndarray, bytes, str],
-    remove_bg: bool = True,
+    remove_bg: bool = False,
     size: Tuple[int, int] = IMG_SIZE,
 ) -> np.ndarray:
     """Single image -> batch-ready float tensor (1, H, W, 3), unnormalized RGB."""

@@ -109,7 +109,7 @@ def _send_otp_sms(phone: str, otp: str) -> bool:
         if settings.DEBUG:
             logger.info("📱 OTP for %s: %s  (Twilio not configured — dev console fallback)", phone, otp)
         else:
-            logger.warning("Twilio not configured; OTP not sent for %s", phone)
+            logger.warning("Twilio not configured; OTP not sent")
         return False  # dev mode
 
     try:
@@ -130,14 +130,14 @@ def _send_otp_sms(phone: str, otp: str) -> bool:
             method="POST",
         )
         with _urllib_request.urlopen(req, timeout=8):
-            logger.info("📱 OTP SMS sent to %s", phone)
+            logger.info("OTP SMS accepted by provider; delivery not confirmed")
             return True
     except Exception as exc:
-        logger.warning("Twilio SMS failed for %s: %s — falling back to console", phone, exc)
+        logger.warning("OTP provider request failed (%s)", type(exc).__name__)
         if settings.DEBUG:
             logger.info("📱 OTP for %s: %s  (SMS failed — dev console fallback)", phone, otp)
         else:
-            logger.warning("OTP delivery failed for %s; code suppressed outside DEBUG", phone)
+            logger.warning("OTP delivery failed; code suppressed outside DEBUG")
         return False
 
 
@@ -179,6 +179,12 @@ def _copy_guest_profile_fields(source, target) -> None:
         incoming = getattr(source, field)
         if current in (None, "", [], {}) and incoming not in (None, "", [], {}):
             setattr(target, field, incoming)
+
+
+def _blacklist_outstanding_tokens(user) -> None:
+    from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+    for token in OutstandingToken.objects.filter(user=user):
+        BlacklistedToken.objects.get_or_create(token=token)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -236,7 +242,11 @@ class AuthViewSet(viewsets.ViewSet):
         # Send SMS
         sms_sent = _send_otp_sms(phone, otp)
 
-        resp: dict = {"success": True, "expires_in": 600, "sms_sent": sms_sent}
+        resp: dict = {
+            "success": True, "expires_in": 600, "sms_sent": sms_sent,
+            "delivery_status": "accepted" if sms_sent else "unavailable",
+            "delivery_confirmed": False,
+        }
 
         # In DEBUG mode, include the OTP in the response for easier dev/testing
         if settings.DEBUG:
@@ -317,6 +327,20 @@ class AuthViewSet(viewsets.ViewSet):
 
         # Get or create User (username = phone digits without +)
         username = phone.lstrip("+").replace(" ", "")
+        squatter = User.objects.filter(username=username).first()
+        if squatter is not None and squatter.has_usable_password():
+            # A password account was registered under this phone number before
+            # its owner ever verified it. The OTP proves who owns the number, so
+            # that account is renamed and deactivated: its refresh tokens are
+            # blacklisted and its unexpired access tokens stop working at once
+            # (JWT authentication rejects inactive users). The farmer gets a
+            # fresh account, so nothing the squatter stored carries over.
+            squatter.username = f"squatted-{squatter.id}-{username}"[:150]
+            squatter.is_active = False
+            squatter.set_unusable_password()
+            squatter.save(update_fields=["username", "is_active", "password"])
+            _blacklist_outstanding_tokens(squatter)
+            logger.warning("Deactivated a password account that held an unverified phone username")
         user, created = User.objects.get_or_create(
             username=username,
             defaults={"is_active": True},
@@ -324,18 +348,23 @@ class AuthViewSet(viewsets.ViewSet):
         if created:
             user.set_unusable_password()
             user.save(update_fields=["password"])
-            logger.info("New farmer account created via OTP: %s", phone)
+            logger.info("New farmer account created via OTP")
 
         # Get or create FarmerProfile + migrate guest session
         profile_name = ""
         try:
             from ...models import FarmerProfile
+            # Profiles that another account attached to this number without
+            # verifying it lose the number; only the verified owner keeps it.
+            FarmerProfile.objects.filter(
+                phone_number=phone, session_id__startswith="user:"
+            ).exclude(session_id=f"user:{user.id}").update(phone_number="")
             profile = FarmerProfile.objects.filter(phone_number=phone).first()
             guest_profile = None
             if verified_guest_session:
                 guest_profile = FarmerProfile.objects.filter(
                     session_id=verified_guest_session, phone_number=""
-                ).first()
+                ).exclude(session_id__startswith="user:").first()
             if profile is None:
                 profile = guest_profile or FarmerProfile(phone_number=phone)
                 profile.phone_number = phone
@@ -345,7 +374,7 @@ class AuthViewSet(viewsets.ViewSet):
                 profile.session_id = verified_guest_session
             profile.save()
             if verified_guest_session:
-                logger.info("Verified guest session migrated to phone account %s", phone)
+                logger.info("Verified guest session migrated to phone account")
             profile_name = profile.location_name or ""
         except Exception as exc:
             logger.warning("FarmerProfile OTP link failed: %s", exc)
@@ -457,7 +486,7 @@ class AuthViewSet(viewsets.ViewSet):
             if verified_guest_session:
                 profile = FarmerProfile.objects.filter(
                     session_id=verified_guest_session, phone_number=""
-                ).first()
+                ).exclude(session_id__startswith="user:").first()
             if profile is None:
                 profile = FarmerProfile.objects.filter(session_id=owned_session_id).first()
             if profile is None:
@@ -466,8 +495,8 @@ class AuthViewSet(viewsets.ViewSet):
                 if getattr(profile, field) in (None, "", [], {}) and value not in (None, "", [], {}):
                     setattr(profile, field, value)
             profile.session_id = owned_session_id
-            if phone_normalised:
-                profile.phone_number = phone_normalised
+            # phone_number is an ownership key, so an unverified number from
+            # this form is never stored; the farmer proves it with OTP login.
             profile.save()
         except Exception as exc:
             logger.warning("FarmerProfile register link failed: %s", exc)
@@ -483,7 +512,7 @@ class AuthViewSet(viewsets.ViewSet):
                     "id":       user.id,
                     "username": username,
                     "name":     name or username,
-                    "phone":    phone_normalised,
+                    "phone":    "",
                     "role":     getattr(user, "role", "farmer"),
                     "is_new":   True,
                 },

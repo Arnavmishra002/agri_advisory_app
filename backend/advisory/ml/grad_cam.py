@@ -60,7 +60,7 @@ def save_grad_cam_overlay(
 
     from .preprocess import load_image_from_path, resize_and_normalize
 
-    rgb = resize_and_normalize(load_image_from_path(image_path), remove_bg=True)
+    rgb = resize_and_normalize(load_image_from_path(image_path))
     batch = np.expand_dims(rgb, 0)
     heatmap = compute_grad_cam(model, batch, class_index)
     heatmap = cv2.resize(heatmap, (224, 224))

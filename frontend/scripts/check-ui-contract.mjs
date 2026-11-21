@@ -49,12 +49,15 @@ for (const id of ['voiceBtn', 'chatNewBtn', 'chatHistoryBtn', 'chatSendBtn']) {
 
 check(!/\balert\s*\(/.test(app), 'Farmer UI must use inline/toast feedback instead of alert()');
 check(!app.includes('&_t=${Date.now()}'), 'Strict API queries must not include the unsupported _t field');
-check(html.includes('data-count="202"'), 'Home crop count must match the 202-profile database');
+check(html.includes('202 भारतीय फसल प्रोफाइल'), 'Crop catalog must retain the 202-profile coverage label');
 check(!html.includes('MSP 2024-25'), 'Home must not display stale MSP-year copy');
 check(!/python manage\.py|DATA_GOV_IN_API_KEY|Server restart/.test(app), 'Farmer-facing JavaScript contains operator-only setup instructions');
 check(!/22\s*(?:भाषाएं|भारतीय भाषाएं|languages?)/i.test(html), 'Farmer UI must not advertise unverified language-count claims');
 check(!/Local KrishiMitra LLM|Local LLM|RAG|Gemini fallback/.test(html), 'Farmer UI must not expose internal AI implementation labels');
 check(!app.includes('AI/Data Quality:'), 'Chat source badge must use farmer-facing trust wording');
+check(!app.includes('(Open-Meteo, real-time)'), 'Weather forecast must use the actual provider, not a hardcoded source');
+check(app.includes('escapeHtml(data.data_source || data.provider'), 'Forecast provider must be escaped and sourced from the API');
+check(app.includes("data.is_live === true && data.is_stale !== true"), 'Live weather label requires explicit fresh data');
 check(!app.includes("let currentLocation = 'Delhi'"), 'Frontend must not assume Delhi before the farmer confirms a location');
 check(!html.includes('class="location-name">Delhi</span>'), 'Location bar must not display a fabricated default city');
 check(

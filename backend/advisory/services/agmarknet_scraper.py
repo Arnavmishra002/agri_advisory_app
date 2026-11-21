@@ -66,6 +66,7 @@ class AgmarknetLiveClient:
         self._commodity_ts = 0.0
         self._state_map: Dict[str, int] = {}
         self._state_ts = 0.0
+        self._captcha_until = 0.0
 
     def _sess(self) -> requests.Session:
         if self._session is None:
@@ -136,6 +137,10 @@ class AgmarknetLiveClient:
         days: int = 3,
     ) -> List[Dict[str, Any]]:
         """Return OGD-shaped live price records, or [] on any failure."""
+        from .agmarknet_direct_client import CAPTCHA_PAUSE_SECS, is_captcha_wall, note_captcha_wall
+
+        if time.monotonic() < self._captcha_until:
+            return []
         try:
             commodity_id = self._match(commodity, self._load_commodities()) if commodity else None
             state_id = self._match(state, self._load_states()) if state else None
@@ -154,6 +159,10 @@ class AgmarknetLiveClient:
                 "limit": 100,
             }
             resp = self._sess().post(_DATA_URL, json=payload, timeout=_TIMEOUT)
+            if is_captcha_wall(resp):
+                note_captcha_wall()
+                self._captcha_until = time.monotonic() + CAPTCHA_PAUSE_SECS
+                return []
             if resp.status_code != 200:
                 logger.warning("agmarknet 2.0 data POST %s", resp.status_code)
                 return []
