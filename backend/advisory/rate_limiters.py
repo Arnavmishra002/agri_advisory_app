@@ -56,6 +56,25 @@ def from_web_edge(request) -> bool:
     return hmac.compare_digest(supplied.encode("utf-8"), secret.encode("utf-8"))
 
 
+def _edge_hop_assumed_without_secret() -> bool:
+    """Trust the web edge's hop when no ORIGIN_SECRET is configured at all.
+
+    Without a secret the edge cannot be told apart from a direct caller. Not
+    trusting its hop would put every web farmer behind Vercel's few addresses,
+    so the 10-per-hour OTP limit would lock out all web logins. Trusting it
+    keeps per-farmer limits, as before this hardening, at the cost that a
+    direct caller can again choose its rate-limit identity. Setting
+    ORIGIN_SECRET on both the edge and the API closes that.
+    RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET=False turns the assumption off for
+    deployments with no web edge in front.
+    """
+    from django.conf import settings
+
+    if str(getattr(settings, "ORIGIN_SECRET", "") or ""):
+        return False
+    return bool(getattr(settings, "RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET", True))
+
+
 def client_ip_from_request(request) -> str:
     """Resolve the client IP from the hops added by trusted proxies.
 
@@ -76,7 +95,7 @@ def client_ip_from_request(request) -> str:
     remote = request.META.get("REMOTE_ADDR", "0.0.0.0")
     if trusted == 0:
         return remote
-    if from_web_edge(request):
+    if from_web_edge(request) or _edge_hop_assumed_without_secret():
         trusted += 1
     entries = [value.strip() for value in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",") if value.strip()]
     if not entries:

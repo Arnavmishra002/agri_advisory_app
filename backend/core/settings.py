@@ -567,6 +567,19 @@ RATE_LIMIT_TRUSTED_PROXIES = int(os.environ.get('RATE_LIMIT_TRUSTED_PROXIES', '1
 # proxy, so one more X-Forwarded-For hop is trusted for them. Set the same value
 # on Vercel and here; leave it empty for deployments without that edge.
 ORIGIN_SECRET = os.environ.get('ORIGIN_SECRET', '')
+# With no ORIGIN_SECRET, still trust the edge hop so web farmers keep their own
+# rate limits (see advisory.rate_limiters._edge_hop_assumed_without_secret).
+RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET = os.environ.get(
+    'RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET', 'true'
+).strip().lower() in ('1', 'true', 'yes', 'on')
+if not DEBUG and not ORIGIN_SECRET and RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET:
+    import warnings
+    warnings.warn(
+        "ORIGIN_SECRET is not set: rate limits trust the web edge's X-Forwarded-For "
+        "hop without proof, so a direct API caller can choose its rate-limit "
+        "identity. Set the same ORIGIN_SECRET on Vercel and on this service.",
+        RuntimeWarning,
+    )
 
 # Performance Monitoring Configuration
 PERFORMANCE_MONITORING = {

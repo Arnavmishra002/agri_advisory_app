@@ -10,6 +10,7 @@ from django.test import RequestFactory, SimpleTestCase, override_settings
 from advisory.rate_limiters import client_ip_from_request, is_local_request
 
 
+@override_settings(RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET=False)
 class ClientIpResolutionTests(SimpleTestCase):
     def setUp(self):
         self.factory = RequestFactory()
@@ -68,6 +69,21 @@ class ClientIpResolutionTests(SimpleTestCase):
         self.assertEqual(
             client_ip_from_request(self._request("49.36.10.1, 76.76.21.9", edge_secret="$ORIGIN_SECRET")),
             "76.76.21.9")
+
+    @override_settings(RATE_LIMIT_TRUSTED_PROXIES=1, ORIGIN_SECRET="",
+                       RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET=True)
+    def test_without_any_secret_web_farmers_keep_their_own_address(self):
+        # No ORIGIN_SECRET anywhere: web farmers must not all share Vercel's
+        # address, or the 10-per-hour OTP limit locks out every web login.
+        self.assertEqual(client_ip_from_request(self._request("49.36.10.1, 76.76.21.9")), "49.36.10.1")
+        self.assertEqual(client_ip_from_request(self._request("103.21.5.7, 76.76.21.9")), "103.21.5.7")
+        # A direct caller with a single proxy-appended entry still gets that entry.
+        self.assertEqual(client_ip_from_request(self._request("203.0.113.9")), "203.0.113.9")
+
+    @override_settings(RATE_LIMIT_TRUSTED_PROXIES=1, ORIGIN_SECRET="edge-test-secret-0123456789",
+                       RATE_LIMIT_TRUST_EDGE_WITHOUT_SECRET=True)
+    def test_a_configured_secret_switches_the_assumption_off(self):
+        self.assertEqual(client_ip_from_request(self._request("127.0.0.1, 203.0.113.9")), "203.0.113.9")
 
     @override_settings(RATE_LIMIT_TRUSTED_PROXIES=1, ORIGIN_SECRET="")
     def test_no_configured_secret_never_trusts_the_extra_hop(self):
