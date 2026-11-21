@@ -1,8 +1,7 @@
 databases:
-  # Legacy suspended database retained for possible recovery; not used by web.
-  # The replacement agri-advisory-db-v2 was created manually in Oregon.
-  # Its connection is managed in Render's Environment tab, never in Git.
-  # Free databases expire; inspect Render's recovery deadline before deleting.
+  # The web service's database. Recreated by a Blueprint sync on 21 Nov 2026
+  # after agri-advisory-db-v2 disappeared. Free databases expire (this one on
+  # 21 Dec 2026); upgrade or replace it before then.
   - name: agri-advisory-db
     databaseName: agri_advisory
     user: agri_user
@@ -42,8 +41,13 @@ services:
     startCommand: "gunicorn core.wsgi:application -c gunicorn.conf.py"
     envVars:
       - key: DATABASE_URL
-        # Preserve the operator-set replacement connection across Blueprint syncs.
-        sync: false
+        # agri-advisory-db-v2 (the manual replacement) no longer exists and its
+        # host stopped resolving, so every deploy failed in preflight. The
+        # Blueprint recreated agri-advisory-db on 21 Nov 2026; Render wires its
+        # connection string here, so no credential lives in Git.
+        fromDatabase:
+          name: agri-advisory-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG

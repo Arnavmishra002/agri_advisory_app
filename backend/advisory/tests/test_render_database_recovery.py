@@ -19,11 +19,14 @@ spec.loader.exec_module(preflight)
 
 
 class RenderDatabaseRecoveryTests(unittest.TestCase):
-    def test_database_binding_is_operator_managed(self):
+    def test_database_binding_comes_from_the_blueprint_database(self):
+        # The manual replacement (agri-advisory-db-v2) is gone; the web service
+        # is wired to the Blueprint database, so no credential lives in Git.
         config = yaml.safe_load((ROOT / "render.yaml").read_text())
         web = next(s for s in config["services"] if s["name"] == "agri-advisory-web")
         database = next(v for v in web["envVars"] if v["key"] == "DATABASE_URL")
-        self.assertEqual(database, {"key": "DATABASE_URL", "sync": False})
+        self.assertEqual(database["fromDatabase"], {"name": "agri-advisory-db", "property": "connectionString"})
+        self.assertIn("agri-advisory-db", {d["name"] for d in config["databases"]})
 
     def test_dns_failure_does_not_claim_permanent_data_loss(self):
         stderr = io.StringIO()
